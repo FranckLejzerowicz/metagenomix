@@ -1,0 +1,6 @@
+light_coassemble:
+  light:
+  - - low
+    - medium
+  - - high
+

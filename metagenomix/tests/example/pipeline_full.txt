@@ -1,0 +1,69 @@
+count_reads_grep
+fastqc
+simka
+simka simka_pcoa
+cutadapt
+cutadapt midas
+cutadapt humann2
+cutadapt flash
+cutadapt fastqc
+flash count_reads_grep
+flash shogun
+shogun woltka
+cutadapt metaphlan
+metaphlan strainphlan
+flash plass
+# plass prodigal
+# prodigal metaclade
+# plass
+# plass graspx
+# flash fun4me
+# flash graspx
+flash pooling
+pooling spades
+spades read_mapping
+spades prodigal
+# prodigal graspx
+prodigal map__spades-prodigal
+plass diamond_custom
+plass hmmer_custom
+prodigal diamond_custom
+prodigal hmmer_custom
+# plass macsyfinder
+prodigal macsyfinder
+# prodigal fun4me
+prodigal diamond_annot
+# prodigal ioncom
+# spades integron_finder
+spades metawrap_bin
+spades cazy
+read_mapping map__cazy-spades
+metawrap_bin metawrap_ref
+metawrap_ref map__spades-metawrap_ref
+metawrap_ref checkm
+metawrap_ref gtdbtk
+metawrap_ref drep
+metawrap_ref metawrap_analysis_reassemble_bins
+metawrap_ref metawrap_analysis_blobology
+metawrap_ref metawrap_analysis_quant_bins
+metawrap_ref metawrap_analysis_classify_bins
+metawrap_ref metawrap_analysis_annotate_bins
+# metawrap_analysis_reassemble_bins metawrap_analysis_classify_bins
+# metawrap_analysis_reassemble_bins metawrap_analysis_annotate_bins
+# metawrap_analysis_reassemble_bins drep
+# metamarker
+metawrap_ref deepvirfinder
+deepvirfinder deepvirfinder_extractVirs
+# deepvirfinder_extractVirs wish
+drep read_mapping
+drep checkm
+drep gtdbtk
+drep mag_data
+# metawrap_analysis_reassemble_bins checkm
+# metawrap_analysis_reassemble_bins map__spades-bins
+# spades mycc
+spades yamb
+yamb summarize_yamb
+drep instrain
+drep map__drep
+drep antismash

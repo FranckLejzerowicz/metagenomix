@@ -1,0 +1,5 @@
+sample_name	depth	light
+ERR5948198	10	low
+ERR5948199	20	medium
+ERR5948211	2000	high
+nowhere	0	high

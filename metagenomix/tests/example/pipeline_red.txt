@@ -1,0 +1,7 @@
+count_reads_grep
+fastqc
+simka
+simka simka_pcoa
+cutadapt
+cutadapt midas
+cutadapt humann2

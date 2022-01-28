@@ -1,0 +1,15 @@
+mar:
+  path: '/Users/franck/databases/MAR'
+pfam:
+  path: '/Users/franck/databases/PFAM'
+  terms:
+    - "metal"
+    - "manganese"
+dbcan:
+  path: "/Users/franck/databases/dbCAN/"
+  taxa:
+    CLAmicrobes: './metagenomix/tests/example/configs/bugs.txt'
+squeezemeta:
+  path: "/Volumes/Franck_2TB/databases/SqueezeMeta"
+wol:
+  path: "/Users/franck/databases"

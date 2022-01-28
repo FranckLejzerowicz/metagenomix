@@ -1,0 +1,5 @@
+D1:
+  mem_num: 50
+  mem_dim: gb
+  env: strainphlan
+  chunks: 6

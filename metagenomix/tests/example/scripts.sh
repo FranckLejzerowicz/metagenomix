@@ -1,0 +1,11 @@
+metagenomix \
+  -m metagenomix/tests/example/agp/metadata/meta.txt \
+  -o metagenomix/tests/example/agp/output \
+  -i metagenomix/tests/example/agp/fastqs \
+  -u metagenomix/tests/example/user_params.yml \
+  -p metagenomix/tests/example/pipeline.txt \
+  -d metagenomix/tests/example/databases.yml \
+  -s metagenomix/tests/example/strains.yml \
+  -c light -c depth \
+  -n test \
+  --force

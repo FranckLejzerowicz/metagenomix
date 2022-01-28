@@ -1,0 +1,8 @@
+default:
+  time: 48
+  procs: 1
+  mem_num: 10
+  mem_dim: gb
+  env: mg
+  chunks: 6
+  scratch: 0

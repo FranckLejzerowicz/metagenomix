@@ -1,0 +1,4 @@
+sample_name	depth	light
+dsmp.40	10	yes
+dsmp.298	2000	no
+dsmp.None	0	yes
