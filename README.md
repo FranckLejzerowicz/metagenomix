@@ -59,7 +59,6 @@ which you need to download: Pfam-A files "Pfam-A.hmm" and "Pfam-A.hmm.dat.gz"
 * [atropos](https://github.com/jdidion/atropos) Trimming. ([paper](http://journal.embnet.org/index.php/embnetjournal/article/view/200))
 * [CheckM](https://github.com/Ecogenomics/CheckM) Assess the quality of microbial genomes recovered from isolates, single cells, and metagenomes. ([paper](https://genome.cshlp.org/content/25/7/1043))
 * [cutadapt](https://cutadapt.readthedocs.io/en/stable/) Quality control. ([paper](http://journal.embnet.org/index.php/embnetjournal/article/view/200))
-* [Deeplasmid](https://github.com/wandreopoulos/deeplasmid) Separates plasmids from chromosomal sequences (ML). ([paper](https://academic.oup.com/nar/advance-article/doi/10.1093/nar/gkab1115/6454267))
 * [DeepVirFinder](https://github.com/jessieren/DeepVirFinder) Identifying viruses from metagenomic data by (deep learning). ([paper](https://link.springer.com/article/10.1007/s40484-019-0187-4))
 * [DIAMOND](https://github.com/bbuchfink/diamond) Accelerated BLAST compatible local sequence aligner. ([paper](https://www.nature.com/articles/s41592-021-01101-x))
 * [dRep](https://github.com/MrOlm/drep) Rapid comparison and dereplication of genomes. ([paper](https://www.nature.com/articles/ismej2017126))
@@ -81,6 +80,7 @@ which you need to download: Pfam-A files "Pfam-A.hmm" and "Pfam-A.hmm.dat.gz"
 * [metaclade2](http://gitlab.lcqb.upmc.fr/vicedomini/metaclade2) Multi-source domain annotation. ([paper](https://microbiomejournal.biomedcentral.com/articles/10.1186/s40168-018-0532-2))
 * [Metamarker](https://bitbucket.org/mkoohim/metamarker) De novo pipeline to discover novel metagenomic biomarkers. ([paper](https://academic.oup.com/bioinformatics/article/35/19/3812/5368527))
 * [metaphlan](https://huttenhower.sph.harvard.edu/metaphlan/) Taxon abundance profiler based on clade-specific marker genes from ~17,000 reference genomes. ([paper](https://elifesciences.org/articles/65088))
+* [MAC](https://github.com/bioinfomaticsCSU/MAC) Merging assemblies by using adjacency algebraic model and classification. [paper](https://doi.org/10.3389/fgene.2019.01396)
 * [MetaWRAP](https://github.com/bxlab/metaWRAP) Flexible pipeline for genome-resolved metagenomic data analysis. ([paper](https://microbiomejournal.biomedcentral.com/articles/10.1186/s40168-018-0541-1))
 * [Metaxa2](https://microbiology.se/software/metaxa2/) Identification and taxonomic classification of SSU and LSU rRNA in metagenomes. ([paper](https://onlinelibrary.wiley.com/doi/10.1111/1755-0998.12399))
 * [MIDAS](https://github.com/snayfach/MIDAS) Strain-level genomic variation ([paper](https://genome.cshlp.org/content/26/11/1612.short))
@@ -108,8 +108,17 @@ which you need to download: Pfam-A files "Pfam-A.hmm" and "Pfam-A.hmm.dat.gz"
 * [VirStrain](https://github.com/liaoherui/VirStrain) RNA virus strain-level identification for short reads. ([paper](https://www.biorxiv.org/content/10.1101/2020.12.21.423722v2.abstract))
 * [Woltka](https://github.com/qiyunzhu/woltka) Taxonomic and functional profiling. [preprint](https://www.biorxiv.org/content/10.1101/2021.04.04.438427v1.abstract)
 * [WIsH](https://github.com/soedinglab/WIsH) Predict prokaryotic hosts from metagenomic phage contigs ([paper](https://academic.oup.com/bioinformatics/article/33/19/3113/3964377))
-* [YAMB](https://github.com/laxeye/YAMB) (Yet Another Metagenome Binner) - semi-automatic pipeline for metagenomic contigs binning. ([paper](https://www.biorxiv.org/content/10.1101/521286v1))
+* [YAMB](https://github.com/laxeye/YAMB) Yet Another Metagenome Binner - semi-automatic pipeline for metagenomic contigs binning. ([paper](https://www.biorxiv.org/content/10.1101/521286v1))
 * Will keep growing - that's the point of this pipeline
+
+##### Plasmid detection
+
+* [Deeplasmid](https://github.com/wandreopoulos/deeplasmid) Separates plasmids from chromosomal sequences (ML). ([paper](https://academic.oup.com/nar/advance-article/doi/10.1093/nar/gkab1115/6454267))
+* [PlasForest](https://github.com/leaemiliepradier/PlasForest) homology-based random forest classifier for plasmid detection in genomic datasets. [paper](https://doi.org/10.1186/s12859-021-04270-w)
+* 
+Will keep growing - that's the point of this pipeline
+
+
 
 ## Input
 
