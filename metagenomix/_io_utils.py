@@ -32,7 +32,6 @@ def read_yaml(
     """
     yaml_dict = {}
     if file_path:
-        print(file_path)
         if not isfile(file_path):
             raise IOError('No yaml file "%s"' % file_path)
         with open(file_path) as yaml_handle:
@@ -121,7 +120,7 @@ def edit_fastq_cmd(
     if source == 'illumina':
         cmd += "{ print $1\"/%s\" } " % str(num)
     elif source == 'ebi':
-        cmd += "{ gsub(\".%s$\",\"/%s\",$1) " % (num, num)
+        cmd += "{ gsub(/.%s .*/,\"/%s\",$0); print } " % (num, num)
     cmd += "else if (NR%s2 == 1) { print \"+\" } " % '%'
     cmd += "else { print } }' | gzip > %s_renamed\n" % fastq_fp
     cmd += "mv %s_renamed %s" % (fastq_fp, fastq_fp)
@@ -337,3 +336,130 @@ def reads_lines(file_fp: str) -> list:
         with open(file_fp) as f:
             file_lines = [x.strip() for x in f.readlines()]
     return file_lines
+
+
+def count_reads_cmd(idx: int, input_path: str, out: str, sam: str) -> str:
+    """Get the command to count the reads in a fasta, fastq or fastq.gz file.
+
+    Parameters
+    ----------
+    idx : int
+        Unique, incemental numeric identifier.
+    input_path : str
+        Path to the input file name.
+    out : str
+        Path to the output file name.
+    sam: str
+        Sample name.
+
+    Returns
+    -------
+    cmd : str
+        Command to count reads and output the counts.
+    """
+    if input_path.endswith('fastq.gz'):
+        cmd = "n%s=`gzcat %s | wc -l | " % (idx, input_path)
+        cmd += "sed 's/ //g' | awk '{x=$1/4; print x}'`\n"
+        # cmd += "cut -d ' ' -f 1 | awk '{x=$1/4; print x}'`"
+    elif input_path.endswith('fasta'):
+        cmd = "n%s=`wc -l %s | " % (idx, input_path)
+        cmd += "sed 's/ //g' | awk '{x=$1/2; print x}'`\n"
+        # cmd += "cut -d ' ' -f 1 | awk '{x=$1/2; print x}'`"
+    elif input_path.endswith('fastq'):
+        cmd = "n%s=`wc -l %s | " % (idx, input_path)
+        cmd += "sed 's/ //g' | awk '{x=$1/4; print x}'`\n"
+        # cmd += "cut -d ' ' -f 1 | awk '{x=$1/4; print x}'`"
+    else:
+        raise IOError("Input sequence file invalid %s" % input_path)
+    if idx:
+        cmd += 'echo "%s,2,${n%s}" >> %s\n' % (sam, idx, out)
+    else:
+        cmd += 'echo "%s,1,${n%s}" > %s\n' % (sam, idx, out)
+    return cmd
+
+
+def check_min_lines_count(input_fp: str) -> bool:
+    """Check whether the number of lines in the file is above one.
+
+    Parameters
+    ----------
+    input_fp : str
+        Path to the input file.
+
+    Returns
+    -------
+    ret : bool
+        Whether the file contains at least one sequence.
+    """
+    ret = False
+    with open(input_fp) as f:
+        for ldx, line in enumerate(f):
+            if ldx > 1:
+                ret = True
+                break
+    return ret
+
+
+def get_out_dir(
+        out_dir: str,
+        inputs: dict,
+        sam_pool: str,
+        group: str = None) -> tuple:
+    """Get the output directory for either the
+
+    Parameters
+    ----------
+    out_dir : str
+    inputs : dict
+    sam_pool : str
+        Name of the current sample or pool.
+    group : str
+
+    Returns
+    -------
+    out_dir : str
+    file_path : str
+    """
+    inputs = inputs[sam_pool]
+    if group:
+        inputs = inputs[group]
+    if out_dir.endswith('after_plass'):
+        file_path = inputs.replace('nuclassembly', 'assembly')
+    elif out_dir.endswith('after_prodigal'):
+        file_path = inputs[1]
+        if 'after_spades' in file_path:
+            out_dir = out_dir.replace('after_', 'after_spades_')
+        elif 'after_plass' in file_path:
+            out_dir = out_dir.replace('after_', 'after_plass_')
+    else:
+        file_path = inputs[1]
+    out_dir = '%s/%s' % (out_dir, sam_pool)
+    return out_dir, file_path
+
+
+def write_hmms(out_dir: str, hmms_dias: dict) -> str:
+    """Write a file to contain on each line, the paths to the .hmm
+    files to search as part of integron_finder.
+
+    Parameters
+    ----------
+    out_dir : str
+        Path to the output directory.
+    hmms_dias : dict
+        .hmm files per name of profile.
+
+    Returns
+    -------
+    hmms_fp : str
+        Path to the file containing the paths to the .hmm files to search.
+    """
+    hmms_fp = ''
+    if hmms_dias:
+        mkdr(out_dir)
+        hmms_fp = '%s/hmm.txt' % out_dir
+        o = open(hmms_fp, 'w')
+        for target, gene_hmms in hmms_dias.items():
+            for gene, (hmm, _) in gene_hmms.items():
+                o.write('%s\n' % hmm)
+        o.close()
+    return hmms_fp

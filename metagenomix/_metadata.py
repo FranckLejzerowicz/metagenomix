@@ -26,10 +26,7 @@ def read_metadata(
         Metadata table.
     """
     first_col = get_first_column(meta_fp)
-    meta = pd.read_csv(
-        meta_fp, dtype={first_col: str}, sep='\t', low_memory=False)
-    if not meta.shape[0]:
-        raise IOError('No sample in "%s"' % meta_fp)
+    meta = pd.read_csv(meta_fp, dtype=str, sep='\t', low_memory=False)
     meta.rename(columns={first_col: 'sample_name'}, inplace=True)
     return meta
 

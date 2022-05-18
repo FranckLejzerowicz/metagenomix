@@ -1,15 +1,35 @@
 mar:
-  path: '/Users/franck/databases/MAR'
+  path: /Users/franck/databases/MAR
 pfam:
-  path: '/Users/franck/databases/PFAM'
+  path: /Users/franck/databases/PFAM
   terms:
-    - "metal"
-    - "manganese"
+    - metal
+    - manganese
 dbcan:
-  path: "/Users/franck/databases/dbCAN/"
+  path: /Users/franck/databases/dbCAN/
   taxa:
-    CLAmicrobes: './metagenomix/tests/example/configs/bugs.txt'
+    CLAmicrobes: ./metagenomix/tests/example/configs/bugs.txt
 squeezemeta:
-  path: "/Volumes/Franck_2TB/databases/SqueezeMeta"
+  path: /Volumes/Franck_2TB/databases/SqueezeMeta
 wol:
-  path: "/Users/franck/databases"
+  path: /Users/franck/databases/wol
+midas:
+  path: /Volumes/Franck_2TB/databases/midas_db_v1.2
+metaphlan:
+  path: /Volumes/Franck_2TB/databases/metaphlan3
+humann:
+  path: /Volumes/Franck_2TB/databases/metaphlan3
+shogun:
+  path:
+    wol: /Users/franck/databases/shogun/wol
+    rep200: /Users/franck/databases/shogun/rep200
+    rep82: /Users/franck/databases/shogun/rep82
+macsyfinder:
+  path: /Volumes/Franck_2TB/databases/macsyfinder
+diamond:
+  path:
+    genome: /projects/wol/20170307/diamond/prok
+    uniref: /Users/franck/databases/uniref90
+ioncom:
+  path: /Users/franck/databases/IonCom
+  itasser: /Users/franck/databases/I-TASSER_LIB

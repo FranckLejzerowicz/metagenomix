@@ -7,8 +7,12 @@
 # ----------------------------------------------------------------------------
 import os
 import unittest
+
+import pandas as pd
 import pkg_resources
-from metagenomix._metadata import get_cur_type, get_first_column
+from pandas.testing import assert_frame_equal, assert_series_equal
+
+from metagenomix._metadata import read_metadata, get_cur_type, get_first_column
 
 FOLDER = pkg_resources.resource_filename('metagenomix', 'tests/unittests')
 
@@ -24,19 +28,41 @@ class ReadMetadata(unittest.TestCase):
         self.only_header_fp = '%s/metadata/only_header.txt' % FOLDER
         with open(self.only_header_fp, 'w') as o:
             o.write('sample_name\tdepth\tlight')
+        self.only_header = pd.DataFrame(
+            {'sample_name': [], 'depth': [], 'light': []})
 
         self.meta_fp = '%s/metadata/meta.txt' % FOLDER
         with open(self.meta_fp, 'w') as o:
             o.write('sample_name\tdepth\tlight\n')
             o.write('A\t10\tyes\nB\t2000\tno\nX\t0\tyes')
+        self.meta = pd.DataFrame({'sample_name': ['A', 'B', 'X'],
+                                  'depth': ['10', '2000', '0'],
+                                  'light': ['yes', 'no', 'yes']})
 
         self.alt_header_fp = '%s/metadata/alt_header.txt' % FOLDER
         with open(self.alt_header_fp, 'w') as o:
             o.write('some_name\tdepth\tlight\n')
             o.write('A\t10\tyes\nB\t2000\tno\nX\t0\tyes')
+        self.alt_header = self.meta.copy().rename(
+            columns={'sample_name': 'some_name'})
+
+    def test_read_metadata(self):
+        with self.assertRaises(IOError) as e:
+            read_metadata(self.empty_meta_fp)
+        self.assertEqual(
+            'File "%s" is empty' % self.empty_meta_fp, str(e.exception))
+
+        meta = read_metadata(self.only_header_fp)
+        self.assertEqual(str(meta), str(self.only_header))
+        self.assertEqual(meta.values.tolist(), self.only_header.values.tolist())
+
+        meta = read_metadata(self.meta_fp)
+        assert_frame_equal(meta, self.meta)
+
+        meta = read_metadata(self.alt_header_fp)
+        assert_frame_equal(meta, self.meta)
 
     def test_get_first_column(self):
-
         first_column = get_first_column(self.meta_fp)
         self.assertEqual(first_column, 'sample_name')
         first_column = get_first_column(self.alt_header_fp)

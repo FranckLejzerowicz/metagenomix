@@ -20,42 +20,30 @@ RESOURCES = pkg_resources.resource_filename("metagenomix", "resources")
 
 
 class AnalysesConfig(object):
-    """Collect the data associated with each dataset passed but the user
-    """
+    """Collect the data associated with each dataset passed but the user."""
     def __init__(self, **kwargs) -> None:
         self.__dict__.update(kwargs)
         self.meta = pd.DataFrame()
-        self.co_assembly_var = None
         self.pooling_groups = []
         self.conda_envs = {}
         self.conda_path = ''
+        self.soft_paths = []
         self.fastq = {}
         self.r = {}
         self.dir = ''
-        self.db_type = 'genomes'
-        # self.db_type = 'uniref'
-        self.params = {'time': 48, 'mem_num': 10, 'mem_dim': "gb",
-                       'env': "mg", 'nodes': 1, 'cpus': 1, 'chunks': 6}
+        self.params = {
+            'time': 48, 'mem_num': 10, 'mem_dim': "gb", 'scratch': 0,
+            'env': "mg", 'nodes': 1, 'cpus': 1, 'chunks': 6}
         # self.cazy_focus_dbs = {}  <---- see databases "self.cazys"
         self.instrain = {'refs': {}, 'bams': {}}
-        self.plass_assembly = ''  # 'nucl'
-        self.midas_focus = {'all': ('', '')}
-        # self.midas_focus = {'CLAmicrobes': ('', 'CLAmicrobes_20species.txt'), 'all': ('', '')}
+        self.plass_type = ''  # 'nucl'
+        self.midas_foci = {'all': ('', '')}
+        # self.midas_foci = {'CLA': ('', 'CLAmicrobes_20species.txt')}
         self.midas_strain_tracking = []
-        self.integron_focus = { # COULD BE THE SAME AS THE HMMs COLLECTED IN database()
-            # 'PFAM_Fatty_acid_cistrans_isomerase_PF06934': 'PFAM_Fatty_acid_cistrans_isomerase_PF06934_seed_profile.hmm',
-            # 'PFAM_MCRA_PF06100': 'PFAM_MCRA_PF06100_seed_profile.hmm',
-            # 'PFAM_Short_chain_fatty_acid_transporter_PF026677': 'PFAM_Short_chain_fatty_acid_transporter_PF026677_seed_profile.hmm',
-            # 'UniProt_map_IDs2NCBI_ali_kept_final': 'UniProt_map_IDs2NCBI_ali_kept_final_profile.hmm',
-            'dbCAN': '/Users/franck/databases/dbCAN/db/dbCAN.txt'}
-        self.humann2_taxo_profile_glob = {}
-        # self.humann2_taxo_profile_glob = {'cla_papers': 'cla_papers_taxonomic_profile_rep82_7_filt.txt'}
-        self.flash_params = {'min_overlap': 30, 'max_mismatch_density': 0}
-        self.stand_alone_groupings = {'metamarker': ('metawrap_ref', 'is_ccz')}
-        self.highmem_nodes = ['35', '36', '72', '73']
-        self.highmem_node_idx = 0
-        self.soft_paths = []
-        # self.workflow = {}
+        self.humann_profile = {}
+        # self.humann_profile = {'cla': 'cla_profile_rep82_7_filt.txt'}
+        self.stand_alone_groupings = {
+            'metamarker': ('metawrap_ref', 'is_ccz')}
 
     def init(self):
         self.check_xpbs_install()
@@ -68,7 +56,6 @@ class AnalysesConfig(object):
         self.set_coassembly()
         self.update_metadata()
         self.get_default_params()
-        self.get_soft_paths()
 
     def check_xpbs_install(self):
         """Try to get the install path of third party tool
@@ -77,13 +64,13 @@ class AnalysesConfig(object):
             Otherwise, the code ends and tells what to do.
         """
         if self.jobs:
-            ret, _ = subprocess.getstatusoutput('which Xpbs')
+            ret, _ = subprocess.getstatusoutput('which Xhpc')
             if ret:
-                raise IOError('Xpbs not installed')
+                raise IOError('Xhpc not installed')
             else:
-                xpbs_config = subprocess.getoutput('Xpbs --show-config')
-                if xpbs_config.startswith('$HOME'):
-                    raise IOError('Xpbs installed but config.txt need editing')
+                xpbs_config = subprocess.getoutput('Xhpc --show-config')
+                if not xpbs_config.startswith('* email address config file'):
+                    raise IOError('Need to run Xhpc to setup config file')
 
     def get_conda_envs(self):
         """Get the names of the conda environments."""
@@ -104,8 +91,8 @@ class AnalysesConfig(object):
             for name, coassembly in self.coassembly.items():
                 self.get_pooling_groups(name, coassembly)
         else:
-            self.pooling_groups = ['per_sample_no_coassembly']
-            self.meta['per_sample_no_coassembly'] = self.meta.sample_name
+            self.pooling_groups = ['assembly_per_sample']
+            self.meta['assembly_per_sample'] = self.meta.sample_name
 
     def get_pooling_groups(
             self,
@@ -122,17 +109,20 @@ class AnalysesConfig(object):
         coassembly : dict
             Factors groups identifying the samples to co-assemble
         """
-        cols = []
+        cols = {}
         for col, factors in coassembly.items():
             if col not in self.meta.columns:
-                raise IOError('Co-assembly variable not in %s' % self.meta_fp)
-            factors_flat = [f for factor in factors for f in factor]
+                raise IOError(
+                    'Co-assembly variable "%s" not in %s' % (col, self.meta_fp))
+            factors_flat = [str(f) for factor in factors for f in factor]
             if not set(factors_flat).issubset(set(self.meta[col])):
-                raise IOError('Co-assembly factors not in %s' % self.meta[col])
-            d = {y: '_'.join(map(str, x)) for x in factors for y in x}
-            cols.append([d[x] if x in d else np.nan for x in self.meta[col]])
-        col = ['_'.join(map(str, x)) for x in zip(*cols)]
-        self.meta[name] = col
+                raise IOError('Co-assembly factors for variable "%s" not'
+                              ' in %s' % (col, self.meta_fp))
+            d = {str(y): '_'.join(map(str, x)) for x in factors for y in x}
+            cols[col] = [d[x] if x in d else np.nan for x in self.meta[col]]
+        ser = pd.DataFrame(cols).fillna('')
+        col = ser.apply(lambda x: '-'.join([str(i) for i in x if i]), axis=1)
+        self.meta[name] = col.replace('', np.nan)
         self.pooling_groups.append(name)
 
     def get_fastq_paths(self) -> list:
@@ -144,15 +134,21 @@ class AnalysesConfig(object):
     def get_fastq_samples(self):
         fastqs = self.get_fastq_paths()
         sams = set(self.meta.sample_name)
-        self.fastq = {}
+        fastq = {}
         for file in sorted(fastqs):
             for sam in sams:
                 if sam in file:
-                    if sam in self.fastq:
-                        self.fastq[sam].append(file)
+                    if sam in fastq:
+                        fastq[sam].append(file)
                     else:
-                        self.fastq[sam] = [file]
+                        fastq[sam] = [file]
                     break
+        self.fastq = {}
+        for sam, fastqs in fastq.items():
+            if len([x for x in fastqs if '.gz' in x]):
+                self.fastq[sam] = [x for x in fastqs if '.gz' in x]
+            else:
+                self.fastq[sam] = fastqs
 
     def set_fastq(self):
         """
@@ -190,10 +186,10 @@ class AnalysesConfig(object):
             if arg.endswith('_yml'):
                 yaml = read_yaml(self.__dict__[arg])
                 setattr(self, arg[:-4], yaml)
-            if arg.endswith('_tsv'):
+            if arg == 'pipeline_tsv':
                 with open(self.__dict__[arg]) as f:
-                    read = [x.strip().split() for x
-                            in f.readlines() if x[0] != '#']
+                    read = [['edit_fastqs']] + [
+                        x.strip().split() for x in f.readlines() if x[0] != '#']
                     setattr(self, arg[:-4], read)
 
     def get_default_params(self):

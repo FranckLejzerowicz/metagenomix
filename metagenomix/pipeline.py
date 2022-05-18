@@ -6,6 +6,8 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
+import os
+from os.path import isdir, isfile
 from collections import defaultdict
 
 
@@ -17,11 +19,13 @@ class Soft(object):
         self.nodes = 1
         self.procs = 1
         self.scratch = 0
-        self.io = {'I': {'f': [], 'd': [], 'D': []},
-                   'O': {'f': [], 'd': [], 'D': []}}
+        self.io = {'I': {'f': set(), 'd': set(), 'D': set()},
+                   'O': {'f': set(), 'd': set(), 'D': set()}}
         self.params = dict(config.params)
         self.inputs = {}
         self.outputs = {}
+        self.cmds = {}
+        self.dirs = set()
 
     def get_softs(self, softs):
         if len(softs) == 1:
@@ -96,7 +100,7 @@ class Workflow(object):
         """
         if softs[-1] not in self.names:
             if len(softs) > 1 and softs[0] not in self.names:
-                raise IOError('Software "%s" not planned before "%s"' % softs)
+                raise IOError('"%s" not planned before "%s"' % tuple(softs))
             self.names.append(softs[-1])
 
     def get_names_idx(self) -> None:
@@ -153,9 +157,16 @@ class Workflow(object):
                 elif param == 'env':
                     if value in self.config.conda_envs:
                         raise EnvironmentError('"%s" not a conda env' % value)
-                else:
-                    raise IOError('"%s" is an unknown runparameter' % param)
+                elif param == 'path':
+                    if not isfile(value) and not isdir(value):
+                        raise IOError('"%s" do not exist' % value)
                 soft.params[param] = value
+
+    def make_dirs(self):
+        for name, soft in self.softs.items():
+            for directory in sorted(soft.dirs):
+                if not isdir(directory):
+                    os.makedirs(directory)
 
     # def collect_paths(self):
     #

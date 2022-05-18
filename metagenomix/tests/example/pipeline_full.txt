@@ -4,26 +4,22 @@ simka
 simka simka_pcoa
 cutadapt
 cutadapt midas
-cutadapt humann2
+cutadapt metaphlan
+cutadapt humann
 cutadapt flash
 cutadapt fastqc
 flash count_reads_grep
 flash shogun
 shogun woltka
-cutadapt metaphlan
 metaphlan strainphlan
 flash plass
 # plass prodigal
 # prodigal metaclade
 # plass
-# plass graspx
-# flash fun4me
-# flash graspx
 flash pooling
 pooling spades
 spades read_mapping
 spades prodigal
-# prodigal graspx
 prodigal map__spades-prodigal
 plass diamond_custom
 plass hmmer_custom
@@ -31,27 +27,26 @@ prodigal diamond_custom
 prodigal hmmer_custom
 # plass macsyfinder
 prodigal macsyfinder
-# prodigal fun4me
 prodigal diamond_annot
 # prodigal ioncom
 # spades integron_finder
-spades metawrap_bin
-spades cazy
-read_mapping map__cazy-spades
-metawrap_bin metawrap_ref
+spades metawrap
+metawrap metawrap_refine
+metawrap_refine metawrap_reassemble
+metawrap_refine metawrap_blobology
+metawrap_refine metawrap_quantify
+metawrap_refine metawrap_classify
+metawrap_refine metawrap_annotate
+# metawrap_reassemble metawrap_classify
+# metawrap_reassemble metawrap_annotate
+metawrap_refine drep
+# metawrap_reassemble drep
+# metamarker
 metawrap_ref map__spades-metawrap_ref
 metawrap_ref checkm
 metawrap_ref gtdbtk
-metawrap_ref drep
-metawrap_ref metawrap_analysis_reassemble_bins
-metawrap_ref metawrap_analysis_blobology
-metawrap_ref metawrap_analysis_quant_bins
-metawrap_ref metawrap_analysis_classify_bins
-metawrap_ref metawrap_analysis_annotate_bins
-# metawrap_analysis_reassemble_bins metawrap_analysis_classify_bins
-# metawrap_analysis_reassemble_bins metawrap_analysis_annotate_bins
-# metawrap_analysis_reassemble_bins drep
-# metamarker
+spades cazy
+read_mapping map__cazy-spades
 metawrap_ref deepvirfinder
 deepvirfinder deepvirfinder_extractVirs
 # deepvirfinder_extractVirs wish

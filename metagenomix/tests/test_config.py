@@ -13,6 +13,7 @@ import subprocess
 import pkg_resources
 from os.path import isdir
 
+import numpy as np
 import pandas as pd
 from pandas.testing import assert_frame_equal
 
@@ -68,19 +69,19 @@ class TestIO(unittest.TestCase):
 
         self.no_coassembly_fp = '%s/metadata/no_coassembly.txt' % FOLDER
         with open(self.no_coassembly_fp, 'w') as o:
-            o.write('sample_name\tdepth\tno_coassembly\n')
+            o.write('sample_name\tdepth\tassembly_per_sample\n')
             o.write('A\t10\tgp1\nB\t2000\tgp2\nX\t0\tgp2\n')
 
         self.meta = pd.DataFrame(
-            {'sample_name': ['A', 'B', 'X'], 'depth': [10, 2000, 0],
+            {'sample_name': ['A', 'B', 'X'], 'depth': ['10', '2000', '0'],
              'light': ['yes', 'no', 'yes']})
 
         self.meta_no_coassembly = pd.DataFrame({
-            'sample_name': ['A', 'B', 'X'], 'depth': [10, 2000, 0],
-            'no_coassembly': ['gp1', 'gp2', 'gp2']})
+            'sample_name': ['A', 'B', 'X'], 'depth': ['10', '2000', '0'],
+            'assembly_per_sample': ['gp1', 'gp2', 'gp2']})
 
         self.meta_fastqed = pd.DataFrame({
-            'depth': [10, 2000], 'light': ['yes', 'no']}, index=['A', 'B'])
+            'depth': ['10', '2000'], 'light': ['yes', 'no']}, index=['A', 'B'])
         self.meta_fastqed.index.name = 'sample_name'
 
         self.fastqs = {}
@@ -97,6 +98,15 @@ class TestIO(unittest.TestCase):
             self.fastqs2.append(fastq_path)
             with open(fastq_path, 'w'): pass
 
+        self.fastqs3 = []
+        self.fastqs3_only_gz = []
+        for fastq in ['A_1.fastq', 'A_2.fastq', 'A_1.fastq.gz', 'A_2.fastq.gz']:
+            fastq_path = '%s/fastqs_gz/%s' % (FOLDER, fastq)
+            self.fastqs3.append(fastq_path)
+            if fastq.endswith('gz'):
+                self.fastqs3_only_gz.append(fastq_path)
+            with open(fastq_path, 'w'): pass
+
         self.yaml1 = {'a': 1, 'b': 2}
         self.yaml2 = {'x': 1, 'y': 2}
         self.yaml1_yml = '%s/yamls/yaml1.yml' % FOLDER
@@ -106,7 +116,7 @@ class TestIO(unittest.TestCase):
         with open(self.yaml2_yml, 'w') as o:
             o.write('x: 1\ny: 2')
 
-        self.params = {'time': 48, 'mem_num': 10, 'mem_dim': "gb",
+        self.params = {'time': 48, 'mem_num': 10, 'mem_dim': "gb", 'scratch': 0,
                        'env': "mg", 'nodes': 1, 'cpus': 1, 'chunks': 6}
         self.user_params_yml = '%s/yamls/shogun.yml' % FOLDER
         with open(self.user_params_yml, 'w') as o:
@@ -159,20 +169,6 @@ class TestIO(unittest.TestCase):
             conf.set_metadata()
         self.assertEqual('File "%s" is empty' % conf.meta_fp, str(e.exception))
 
-    def test_get_co_assembly_var(self):
-
-        conf = AnalysesConfig(**self.config_input)
-
-        conf.meta_fp = self.meta_fp
-        conf.set_metadata()
-        conf.get_co_assembly_var()
-        self.assertEqual(conf.co_assembly_var, 'no_coassembly')
-
-        conf.meta_fp = self.no_coassembly_fp
-        conf.set_metadata()
-        conf.get_co_assembly_var()
-        self.assertEqual(conf.co_assembly_var, 'no_coassembly_')
-
     def test_set_coassembly(self):
 
         conf = AnalysesConfig(**self.config_input)
@@ -182,51 +178,45 @@ class TestIO(unittest.TestCase):
         conf.set_metadata()
         conf.set_coassembly()
         meta_coassembly = self.meta.copy()
-        meta_coassembly['no_coassembly'] = meta_coassembly['sample_name']
+        meta_coassembly['assembly_per_sample'] = meta_coassembly['sample_name']
         assert_frame_equal(conf.meta, meta_coassembly)
 
-        for coassembly in [('a',), ('a', 'b',)]:
-            conf.coassembly = coassembly
-            with self.assertRaises(IOError) as e:
-                conf.set_coassembly()
-            self.assertEqual('Co-assembly variables not in %s' % conf.meta_fp,
-                             str(e.exception))
+        conf.coassembly = {'wrong': {'no_a_var': []}}
+        with self.assertRaises(IOError) as e:
+            conf.set_coassembly()
+        self.assertEqual(
+            'Co-assembly variable "no_a_var" not in %s' % conf.meta_fp,
+            str(e.exception))
 
-        conf.coassembly = ('light', 'depth',)
+        conf.coassembly = {'depth_coa': {'depth': [['a']]}}
+        with self.assertRaises(IOError) as e:
+            conf.set_coassembly()
+        self.assertEqual(
+            'Co-assembly factors for variable "depth" not in %s' % conf.meta_fp,
+            str(e.exception))
+
+        # conf.coassembly = {'depth_coa': {'depth': [['10'], ['2000']]}}
+        conf.coassembly = {'depth_coa': {'depth': [['10'], ['2000']]}}
         conf.set_metadata()
         conf.set_coassembly()
         meta_coassembly = self.meta.copy()
-        meta_coassembly['no_coassembly'] = ['yes-10', 'no-2000', 'yes-0']
+        meta_coassembly['depth_coa'] = ['10', '2000', np.nan]
         assert_frame_equal(conf.meta, meta_coassembly)
 
-        conf.coassembly = ('depth',)
+        conf.coassembly = {'depth_coa': {'depth': [['10'], ['2000']],
+                                         'light': [['yes'], ['no']]}}
         conf.set_metadata()
         conf.set_coassembly()
         meta_coassembly = self.meta.copy()
-        meta_coassembly['no_coassembly'] = ['10', '2000', '0']
+        meta_coassembly['depth_coa'] = ['10-yes', '2000-no', 'yes']
         assert_frame_equal(conf.meta, meta_coassembly)
 
-        conf.meta_fp = self.alt_header_fp
-
-        conf.coassembly = ''
+        conf.coassembly = {'depth_coa': {'depth': [['2000']],
+                                         'light': [['no']]}}
         conf.set_metadata()
         conf.set_coassembly()
         meta_coassembly = self.meta.copy()
-        meta_coassembly['no_coassembly'] = meta_coassembly['sample_name']
-        assert_frame_equal(conf.meta, meta_coassembly)
-
-        conf.coassembly = ('light', 'depth',)
-        conf.set_metadata()
-        conf.set_coassembly()
-        meta_coassembly = self.meta.copy()
-        meta_coassembly['no_coassembly'] = ['yes-10', 'no-2000', 'yes-0']
-        assert_frame_equal(conf.meta, meta_coassembly)
-
-        conf.coassembly = ('depth',)
-        conf.set_metadata()
-        conf.set_coassembly()
-        meta_coassembly = self.meta.copy()
-        meta_coassembly['no_coassembly'] = ['10', '2000', '0']
+        meta_coassembly['depth_coa'] = [np.nan, '2000-no', np.nan]
         assert_frame_equal(conf.meta, meta_coassembly)
 
         conf.meta_fp = self.no_coassembly_fp
@@ -235,14 +225,7 @@ class TestIO(unittest.TestCase):
         conf.set_metadata()
         conf.set_coassembly()
         meta_coassembly = self.meta_no_coassembly.copy()
-        meta_coassembly['no_coassembly_'] = meta_coassembly['sample_name']
-        assert_frame_equal(conf.meta, meta_coassembly)
-
-        conf.coassembly = ('depth',)
-        conf.set_metadata()
-        conf.set_coassembly()
-        meta_coassembly = self.meta_no_coassembly.copy()
-        meta_coassembly['no_coassembly_'] = ['10', '2000', '0']
+        meta_coassembly['assembly_per_sample'] = meta_coassembly['sample_name']
         assert_frame_equal(conf.meta, meta_coassembly)
 
     def test_get_fastq_paths(self):
@@ -261,11 +244,15 @@ class TestIO(unittest.TestCase):
         fastq_fps = sorted(conf.get_fastq_paths())
         self.assertEqual(fastq_fps, sorted(self.fastqs1 + self.fastqs2))
 
+        conf.fastq_dirs = ('%s/fastqs_gz' % FOLDER,)
+        fastq_fps = sorted(conf.get_fastq_paths())
+        self.assertEqual(fastq_fps, sorted(self.fastqs3))
+
     def test_get_fastq_samples(self):
 
         conf = AnalysesConfig(**self.config_input)
-
         conf.meta_fp = self.meta_fp
+
         conf.set_metadata()
         conf.fastq_dirs = (FOLDER,)
         conf.get_fastq_samples()
@@ -296,6 +283,11 @@ class TestIO(unittest.TestCase):
         conf.fastq_dirs = (FOLDER, '%s/fastqs' % FOLDER, '%s/output' % FOLDER,)
         conf.get_fastq_samples()
         self.assertEqual(conf.fastq, {'A': self.fastqs['A']})
+
+        conf.set_metadata()
+        conf.fastq_dirs = ('%s/fastqs_gz' % FOLDER,)
+        conf.get_fastq_samples()
+        self.assertEqual(conf.fastq, {'A': self.fastqs3_only_gz})
 
     def test_set_fastq(self):
 
@@ -421,13 +413,20 @@ class TestIO(unittest.TestCase):
         conf.parse_yamls()
         conf.get_default_params()
         self.assertEqual(self.params, conf.params)
+        self.assertEqual({}, conf.user_params)
+
+        conf = AnalysesConfig(**self.config_input)
+        conf.user_params_yml = self.user_params_yml
+        conf.parse_yamls()
+        conf.get_default_params()
+        self.assertEqual(self.params, conf.params)
         self.assertEqual({'shogun': {'time': 1}}, conf.user_params)
 
         conf = AnalysesConfig(**self.config_input)
         conf.user_params_yml = 'not_a_file.yml'
-        conf.parse_yamls()
-        conf.get_default_params()
-        self.assertEqual({}, conf.user_params)
+        with self.assertRaises(IOError) as e:
+            conf.parse_yamls()
+        self.assertEqual('No yaml file "not_a_file.yml"', str(e.exception))
 
     # def test_get_pooling_groups(self):
     #
@@ -446,6 +445,8 @@ class TestIO(unittest.TestCase):
         for fastq in self.fastqs1:
             os.remove(fastq)
         for fastq in self.fastqs2:
+            os.remove(fastq)
+        for fastq in self.fastqs3:
             os.remove(fastq)
 
 

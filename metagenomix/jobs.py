@@ -255,3 +255,49 @@ class CreateScripts(object):
             self.call_cmd()
 
         return all_pbs, all_slm
+
+    # def get_n_procs(self) -> None:
+    #     """
+    #     Get the number of nodes and CPUs.
+    #     """
+    #     self.nodes = 1
+    #     if self.procs > 12:
+    #         self.nodes = (((self.procs - 1) // 12) + 1)
+    #         p = self.procs // self.nodes
+    #         if self.nodes * p < self.procs:
+    #             p += 1
+    #         self.procs = p
+
+    # def get_sh(self, sam: str = None) -> str:
+    #     """Get the path to the job file for one sample
+    #     (or one all-samples analysis).
+    #
+    #     Parameters
+    #     ----------
+    #     sam : str
+    #         Current sample name (could be None).
+    #
+    #     Returns
+    #     -------
+    #     run_sh : str
+    #         Path to the job file for one sample (or one all-samples analysis).
+    #     """
+    #     run_dir = '%s/%s/jobs/staged' % (self.config.dir, self.name)
+    #     mkdr(run_dir)
+    #     run_sh = '%s/staged_%s_after_%s' % (run_dir, self.name, self.prev)
+    #     if sam:
+    #         run_sh += '_%s' % sam.replace(' ', '_')
+    #     run_sh += '.sh'
+    #     return run_sh
+    #
+    # def get_outdir(self) -> str:
+    #     """Get the path to the output folder for the current analysis.
+    #
+    #     Returns
+    #     -------
+    #     out_dir : str
+    #         Path to the output folder for the current analysis.
+    #     """
+    #     out_dir = '%s/%s/after_%s' % (self.config.dir, self.name, self.prev)
+    #     mkdr(out_dir)
+    #     return out_dir

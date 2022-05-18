@@ -1,4 +1,4 @@
-sample_name	depth	light	per_sample_no_coassembly
-ERR5948198	10	low	ERR5948198
-ERR5948199	20	medium	ERR5948199
-ERR5948211	2000	high	ERR5948211
+sample_name	depth	light	light_coassemble	depth_coassemble
+ERR5948198	10	low	low	10_20
+ERR5948199	20	medium	medium_high	10_20
+ERR5948211	2000	high	medium_high	2000

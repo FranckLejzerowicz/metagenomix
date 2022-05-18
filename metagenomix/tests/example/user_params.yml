@@ -3,3 +3,37 @@ D1:
   mem_dim: gb
   env: strainphlan
   chunks: 6
+simka:
+  path: /Users/franck/programs/simka
+humann:
+  evalue: 0.1
+  id_thresh: 90
+  uniref: uniref90
+  query_cov: 80
+  subject_cov: 80
+  skip_translated: 0
+  nucleotide_db: /path/to/full_chocophlan.v0.1.1/chocophlan
+  protein_db: /path/to/uniref90/uniref
+flash:
+  min_overlap: 30
+  max_mismatch_density: 0
+diamond_annot:
+  db_type: uniref
+#  db_type: genome
+  k:
+    - 1
+ioncom:
+  itasser: /Users/franck/programs/I-TASSER5.1
+metawrap:
+  binners:
+    - maxbin2
+    - metabat2
+    - concoct
+  min_completion: 25
+  min_contamination: 5
+  reassembly:
+    - strict
+    - permissive
+  blobology:
+    - coassembly
+    - sample
