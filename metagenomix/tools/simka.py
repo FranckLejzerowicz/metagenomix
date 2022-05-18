@@ -174,7 +174,7 @@ def simka_pcoa_cmd(mat: str, meta_fpo: str) -> str:
     if mat.endswith('gz'):
         mat_fp = mat.replace('.csv.gz', '.csv')
         if not isfile(mat_fp):
-            cmd += 'gunzip %s' % mat
+            cmd += 'gunzip %s\n' % mat
     else:
         mat_fp = mat
 
