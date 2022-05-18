@@ -75,7 +75,6 @@ def standalone_metagenomix(
         p_pipeline,
         p_run_params,
         p_strains,
-        p_scratch,
         p_a2,
         p_a3,
         p_a4,
