@@ -175,7 +175,6 @@ class Commands(object):
         self.out = out_dir
 
     def prep_simka(self):
-        print(self.inputs)
         inp = get_simka_input(self.dir, self.inputs)
         self.soft.io['I']['f'].add(inp)
         smin = True
