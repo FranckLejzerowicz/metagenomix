@@ -197,6 +197,7 @@ class Commands(object):
                 cmd = simka_pcoa_cmd(mat, self.config.meta_fp)
                 if cmd:
                     self.cmds[idx].append(cmd)
+                print(cmd)
 
     def prep_cutadapt(self):
         r1_o = '%s/%s.R1.fastq.gz' % (self.dir, self.sam)
