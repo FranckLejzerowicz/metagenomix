@@ -192,6 +192,8 @@ class Commands(object):
 
     def prep_simka_pcoa(self):
         for idx, input_path in enumerate(self.inputs):
+            print("input_path")
+            print(input_path)
             self.cmds[idx] = []
             for mdx, mat in enumerate(glob.glob('%s/mat_*.csv*' % input_path)):
                 cmd = simka_pcoa_cmd(mat, self.config.meta_fp)
