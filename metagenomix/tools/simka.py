@@ -101,7 +101,7 @@ def simka_min_cmd(soft, sim_in: str, out_dir: str, k: str, n: str) -> str:
         Simka command line.
     """
     cmd = 'python %s/simkaMin/simkaMin.py' % soft.params['path']
-    cmd += ' -bin %s/build/bin/simkaMinCore' % soft.params['path']
+    cmd += ' -bin %s/bin/simkaMinCore' % soft.params['path']
     cmd += ' -in %s -out %s' % (sim_in, out_dir)
     cmd += ' -kmer-size %s' % k
     cmd += ' -max-reads %s' % n
