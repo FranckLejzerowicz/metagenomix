@@ -35,7 +35,6 @@ def get_simka_input(dir_path, inputs) -> str:
             fs = inputs[sam]
             if 'after_None' not in dir_path:
                 fs = ['%sq' % x[:-1] if 'notCombined_' in x else x for x in fs]
-            print(sam, fs)
             o.write('%s: %s\n' % (sam, '; '.join(fs)))
     return sim_out
 

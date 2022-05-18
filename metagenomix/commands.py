@@ -83,8 +83,8 @@ class Commands(object):
 
     def generic_command(self):
         self.sam = None
-        # print()
-        # print('name:', self.soft.name)
+        print()
+        print('name:', self.soft.name)
         if self.soft.name in self.holistics:
             self.prep_job()
         elif self.soft.name == 'pooling':
@@ -94,12 +94,12 @@ class Commands(object):
                 self.sam = sam
                 self.pool = sam
                 self.prep_job()
-        # print('---- cmds:')
-        # print(self.cmds)
-        # print('---- outputs:')
-        # print(self.soft.outputs)
-        # print('---- io:')
-        # print(self.soft.io)
+        print('---- cmds:')
+        print(self.cmds)
+        print('---- outputs:')
+        print(self.soft.outputs)
+        print('---- io:')
+        print(self.soft.io)
         self.register_command()
 
     def prep_job(self):
@@ -191,15 +191,12 @@ class Commands(object):
                 self.soft.io['O']['d'].add(out_dir)
 
     def prep_simka_pcoa(self):
-        for idx, input_path in enumerate(self.inputs):
-            print("input_path")
-            print(input_path)
+        for idx, input_path in enumerate(self.inputs['simka']):
             self.cmds[idx] = []
             for mdx, mat in enumerate(glob.glob('%s/mat_*.csv*' % input_path)):
                 cmd = simka_pcoa_cmd(mat, self.config.meta_fp)
                 if cmd:
                     self.cmds[idx].append(cmd)
-                print(cmd)
 
     def prep_cutadapt(self):
         r1_o = '%s/%s.R1.fastq.gz' % (self.dir, self.sam)
