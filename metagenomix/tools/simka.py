@@ -180,7 +180,7 @@ def simka_pcoa_cmd(mat: str, meta_fpo: str) -> str:
 
     mat_o = mat_fp.replace('.csv', '_sym.tsv')
     if not isfile(mat_o):
-        cmd += '%s/symmetrize_simka_matrix.py' % RESOURCES
+        cmd += 'python %s/symmetrize_simka_matrix.py' % RESOURCES
         cmd += ' -i %s\n' % mat_fp
 
     mat_dm = mat_o.replace('.tsv', '_dm.qza')
