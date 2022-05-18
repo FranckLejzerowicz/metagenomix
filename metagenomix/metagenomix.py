@@ -52,7 +52,6 @@ def metagenomix(**kwargs):
             print()
             print(softs[-1])
             for sam, cmds in workflow.softs[softs[-1]].cmds.items():
-                print(sam)
                 print('\n'.join(cmds))
         print('*****************************************')
 
