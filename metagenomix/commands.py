@@ -83,6 +83,8 @@ class Commands(object):
 
     def generic_command(self):
         self.sam = None
+        # print()
+        # print('name:', self.soft.name)
         if self.soft.name in self.holistics:
             self.prep_job()
         elif self.soft.name == 'pooling':
@@ -92,8 +94,6 @@ class Commands(object):
                 self.sam = sam
                 self.pool = sam
                 self.prep_job()
-        # print()
-        # print('name:', self.soft.name)
         # print('---- cmds:')
         # print(self.cmds)
         # print('---- outputs:')
@@ -311,7 +311,7 @@ class Commands(object):
     def prep_plass(self):
         cmds = []
         out = '%s/%s' % (self.dir, self.sam)
-        self.soft.dirs.update(out)
+        self.soft.dirs.add(out)
         inputs = self.inputs[self.sam]
         if self.soft.prev == 'flash':
             inputs = [x.replace('.fasta', '.fastq') for x in inputs if

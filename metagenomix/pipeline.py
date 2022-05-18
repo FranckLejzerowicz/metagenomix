@@ -164,6 +164,10 @@ class Workflow(object):
 
     def make_dirs(self):
         for name, soft in self.softs.items():
+            print()
+            print(name)
+            print(soft.dirs)
+            continue
             for directory in sorted(soft.dirs):
                 if not isdir(directory):
                     os.makedirs(directory)

@@ -34,8 +34,6 @@ from metagenomix import __version__
 @click.option(
     "-s", "--p-strains", show_default=True, help="Species for strain-level"
                                                  " analyses (yaml file).")
-@click.option(
-    "-k", "--p-scratch", show_default=True, help='Abs path to scratch folder.')
 @click.option("-a2", "--p-a2", show_default=True)
 @click.option("-a3", "--p-a3", show_default=True)
 @click.option("-a4", "--p-a4", show_default=True)
@@ -50,8 +48,17 @@ from metagenomix import __version__
     "--jobs/--no-jobs", default=True, show_default=True,
     help="Whether to prepare Torque jobs from scripts.")
 @click.option(
-    "--slurm/--no-slurm", default=False, show_default=True,
-    help="Whether to prepare Slurm and not Torque jobs.")
+    "--torque/--no-torque", default=False, show_default=True,
+    help="Whether to prepare Torque jobs instead of Slurm.")
+@click.option(
+    "-l", "--localscratch", type=int, show_default=False, default=None,
+    help="Use localscratch with the provided memory amount (in GB)")
+@click.option(
+    "--scratch/--no-scratch", default=False, show_default=True,
+    help="Use the scratch folder to move files and compute")
+@click.option(
+    "--userscratch/--no-userscratch", default=False, show_default=True,
+    help="Use the userscratch folder to move files and compute")
 @click.option(
     "--verbose/--no-verbose", default=False, show_default=True,
     help="Whether to show expected input and outputs and other tools' details.")
@@ -77,7 +84,10 @@ def standalone_metagenomix(
         p_a7,
         force,
         jobs,
-        slurm,
+        torque,
+        localscratch,
+        scratch,
+        userscratch,
         verbose,
 ):
 
@@ -91,7 +101,6 @@ def standalone_metagenomix(
         pipeline_tsv=p_pipeline,
         user_params_yml=p_run_params,
         strains_yml=p_strains,
-        scratch=p_scratch,
         a2=p_a2,
         a3=p_a3,
         a4=p_a4,
@@ -100,7 +109,10 @@ def standalone_metagenomix(
         a7=p_a7,
         force=force,
         jobs=jobs,
-        slurm=slurm,
+        torque=torque,
+        localscratch=localscratch,
+        scratch=scratch,
+        userscratch=userscratch,
         verbose=verbose,
     )
 
