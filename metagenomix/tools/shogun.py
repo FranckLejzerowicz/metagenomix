@@ -521,7 +521,8 @@ def shogun(out_dir: str, sam: str, inputs: dict, params: dict, shogun: dict,
     io['O']['f'].append(fasta)
 
     ali_cmds = []
-    for aligner in ['bowtie2', 'burst']:
+    # for aligner in ['bowtie2', 'burst']:
+    for aligner in ['bowtie2']:
         ali_base = get_alignment_basename(aligner)
         for db, tax in shogun.items():
             key = (aligner, 'tax', db)
