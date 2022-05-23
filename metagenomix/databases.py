@@ -280,13 +280,6 @@ class ReferenceDatabases(object):
 
     def set_shogun(self) -> None:
         shogun_config = self.config.databases['shogun']['path']
-        ret, _ = subprocess.getstatusoutput('which bowtie2')
-        if ret:
-            raise IOError('"bowtie2" not installed')
-        ret, _ = subprocess.getstatusoutput('which burst')
-        if ret:
-            raise IOError('"burst" not installed')
-
         for k, v in shogun_config.items():
             self.shogun[k] = v
             if k == 'rep82':
