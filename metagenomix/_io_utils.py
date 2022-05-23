@@ -253,25 +253,16 @@ def get_hmm_dat(
         Pfam dat reformatted as table.
     """
     if not isfile(tsv):
-        decode = True
-        f = gzip.open(dat)
-        # if dat.endswith('.dat'):
-        #     f = open(dat)
-        #     decode = False
-        # elif dat.endswith('.dat.gz'):
-        #     f = gzip.open(dat)
         records = []
         cur = {}
-        for line in f:
-            if decode:
-                line_decode = line.decode().strip()
-            else:
+        with open(dat) as f:
+            for line in f:
                 line_decode = line.strip()
-            if line_decode.startswith('//'):
-                records.append(cur)
-                cur = {}
-            elif line_decode.startswith('#=GF'):
-                cur[line_decode[5:7]] = line_decode[7:].strip()
+                if line_decode.startswith('//'):
+                    records.append(cur)
+                    cur = {}
+                elif line_decode.startswith('#=GF'):
+                    cur[line_decode[5:7]] = line_decode[7:].strip()
         pfam_dat_pd = pd.DataFrame(records)
         pfam_dat_pd.to_csv(tsv, index=False, sep='\t')
     else:
