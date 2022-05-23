@@ -11,7 +11,8 @@ import numpy as np
 from os.path import basename, dirname, isdir, isfile, splitext
 from metagenomix._io_utils import (
     get_edit_fastq_cmd, count_reads_cmd, get_out_dir, write_hmms)
-from metagenomix.tools.simka import get_simka_input, simka_cmd, simka_pcoa_cmd
+from metagenomix.tools.simka import (
+    check_simka_params, get_simka_input, simka_cmd, simka_pcoa_cmd)
 from metagenomix.tools.midas import midas
 from metagenomix.tools.phlans import metaphlan, humann, strainphlan
 from metagenomix.tools.shogun import shogun
@@ -83,8 +84,8 @@ class Commands(object):
 
     def generic_command(self):
         self.sam = None
-        print()
-        print('name:', self.soft.name)
+        # print()
+        # print('name:', self.soft.name)
         if self.soft.name in self.holistics:
             self.prep_job()
         elif self.soft.name == 'pooling':
@@ -94,12 +95,12 @@ class Commands(object):
                 self.sam = sam
                 self.pool = sam
                 self.prep_job()
-        print('---- cmds:')
-        print(self.cmds)
-        print('---- outputs:')
-        print(self.soft.outputs)
-        print('---- io:')
-        print(self.soft.io)
+        # print('---- cmds:')
+        # print(self.cmds)
+        # print('---- outputs:')
+        # print(self.soft.outputs)
+        # print('---- io:')
+        # print(self.soft.io)
         self.register_command()
 
     def prep_job(self):
@@ -180,9 +181,10 @@ class Commands(object):
         smin = True
         tmp_dir = '%s/simka' % self.config.scratch
         self.soft.dirs.add(tmp_dir)
-        for k in map(str, np.linspace(15, 80, 6)):
+        k_space, n_space = check_simka_params(self.soft.params)
+        for k in map(int, k_space):
             self.cmds[k] = []
-            for n in map(int, np.logspace(4, 7, 10)):
+            for n in map(int, n_space):
                 out_dir = '%s/k%s/n%s' % (self.dir, k, n)
                 cmd = simka_cmd(self.soft, smin, inp, out_dir, k, n, tmp_dir)
                 self.out.append(out_dir)

@@ -23,7 +23,6 @@ shogun:
   path:
     wol: /Users/franck/databases/shogun/wol
     rep200: /Users/franck/databases/shogun/rep200
-    rep82: /Users/franck/databases/shogun/rep82
 macsyfinder:
   path: /Volumes/Franck_2TB/databases/macsyfinder
 diamond:

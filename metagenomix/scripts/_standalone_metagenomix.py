@@ -34,12 +34,6 @@ from metagenomix import __version__
 @click.option(
     "-s", "--p-strains", show_default=True, help="Species for strain-level"
                                                  " analyses (yaml file).")
-@click.option("-a2", "--p-a2", show_default=True)
-@click.option("-a3", "--p-a3", show_default=True)
-@click.option("-a4", "--p-a4", show_default=True)
-@click.option("-a5", "--p-a5", show_default=True)
-@click.option("-a6", "--p-a6", show_default=True)
-@click.option("-a7", "--p-a7", show_default=True)
 @click.option(
     "--force/--no-force", default=False, show_default=True,
     help="Force the re-writing of scripts for all commands"
@@ -75,12 +69,6 @@ def standalone_metagenomix(
         p_pipeline,
         p_run_params,
         p_strains,
-        p_a2,
-        p_a3,
-        p_a4,
-        p_a5,
-        p_a6,
-        p_a7,
         force,
         jobs,
         torque,
@@ -100,12 +88,6 @@ def standalone_metagenomix(
         pipeline_tsv=p_pipeline,
         user_params_yml=p_run_params,
         strains_yml=p_strains,
-        a2=p_a2,
-        a3=p_a3,
-        a4=p_a4,
-        a5=p_a5,
-        a6=p_a6,
-        a7=p_a7,
         force=force,
         jobs=jobs,
         torque=torque,

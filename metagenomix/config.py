@@ -40,6 +40,7 @@ class AnalysesConfig(object):
         self.midas_foci = {'all': ('', '')}
         # self.midas_foci = {'CLA': ('', 'CLAmicrobes_20species.txt')}
         self.midas_strain_tracking = []
+        self.simka_params = {}
         self.humann_profile = {}
         # self.humann_profile = {'cla': 'cla_profile_rep82_7_filt.txt'}
         self.stand_alone_groupings = {

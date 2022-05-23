@@ -5,6 +5,14 @@ D1:
   chunks: 6
 simka:
   path: /Users/franck/programs/simka
+  kmer:
+    start: 10
+    end: 100
+    size: 3
+  log_reads:
+    start: 4
+    end: 7
+    size: 3
 humann:
   evalue: 0.1
   id_thresh: 90

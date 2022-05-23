@@ -125,8 +125,8 @@ class CreateScripts(object):
             run_pbs: str,
             cnd: str,
             wall_time: str,
-            nodes: int,
             procs: int,
+            nodes: int,
             mem_n: str,
             mem_u: str,
     ) -> None:
@@ -143,11 +143,18 @@ class CreateScripts(object):
         mem_n : int
         mem_u : str
         """
-        self.cmd = ['Xpbs', '-i', run_sh, '-o', run_pbs, '-j', self.job_name,
-                    '-e', cnd, '-t', wall_time, '-p', str(procs), '--no-loc',
-                    '-n', str(nodes), '-M', str(mem_n), mem_u, '--noq']
-        if self.config.notmp:
-            self.cmd.extend(['--notmp'])
+        self.cmd = [
+            'Xhpc',
+            '-i', run_sh,
+            '-o', run_pbs,
+            '-j', self.job_name,
+            '-e', cnd,
+            '-t', wall_time,
+            '-c', str(procs),
+            '-n', str(nodes),
+            '-M', str(mem_n), mem_u,
+            '--no-stat'
+        ]
 
     def prep_slm_script(
             self,

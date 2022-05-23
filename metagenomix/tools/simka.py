@@ -6,11 +6,64 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
+import numpy as np
 import pkg_resources
 from os.path import isdir, isfile
 from metagenomix._io_utils import mkdr
 
 RESOURCES = pkg_resources.resource_filename("metagenomix", "resources/scripts")
+
+
+def throw_error(key: str, kmer_reads: dict) -> None:
+    """Throw an error is the user-defined simka params are not right.
+
+    Parameters
+    ----------
+    key : str
+        "" or ""
+    kmer_reads : dict
+        Params for sampling of the kmers of reads size in Simka
+
+    Raises
+    ------
+    IOError
+        Indicated which params is not right to the user.
+    """
+    for p in ['start', 'end', 'size']:
+        if p not in kmer_reads or not isinstance(kmer_reads[p], int):
+            raise('Please give an integer for simka subparam "%s" (param '
+                  '"%s") in your input .yml params file' % (p, key))
+
+
+def check_simka_params(params: dict) -> tuple:
+    """Get user-defined Simka parameters or use some defaults.
+
+    Parameters
+    ----------
+    params : dict
+        Simka user defined parameters
+
+    Returns
+    -------
+    (k_space, n_space) : tuple
+        k_space: linear space for the different kmer sizes to use in Simka
+        n_space: log  space for the different read sizes to use in Simka
+    """
+    if 'kmer' in params:
+        kmer = params['kmer']
+        throw_error('kmer', kmer)
+        k_space = np.linspace(kmer['start'], kmer['end'], kmer['size'])
+    else:
+        k_space = np.linspace(15, 80, 6)
+
+    if 'log_reads' in params:
+        reads = params['log_reads']
+        throw_error('log_reads', reads)
+        n_space = np.logspace(reads['start'], reads['end'], reads['size'])
+    else:
+        n_space = np.logspace(3, 7, 3)
+
+    return k_space, n_space
 
 
 def get_simka_input(dir_path, inputs) -> str:
@@ -40,7 +93,7 @@ def get_simka_input(dir_path, inputs) -> str:
 
 
 def simka_cmd(soft, smin: bool, sim_in: str, out_dir: str,
-              k: str, n: int, tmp_dir: str) -> str:
+              k: int, n: int, tmp_dir: str) -> str:
     """
 
     Parameters
@@ -53,7 +106,7 @@ def simka_cmd(soft, smin: bool, sim_in: str, out_dir: str,
         Input file containing to the fastq file paths for Simka.
     out_dir : str
         Output folder for Simka.
-    k : str
+    k : int
         Length of the k-mer.
     n : int
         Number of sequences to inject in the Simka analysis.
@@ -79,7 +132,7 @@ def simka_cmd(soft, smin: bool, sim_in: str, out_dir: str,
     return cmd
 
 
-def simka_min_cmd(soft, sim_in: str, out_dir: str, k: str, n: str) -> str:
+def simka_min_cmd(soft, sim_in: str, out_dir: str, k: int, n: str) -> str:
     """Write the Simka command for the SimkaMin algorithm.
 
     Parameters
@@ -90,7 +143,7 @@ def simka_min_cmd(soft, sim_in: str, out_dir: str, k: str, n: str) -> str:
         Input file containing to the fastq file paths for Simka.
     out_dir : str
         Output folder for Simka.
-    k : str
+    k : int
         Length of the k-mer.
     n : str
         Number of sequences to inject in the Simka analysis.
@@ -103,7 +156,7 @@ def simka_min_cmd(soft, sim_in: str, out_dir: str, k: str, n: str) -> str:
     cmd = 'python %s/simkaMin/simkaMin.py' % soft.params['path']
     cmd += ' -bin %s/bin/simkaMinCore' % soft.params['path']
     cmd += ' -in %s -out %s' % (sim_in, out_dir)
-    cmd += ' -kmer-size %s' % k
+    cmd += ' -kmer-size %s' % str(k)
     cmd += ' -max-reads %s' % n
     cmd += ' -nb-kmers 50000'
     cmd += ' -max-memory 180000'
@@ -115,7 +168,7 @@ def simka_min_cmd(soft, sim_in: str, out_dir: str, k: str, n: str) -> str:
 
 
 def simka_base_cmd(
-        soft, sim_in: str, out_dir: str, k: str, n: str, tmpdir: str) -> str:
+        soft, sim_in: str, out_dir: str, k: int, n: str, tmpdir: str) -> str:
     """Write the Simka command for the Simka base algorithm.
 
     Parameters
@@ -126,7 +179,7 @@ def simka_base_cmd(
         Input file containing to the fastq file paths for Simka.
     out_dir : str
         Output folder for Simka.
-    k : str
+    k : int
         Length of the k-mer.
     n : str
         Number of sequences to inject in the Simka analysis.
@@ -143,7 +196,7 @@ def simka_base_cmd(
     cmd += ' -out %s' % out_dir
     cmd += ' -out-tmp %s' % tmpdir
     cmd += ' -abundance-min 5'
-    cmd += ' -kmer-size %s' % k
+    cmd += ' -kmer-size %s' % int(k)
     cmd += ' -max-reads %s' % n
     cmd += ' -data-info'
     cmd += ' -simple-dist'
