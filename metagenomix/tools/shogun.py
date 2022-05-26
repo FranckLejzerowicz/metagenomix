@@ -527,7 +527,7 @@ def shogun(
             key = (aligner, 'tax', db)
             if aligner == 'burst' and db != 'wol':
                 continue
-            out = out_dir + '/' + aligner + '/tax/' + db + '/%s' % params['b2']
+            out = out_dir + '/' + aligner + '/tax/' + db + '/%s'# % params['b2']
             add_to_dirs_io(out, dirs, io)
 
             ali, tax_tab, tax_norm = get_out_paths(out, ali_base, 'tax')
