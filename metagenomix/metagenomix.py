@@ -55,6 +55,6 @@ def metagenomix(**kwargs):
                 print('\n'.join(cmds))
         print('*****************************************')
 
-    scripting = CreateScripts(config)
-    scripting.write_scripts(databases.databases_commands)
+    # scripting = CreateScripts(config)
+    # scripting.write_scripts(databases.databases_commands)
     # scripting.write_scripts(analysis.analyses_commands)
