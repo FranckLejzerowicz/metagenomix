@@ -7,12 +7,15 @@
 # ----------------------------------------------------------------------------
 
 import os
+import pkg_resources
 from os.path import basename, isfile, splitext
 
 from metagenomix._io_utils import check_min_lines_count
 
+scripts = pkg_resources.resource_filename('metagenomix', 'resources/scripts')
 
-def append_cmd(config, cmd: list, ret: int, tab: str, cmds: list):
+
+def append_cmd(config, cmd: list, tab: str, cmds: list):
     """Add or not the current SHOGUN command to the list of commands to run
     depending on whether the file already exists or exists but is only a header.
 
@@ -22,14 +25,12 @@ def append_cmd(config, cmd: list, ret: int, tab: str, cmds: list):
         Configuration.
     cmd : list
         List of current SHOGUN command lines.
-    ret : int
-        Return value of `check_combined` function telling if input is valid.
     tab : str
         Path to the output table of the current command.
     cmds : list
         List of command to possibly expand with the current command.
     """
-    if ret == 1 or config.force:
+    if config.force:
         cmds.extend(cmd)
     elif not isfile(tab) or not check_min_lines_count(tab):
         cmds.append('file="%s"' % tab)
@@ -42,14 +43,12 @@ def append_cmd(config, cmd: list, ret: int, tab: str, cmds: list):
         cmds.append('fi')
 
 
-def get_functional_cmd(ret: int, fun_tab: str, fun: str,
-                       out_dir: str, cmds: list, config) -> None:
+def get_functional_cmd(
+        fun_tab: str, fun: str, out_dir: str, cmds: list, config) -> None:
     """
 
     Parameters
     ----------
-    ret : int
-        Return value of `check_combined` function telling if input is valid.
     fun_tab : str
         Path to the input table file.
     fun : str
@@ -68,17 +67,15 @@ def get_functional_cmd(ret: int, fun_tab: str, fun: str,
     cmd += ' -l genus'
     out_file = '%s/%s.genus.normalized.txt' % (
         out_dir, splitext(basename(fun_tab))[0].replace('_taxt', '_funt'))
-    append_cmd(config, list([cmd]), ret, out_file, cmds)
+    append_cmd(config, list([cmd]), out_file, cmds)
 
 
-def get_coverage_cmd(ret: int, ali: str, tax: str,
-                     level: str, cov_tab: str, cmds: list, config) -> None:
+def get_coverage_cmd(ali: str, tax: str, level: str,
+                     cov_tab: str, cmds: list, config) -> None:
     """Get the SHOGUN command that calculates the coverage per taxon.
 
     Parameters
     ----------
-    ret : int
-        Return value of `check_combined` function telling if input is valid.
     ali : str
         Path to the alignment.
     tax : str
@@ -97,11 +94,11 @@ def get_coverage_cmd(ret: int, ali: str, tax: str,
     cmd += ' -d %s' % tax
     cmd += ' -l %s' % level
     cmd += ' -o %s' % cov_tab
-    append_cmd(config, list([cmd]), ret, cov_tab, cmds)
+    append_cmd(config, list([cmd]), cov_tab, cmds)
 
 
 def get_redistribution_command(
-        ret: int, tax: str, tax_norm: str, cmds: list, config) -> list:
+        tax: str, tax_norm: str, cmds: list, config) -> list:
     """Get the SHOGUN command to redistribute a taxonomic profile
     at various taxonomic levels.
 
@@ -109,8 +106,6 @@ def get_redistribution_command(
     ----------
     args : dict
         Arguments incl. 'softs', 'soft', 'config', 'inputs' and 'databases'.
-    ret : int
-        Return value of `check_combined` function telling if input is valid.
     tax : str
         Path to the taxonomic database.
     tax_norm : str
@@ -136,7 +131,7 @@ def get_redistribution_command(
         cmd += ' -o %s' % out_redist
         redist_cmds.append(cmd)
     redist_out = '%s.redist.strain.tsv' % splitext(tax_norm)[0]
-    append_cmd(config, redist_cmds, ret, redist_out, cmds)
+    append_cmd(config, redist_cmds, redist_out, cmds)
     return redists
 
 
@@ -189,15 +184,13 @@ def get_normalize_cmd(input_fp: str, output_fp: str) -> str:
     return cmd
 
 
-def get_assign_cmd(ret: int, aligner: str, ali: str, tax: str,
+def get_assign_cmd(aligner: str, ali: str, tax: str,
                    out_tab: str, cmds: list, sub_db: str, config) -> None:
     """Get the taxonomic assignment and the taxonomic table
     normalization SHOGUN commands.
 
     Parameters
     ----------
-    ret : int
-        Return value of `check_combined` function telling if input is valid.
     aligner : str
         Name of the aligner.
     ali : str
@@ -216,7 +209,7 @@ def get_assign_cmd(ret: int, aligner: str, ali: str, tax: str,
     out_norm = '%s_norm.tsv' % splitext(out_tab)[0]
     cmd = assign_taxonomy_cmd(aligner, ali, tax, out_tab, sub_db)
     cmd += get_normalize_cmd(out_tab, out_norm)
-    append_cmd(config, list([cmd]), ret, out_norm, cmds)
+    append_cmd(config, list([cmd]), out_norm, cmds)
 
 
 def condition_ali_command(fasta: str, ali_out: str, cmd: str) -> list:
@@ -298,7 +291,23 @@ def get_ali_cmd(params: dict, aligner: str, fasta: str, tax: str,
         # cmd += ' -o %s' % ali_out
     else:
         ali_out = '%s/alignment.bowtie2.sam' % out
-
+        if params.get('b2') == 'paired':
+            cmd = 'bowtie2'
+            cmd += ' -p %s' % params['cpus']
+            cmd += ' -x %s' % tax
+            cmd += ' -S %s' % out
+            cmd += ' -1 02_fastp/SRR17458627_R1.fastq.gz'
+            cmd += ' -2 02_fastp/SRR17458627_R2.fastq.gz'
+            cmd += ' --seed 12345'
+            cmd += ' --very-sensitive'
+            cmd += ' -k 16'
+            cmd += ' --np 1'
+            cmd += ' --mp "1,1"'
+            cmd += ' --rdg "0,1"'
+            cmd += ' --rfg "0,1"'
+            cmd += ' --score-min "L,0,-0.05"'
+            cmd += ' --no-head'
+            cmd += ' --no-unal'
     cmd = 'shogun align -a %s' % aligner
     cmd += ' -i %s' % fasta
     cmd += ' -d %s' % tax
@@ -308,7 +317,7 @@ def get_ali_cmd(params: dict, aligner: str, fasta: str, tax: str,
 
 
 def get_full_ali_cmd(
-        params: dict, ret: int, aligner: str, fasta: str,
+        params: dict, aligner: str, fasta: str,
         tax: str, out: str) -> list:
     """Get the full command lines to perform sequence alignment using
     SHOGUN aligner and potentially, re-run if the output was existing but
@@ -318,8 +327,6 @@ def get_full_ali_cmd(
     ----------
     params : dict
         Run parameters.
-    ret : int
-        Return value of `check_combined` function telling if input is valid.
     aligner : str
         Name of the aligner.
     fasta : str
@@ -335,7 +342,7 @@ def get_full_ali_cmd(
         Alignment commands.
     """
     cmd, ali_out = get_ali_cmd(params, aligner, fasta, tax, out)
-    if ret or not isfile(ali_out):
+    if not isfile(ali_out):
         ali_cmds = [cmd]
     else:
         ali_cmds = condition_ali_command(fasta, ali_out, cmd)
@@ -377,7 +384,19 @@ def get_alignment_basename(aligner):
     return ali_base
 
 
-def get_combine_cmd(sam: str, inputs: dict, io: dict) -> tuple:
+def get_orients(inputs: list):
+    if len(inputs) == 1:
+        orients = ['']
+    elif len(inputs) == 2:
+        orients = ['1', '2']
+    elif len(inputs) == 3:
+        orients = ['', '1', '2']
+    else:
+        raise IOError('Input to shogun must be 1, 2 or 3 fasta files')
+    return orients
+
+
+def get_combine_cmd(sam: str, inputs: dict, out_dir: str, io: dict) -> tuple:
     """
 
     Parameters
@@ -386,6 +405,8 @@ def get_combine_cmd(sam: str, inputs: dict, io: dict) -> tuple:
         Sample name.
     inputs : dict
         Input files.
+    out_dir : str
+        Path to pipeline output folder for SHOGUN.
     io : dict
         Inputs and outputs to potentially move to scratch and back.
 
@@ -398,50 +419,27 @@ def get_combine_cmd(sam: str, inputs: dict, io: dict) -> tuple:
     """
     fastas, combine_cmds = [], []
     # get the fastq versions of input file
-    for path in inputs[sam]:
-        if path.endswith('fastq') or path.endswith('fastq.gz'):
+    orients = get_orients(inputs[sam])
+    for pdx, path_ in enumerate(sorted(inputs[sam])):
+        io['I']['f'].append(path_)
+        path = path_
+        if path_.endswith('fastq') or path_.endswith('fastq.gz'):
             # replace non-fasta by fasta extensions
-            fas_path = path.replace('.fastq', '.fasta').replace('.gz', '')
+            path = path_.replace('.fastq', '.fasta').replace('.gz', '')
             # Prepare the extraction command and collect it
-            if not isfile(fas_path):
-                to_fasta_cmd = 'seqtk seq -A %s > %s' % (path, fas_path)
+            if isfile(path_) and not isfile(path):
+                to_fasta_cmd = 'seqtk seq -A %s > %s' % (path_, path)
                 combine_cmds.append(to_fasta_cmd)
-            fastas.append(fas_path)
-        elif path.endswith('fasta'):
-            fastas.append(path)
-        io['I']['f'].append(path)
+
+        path_out = '%s/%s' % (out_dir, basename(path))
+        edit_fasta = '%s/fasta4shogun.py -i %s -o %s -s %s' % (scripts, path,
+                                                               path_out, sam)
+        orient = orients[pdx]
+        if orient:
+            edit_fasta += ' -r %s' % orient
+        combine_cmds.append(edit_fasta)
+        fastas.append(path_out)
     return fastas, combine_cmds
-
-
-def check_combined(fasta: str, fastas: list) -> int:
-    """Check whether the last sequences of the combined fasta file
-    contains the same sequences as the last fasta file to be combined in.
-
-    Parameters
-    ----------
-    fasta : str
-        Path to the combined sequences fasta file.
-    fastas : list
-        Paths to fasta files to combine for SHOGUN.
-
-    Returns
-    -------
-    ret : int
-        0: combining ended up properly, with the same last sequences.
-        1: combining did not happen.
-        2: combining did not end up properly.
-    """
-    ret = 1
-    if isfile(fasta):
-        combined_size = os.path.getsize(fasta)
-        not_combined_tail = os.popen('tail -n 4 %s' % list(fastas)[-1]).read()
-        combined_tail = os.popen('tail -n 4 %s' % fasta).read()
-        # Checks that the combining was done in order
-        if not_combined_tail == combined_tail:
-            ret = 0
-        elif combined_size:
-            ret = 2
-    return ret
 
 
 def combine_inputs(sam: str, inputs: dict, out_dir: str, io: dict) -> tuple:
@@ -464,17 +462,12 @@ def combine_inputs(sam: str, inputs: dict, out_dir: str, io: dict) -> tuple:
         Command lines to perform the combining.
     comb_path : str
         Path to the combined sequences fasta file.
-    ret : int
-        0: combining ended up properly, with the same last sequences.
-        0: combining did not happen.
-        2: combining did not end up properly.
     """
-    fastas, combine_cmds = get_combine_cmd(sam, inputs, io)
+    fastas, combine_cmds = get_combine_cmd(sam, inputs, out_dir, io)
     fasta = '%s/combined.fasta' % out_dir
-    ret = check_combined(fasta, list(fastas))
-    if ret == 1:
-        combine_cmds.append('cat %s > %s' % (' '.join(fastas), fasta))
-    return combine_cmds, fasta, ret
+    combine_cmds.append('cat %s > %s' % (' '.join(fastas), fasta))
+    combine_cmds.append('rm %s' % ' '.join(fastas))
+    return combine_cmds, fasta
 
 
 def add_to_dirs_io(out, dirs, io):
@@ -482,8 +475,13 @@ def add_to_dirs_io(out, dirs, io):
     io['O']['d'].append(out)
 
 
-def shogun(out_dir: str, sam: str, inputs: dict, params: dict, shogun: dict,
-           config):
+def shogun(
+        out_dir: str,
+        sam: str,
+        inputs: dict,
+        params: dict,
+        shogun: dict,
+        config):
     """
 
     Parameters
@@ -498,6 +496,8 @@ def shogun(out_dir: str, sam: str, inputs: dict, params: dict, shogun: dict,
         Run parameters.
     shogun : dict
         SHOGUN databases.
+    prev : str
+        Previous software.
     config
         Configuration.
 
@@ -516,8 +516,7 @@ def shogun(out_dir: str, sam: str, inputs: dict, params: dict, shogun: dict,
     outputs, dirs, cmds = {}, [], []
     out_dir = out_dir + '/' + sam
     add_to_dirs_io(out_dir, dirs, io)
-
-    combine_cmds, fasta, ret = combine_inputs(sam, inputs, out_dir, io)
+    combine_cmds, fasta = combine_inputs(sam, inputs, out_dir, io)
     io['O']['f'].append(fasta)
 
     ali_cmds = []
@@ -528,24 +527,24 @@ def shogun(out_dir: str, sam: str, inputs: dict, params: dict, shogun: dict,
             key = (aligner, 'tax', db)
             if aligner == 'burst' and db != 'wol':
                 continue
-            out = out_dir + '/' + aligner + '/tax/' + db
+            out = out_dir + '/' + aligner + '/tax/' + db + '/%s' % params['b2']
             add_to_dirs_io(out, dirs, io)
 
             ali, tax_tab, tax_norm = get_out_paths(out, ali_base, 'tax')
             outputs.setdefault(key, []).extend([ali, tax_tab, tax_norm])
             io['O']['f'].extend([ali, tax_tab, tax_norm])
 
-            ali_cmds = get_full_ali_cmd(params, ret, aligner, fasta, tax, out)
-            get_assign_cmd(ret, aligner, ali, tax, tax_tab, cmds, '', config)
+            ali_cmds = get_full_ali_cmd(params, aligner, fasta, tax, out)
+            get_assign_cmd(aligner, ali, tax, tax_tab, cmds, '', config)
             redists = get_redistribution_command(
-                ret, tax, tax_norm, cmds, config)
+                tax, tax_norm, cmds, config)
             io['O']['f'].extend(redists)
 
             if aligner == 'burst':
                 cov_tab = '%s/%s_coverage.tsv' % (out, sam)
                 outputs[key].append(cov_tab)
                 io['O']['f'].append(cov_tab)
-                get_coverage_cmd(ret, ali, tax, 'strain', cov_tab, cmds, config)
+                get_coverage_cmd(ali, tax, 'strain', cov_tab, cmds, config)
 
         for (fun, db) in shogun.items():
             key = (aligner, 'fun', db)
@@ -564,7 +563,7 @@ def shogun(out_dir: str, sam: str, inputs: dict, params: dict, shogun: dict,
                     io['O']['f'].extend([sub_fun_tab, sub_fun_norm])
                     io['O']['d'].append(out_db)
                     ali = ali.replace('/fun/', '/tax/')
-                    get_assign_cmd(ret, aligner, ali, fun, sub_fun_tab,
+                    get_assign_cmd(aligner, ali, fun, sub_fun_tab,
                                    cmds, '/functions-%s' % sub_db, config)
 
             key = (aligner, 'fun_algo', db)
@@ -572,7 +571,7 @@ def shogun(out_dir: str, sam: str, inputs: dict, params: dict, shogun: dict,
             fun_tab = '%s/%s_taxtable_norm.tsv' % (
                 out_db.replace('/fun_algo/', '/tax/'), sam)
             out_dir = '%s/%s_fun_table_norm_results' % (out_db, sam)
-            get_functional_cmd(ret, fun_tab, fun, out_dir, cmds, config)
+            get_functional_cmd(fun_tab, fun, out_dir, cmds, config)
             outputs.setdefault(key, []).append(out_dir)
             io['O']['d'].append(out_dir)
             io['O']['f'].append(fun_tab)

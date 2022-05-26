@@ -7,8 +7,9 @@
 # ----------------------------------------------------------------------------
 
 import os
-from os.path import isdir, isfile
+from os.path import isdir
 from collections import defaultdict
+from metagenomix.params import set_user_params
 
 
 class Soft(object):
@@ -140,27 +141,8 @@ class Workflow(object):
         Update the default params assigned to each software with the
         params passed by the user for each of the software.
         """
-        mem_dim = ['kb', 'mb', 'gb']
-        integer_params = ['time', 'procs', 'mem_num', 'chunks']
         for _, soft in self.softs.items():
-            soft_params = self.config.user_params.get(soft.name, {})
-            for param, value in soft_params.items():
-                soft.params[param] = value
-                if param in integer_params:
-                    if not str(value).isdigit():
-                        raise IOError('Param "%s" for "%s" must be integer' % (
-                            param, soft.name))
-                elif param == 'mem_dim':
-                    if value not in mem_dim:
-                        raise IOError('Param "%s" for "%s" must be of %s' % (
-                            param, soft.name, str(mem_dim)))
-                elif param == 'env':
-                    if value in self.config.conda_envs:
-                        raise EnvironmentError('"%s" not a conda env' % value)
-                elif param == 'path':
-                    if not isfile(value) and not isdir(value):
-                        raise IOError('"%s" do not exist' % value)
-                soft.params[param] = value
+            set_user_params(self.config, soft)
 
     def make_dirs(self):
         for name, soft in self.softs.items():

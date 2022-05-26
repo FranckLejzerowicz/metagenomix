@@ -26,12 +26,12 @@ def metagenomix(**kwargs):
     # Collect general config and initialization checks
     config = AnalysesConfig(**kwargs)
     config.init()
-    # print()
-    # print('**************** CONFIG *****************')
-    # for i, j in config.__dict__.items():
-    #     print(i, '\t:\t', j)
-    # print('**************** CONFIG *****************')
-    # print()
+    print()
+    print('**************** CONFIG *****************')
+    for i, j in config.__dict__.items():
+        print(i, '\t:\t', j)
+    print('**************** CONFIG *****************')
+    print()
     databases = ReferenceDatabases(config)
     databases.init()
     workflow = Workflow(config)
@@ -55,6 +55,6 @@ def metagenomix(**kwargs):
                 print('\n'.join(cmds))
         print('*****************************************')
 
-    # scripting = CreateScripts(config)
-    # scripting.write_scripts(databases.databases_commands)
+    scripting = CreateScripts(config)
+    scripting.write_scripts(databases.databases_commands)
     # scripting.write_scripts(analysis.analyses_commands)
