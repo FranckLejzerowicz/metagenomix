@@ -10,7 +10,7 @@ import os
 import glob
 import subprocess
 import pkg_resources
-from os.path import exists, isdir, isfile
+from os.path import exists, isdir, isfile, splitext
 from metagenomix._io_utils import read_yaml
 from metagenomix._metadata import read_metadata
 import pandas as pd
@@ -26,6 +26,7 @@ class AnalysesConfig(object):
         self.meta = pd.DataFrame()
         self.pooling_groups = []
         self.conda_envs = {}
+        self.modules = pd.DataFrame()
         self.conda_path = ''
         self.soft_paths = []
         self.fastq = {}
@@ -49,6 +50,7 @@ class AnalysesConfig(object):
     def init(self):
         self.check_xpbs_install()
         self.get_conda_envs()
+        self.get_modules()
         self.set_metadata()
         self.set_fastq()
         self.get_r()
@@ -79,6 +81,18 @@ class AnalysesConfig(object):
             if '/envs/' in env:
                 self.conda_envs[env.split('/')[-1]] = env.split()[-1]
                 self.conda_path = env.split()[-1].split('/envs/')[0]
+
+    def get_modules(self):
+        if 'MODULEPATH' in os.environ:
+            module_paths_fp = '%s/modules_paths.txt' % RESOURCES
+            if not isfile(module_paths_fp):
+                with open(module_paths_fp, 'w') as o:
+                    for module_path in os.environ['MODULEPATH'].split(':'):
+                        for path in glob.glob('%s/*/*.lua' % module_path):
+                            _, mod, ver = splitext(path)[0].rsplit('/', 2)
+                            o.write('%s\t%s\t%s/%s\n' % (
+                                mod.lower(), ver.split('-')[0], mod, ver))
+            self.modules = pd.read_csv(module_paths_fp, sep='\t', header=None)
 
     def set_metadata(self):
         """Read metadata with first column as index."""
@@ -173,7 +187,7 @@ class AnalysesConfig(object):
         self.meta.set_index('sample_name', inplace=True)
         self.meta = self.meta.loc[list(self.fastq.keys())]
         self.meta.fillna('Unspecified', inplace=True)
-        self.meta_fp = '%s_pipeline.tsv' % os.path.splitext(self.meta_fp)[0]
+        self.meta_fp = '%s_pipeline.tsv' % splitext(self.meta_fp)[0]
         self.meta.to_csv(self.meta_fp, sep='\t')
 
     def set_output(self):

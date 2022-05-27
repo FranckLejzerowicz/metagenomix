@@ -26,14 +26,16 @@ def metagenomix(**kwargs):
     # Collect general config and initialization checks
     config = AnalysesConfig(**kwargs)
     config.init()
-    print()
-    print('**************** CONFIG *****************')
-    for i, j in config.__dict__.items():
-        print(i, '\t:\t', j)
-    print('**************** CONFIG *****************')
-    print()
+    # print()
+    # print('**************** CONFIG *****************')
+    # for i, j in config.__dict__.items():
+    #     print(i, '\t:\t', j)
+    # print('**************** CONFIG *****************')
+    # print()
+
     databases = ReferenceDatabases(config)
     databases.init()
+
     workflow = Workflow(config)
     workflow.init()
     # print('**************** pipeline ***************')
@@ -41,20 +43,25 @@ def metagenomix(**kwargs):
     #     print(idx, soft.prev, soft.name, soft.params)
     # print('*****************************************')
     # print()
-    cmds = Commands(config, databases, workflow)
-    cmds.collect()
+    commands = Commands(config, databases, workflow)
+    commands.collect()
+
     workflow.make_dirs()
 
-    if 1:
-        print()
-        print('**************** commands ***************')
-        for softs in config.pipeline:
-            print()
-            print(softs[-1])
-            for sam, cmds in workflow.softs[softs[-1]].cmds.items():
-                print('\n'.join(cmds))
-        print('*****************************************')
+    # if 1:
+    #     print()
+    #     print('**************** database ***************')
+    #     for db in databases.databases_commands:
+    #         for sam, cmds in databases.databases_commands[db].items():
+    #             print('\n'.join(cmds))
+    #     print('*****************************************')
+    #     print()
+    #     print('**************** analyses ***************')
+    #     for soft in commands.analyses_commands:
+    #         for sam, cmds in commands.analyses_commands[soft].items():
+    #             print('\n'.join(cmds))
+    #     print('*****************************************')
 
     # scripting = CreateScripts(config)
     # scripting.write_scripts(databases.databases_commands)
-    # scripting.write_scripts(analysis.analyses_commands)
+    # scripting.write_scripts(cmds.analyses_commands)
