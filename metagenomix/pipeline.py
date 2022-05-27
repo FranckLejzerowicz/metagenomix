@@ -89,6 +89,7 @@ class Workflow(object):
         self.make_graph()
         self.get_paths()
         self.get_params()
+        self.show_modules()
 
     def show_modules(self):
         for name in self.softs.keys():
@@ -97,7 +98,6 @@ class Workflow(object):
                     self.config.modules[0] == name.lower()].copy()
                 print(modules)
                 print(modulesdsa)
-
 
     def collect_soft_name(self, softs: list) -> None:
         """Collect the sequential list of softwares.
