@@ -432,7 +432,8 @@ def get_combine_cmd(sam: str, inputs: dict, out_dir: str, io: dict) -> tuple:
                 combine_cmds.append(to_fasta_cmd)
 
         path_out = '%s/%s' % (out_dir, basename(path))
-        edit_fasta = '%s/fasta4shogun.py -i %s -o %s -s %s' % (scripts, path,
+        edit_fasta = 'python3 %s/fasta4shogun.py -i %s -o %s -s %s' % (scripts,
+                                                                   path,
                                                                path_out, sam)
         orient = orients[pdx]
         if orient:
