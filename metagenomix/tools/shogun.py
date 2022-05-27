@@ -432,9 +432,8 @@ def get_combine_cmd(sam: str, inputs: dict, out_dir: str, io: dict) -> tuple:
                 combine_cmds.append(to_fasta_cmd)
 
         path_out = '%s/%s' % (out_dir, basename(path))
-        edit_fasta = 'python3 %s/fasta4shogun.py -i %s -o %s -s %s' % (scripts,
-                                                                   path,
-                                                               path_out, sam)
+        edit_fasta = 'python3 %s/fasta4shogun.py -i %s -o %s -s %s' % (
+            scripts, path, path_out, sam)
         orient = orients[pdx]
         if orient:
             edit_fasta += ' -r %s' % orient
@@ -528,7 +527,7 @@ def shogun(
             key = (aligner, 'tax', db)
             if aligner == 'burst' and db != 'wol':
                 continue
-            out = out_dir + '/' + aligner + '/tax/' + db + '/%s'# % params['b2']
+            out = out_dir + '/' + aligner + '/tax/' + db #+ '/%s' % params['b2']
             add_to_dirs_io(out, dirs, io)
 
             ali, tax_tab, tax_norm = get_out_paths(out, ali_base, 'tax')
