@@ -6,305 +6,147 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-import glob
 import subprocess
+import numpy as np
 from os.path import dirname, splitext
 
-from metagenomix._io_utils import mkdr, get_chunks
+from metagenomix._io_utils import mkdr
 
 
 class CreateScripts(object):
 
     def __init__(self, config):
         self.config = config
-        self.jobs_folders = {}
-        self.cmd = ''
+        self.cmd = []
+        self.cmds = {}
+        self.cmds_chunks = []
         self.soft = ''
-        self.shs = {}
-        self.non_empty_shs = []
-        self.all_sh_chunks = []
-        self.to_chunk = {}
+        self.sh = ''
+        self.run = []
+        self.main_fps = []
+        self.job_fps = []
         self.job_name = ''
-        self.run_main = ''
+        self.module = ''
+        self.pjct = self.get_prjct()
+        self.scheduler = self.get_scheduler()
 
-    def get_job_name(
-            self,
-            sam: str,
-            adx: int
-    ) -> None:
-        """
-
-        Parameters
-        ----------
-        sam : str
-            Current sample (could be None).
-        adx : int
-            Chunk number
-        """
-        nickname = [x for x in self.config.project if x.lower() not in 'aeiouy']
-        if sam:
-            self.job_name = '.'.join([self.soft, ''.join(nickname), sam, adx])
-        else:
-            self.job_name = '.'.join([self.soft, ''.join(nickname), adx])
-
-    def get_run_sh_fp(
-            self,
-            soft_prev: str,
-            sam: str,
-            adx: int
-    ) -> tuple:
-        """
-
-        Parameters
-        ----------
-        soft_prev : str
-        sam : str
-        adx : int
-
-        Returns
-        -------
-        run_sh: str
-        run_top_sh: str
-        run_pbs: str
-        run_slm: str
-        previous_sh: str
-        """
-        if sam:
-            run_sh = '%s/%s/jobs/run_%s_after_%s_%s_%s.sh' % (
-                self.config.dir, self.soft, self.soft, soft_prev, sam, adx)
-        else:
-            run_sh = '%s/%s/jobs/run_%s_after_%s_%s.sh' % (
-                self.config.dir, self.soft, self.soft, soft_prev, adx)
-        run_top_sh = '%s_top.sh' % splitext(run_sh)[0]
-        previous_sh = glob.glob('%s/run_%s_after_%s_*.sh' % (
-            dirname(run_sh), self.soft, soft_prev))
-        run_dir = dirname(run_sh)
-        mkdr(run_dir)
-        run_pbs = run_sh.replace('.sh', '.pbs')
-        run_slm = run_sh.replace('.sh', '.slm')
-        return run_sh, run_top_sh, run_pbs, run_slm, previous_sh
-
-    def get_non_empty_shs(
-            self,
-            all_sh: str
-    ) -> None:
-        """Reduce a list of bash scripts to those that are not empty."""
-        self.non_empty_shs = [sh for sh in all_sh if len([
-            x for x in open(sh).readlines() if len(x.strip())])]
-
-    def get_sh_chunks(
-            self,
-            all_sh: list,
-            n_chunks: int
-    ) -> None:
-        """Get the chunk of scripts to run, one chunk will be one job.
-
-        Parameters
-        ----------
-        all_sh : list
-            List of bash scripts.
-        n_chunks : int
-            Number of chunk of scripts to prepare, i.e., to run in queue.
-        """
-        if n_chunks:
-            if len(all_sh) < n_chunks:
-                self.all_sh_chunks = [[x] for x in all_sh]
+    def get_scheduler(self):
+        if self.config.jobs:
+            if self.config.torque:
+                return 'qsub'
             else:
-                self.all_sh_chunks = get_chunks(all_sh, 0, n_chunks)
+                return 'sbatch'
+        return ''
+
+    def get_prjct(self):
+        prjct = [x for x in self.config.project if x.lower() not in 'aeiouy']
+        if prjct:
+            return ''.join(prjct)
         else:
-            if len(all_sh) <= 4:
-                self.all_sh_chunks = [[x] for x in all_sh]
-            if len(all_sh) > 8:
-                self.all_sh_chunks = get_chunks(all_sh, 0, 8)
-            else:
-                self.all_sh_chunks = get_chunks(all_sh, 2)
+            return self.config.project
 
-    def prep_script(
-            self,
-            run_sh: str,
-            run_pbs: str,
-            cnd: str,
-            wall_time: str,
-            procs: int,
-            nodes: int,
-            mem_n: str,
-            mem_u: str,
-    ) -> None:
-        """Get the Torque or Slurm script.
+    def get_cmds_chunks(self, n_chunks):
+        if len(self.cmds) > int(n_chunks):
+            cmds_split = np.array_split(list(self.cmds), n_chunks)
+            self.cmds_chunks = [list(x) for x in cmds_split if len(x)]
+        else:
+            self.cmds_chunks = [[x] for x in self.cmds]
 
-        Parameters
-        ----------
-        run_sh : str
-        run_pbs : str
-        cnd : str
-        wall_time : str
-        nodes : int
-        procs : int
-        mem_n : int
-        mem_u : str
-        """
+    def write_main(self, name, soft=None) -> None:
+        main = '%s/run_%s' % (self.sh.rsplit('/', 2)[0], name)
+        if soft:
+            main += '_after_%s' % soft.prev
+        main += '.sh'
+        with open(main, 'w') as o:
+            if self.scheduler:
+                for job_fp in self.job_fps:
+                    o.write('%s %s\n' % (self.scheduler, job_fp))
+                self.job_fps = []
+        self.run[name] = main
+
+    def database_cmds(self, databases):
+        for db, cmds in databases.commands.items():
+            self.cmds = cmds
+            self.get_cmds_chunks(self.config.params['chunks'])
+            self.write_jobs(db)
+            self.write_main(db)
+
+    def get_module(self, name: str):
+        self.module = self.config.modules.get(name)
+
+    def software_cmds(self, commands):
+        for name, soft in commands.softs.items():
+            self.get_module(name)
+            self.cmds = soft.cmds
+            self.get_cmds_chunks(soft.params['chunks'])
+            self.write_jobs(name, soft)
+            self.write_main(name, soft)
+
+    def get_sh(self, name: str, cdx: int, soft=None) -> None:
+        if soft:
+            self.sh = '%s/%s/jobs/run_%s_after_%s_%s.sh' % (
+                self.config.dir, name, name, soft.prev, cdx)
+        else:
+            self.sh = '%s/databases/jobs/build_%s_%s.sh' % (
+                self.config.dir, name, cdx)
+        mkdr(dirname(self.sh))
+
+    def prep_script(self, params: dict) -> None:
         self.cmd = [
             'Xhpc',
-            '-i', run_sh,
-            '-o', run_pbs,
             '-j', self.job_name,
-            '-e', cnd,
-            '-t', wall_time,
-            '-c', str(procs),
-            '-n', str(nodes),
-            '-M', str(mem_n), mem_u,
-            '--no-stat'
-        ]
+            '-t', params['time'],
+            '-c', str(params['cpus']),
+            '-n', str(params['nodes']),
+            '-M', str(params['mem_num']), params['mem_dim'],
+            '--no-stat',
+            '-i', self.sh]
 
-    def prep_slm_script(
-            self,
-    ) -> None:
-        """
-        Get the Slurm script.
-        """
-        self.cmd.extend(['--slurm',
-                         '-T', '/panfs/flejzerowicz',
-                         '-l', '/panfs/flejzerowicz'])
+        job_script = '%s.slm' % splitext(self.sh)[0]
+        if self.config.torque:
+            self.cmd.append('--torque')
+            job_script = '%s.pbs' % splitext(self.sh)[0]
+        self.job_fps.append(job_script)
+        self.cmd.extend(['-o', job_script])
+
+        if not self.module and params['env']:
+            self.cmd.extend(['-e', params['env']])
+
+        if self.config.userscratch:
+            self.cmd.append('--userscratch')
+        if self.config.scratch:
+            self.cmd.append('--scratch')
+        if self.config.localscratch:
+            self.cmd.extend(['--localscratch', self.config.localscratch])
 
     def call_cmd(self):
-        if self.config.show:
-            if self.soft in self.config.which_to_show:
-                print(' '.join(self.cmd))
-        else:
-            print(' '.join(self.cmd))
-        subprocess.call(self.cmd)
+        cmd = ' '.join(map(str, self.cmd))
+        if self.config.verbose:
+            print('[Running]', cmd)
+        subprocess.call(cmd.split())
 
-    def get_main_sh(
-            self,
-            soft_prev: str,
-            all_pbs: str,
-            all_slm: str
-    ) -> None:
-        # write the file that will launch all the software jobs
-        self.run_main = '%s/%s/run_main_%s_after_%s.sh' % (
-            self.config.dir, self.soft, self.soft, soft_prev)
-        with open(self.run_main, 'w') as o:
-            if self.config.slurm:
-                for slm in all_slm:
-                    o.write('sbatch %s\n' % slm)
+    def write_chunks(self, chunks: list):
+        with open(self.sh, 'w') as sh:
+            if self.module:
+                sh.write('module load %s\n' % self.module)
+            for chunk in chunks:
+                for cmd in self.cmds[chunk]:
+                    sh.write('%s\n' % cmd)
+
+    def get_job_name(self, name: str, adx: int):
+        self.job_name = name + '.' + self.pjct + '.' + str(adx)
+
+    def write_script(self, soft=None):
+        if self.config.jobs:
+            if soft:
+                self.prep_script(soft.params)
             else:
-                for pbs in all_pbs:
-                    o.write('qsub %s\n' % pbs)
-
-    def get_pbs_slm(
-            self,
-            all_sh,
-            soft,
-            soft_prev,
-            mem_n_u,
-            procs,
-            cnd,
-            sam=None,
-            n_chunks=None,
-    ):
-        """
-
-        Parameters
-        ----------
-        all_sh
-        soft
-        soft_prev
-        mem_n_u
-        procs
-        cnd
-        sam
-        n_chunks
-
-        Returns
-        -------
-
-        """
-        # get pbs parameters
-        nodes, procs = self.get_n_procs(procs)
-
-        all_sh = self.get_non_empty_shs(all_sh)
-        all_sh_chunks = self.get_sh_chunks(all_sh, n_chunks)
-        mem_n, mem_u = mem_n_u
-
-        all_pbs = []
-        all_slm = []
-        for adx, all_sh_chunk in enumerate(all_sh_chunks):
-            run_sh, run_top_sh, run_pbs, run_slm, previous_sh = self.get_run_sh_fp(
-                soft, soft_prev, sam, adx)
-
-            # actual .sh command writing
-            with open(run_sh, 'w') as sh:
-                for chunk in all_sh_chunk:
-                    sh.write('\n')
-                    with open(chunk) as f:
-                        for line in f:
-                            sh.write(line)
-            self.get_job_name(sam, adx)
-
-            if self.config.slurm and soft in ['instrain', 'graspx']:
-                with open(run_top_sh, 'w') as sh_top:
-                    sh_top.write('sh %s\n' % run_sh)
-                self.prep_slm_script(
-                    run_top_sh, run_slm, cnd, nodes, wall_time, procs,
-                    mem_n, mem_u)
-                all_slm.append(run_slm)
-            else:
-                if self.config.slurm:
-                    self.prep_slm_script(
-                        run_sh, run_slm, cnd, nodes, wall_time, procs,
-                        mem_n, mem_u)
-                    all_slm.append(run_slm)
-                else:
-                    self.prep_pbs_script(
-                        run_sh, run_pbs, cnd, nodes, wall_time,
-                        procs, mem_n, mem_u)
-                    all_pbs.append(run_pbs)
+                self.prep_script(self.config.params)
             self.call_cmd()
 
-        return all_pbs, all_slm
-
-    # def get_n_procs(self) -> None:
-    #     """
-    #     Get the number of nodes and CPUs.
-    #     """
-    #     self.nodes = 1
-    #     if self.procs > 12:
-    #         self.nodes = (((self.procs - 1) // 12) + 1)
-    #         p = self.procs // self.nodes
-    #         if self.nodes * p < self.procs:
-    #             p += 1
-    #         self.procs = p
-
-    # def get_sh(self, sam: str = None) -> str:
-    #     """Get the path to the job file for one sample
-    #     (or one all-samples analysis).
-    #
-    #     Parameters
-    #     ----------
-    #     sam : str
-    #         Current sample name (could be None).
-    #
-    #     Returns
-    #     -------
-    #     run_sh : str
-    #         Path to the job file for one sample (or one all-samples analysis).
-    #     """
-    #     run_dir = '%s/%s/jobs/staged' % (self.config.dir, self.name)
-    #     mkdr(run_dir)
-    #     run_sh = '%s/staged_%s_after_%s' % (run_dir, self.name, self.prev)
-    #     if sam:
-    #         run_sh += '_%s' % sam.replace(' ', '_')
-    #     run_sh += '.sh'
-    #     return run_sh
-    #
-    # def get_outdir(self) -> str:
-    #     """Get the path to the output folder for the current analysis.
-    #
-    #     Returns
-    #     -------
-    #     out_dir : str
-    #         Path to the output folder for the current analysis.
-    #     """
-    #     out_dir = '%s/%s/after_%s' % (self.config.dir, self.name, self.prev)
-    #     mkdr(out_dir)
-    #     return out_dir
+    def write_jobs(self, name: str, soft=None):
+        for cdx, chunks in enumerate(self.cmds_chunks):
+            self.get_sh(name, cdx, soft)
+            self.write_chunks(chunks)
+            self.get_job_name(name, cdx)
+            self.write_script(soft)
