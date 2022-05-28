@@ -35,6 +35,9 @@ from metagenomix import __version__
     "-s", "--p-strains", show_default=True, help="Species for strain-level"
                                                  " analyses (yaml file).")
 @click.option(
+    "-M", "--p-modules", show_default=True, help="modules to use per software"
+                                                 " analyses (yaml file).")
+@click.option(
     "--force/--no-force", default=False, show_default=True,
     help="Force the re-writing of scripts for all commands"
          "(default is to not re-run if output file exists).")
@@ -69,6 +72,7 @@ def standalone_metagenomix(
         p_pipeline,
         p_run_params,
         p_strains,
+        p_modules,
         force,
         jobs,
         torque,
@@ -88,6 +92,7 @@ def standalone_metagenomix(
         pipeline_tsv=p_pipeline,
         user_params_yml=p_run_params,
         strains_yml=p_strains,
+        modules_yml=p_modules,
         force=force,
         jobs=jobs,
         torque=torque,
