@@ -26,7 +26,7 @@ class ReferenceDatabases(object):
 
     def __init__(self, config) -> None:
         self.config = config
-        self.databases_commands = {}
+        self.commands = {}
         self.tmps = []
         self.cmds = {}
         self.database = ''
@@ -142,7 +142,7 @@ class ReferenceDatabases(object):
                         continue
                     pfams, cmd = get_pfams_cmd(hmm, term_pd, pfam_dir, t)
                     self.hmms_dias[t] = pfams
-                    self.cmds[t] = cmd
+                    self.cmds[t] = [cmd]
         self.register_command()
 
     def get_dbcan_hmms(self) -> None:
@@ -234,7 +234,7 @@ class ReferenceDatabases(object):
             cmd = 'cd %s\n' % fna_dir
             cmd += '%s %s > download.list\n' % (make_down_list_py, metadata_fp)
             cmd += 'bash %s download.list' % batch_down_fp
-            self.cmds['download_wol_genomes'] = cmd
+            self.cmds['download_wol_genomes'] = [cmd]
         else:
             self.wol['fna'] = glob.glob('%s/*' % fna_dir)
 
@@ -287,10 +287,10 @@ class ReferenceDatabases(object):
                     cmd = 'mkdir -p %s\ncd %s\n' % (v, v)
                     cmd += 'wget -i https://raw.githubusercontent.com/knights-' \
                            'lab/SHOGUN/master/docs/shogun_db_links.txt\n'
-                    self.cmds['download_shogun'] = cmd
+                    self.cmds['download_shogun'] = [cmd]
 
     def register_command(self) -> None:
-        self.databases_commands[self.database] = dict(self.cmds)
+        self.commands[self.database] = dict(self.cmds)
         self.cmds = {}
 
 
