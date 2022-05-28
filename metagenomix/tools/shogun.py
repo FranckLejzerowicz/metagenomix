@@ -552,8 +552,6 @@ def shogun(
             ali, fun_tab, fun_norm = get_out_paths(out, ali_base, 'fun')
 
             if db == 'shogun':
-                if aligner == 'burst':
-                    continue
                 for sub_db in ['kegg', 'refseq', 'uniprot']:
                     out_db = '%s-%s' % (out, sub_db)
                     sub_fun_tab = fun_tab.replace(out, out_db)
