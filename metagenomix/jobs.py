@@ -22,7 +22,7 @@ class CreateScripts(object):
         self.cmds_chunks = []
         self.soft = ''
         self.sh = ''
-        self.run = []
+        self.run = {'database': {}, 'software': {}}
         self.main_fps = []
         self.job_fps = []
         self.job_name = ''
@@ -52,17 +52,23 @@ class CreateScripts(object):
         else:
             self.cmds_chunks = [[x] for x in self.cmds]
 
-    def write_main(self, name, soft=None) -> None:
+    def get_main_sh(self, name, soft=None) -> str:
         main = '%s/run_%s' % (self.sh.rsplit('/', 2)[0], name)
         if soft:
-            main += '_after_%s' % soft.prev
-        main += '.sh'
+            main += '_after_%s.sh' % soft.prev
+            self.run['software'][name] = main
+        else:
+            main += '.sh'
+            self.run['database'][name] = main
+        return main
+
+    def write_main(self, name, soft=None) -> None:
+        main = self.get_main_sh(name, soft)
         with open(main, 'w') as o:
             if self.scheduler:
                 for job_fp in self.job_fps:
                     o.write('%s %s\n' % (self.scheduler, job_fp))
                 self.job_fps = []
-        self.run[name] = main
 
     def database_cmds(self, databases):
         for db, cmds in databases.commands.items():
