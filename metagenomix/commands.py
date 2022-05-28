@@ -179,14 +179,12 @@ class Commands(object):
         inp = get_simka_input(self.dir, self.inputs)
         self.soft.io['I']['f'].add(inp)
         smin = True
-        tmp_dir = '%s/simka' % self.config.scratch
-        self.soft.dirs.add(tmp_dir)
         k_space, n_space = check_simka_params(self.soft.params)
         for k in map(int, k_space):
             self.cmds[k] = []
             for n in map(int, n_space):
                 out_dir = '%s/k%s/n%s' % (self.dir, k, n)
-                cmd = simka_cmd(self.soft, smin, inp, out_dir, k, n, tmp_dir)
+                cmd = simka_cmd(self.soft, smin, inp, out_dir, k, n)
                 self.out.append(out_dir)
                 self.soft.dirs.add(out_dir)
                 self.cmds[k].append(cmd)
