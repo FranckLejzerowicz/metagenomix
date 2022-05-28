@@ -177,35 +177,6 @@ def mkdr(path: str, is_file: bool = False) -> None:
         os.makedirs(path, exist_ok=True)
 
 
-def get_chunks(
-        to_chunk: list,
-        size: int,
-        num: int = 0
-) -> list:
-    """https://stackoverflow.com/questions/312443/
-    how-do-you-split-a-list-into-evenly-sized-chunks
-
-    Parameters
-    ----------
-    to_chunk : list
-        List to cut in chunks.
-    size : int
-        Size of each chunk to make.
-    num : int
-        Number of chunks to make.
-
-    Returns
-    -------
-    chunks : list of lists
-        Chunked lists.
-    """
-    if size:
-        chunks = [to_chunk[i:i + size] for i in range(0, len(to_chunk), size)]
-    else:
-        chunks = [to_chunk[i:i + num] for i in range(0, len(to_chunk), num)]
-    return chunks
-
-
 def get_pfam_file(
         pfam_hmm: str
 ) -> bool:
