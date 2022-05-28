@@ -93,7 +93,7 @@ def get_simka_input(dir_path, inputs) -> str:
 
 
 def simka_cmd(soft, smin: bool, sim_in: str, out_dir: str,
-              k: int, n: int, tmp_dir: str) -> str:
+              k: int, n: int) -> str:
     """
 
     Parameters
@@ -110,8 +110,6 @@ def simka_cmd(soft, smin: bool, sim_in: str, out_dir: str,
         Length of the k-mer.
     n : int
         Number of sequences to inject in the Simka analysis.
-    tmp_dir : str
-        Temporary, scratch directory.
 
     Returns
     -------
@@ -128,7 +126,7 @@ def simka_cmd(soft, smin: bool, sim_in: str, out_dir: str,
             return ''
         cmd += simka_min_cmd(soft, sim_in, out_dir, k, str(n))
     else:
-        cmd += simka_base_cmd(soft, sim_in, out_dir, k, str(n), tmp_dir)
+        cmd += simka_base_cmd(soft, sim_in, out_dir, k, str(n))
     return cmd
 
 
@@ -168,7 +166,7 @@ def simka_min_cmd(soft, sim_in: str, out_dir: str, k: int, n: str) -> str:
 
 
 def simka_base_cmd(
-        soft, sim_in: str, out_dir: str, k: int, n: str, tmpdir: str) -> str:
+        soft, sim_in: str, out_dir: str, k: int, n: str) -> str:
     """Write the Simka command for the Simka base algorithm.
 
     Parameters
@@ -183,8 +181,6 @@ def simka_base_cmd(
         Length of the k-mer.
     n : str
         Number of sequences to inject in the Simka analysis.
-    tmpdir : str
-        Temporary, scratch directory.
 
     Returns
     -------
@@ -194,7 +190,7 @@ def simka_base_cmd(
     cmd = '%s/build/bin/simka' % soft.path
     cmd += ' -in %s' % sim_in
     cmd += ' -out %s' % out_dir
-    cmd += ' -out-tmp %s' % tmpdir
+    cmd += ' -out-tmp %s_tmp' % out_dir
     cmd += ' -abundance-min 5'
     cmd += ' -kmer-size %s' % int(k)
     cmd += ' -max-reads %s' % n
@@ -202,7 +198,8 @@ def simka_base_cmd(
     cmd += ' -simple-dist'
     cmd += ' -nb-cores %s' % soft.params['cpus']
     cmd += ' -max-count %s' % soft.params['cpus']
-    cmd += ' -max-memory %s' % str((int(soft.params['mem_num'][0])*1000)-1000)
+    cmd += ' -max-memory %s\n' % str((int(soft.params['mem_num'][0])*1000)-1000)
+    cmd += 'rm -rf %s_tmp' % out_dir
     return cmd
 
 
