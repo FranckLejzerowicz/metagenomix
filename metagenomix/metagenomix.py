@@ -35,6 +35,12 @@ def metagenomix(**kwargs):
 
     databases = ReferenceDatabases(config)
     databases.init()
+    # print()
+    # print('**************** database ***************')
+    # for db in databases.databases_commands:
+    #     for sam, cmds in databases.databases_commands[db].items():
+    #         print('\n'.join(cmds))
+    # print('*****************************************')
 
     workflow = Workflow(config)
     workflow.init()
@@ -43,25 +49,17 @@ def metagenomix(**kwargs):
     #     print(idx, soft.prev, soft.name, soft.params)
     # print('*****************************************')
     # print()
+
     commands = Commands(config, databases, workflow)
     commands.collect()
-
     workflow.make_dirs()
+    # print()
+    # print('**************** analyses ***************')
+    # for soft in commands.analyses_commands:
+    #     for sam, cmds in commands.analyses_commands[soft].items():
+    #         print('\n'.join(cmds))
+    # print('*****************************************')
 
-    # if 1:
-    #     print()
-    #     print('**************** database ***************')
-    #     for db in databases.databases_commands:
-    #         for sam, cmds in databases.databases_commands[db].items():
-    #             print('\n'.join(cmds))
-    #     print('*****************************************')
-    #     print()
-    #     print('**************** analyses ***************')
-    #     for soft in commands.analyses_commands:
-    #         for sam, cmds in commands.analyses_commands[soft].items():
-    #             print('\n'.join(cmds))
-    #     print('*****************************************')
-
-    # scripting = CreateScripts(config)
-    # scripting.write_scripts(databases.databases_commands)
-    # scripting.write_scripts(cmds.analyses_commands)
+    scripting = CreateScripts(config)
+    scripting.database_cmds(databases)
+    scripting.software_cmds(commands)
