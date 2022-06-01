@@ -62,9 +62,4 @@ def metagenomix(**kwargs):
     scripting = CreateScripts(config)
     scripting.database_cmds(databases)
     scripting.software_cmds(commands)
-    # for name, shs in scripting.run['software'].items():
-    #     print()
-    #     print(name, shs)
-    #     # for sh in shs:
-    #     #     print(sh)
-    #
+    scripting.display()
