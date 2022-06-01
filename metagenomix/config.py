@@ -11,7 +11,7 @@ import glob
 import subprocess
 import pkg_resources
 from os.path import exists, isdir, isfile, splitext
-from metagenomix._io_utils import read_yaml
+from metagenomix._io_utils import read_yaml, fill_fastq
 from metagenomix._metadata import read_metadata
 import pandas as pd
 import numpy as np
@@ -32,9 +32,7 @@ class AnalysesConfig(object):
         self.fastq = {}
         self.r = {}
         self.dir = ''
-        self.params = {
-            'time': 48, 'mem_num': 10, 'mem_dim': "gb", 'scratch': 0,
-            'env': "mg", 'nodes': 1, 'cpus': 1, 'chunks': 6}
+        self.params = {}
         # self.cazy_focus_dbs = {}  <---- see databases "self.cazys"
         self.instrain = {'refs': {}, 'bams': {}}
         self.plass_type = ''  # 'nucl'
@@ -44,8 +42,7 @@ class AnalysesConfig(object):
         self.simka_params = {}
         self.humann_profile = {}
         # self.humann_profile = {'cla': 'cla_profile_rep82_7_filt.txt'}
-        self.stand_alone_groupings = {
-            'metamarker': ('metawrap_ref', 'is_ccz')}
+        self.stand_alone_groupings = {'metamarker': ('metawrap_ref', 'is_ccz')}
 
     def init(self):
         self.check_xpbs_install()
@@ -135,16 +132,8 @@ class AnalysesConfig(object):
 
     def get_fastq_samples(self):
         fastqs = self.get_fastq_paths()
-        sams = set(self.meta.sample_name)
-        fastq = {}
-        for file in sorted(fastqs):
-            for sam in sams:
-                if sam in file:
-                    if sam in fastq:
-                        fastq[sam].append(file)
-                    else:
-                        fastq[sam] = [file]
-                    break
+        fastq = fill_fastq(fastqs, set(self.meta.sample_name))
+        # keep only the `.fastq.gz` files (if `.fastq` files are also present)
         self.fastq = {}
         for sam, fastqs in fastq.items():
             if len([x for x in fastqs if '.gz' in x]):
@@ -162,13 +151,16 @@ class AnalysesConfig(object):
 
     def get_r(self):
         self.r = {}
-        for sam, (r1, r2) in self.fastq.items():
-            diffs = [i for i in range(len(r1)) if r1[i] != r2[i]]
-            if len(diffs) > 1:
-                raise IOError('Too different fastq names for sample "%s":\n'
-                              '- %s\n- %s' % (sam, r1, r2))
-            self.r[sam] = [r1[diffs[0] - 1:].split('.fastq')[0],
-                           r2[diffs[0] - 1:].split('.fastq')[0]]
+        for sam, r1_r2 in self.fastq.items():
+            self.r[sam] = []
+            if len(r1_r2) == 2:
+                r1, r2 = r1_r2
+                diffs = [i for i in range(len(r1)) if r1[i] != r2[i]]
+                if len(diffs) > 1:
+                    raise IOError('Too different fastq names for sample "%s":\n'
+                                  '- %s\n- %s' % (sam, r1, r2))
+                self.r[sam] = [r1[diffs[0] - 1:].split('.fastq')[0],
+                               r2[diffs[0] - 1:].split('.fastq')[0]]
 
     def update_metadata(self):
         self.meta.set_index('sample_name', inplace=True)
@@ -202,70 +194,69 @@ class AnalysesConfig(object):
         if isfile('%s/run_params.yml' % RESOURCES):
             self.params = read_yaml('%s/run_params.yml' % RESOURCES)['default']
 
-    def get_soft_paths(self) -> None:
-        self.soft_paths = [
-            'prepare_ioncom_inputs.py',
-            '/opt/infernal/1.0.2/bin/cmsearch',
-            '/opt/trimmomatic/0.36/trimmomatic-0.36.jar',
-            '/home/flejzerowicz/softs/cd-hit-v4.6.8-2017-1208',
-            '%s/bin' % self.conda_path,
-            '/home/flejzerowicz/usr/miniconda3/envs/humann2/bin/bowtie2',
-            '/home/flejzerowicz/usr/miniconda3/envs/humann2/bin/diamond',
-            '/home/flejzerowicz/softs',
-            '/home/flejzerowicz/softs/SPAdes-3.13.0-Linux/bin',
-            '/home/flejzerowicz/softs/gOTU/gOTU_from_maps.py',
-            '/home/flejzerowicz/usr/local/genometools/bin',
-            '/home/flejzerowicz/usr/bin/hmmsearch',
-            '/home/flejzerowicz/softs/SPAdes-3.13.0-Linux/bin/spades.py',
-            '/home/flejzerowicz/softs/SPAdes-3.14.1-Linux/bin/spades.py',
-            '/home/flejzerowicz/softs/SPAdes-3.15.0-corona-2020-07-15/spades.py',
-            '/home/flejzerowicz/usr/miniconda3/envs/humann2/bin/metaphlan_databases/mpa_v20_m200.pkl',
-            '/home/flejzerowicz/usr/miniconda3/envs/humann2/bin/metaphlan_databases',
-            '/home/flejzerowicz/databases/dbCAN/db',
-            '/home/flejzerowicz/databases/midas_db_v1.2',
-            '/home/flejzerowicz/databases/checkM',
-            '/home/flejzerowicz/databases/metaphlan3',
-            '/home/flejzerowicz/databases/PFAM/Pfam-A.hmm',
-            '/home/flejzerowicz/databases/PFAM/Pfam-A.hmm.dat',
-            '/home/flejzerowicz/databases/PFAM/Pfam-A.fasta',
-            '/databases/humann2_data/full_chocophlan.v0.1.1/chocophlan',
-            '/databases/humann2_data/uniref90/uniref',
-            '/databases/bowtie/Human/Human',
-            '/databases/uniref/uniref50/uniref50_2018_02.dmnd',
-            '/databases/db-shogun-20181114/functions-uniprot',
-            '/databases/db-shogun-20181114/functions-refseq',
-            '/databases/db-shogun-20181114/functions-kegg',
-            '/databases/genome/rep82/shogun',
-            '/databases/genome/rep200/shogun',
-            '/databases/db-shogun-20181114',
-            '/projects/wol/release/proteins/all.faa'
-            '/projects/wol/profiling/dbs/wol/shogun',
-            '/projects/wol/20170307/diamond/prok.dmnd',
-            '/home/flejzerowicz/databases/wol/lineage.txt',
-            '/home/flejzerowicz/databases/wol/genome_sizes.txt',
-            '/home/flejzerowicz/softs/python_scripts/kegg_query.py',
-            '/home/flejzerowicz/databases/checkM/genome_tree/genome_tree.taxonomy.tsv',
-            '/databases/gtdb/release202/taxonomy/gtdb_taxonomy.tsv',
-            #         '/home/flejzerowicz/databases/wol/g2tid.txt',
-            #         '/home/flejzerowicz/databases/wol/g2gg.tax',
-            #         '/home/flejzerowicz/databases/wol/gg2tid.txt',
-            #         '/home/flejzerowicz/databases/wol/nucl2g.txt',
-            #         '/home/flejzerowicz/databases/wol/nucl2gg.tax',
-            #         '/home/flejzerowicz/databases/wol/tid2gg.txt',
-            #         '/home/flejzerowicz/databases/wol/nodes.dmp',
-            #         '/home/flejzerowicz/databases/wol/names.dmp',
-            #         '/projects/wol/release/annotation/uniref.map.xz',
-            #         '/projects/wol/release/annotation/metacyc/enzrxn2reaction.map',
-            #         '/projects/wol/release/annotation/metacyc/pathway2class.map',
-            #         '/projects/wol/release/annotation/metacyc/protein.map',
-            #         '/projects/wol/release/annotation/metacyc/protein2enzrxn.map',
-            #         '/projects/wol/release/annotation/metacyc/protein2gene.map',
-            #         '/projects/wol/release/annotation/metacyc/reaction2ec.map',
-            #         '/projects/wol/release/annotation/metacyc/reaction2pathway.map',
-            #         '/projects/wol/release/annotation/coords.txt.xz',
-            #         '/projects/wol/release/annotation/go/process.tsv.xz',
-            #         '/projects/wol/release/annotation/go/function.tsv.xz',
-            #         '/projects/wol/release/annotation/go/component.tsv.xz',
-            #         '/projects/wol/release/annotation/refseq/refseq.map.xz',
-            #         '/projects/wol/release/annotation/eggnog/eggnog.map.xz',
-        ]
+    # def get_soft_paths(self) -> None:
+    #     self.soft_paths = [
+    #         'prepare_ioncom_inputs.py',
+    #         '/opt/infernal/1.0.2/bin/cmsearch',
+    #         '/opt/trimmomatic/0.36/trimmomatic-0.36.jar',
+    #         '/home/flejzerowicz/softs/cd-hit-v4.6.8-2017-1208',
+    #         '%s/bin' % self.conda_path,
+    #         '/home/flejzerowicz/usr/miniconda3/envs/humann2/bin/bowtie2',
+    #         '/home/flejzerowicz/usr/miniconda3/envs/humann2/bin/diamond',
+    #         '/home/flejzerowicz/softs',
+    #         '/home/flejzerowicz/softs/SPAdes-3.13.0-Linux/bin',
+    #         '/home/flejzerowicz/usr/local/genometools/bin',
+    #         '/home/flejzerowicz/usr/bin/hmmsearch',
+    #         '/home/flejzerowicz/softs/SPAdes-3.13.0-Linux/bin/spades.py',
+    #         '/home/flejzerowicz/softs/SPAdes-3.14.1-Linux/bin/spades.py',
+    #         '/home/flejzerowicz/softs/SPAdes-3.15.0-corona-2020-07-15/spades.py',
+    #         '/home/flejzerowicz/usr/miniconda3/envs/humann2/bin/metaphlan_databases/mpa_v20_m200.pkl',
+    #         '/home/flejzerowicz/usr/miniconda3/envs/humann2/bin/metaphlan_databases',
+    #         '/home/flejzerowicz/databases/dbCAN/db',
+    #         '/home/flejzerowicz/databases/midas_db_v1.2',
+    #         '/home/flejzerowicz/databases/checkM',
+    #         '/home/flejzerowicz/databases/metaphlan3',
+    #         '/home/flejzerowicz/databases/PFAM/Pfam-A.hmm',
+    #         '/home/flejzerowicz/databases/PFAM/Pfam-A.hmm.dat',
+    #         '/home/flejzerowicz/databases/PFAM/Pfam-A.fasta',
+    #         '/databases/humann2_data/full_chocophlan.v0.1.1/chocophlan',
+    #         '/databases/humann2_data/uniref90/uniref',
+    #         '/databases/bowtie/Human/Human',
+    #         '/databases/uniref/uniref50/uniref50_2018_02.dmnd',
+    #         '/databases/db-shogun-20181114/functions-uniprot',
+    #         '/databases/db-shogun-20181114/functions-refseq',
+    #         '/databases/db-shogun-20181114/functions-kegg',
+    #         '/databases/genome/rep82/shogun',
+    #         '/databases/genome/rep200/shogun',
+    #         '/databases/db-shogun-20181114',
+    #         '/projects/wol/release/proteins/all.faa'
+    #         '/projects/wol/profiling/dbs/wol/shogun',
+    #         '/projects/wol/20170307/diamond/prok.dmnd',
+    #         '/home/flejzerowicz/databases/wol/lineage.txt',
+    #         '/home/flejzerowicz/databases/wol/genome_sizes.txt',
+    #         '/home/flejzerowicz/softs/python_scripts/kegg_query.py',
+    #         '/home/flejzerowicz/databases/checkM/genome_tree/genome_tree.taxonomy.tsv',
+    #         '/databases/gtdb/release202/taxonomy/gtdb_taxonomy.tsv',
+    #         #         '/home/flejzerowicz/databases/wol/g2tid.txt',
+    #         #         '/home/flejzerowicz/databases/wol/g2gg.tax',
+    #         #         '/home/flejzerowicz/databases/wol/gg2tid.txt',
+    #         #         '/home/flejzerowicz/databases/wol/nucl2g.txt',
+    #         #         '/home/flejzerowicz/databases/wol/nucl2gg.tax',
+    #         #         '/home/flejzerowicz/databases/wol/tid2gg.txt',
+    #         #         '/home/flejzerowicz/databases/wol/nodes.dmp',
+    #         #         '/home/flejzerowicz/databases/wol/names.dmp',
+    #         #         '/projects/wol/release/annotation/uniref.map.xz',
+    #         #         '/projects/wol/release/annotation/metacyc/enzrxn2reaction.map',
+    #         #         '/projects/wol/release/annotation/metacyc/pathway2class.map',
+    #         #         '/projects/wol/release/annotation/metacyc/protein.map',
+    #         #         '/projects/wol/release/annotation/metacyc/protein2enzrxn.map',
+    #         #         '/projects/wol/release/annotation/metacyc/protein2gene.map',
+    #         #         '/projects/wol/release/annotation/metacyc/reaction2ec.map',
+    #         #         '/projects/wol/release/annotation/metacyc/reaction2pathway.map',
+    #         #         '/projects/wol/release/annotation/coords.txt.xz',
+    #         #         '/projects/wol/release/annotation/go/process.tsv.xz',
+    #         #         '/projects/wol/release/annotation/go/function.tsv.xz',
+    #         #         '/projects/wol/release/annotation/go/component.tsv.xz',
+    #         #         '/projects/wol/release/annotation/refseq/refseq.map.xz',
+    #         #         '/projects/wol/release/annotation/eggnog/eggnog.map.xz',
+    #     ]
