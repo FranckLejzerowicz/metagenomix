@@ -108,6 +108,8 @@ class CreateScripts(object):
             '--no-stat',
             '-i', self.sh]
 
+        if self.config['account']:
+            self.cmd.extend(['--account', self.config['account']])
         job_script = '%s.slm' % splitext(self.sh)[0]
         if self.config.torque:
             self.cmd.append('--torque')
@@ -126,8 +128,6 @@ class CreateScripts(object):
             self.cmd.append('--userscratch')
         if not self.config.verbose:
             self.cmd.append('--quiet')
-        if self.config.account:
-            self.cmd.extend(['--account', self.config.account])
 
     def call_cmd(self):
         cmd = ' '.join(map(str, self.cmd))
