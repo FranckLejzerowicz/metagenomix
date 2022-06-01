@@ -66,6 +66,9 @@ class CreateScripts(object):
         main = self.get_main_sh(name, soft)
         with open(main, 'w') as o:
             if self.scheduler:
+                job_dir = dirname(self.job_fps[0])
+                o.write('mkdir -p %s/output\n' % job_dir)
+                o.write('cd %s/output\n' % job_dir)
                 for job_fp in self.job_fps:
                     o.write('%s %s\n' % (self.scheduler, job_fp))
                 self.job_fps = []
