@@ -48,6 +48,9 @@ from metagenomix import __version__
     "--torque/--no-torque", default=False, show_default=True,
     help="Whether to prepare Torque jobs instead of Slurm.")
 @click.option(
+    "-a", "--account", show_default=False, default=None,
+    help="User account on HPC")
+@click.option(
     "-l", "--localscratch", type=int, show_default=False, default=None,
     help="Use localscratch with the provided memory amount (in GB)")
 @click.option(
@@ -79,6 +82,7 @@ def standalone_metagenomix(
         force,
         jobs,
         torque,
+        account,
         localscratch,
         scratch,
         userscratch,
@@ -100,6 +104,7 @@ def standalone_metagenomix(
         force=force,
         jobs=jobs,
         torque=torque,
+        account=account,
         localscratch=localscratch,
         scratch=scratch,
         userscratch=userscratch,

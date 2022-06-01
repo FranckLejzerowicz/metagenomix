@@ -126,6 +126,8 @@ class CreateScripts(object):
             self.cmd.append('--userscratch')
         if not self.config.verbose:
             self.cmd.append('--quiet')
+        if self.config.account:
+            self.cmd.extend(['--account', self.config.account])
 
     def call_cmd(self):
         cmd = ' '.join(map(str, self.cmd))
