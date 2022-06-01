@@ -59,6 +59,9 @@ from metagenomix import __version__
 @click.option(
     "--verbose/--no-verbose", default=False, show_default=True,
     help="Whether to show expected input and outputs and other tools' details.")
+@click.option(
+    "--dev/--no-dev", default=False, show_default=True,
+    help="For development...")
 @click.version_option(__version__, prog_name="metagenomix")
 
 
@@ -80,6 +83,7 @@ def standalone_metagenomix(
         scratch,
         userscratch,
         verbose,
+        dev
 ):
 
     metagenomix(
@@ -100,6 +104,7 @@ def standalone_metagenomix(
         scratch=scratch,
         userscratch=userscratch,
         verbose=verbose,
+        dev=dev
     )
 
 
