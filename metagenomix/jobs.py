@@ -84,7 +84,7 @@ class CreateScripts(object):
         for name, soft in commands.softs.items():
             self.get_module(name)
             self.cmds = soft.cmds
-            print(db, self.cmds)
+            print(name, self.cmds)
             self.get_cmds_chunks(soft.params['chunks'])
             self.write_jobs(name, soft)
             self.write_main(name, soft)
