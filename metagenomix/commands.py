@@ -7,8 +7,8 @@
 # ----------------------------------------------------------------------------
 
 import glob
-import numpy as np
 from os.path import basename, dirname, isdir, isfile, splitext
+
 from metagenomix._io_utils import (
     get_edit_fastq_cmd, count_reads_cmd, get_out_dir, write_hmms)
 from metagenomix.tools.simka import (
@@ -113,8 +113,10 @@ class Commands(object):
 
     def prep_edit_fastqs(self):
         cmd1 = get_edit_fastq_cmd(self.config.fastq[self.sam], 1)
-        cmd2 = get_edit_fastq_cmd(self.config.fastq[self.sam], 2)
-        self.cmds[self.sam] = [cmd1, cmd2]
+        self.cmds[self.sam] = [cmd1]
+        if len(self.config.fastq[self.sam]) > 1:
+            cmd2 = get_edit_fastq_cmd(self.config.fastq[self.sam], 2)
+            self.cmds[self.sam].append(cmd2)
 
     def pooling(self):
         for pool in self.config.pooling_groups:
@@ -215,7 +217,7 @@ class Commands(object):
         self.soft.io['I']['f'].update(self.inputs)
         for focus, db_species in self.config.midas_foci.items():
             io, cmds, outputs = midas(
-                self.dir, self.sam, self.inputs, self.databases.midas['path'],
+                self.dir, self.sam, self.inputs, self.databases.paths['midas'],
                 self.soft.params['cpus'], focus, db_species)
             if outputs:
                 self.out = outputs
@@ -226,7 +228,7 @@ class Commands(object):
 
     def prep_metaphlan(self):
         io, cmd, outputs = metaphlan(
-            self.dir, self.sam, self.inputs, self.databases.metaphlan['path'],
+            self.dir, self.sam, self.inputs, self.databases.paths['metaphlan'],
             self.soft.params, self.softs['count_reads_grep'].outputs,
             self.config.strains)
         for output in outputs:
@@ -252,8 +254,8 @@ class Commands(object):
 
     def prep_strainphlan(self):
         io, cmd, outputs, dirs = strainphlan(
-            self.dir, self.inputs, self.soft.params, self.databases.wol,
-            self.config.strains)
+            self.dir, self.inputs, self.soft.params,
+            self.databases.wol, self.config.strains)
         self.cmds[''] = cmd
         self.out = outputs
         self.soft.dirs.update(dirs)
@@ -289,7 +291,7 @@ class Commands(object):
     def prep_shogun(self):
         io, cmds, outputs, dirs = shogun(
             self.dir, self.sam, self.inputs, self.soft.params,
-            self.databases.shogun, self.config)
+            self.databases, self.config)
         self.out = outputs
         self.cmds[self.sam] = cmds
         self.soft.dirs.update(dirs)
@@ -299,7 +301,7 @@ class Commands(object):
 
     def prep_woltka(self):
         io, cmd, outputs, dirs = woltka(
-            self.dir, self.inputs, self.databases.wol['path'])
+            self.dir, self.inputs, self.databases.paths['wol'])
         self.cmds[''] = cmd
         self.out = outputs
         self.soft.dirs.update(dirs)
@@ -560,7 +562,7 @@ class Commands(object):
                 self.cmds.setdefault(self.sam, []).append(cmd)
 
     def prep_macsyfinder(self):
-        folder = self.databases.macsyfinder['path']
+        folder = self.databases.paths['macsyfinder']
         self.soft.io['I']['d'].add(folder)
         if self.pool in self.pools:
             for group in self.pools[self.pool]:
@@ -577,19 +579,26 @@ class Commands(object):
         self.soft.io['I']['f'].add(fp)
         self.soft.dirs.add(o_dir)
         params = self.soft.params
-        for k in params['k']:
-            out = '%s/%s_k%s_%s.tsv' % (o_dir, self.sam, k, params['db_type'])
-            cmd = 'diamond blastp'
-            cmd += ' -d %s' % self.databases.diamond[params['db_type']]
-            cmd += ' -q %s' % fp
-            cmd += ' -o %s' % out
-            cmd += ' -k 1'
-            cmd += ' -p %s' % params['cpus']
-            cmd += ' --id 80'
-            cmd += ' -t %s' % tmp_dir
-            self.cmds.setdefault(self.sam, []).append(cmd)
-            self.soft.io['I']['f'].add(fp)
-            self.soft.io['O']['f'].add(out)
+        for db in params['databases']:
+            db_dir = self.databases.paths[db]
+            db_fps = glob.glob('%s/diamond/*.dmnd' % db_dir)
+            if not db_fps:
+                print('[diamond_annot] No ".dmnd" database found %s' % db_dir)
+            for db_fp in db_fps:
+                base_db = basename(db_fps).split('.dmnd')[0]
+                for k in params['k']:
+                    out = '%s/%s_k%s_%s.tsv' % (o_dir, self.sam, k, base_db)
+                    cmd = 'diamond blastp'
+                    cmd += ' -d %s' % db_fp
+                    cmd += ' -q %s' % fp
+                    cmd += ' -o %s' % out
+                    cmd += ' -k 1'
+                    cmd += ' -p %s' % params['cpus']
+                    cmd += ' --id 80'
+                    cmd += ' -t %s' % tmp_dir
+                    self.cmds.setdefault(self.sam, []).append(cmd)
+                    self.soft.io['I']['f'].add(fp)
+                    self.soft.io['O']['f'].add(out)
 
     def prep_diamond_annot(self):
         tmp_dir = '$TMPDIR/diamond_annot_%s' % self.sam
@@ -608,7 +617,7 @@ class Commands(object):
         # -------------------------------------------------------
         itasser_libs = self.databases.ioncom['itasser']
         itasser_soft = self.soft.params['itasser']
-        ioncom_dir = '%s/IonCom_standalone' % self.databases.ioncom['path']
+        ioncom_dir = '%s/IonCom_standalone' % self.databases.paths['ioncom']
         self.soft.io['I']['d'].extend([ioncom_dir, itasser_soft, itasser_libs])
         if self.pool in self.pools:
             self.out[self.pool] = []
@@ -1025,42 +1034,3 @@ class Commands(object):
     #     pass
     #     # if self.scratch:
     #     #     self.add_transfer_localscratch()
-
-    # def post_processes(self):
-    #     if self.name.startswith('map__spades') or self.name in [
-    #         'count_reads', 'humann2', 'midas', 'cazy', 'prodigal',
-    #         'count_reads_grep', 'diamond_custom', 'hmmer_custom'
-    #     ]:
-    #         out_merge_samples = merge_samples(soft, output_paths)
-    #         self.outputs['%s_merge' % self.name] = out_merge_samples
-    #     if self.name in ['cazy']:
-    #         out_cazy = cazy_post_processing(soft, soft_prev, output_paths)
-    #         output_paths['%s_data' % self.name] = out_cazy
-    #         cazy_sequence_analysis(soft, soft_prev, output_paths)
-    #     if self.name in ['midas']:
-    #         out_postprocess_samples = postprocess(soft, output_paths)
-    #     if self.name in ['spades']:
-    #         outs = contigs_per_sample(soft, output_paths)
-    #         output_paths['%s_per_sample' % self.name] = outs
-    #         outs = longest_contigs_per_sample(soft, output_paths)
-    #         output_paths['%s_longest' % self.name] = outs
-    #         prep_quast(soft, output_paths)
-    #     if self.name in [
-    #             'metawrap_analysis_reassemble_bins', 'metawrap_ref', 'yamb']:
-    #         rename_bins(soft, output_paths)
-    #     if self.name in ['drep']:
-    #         faindex_contig_to_bin_drep(soft, output_paths)
-    #         outs = longest_contigs_per_drep_bin(soft, output_paths)
-    #         output_paths['%s_longest' % self.name] = outs
-    #         outs = contigs_per_drep_bin(soft, output_paths)
-    #         output_paths['%s_bins_contigs' % self.name] = outs
-    #         outs = genes_per_mag(soft, output_paths)
-    #         output_paths['%s_genes_per_mag' % self.name] = outs
-    #     if self.name in ['yamb']:
-    #         outs = yamb_across(soft, output_paths)
-    #         output_paths['%s_maps' % self.name] = outs
-    #     if self.name in ['read_mapping']:
-    #         collect_reads_per_contig(soft, soft_prev, output_paths)
-    #
-    #     return all_sh, output_paths, mem_n_u, procs, cnd, pooling_groups, IOs
-
