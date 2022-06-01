@@ -58,14 +58,15 @@ class ReferenceDatabases(object):
         if len(self.config.databases):
             print('Databases: %s' % self.config.databases_yml)
             for db, data in sorted(self.config.databases.items()):
-                if not self.config.dev:
-                    if 'path' not in data:
-                        print('[Database] %s has no "path"' % db)
-                    elif not isdir(data['path']):
-                        print('[Database] %s not found %s' % (db, data['path']))
-                elif 'path' not in data:
+                if 'path' not in data:
                     print('[Database] %s has no "path"' % db)
-                    del self.config.databases[db]
+                    continue
+                if not self.config.dev:
+                    if not isdir(data['path']):
+                        print('[Database] %s not found %s' % (db, data['path']))
+                    else:
+                        self.valid_databases.add(db)
+                        print('  * %s' % yaml.dump({db: data['path']}), end='')
                 else:
                     self.valid_databases.add(db)
                     print('  * %s' % yaml.dump({db: data['path']}), end='')
