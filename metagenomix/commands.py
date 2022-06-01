@@ -189,19 +189,19 @@ class Commands(object):
         k_space, n_space = check_simka_params(self.soft.params)
         for k in map(int, k_space):
             for n in map(int, n_space):
-                out_dir = '%s/k%s/n%s' % (self.dir, k, n)
-                cmd = simka_cmd(self.soft, smin, inp, out_dir, k, n)
-                self.out.append(out_dir)
-                if self.config.force or cmd:
-                    self.soft.dirs.add(out_dir)
+                out_d = '%s/k%s/n%s' % (self.dir, k, n)
+                cmd = simka_cmd(self.soft, smin, inp, out_d, k, n, self.config)
+                self.out.append(out_d)
+                if cmd:
+                    self.soft.dirs.add(out_d)
                     self.cmds.setdefault(k, []).append(cmd)
-                    self.soft.io['O']['d'].add(out_dir)
+                    self.soft.io['O']['d'].add(out_d)
 
     def prep_simka_pcoa(self):
         for idx, input_path in enumerate(self.inputs['simka']):
             for mdx, mat in enumerate(glob.glob('%s/mat_*.csv*' % input_path)):
-                cmd = simka_pcoa_cmd(mat, self.config.meta_fp)
-                if self.config.force or cmd:
+                cmd = simka_pcoa_cmd(mat, self.config.meta_fp, self.config)
+                if cmd:
                     self.cmds.setdefault(idx, []).append(cmd)
 
     def prep_cutadapt(self):
@@ -249,24 +249,26 @@ class Commands(object):
         io, cmd, outputs = metaphlan(
             self.dir, self.sam, self.inputs, self.databases.paths['metaphlan'],
             self.soft.params, self.softs['count_reads_grep'].outputs,
-            self.config.strains)
+            self.config.strains, self.config)
         for output in outputs:
             self.soft.dirs.add(dirname(output))
         self.out = outputs
-        self.cmds[self.sam] = cmd
-        self.soft.io['I']['f'].update(io['I'])
-        self.soft.io['O']['f'].update(io['O'])
+        if cmd:
+            self.cmds[self.sam] = cmd
+            self.soft.io['I']['f'].update(io['I'])
+            self.soft.io['O']['f'].update(io['O'])
 
     def prep_humann(self):
         io, cmd, outputs = humann(
             self.dir, self.sam, self.inputs, self.databases.humann['path'],
-            self.soft.params, self.config.humann_profile)
+            self.soft.params, self.config.humann_profile, self.config)
         self.out = outputs
-        self.cmds[self.sam] = cmd
-        self.soft.dirs.update([x[0] for x in list(outputs)])
-        self.soft.io['I']['f'].update(io['I'])
-        self.soft.io['O']['f'].update(io['O']['f'])
-        self.soft.io['O']['d'].update(io['O']['d'])
+        if cmd:
+            self.cmds[self.sam] = cmd
+            self.soft.dirs.update([x[0] for x in list(outputs)])
+            self.soft.io['I']['f'].update(io['I'])
+            self.soft.io['O']['f'].update(io['O']['f'])
+            self.soft.io['O']['d'].update(io['O']['d'])
 
     def prep_phylophlan(self):
         self.cmds = {}
@@ -274,13 +276,14 @@ class Commands(object):
     def prep_strainphlan(self):
         io, cmd, outputs, dirs = strainphlan(
             self.dir, self.inputs, self.soft.params,
-            self.databases.wol, self.config.strains)
-        self.cmds[''] = cmd
+            self.databases.wol, self.config.strains, self.config)
         self.out = outputs
-        self.soft.dirs.update(dirs)
-        self.soft.io['I']['f'].update(io['I']['f'])
-        self.soft.io['I']['d'].update(io['I']['d'])
-        self.soft.io['O']['d'].update(io['O'])
+        if cmd:
+            self.cmds[''] = cmd
+            self.soft.dirs.update(dirs)
+            self.soft.io['I']['f'].update(io['I']['f'])
+            self.soft.io['I']['d'].update(io['I']['d'])
+            self.soft.io['O']['d'].update(io['O'])
 
     def prep_flash(self):
         min_overlap = self.soft.params['min_overlap']
@@ -294,7 +297,10 @@ class Commands(object):
         nc1_fa = nc1.replace('.fastq', '.fasta')
         nc2 = '%s.notCombined_2.fastq' % rad
         nc2_fa = nc2.replace('.fastq', '.fasta')
-        if not isfile(ext_fa) or not isfile(nc1_fa) or not isfile(nc2_fa):
+        fc = self.config.force
+        outputs = [ext_fa, nc1_fa, nc2_fa]
+        self.out = outputs
+        if fc or not isfile(ext_fa) or not isfile(nc1_fa) or not isfile(nc2_fa):
             cur_cmd = 'flash %s %s -m %s -x %s -d %s -o %s -t %s' % (
                 self.inputs[self.sam][0], self.inputs[self.sam][1], min_overlap,
                 max_mismatch_density, out, self.sam, self.soft.params['cpus'])
@@ -302,10 +308,10 @@ class Commands(object):
                 cur_cmd, 'seqtk seq -A %s > %s' % (ext, ext_fa),
                          'seqtk seq -A %s > %s' % (nc1, nc1_fa),
                          'seqtk seq -A %s > %s' % (nc2, nc2_fa)]
-        outputs = [ext_fa, nc1_fa, nc2_fa]
-        self.out = outputs
-        self.soft.io['I']['f'].update([ext, nc1, nc2])
-        self.soft.io['O']['f'].update(outputs)
+            self.soft.io['I']['f'].update([ext, nc1, nc2])
+            self.soft.io['O']['f'].update(outputs)
+
+    # CONTINUE FORCE / EMPTY CMDS AVOIDING
 
     def prep_shogun(self):
         io, cmds, outputs, dirs = shogun(
