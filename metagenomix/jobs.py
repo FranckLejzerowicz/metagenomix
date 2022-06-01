@@ -107,9 +107,8 @@ class CreateScripts(object):
             '-M', str(params['mem_num']), params['mem_dim'],
             '--no-stat',
             '-i', self.sh]
-
-        if self.config['account']:
-            self.cmd.extend(['--account', self.config['account']])
+        if self.config.account:
+            self.cmd.extend(['-a', self.config.account])
         job_script = '%s.slm' % splitext(self.sh)[0]
         if self.config.torque:
             self.cmd.append('--torque')
