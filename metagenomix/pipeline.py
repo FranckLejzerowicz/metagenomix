@@ -7,9 +7,9 @@
 # ----------------------------------------------------------------------------
 
 import os
-from os.path import isdir
 from collections import defaultdict
-from metagenomix.params import set_user_params
+from metagenomix import parameters
+from metagenomix.parameters import *
 
 
 class Soft(object):
@@ -66,8 +66,9 @@ class Graph(object):
 class Workflow(object):
     """Collect the data associated with each dataset passed but the user
     """
-    def __init__(self, config) -> None:
+    def __init__(self, config, databases) -> None:
         self.config = config
+        self.databases = databases
         self.graph = None
         self.names = ['fastq']
         self.softs = {}
@@ -88,7 +89,7 @@ class Workflow(object):
         self.get_names_idx()
         self.make_graph()
         self.get_paths()
-        self.get_params()
+        self.set_params()
 
     def collect_soft_name(self, softs: list) -> None:
         """Collect the sequential list of softwares.
@@ -136,19 +137,56 @@ class Workflow(object):
             [self.names_idx_rev[p] for p in path] for path in paths]
             for idx, paths in self.graph.paths.items()}
 
-    def get_params(self) -> None:
-        """
-        Update the default params assigned to each software with the
-        params passed by the user for each of the software.
-        """
-        for _, soft in self.softs.items():
-            set_user_params(self.config, soft)
-
     def make_dirs(self):
         for name, soft in self.softs.items():
             for directory in sorted(soft.dirs):
                 if not isdir(directory):
                     os.makedirs(directory)
+
+    def check_basic_params(self, soft_params, soft):
+        ints = ['time', 'procs', 'mem_num', 'chunks']
+        for param, value in soft_params.items():
+            soft.params[param] = value
+            if param in ints:
+                check_ints(param, value, soft)
+            elif param == 'mem_dim':
+                check_mems(param, value, soft)
+            elif param == 'env':
+                check_env(self.config, value, soft)
+            elif param == 'path':
+                check_path(value)
+
+    def set_scratch(self, soft):
+        if self.config.localscratch:
+            soft.params['scratch'] = self.config.localscratch
+        elif self.config.scratch:
+            soft.params['scratch'] = 'scratch'
+        elif self.config.userscratch:
+            soft.params['scratch'] = 'userscratch'
+
+    def set_user_params(self, soft):
+        user_params = self.config.user_params.get(soft.name, {})
+        print()
+        print("software:\t:\t", soft.name)
+        # print("user_params\t:\t", user_params)
+        # print("soft.params\t:\t", soft.params)
+        func = 'check_%s' % soft.name
+        if hasattr(parameters, func) and callable(getattr(parameters, func)):
+            check_ = getattr(parameters, func)
+            check_(user_params, soft, self.databases, self.config)
+        self.check_basic_params(user_params, soft)
+
+    def set_params(self) -> None:
+        """
+        Update the default params assigned to each software with the
+        params passed by the user for each of the software.
+        """
+        for _, soft in self.softs.items():
+            self.set_user_params(soft)
+            self.set_scratch(soft)
+            print("soft.params")
+            print(soft.params)
+
 
     # def collect_paths(self):
     #
