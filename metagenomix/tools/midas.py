@@ -127,7 +127,8 @@ def get_cmd(
     cmd = 'run_midas.py %s' % analysis
     cmd += ' %s' % out
     cmd += ' -1 %s' % inputs[0]
-    cmd += ' -2 %s' % inputs[1]
+    if len(inputs) > 1:
+        cmd += ' -2 %s' % inputs[1]
     cmd += ' -d %s' % db
     cmd += ' -t %s' % cpus
     cmd += ' --remove_temp'
