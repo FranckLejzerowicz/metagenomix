@@ -27,7 +27,6 @@ class AnalysesConfig(object):
         self.pooling_groups = []
         self.conda_envs = {}
         self.modules = {}
-        self.conda_path = ''
         self.soft_paths = []
         self.fastq = {}
         self.r = {}
@@ -74,10 +73,10 @@ class AnalysesConfig(object):
     def get_conda_envs(self):
         """Get the names of the conda environments."""
         for env in subprocess.getoutput('conda env list').split('\n'):
-            if '/envs/' in env:
-                self.conda_envs[env.split('/')[-1]] = env.split()[-1]
-                self.conda_path = env.split()[-1].split('/envs/')[0]
-        print(self.conda_envs)
+            if env.startswith('#') or '*' in env or not env.strip():
+                continue
+            name, path = env.split()
+            self.conda_envs[name] = path
 
     def set_metadata(self):
         """Read metadata with first column as index."""
@@ -201,7 +200,6 @@ class AnalysesConfig(object):
     #         '/opt/infernal/1.0.2/bin/cmsearch',
     #         '/opt/trimmomatic/0.36/trimmomatic-0.36.jar',
     #         '/home/flejzerowicz/softs/cd-hit-v4.6.8-2017-1208',
-    #         '%s/bin' % self.conda_path,
     #         '/home/flejzerowicz/usr/miniconda3/envs/humann2/bin/bowtie2',
     #         '/home/flejzerowicz/usr/miniconda3/envs/humann2/bin/diamond',
     #         '/home/flejzerowicz/softs',
