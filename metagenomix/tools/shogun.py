@@ -251,7 +251,7 @@ def condition_ali_command(fasta: str, ali_out: str, cmd: str) -> list:
     return cmds
 
 
-def get_ali_cmd(params: dict, aligner: str, fasta: str, tax: str,
+def get_ali_cmd(params: dict, aligner: str, fastx: str, tax: str,
                 out: str) -> tuple:
     """Get the SHOGUN alignment command.
 
@@ -261,12 +261,10 @@ def get_ali_cmd(params: dict, aligner: str, fasta: str, tax: str,
         Run parameters.
     aligner : str
         Name of the aligner.
-    fasta : str
+    fastx : str
         Path to the input fasta file.
     tax : str
-        Path to the taxonomic database.
-    db : str
-        Name of the taxonomic database.
+        Path to the shogun database.
     out : str
         Path to the output folder.
 
@@ -281,7 +279,7 @@ def get_ali_cmd(params: dict, aligner: str, fasta: str, tax: str,
         ali_out = '%s/alignment.burst.b6' % out
         # edx_acx = args['databases'].shogun
         # cmd = 'burst'
-        # cmd += ' -q %s' % fasta
+        # cmd += ' -q %s' % fastx
         # cmd += ' -r %s' % edx_acx[db]['edx']
         # cmd += ' -a %s' % edx_acx[db]['acx']
         # cmd += ' -sa'
@@ -291,25 +289,25 @@ def get_ali_cmd(params: dict, aligner: str, fasta: str, tax: str,
         # cmd += ' -o %s' % ali_out
     else:
         ali_out = '%s/alignment.bowtie2.sam' % out
-        if params.get('b2') == 'paired':
-            cmd = 'bowtie2'
-            cmd += ' -p %s' % params['cpus']
-            cmd += ' -x %s' % tax
-            cmd += ' -S %s' % out
-            cmd += ' -1 02_fastp/SRR17458627_R1.fastq.gz'
-            cmd += ' -2 02_fastp/SRR17458627_R2.fastq.gz'
-            cmd += ' --seed 12345'
-            cmd += ' --very-sensitive'
-            cmd += ' -k 16'
-            cmd += ' --np 1'
-            cmd += ' --mp "1,1"'
-            cmd += ' --rdg "0,1"'
-            cmd += ' --rfg "0,1"'
-            cmd += ' --score-min "L,0,-0.05"'
-            cmd += ' --no-head'
-            cmd += ' --no-unal'
+        # if params.get('b2') == 'paired':
+        #     cmd = 'bowtie2'
+        #     cmd += ' -p %s' % params['cpus']
+        #     cmd += ' -x %s' % tax
+        #     cmd += ' -S %s' % out
+        #     cmd += ' -1 02_fastp/SRR17458627_R1.fastq.gz'
+        #     cmd += ' -2 02_fastp/SRR17458627_R2.fastq.gz'
+        #     cmd += ' --seed 12345'
+        #     cmd += ' --very-sensitive'
+        #     cmd += ' -k 16'
+        #     cmd += ' --np 1'
+        #     cmd += ' --mp "1,1"'
+        #     cmd += ' --rdg "0,1"'
+        #     cmd += ' --rfg "0,1"'
+        #     cmd += ' --score-min "L,0,-0.05"'
+        #     cmd += ' --no-head'
+        #     cmd += ' --no-unal'
     cmd = 'shogun align -a %s' % aligner
-    cmd += ' -i %s' % fasta
+    cmd += ' -i %s' % fastx
     cmd += ' -d %s' % tax
     cmd += ' -t %s' % params['cpus']
     cmd += ' -o %s' % out
@@ -317,7 +315,7 @@ def get_ali_cmd(params: dict, aligner: str, fasta: str, tax: str,
 
 
 def get_full_ali_cmd(
-        params: dict, aligner: str, fasta: str,
+        params: dict, aligner: str, fastx: str,
         tax: str, out: str) -> list:
     """Get the full command lines to perform sequence alignment using
     SHOGUN aligner and potentially, re-run if the output was existing but
@@ -329,10 +327,10 @@ def get_full_ali_cmd(
         Run parameters.
     aligner : str
         Name of the aligner.
-    fasta : str
-        Path to the input fasta file.
+    fastx : str
+        Path to the input fasta / fastq file(s).
     tax : str
-        Path to the taxonomic database.
+        Path to the shogun database.
     out : str
         Path to the output folder.
 
@@ -341,11 +339,11 @@ def get_full_ali_cmd(
     ali_cmds : list
         Alignment commands.
     """
-    cmd, ali_out = get_ali_cmd(params, aligner, fasta, tax, out)
+    cmd, ali_out = get_ali_cmd(params, aligner, fastx, tax, out)
     if not isfile(ali_out):
         ali_cmds = [cmd]
-    else:
-        ali_cmds = condition_ali_command(fasta, ali_out, cmd)
+    elif fastx.endswith('.fasta'):
+        ali_cmds = condition_ali_command(fastx, ali_out, cmd)
     return ali_cmds
 
 
@@ -396,11 +394,14 @@ def get_orients(inputs: list):
     return orients
 
 
-def get_combine_cmd(sam: str, inputs: dict, out_dir: str, io: dict) -> tuple:
+def get_combine_cmd(
+        params: dict, sam: str, inputs: dict, out_dir: str, io: dict) -> tuple:
     """
 
     Parameters
     ----------
+    params : dict
+        Run parameters.
     sam : str
         Sample name.
     inputs : dict
@@ -442,11 +443,14 @@ def get_combine_cmd(sam: str, inputs: dict, out_dir: str, io: dict) -> tuple:
     return fastas, combine_cmds
 
 
-def combine_inputs(sam: str, inputs: dict, out_dir: str, io: dict) -> tuple:
+def combine_inputs(
+        params: dict, sam: str, inputs: dict, out_dir: str, io: dict) -> tuple:
     """Combine the fastq/a of the sample to run shogun.
 
     Parameters
     ----------
+    params : dict
+        Run parameters.
     sam : str
         Sample name.
     inputs : dict
@@ -463,7 +467,7 @@ def combine_inputs(sam: str, inputs: dict, out_dir: str, io: dict) -> tuple:
     comb_path : str
         Path to the combined sequences fasta file.
     """
-    fastas, combine_cmds = get_combine_cmd(sam, inputs, out_dir, io)
+    fastas, combine_cmds = get_combine_cmd(params, sam, inputs, out_dir, io)
     fasta = '%s/combined.fasta' % out_dir
     combine_cmds.append('cat %s > %s' % (' '.join(fastas), fasta))
     combine_cmds.append('rm %s' % ' '.join(fastas))
@@ -480,7 +484,7 @@ def shogun(
         sam: str,
         inputs: dict,
         params: dict,
-        shogun: dict,
+        databases,
         config):
     """
 
@@ -494,12 +498,10 @@ def shogun(
         Input files.
     params : dict
         Run parameters.
-    shogun : dict
-        SHOGUN databases.
-    prev : str
-        Previous software.
+    databases
+        Databases class instance
     config
-        Configuration.
+        Configuration class instance
 
     Returns
     -------
@@ -516,14 +518,14 @@ def shogun(
     outputs, dirs, cmds = {}, [], []
     out_dir = out_dir + '/' + sam
     add_to_dirs_io(out_dir, dirs, io)
-    combine_cmds, fasta = combine_inputs(sam, inputs, out_dir, io)
+    combine_cmds, fasta = combine_inputs(params, sam, inputs, out_dir, io)
     io['O']['f'].append(fasta)
 
     ali_cmds = []
-    # for aligner in ['bowtie2', 'burst']:
-    for aligner in ['bowtie2']:
+    for aligner in params['aligners']:
         ali_base = get_alignment_basename(aligner)
-        for db, tax in shogun.items():
+        for db in params['databases']:
+            tax = '%s/shogun' % databases.paths[db]
             key = (aligner, 'tax', db)
             if aligner == 'burst' and db != 'wol':
                 continue
