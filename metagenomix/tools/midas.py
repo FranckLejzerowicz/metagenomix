@@ -10,7 +10,7 @@ from os.path import isfile
 
 
 def midas(out_dir: str, sam: str, inputs: dict, path: str, cpus: str,
-          focus: str, db_species: tuple) -> tuple:
+          focus: str, db_species: tuple, config) -> tuple:
     """Create command lines for MIDAS for the current database's species focus.
 
     Parameters
@@ -29,6 +29,8 @@ def midas(out_dir: str, sam: str, inputs: dict, path: str, cpus: str,
 
     db_species : tuple
         (Database name, Path to file containing list of species to focus on.)
+    config
+        Configurations
 
     Returns
     -------
@@ -45,7 +47,7 @@ def midas(out_dir: str, sam: str, inputs: dict, path: str, cpus: str,
     focus_dir = '%s/%s/%s' % (out_dir, focus, sam)
     if db == path:
         species_out = '%s/species' % focus_dir
-        if isfile('%s/species_profile.txt' % species_out):
+        if not config.force and isfile('%s/species_profile.txt' % species_out):
             io['I'].append(species_out)
         else:
             cmds.append(get_cmd(focus_dir, inputs[sam], db, cpus, 'species'))
@@ -55,13 +57,13 @@ def midas(out_dir: str, sam: str, inputs: dict, path: str, cpus: str,
     select = set(get_species_select(db, species_list))
 
     genes_out = '%s/genes' % focus_dir
-    if not isfile('%s/readme.txt' % genes_out):
+    if config.force or not isfile('%s/readme.txt' % genes_out):
         cmds.append(get_cmd(focus_dir, inputs[sam], db, cpus, 'genes', select))
         io['O'].append(genes_out)
     outputs.append(genes_out)
 
     snps_out = '%s/snps' % focus_dir
-    if not isfile('%s/readme.txt' % snps_out):
+    if config.force or not isfile('%s/readme.txt' % snps_out):
         cmds.append(get_cmd(focus_dir, inputs[sam], db, cpus, 'snps', select))
         io['O'].append(snps_out)
     outputs.append(snps_out)
