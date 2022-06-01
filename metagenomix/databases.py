@@ -8,7 +8,7 @@
 
 import os
 import glob
-import subprocess
+import yaml
 import pkg_resources
 
 import pandas as pd
@@ -27,72 +27,114 @@ class ReferenceDatabases(object):
     def __init__(self, config) -> None:
         self.config = config
         self.commands = {}
-        self.tmps = []
         self.cmds = {}
+        self.paths = {}
+        self.builds = {}
         self.database = ''
         self.hmms_dias = {}
         self.hmms_pd = pd.DataFrame()
-        self.wol = {}
         self.dbcan_meta = pd.DataFrame()
-        self.krakens = {}
         self.cazys = {}
-        self.midas = {}
-        self.metaphlan = {}
-        self.macsyfinder = {}
-        self.humann = {}
-        self.shogun = {}
-        self.diamond = {}
-        self.ioncom = {}
+        self.gtdb = {}
+        self.wol = {}
+        self.formats = ['bowtie2', 'centrifuge', 'minimap2', 'blastn',
+                        'burst', 'utree', 'qiime2', 'kraken2', 'bracken']
+        self.valid_databases = set()
 
     def init(self) -> None:
-        if self.show_loaded_databases():
-            self.set_databases()
+        self.get_formats()
+        self.validate_databases()
+        self.set_databases()
 
-    def show_loaded_databases(self) -> bool:
+    def get_formats(self):
+        if 'formats' in self.config.databases:
+            self.formats = self.config.databases['formats']
+            del self.config.databases['formats']
+
+    def validate_databases(self) -> None:
         """Show and validate the presence of databases.
-
-        Returns
-        -------
-        set_databases : bool
-            Whether there are valid databases in the user-defined paths.
+        Whether there are valid databases in the user-defined paths.
         """
-        set_databases = False
         if len(self.config.databases):
-            print('Databases in', self.config.databases_yml)
-            invalid_keys = []
-            for database, database_d in sorted(self.config.databases.items()):
-                # if 'path' not in database_d or not isdir(database_d['path']):
-                if 'path' not in database_d:
-                    print('[Database] "%s" folder not found' % database)
-                    invalid_keys.append(database)
-                    continue
+            print('Databases: %s' % self.config.databases_yml)
+            for db, data in sorted(self.config.databases.items()):
+                if not self.config.dev:
+                    if 'path' not in data:
+                        print('[Database] %s has no "path"' % db)
+                    elif not isdir(data['path']):
+                        print('[Database] %s not found %s' % (db, data['path']))
+                elif 'path' not in data:
+                    print('[Database] %s has no "path"' % db)
+                    del self.config.databases[db]
                 else:
-                    if isinstance(database_d['path'], dict):
-                        print('- %s:' % database)
-                        for k, v in database_d['path'].items():
-                            print('  - %s: %s' % (k, v))
-                    else:
-                        print('- %s: %s' % (database, database_d['path']))
-            if invalid_keys:
-                for invalid_key in invalid_keys:
-                    del self.config.databases[invalid_key]
-            if len(self.config.databases):
-                set_databases = True
+                    self.valid_databases.add(db)
+                    print('  * %s' % yaml.dump({db: data['path']}), end='')
         else:
             print('No database passed using option `-d`')
-        return set_databases
 
     def set_databases(self) -> None:
-        for database, keys in self.config.databases.items():
-            db_method = getattr(self, "set_%s" % database)
-            db_method()
+        for database in sorted(self.valid_databases):
+            self.database = database
+            if hasattr(self, "set_%s" % database):
+                print('### %s ###' % database)
+                getattr(self, "set_%s" % database)()
+            else:
+                self.set_other_database()
+
+    def get_db_formats(self):
+        path = self.config.databases[self.database]['path']
+        formats = {}
+        for db_format in self.formats:
+            db_format_dir = path + '/' + db_format
+            if not self.config.dev and isdir(db_format_dir):
+                formats[db_format] = db_format_dir
+            else:
+                formats[db_format] = db_format_dir
+        return formats
+
+    def set_wol(self) -> None:
+        wol_dir = self.config.databases[self.database]['path']
+        self.paths[self.database] = wol_dir
+        self.builds[self.database] = self.get_db_formats()
+        # WOL is a fasta file used to build indices
+
+        fna_dir = '%s/genomes' % wol_dir
+        genomes = glob.glob('%s/fna/*' % fna_dir)
+        if genomes:
+            metadata_fp = '%s/wol/metadata.tsv' % RESOURCES
+            batch_down_fp = '%s/wol/batch_down.sh' % RESOURCES
+            make_down_list_py = '%s/wol/make_down_list.py' % RESOURCES
+            cmd = 'mkdir -p %s\n' % fna_dir
+            cmd += 'cd %s\n' % fna_dir
+            cmd += '%s %s > download.list\n' % (make_down_list_py, metadata_fp)
+            cmd += 'bash %s download.list' % batch_down_fp
+            self.cmds['download_wol_genomes'] = [cmd]
+        else:
+            self.wol['fna'] = genomes
+
+        lineages_fp = '%s/wol/lineages.txt' % RESOURCES
+        lineages_pd = pd.read_csv(lineages_fp, header=None, sep='\t')
+        lineages_pd.columns = ['Genome ID', 'taxonomy']
+        lineages_pd['species'] = [x.split(';')[-1].strip().replace(
+            ' ', '_').replace( '[', '').replace(
+            ']', '') for x in lineages_pd['taxonomy']]
+        self.wol['taxonomy'] = lineages_pd
+
+        tree_fp = '%s/wol/tree.nwk' % RESOURCES
+        self.wol['tree'] = TreeNode.read(tree_fp, format='newick')
+
+        sizes_fp = '%s/wol/genome_sizes.txt' % RESOURCES
+        sizes = pd.read_csv(sizes_fp, header=None, sep='\t')
+        sizes.columns = ['gid', 'length']
+        self.wol['sizes'] = sizes
+        self.register_command()
 
     def set_squeezemeta(self) -> None:
-        self.database = 'squeezemeta'
+        pass
 
     def set_mar(self) -> None:
-        self.database = 'mar'
         path = self.config.databases['mar']['path']
+        self.paths[self.database] = path
         mol_type_per_db = {
             'BLAST': [['nucleotides', 'fna'], ['proteins', 'faa']],
             'Genomes': [['genomic', 'fa'], ['protein', 'faa']]}
@@ -122,7 +164,6 @@ class ReferenceDatabases(object):
         self.register_command()
 
     def set_pfam(self) -> None:
-        self.database = 'pfam'
         pfam_dir = self.config.databases['pfam']['path']
         pfam_job = '%s/jobs' % pfam_dir
         mkdr(pfam_job)
@@ -213,81 +254,55 @@ class ReferenceDatabases(object):
             self.write_dbcan_subset(taxa, folder, name)
 
     def set_dbcan(self) -> None:
-        self.database = 'dbcan'
         self.get_dbcan_hmms()
         m = '%s/dbCAN-seq/metadata.txt' % self.config.databases['dbcan']['path']
         if isfile(m):
             self.dbcan_meta = pd.read_csv(m, header=0, index_col=0, sep='\t')
             self.set_dbcan_taxa()
 
-    def set_wol(self) -> None:
-        self.database = 'wol'
-        wol_dir = self.config.databases['wol']['path']
-        self.wol['path'] = wol_dir
-
-        fna_dir = '%s/fna' % wol_dir
-        mkdr(fna_dir)
-        if not glob.glob('%s/*' % fna_dir):
-            metadata_fp = '%s/wol/metadata.tsv' % RESOURCES
-            batch_down_fp = '%s/wol/batch_down.sh' % RESOURCES
-            make_down_list_py = '%s/wol/make_down_list.py' % RESOURCES
-            cmd = 'cd %s\n' % fna_dir
-            cmd += '%s %s > download.list\n' % (make_down_list_py, metadata_fp)
-            cmd += 'bash %s download.list' % batch_down_fp
-            self.cmds['download_wol_genomes'] = [cmd]
-        else:
-            self.wol['fna'] = glob.glob('%s/*' % fna_dir)
-
-        lineages_fp = '%s/wol/lineages.txt' % RESOURCES
-        lineages_pd = pd.read_csv(lineages_fp, header=None, sep='\t')
-        lineages_pd.columns = ['Genome ID', 'taxonomy']
-        lineages_pd['species'] = [x.split(';')[-1].strip().replace(
-            ' ', '_').replace( '[', '').replace(
-            ']', '') for x in lineages_pd['taxonomy']]
-        self.wol['taxonomy'] = lineages_pd
-
-        tree_fp = '%s/wol/tree.nwk' % RESOURCES
-        self.wol['tree'] = TreeNode.read(tree_fp, format='newick')
-
-        sizes_fp = '%s/wol/genome_sizes.txt' % RESOURCES
-        sizes = pd.read_csv(sizes_fp, header=None, sep='\t')
-        sizes.columns = ['gid', 'length']
-        self.wol['sizes'] = sizes
-        self.register_command()
-
     def set_midas(self) -> None:
         midas_db_path = self.config.databases['midas']['path']
-        self.midas['path'] = midas_db_path
+        self.paths[self.database] = midas_db_path
         self.config.midas_foci['all'] = (midas_db_path, '')
 
-    def set_humann(self) -> None:
-        self.humann['path'] = self.config.databases['humann']['path']
-
-    def set_metaphlan(self) -> None:
-        self.metaphlan['path'] = self.config.databases['metaphlan']['path']
-
-    def set_macsyfinder(self) -> None:
-        self.macsyfinder['path'] = self.config.databases['macsyfinder']['path']
-
-    def set_diamond(self) -> None:
-        paths = self.config.databases['diamond']['path']
-        self.diamond['uniref'] = paths['uniref']
-        self.diamond['genome'] = paths['genome']
-
     def set_ioncom(self) -> None:
-        self.ioncom['path'] = self.config.databases['ioncom']['path']
-        self.ioncom['itasser'] = self.config.databases['ioncom']['itasser']
+        self.paths[self.database] = self.config.databases['ioncom']['path']
+        self.paths['itasser'] = self.config.databases['ioncom']['itasser']
 
     def set_shogun(self) -> None:
         shogun_config = self.config.databases['shogun']['path']
+        self.paths[self.database] = shogun_config
         for k, v in shogun_config.items():
-            self.shogun[k] = v
             if k == 'rep82':
                 if not isdir(v) or not glob.glob('%s/*' % v):
                     cmd = 'mkdir -p %s\ncd %s\n' % (v, v)
-                    cmd += 'wget -i https://raw.githubusercontent.com/knights-' \
-                           'lab/SHOGUN/master/docs/shogun_db_links.txt\n'
+                    cmd += 'wget -i https://raw.githubusercontent.com/knights' \
+                           '-lab/SHOGUN/master/docs/shogun_db_links.txt\n'
                     self.cmds['download_shogun'] = [cmd]
+
+    # def set_humann(self) -> None:
+    #     self.paths[self.database] = self.config.databases['humann']['path']
+    #
+    # def set_metaphlan(self) -> None:
+    #     self.paths[self.database] = self.config.databases['metaphlan']['path']
+    #
+    # def set_macsyfinder(self) -> None:
+    #     self.paths[self.database] = self.config.databases['macsyfinder']['path']
+    #
+    # def set_gtdb(self) -> None:
+    #     self.paths[self.database] = self.config.databases['gtdb']['path']
+    #
+    # def set_tara_euk(self) -> None:
+    #     self.paths[self.database] = self.config.databases['tara_euk']['path']
+    #
+    # def set_tara_prok(self) -> None:
+    #     self.paths[self.database] = self.config.databases['tara_prok']['path']
+    #
+    # def set_uniref(self) -> None:
+    #     self.paths[self.database] = self.config.databases['uniref']['path']
+
+    def set_other_database(self) -> None:
+        self.paths[self.database] = self.config.databases[self.database]['path']
 
     def register_command(self) -> None:
         self.commands[self.database] = dict(self.cmds)
