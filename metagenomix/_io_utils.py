@@ -120,11 +120,11 @@ def get_cat_zcat(
     Returns
     -------
     cat : str
-        The command to use (`cat` or `gzcat`).
+        The command to use (`cat` or `zcat`).
     """
     cat = "cat"
     if fastq_fp.endswith('.fastq.gz'):
-        cat = "gzcat"
+        cat = "zcat"
     return cat
 
 
