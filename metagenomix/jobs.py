@@ -65,7 +65,7 @@ class CreateScripts(object):
     def write_main(self, name, soft=None) -> None:
         main = self.get_main_sh(name, soft)
         with open(main, 'w') as o:
-            if self.scheduler:
+            if len(self.job_fps):
                 job_dir = dirname(self.job_fps[0])
                 o.write('mkdir -p %s/output\n' % job_dir)
                 o.write('cd %s/output\n' % job_dir)
