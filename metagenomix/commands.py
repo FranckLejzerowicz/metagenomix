@@ -14,6 +14,7 @@ from metagenomix._io_utils import (
 from metagenomix.tools.simka import (
     check_simka_params, get_simka_input, simka_cmd, simka_pcoa_cmd)
 from metagenomix.tools.midas import midas
+from metagenomix.tools.kraken2 import kraken2
 from metagenomix.tools.phlans import metaphlan, humann, strainphlan
 from metagenomix.tools.shogun import shogun
 from metagenomix.tools.woltka import woltka
@@ -112,11 +113,12 @@ class Commands(object):
             self.soft.outputs[self.pool] = self.out
 
     def prep_edit_fastqs(self):
-        cmd1 = get_edit_fastq_cmd(self.config.fastq[self.sam], 1)
-        self.cmds[self.sam] = [cmd1]
-        if len(self.config.fastq[self.sam]) > 1:
-            cmd2 = get_edit_fastq_cmd(self.config.fastq[self.sam], 2)
-            self.cmds[self.sam].append(cmd2)
+        for r in [1, 2]:
+            if len(self.config.fastq[self.sam]) < r:
+                continue
+            cmd = get_edit_fastq_cmd(self.config.fastq[self.sam], r)
+            if cmd:
+                self.cmds.setdefault(self.sam, []).append(cmd)
 
     def pooling(self):
         for pool in self.config.pooling_groups:
@@ -138,14 +140,16 @@ class Commands(object):
             if len(sams) > 1:
                 fas = '%s/%s.%s.fasta' % (out_dir, group, merge)
                 fas = fas.replace(' ', '_').replace('..', '.')
-                for pdx, path in enumerate(paths):
-                    if pdx:
-                        cmd = 'cat %s >> %s' % (path, fas)
-                    else:
-                        cmd = 'cat %s > %s' % (path, fas)
-                    self.cmds.setdefault(pool, []).append(cmd)
-                self.soft.io['I']['f'].update(paths)
-                self.soft.io['O']['f'].update([fas, out_dir])
+                if self.config.force or not isfile(fas):
+                    for pdx, path in enumerate(paths):
+                        if pdx:
+                            cmd = 'cat %s >> %s' % (path, fas)
+                        else:
+                            cmd = 'cat %s > %s' % (path, fas)
+                        self.cmds.setdefault(pool, []).append(cmd)
+                    self.soft.io['I']['f'].update(paths)
+                    self.soft.io['O']['f'].add(fas)
+                    self.soft.io['O']['d'].add(out_dir)
             else:
                 if len(paths) > 1:
                     raise ValueError('Error in pooling group...')
@@ -158,24 +162,25 @@ class Commands(object):
     def prep_count_reads_grep(self):
         out = '%s/%s_read_count.tsv' % (self.dir, self.sam)
         self.out.append(out)
-        if not isfile(out):
-            self.cmds[self.sam] = []
+        if self.config.force or not isfile(out):
             inputs = self.inputs[self.sam]
             for idx, input_path in enumerate(inputs):
                 cmd = count_reads_cmd(idx, input_path, out, self.sam)
-                self.cmds[self.sam].append(cmd)
+                self.cmds.setdefault(self.sam, []).append(cmd)
             self.soft.io['I']['f'].update(inputs)
             self.soft.io['O']['f'].add(out)
 
     def prep_fastqc(self):
         out_dir = '%s/%s' % (self.dir, self.sam)
-        inputs = self.inputs[self.sam]
-        cmd = 'fastqc %s %s -o %s' % (inputs[0], inputs[1], out_dir)
-        self.soft.io['I']['f'].update(inputs)
-        self.soft.io['O']['d'].add(out_dir)
-        self.soft.dirs.add(out_dir)
-        self.cmds[self.sam] = list([cmd])
+        ins = self.inputs[self.sam]
+        outs = ['%s_fastqc.html' % x.rsplit('.fastq', 1)[0] for x in ins]
         self.out = out_dir
+        if self.config.force or len(outs) != sum([isfile(x) for x in outs]):
+            cmd = 'fastqc %s -o %s' % (' '.join(ins), out_dir)
+            self.soft.io['I']['f'].update(ins)
+            self.soft.io['O']['d'].add(out_dir)
+            self.soft.dirs.add(out_dir)
+            self.cmds[self.sam] = list([cmd])
 
     def prep_simka(self):
         inp = get_simka_input(self.dir, self.inputs)
@@ -183,22 +188,21 @@ class Commands(object):
         smin = True
         k_space, n_space = check_simka_params(self.soft.params)
         for k in map(int, k_space):
-            self.cmds[k] = []
             for n in map(int, n_space):
                 out_dir = '%s/k%s/n%s' % (self.dir, k, n)
                 cmd = simka_cmd(self.soft, smin, inp, out_dir, k, n)
                 self.out.append(out_dir)
-                self.soft.dirs.add(out_dir)
-                self.cmds[k].append(cmd)
-                self.soft.io['O']['d'].add(out_dir)
+                if self.config.force or cmd:
+                    self.soft.dirs.add(out_dir)
+                    self.cmds.setdefault(k, []).append(cmd)
+                    self.soft.io['O']['d'].add(out_dir)
 
     def prep_simka_pcoa(self):
         for idx, input_path in enumerate(self.inputs['simka']):
-            self.cmds[idx] = []
             for mdx, mat in enumerate(glob.glob('%s/mat_*.csv*' % input_path)):
                 cmd = simka_pcoa_cmd(mat, self.config.meta_fp)
-                if cmd:
-                    self.cmds[idx].append(cmd)
+                if self.config.force or cmd:
+                    self.cmds.setdefault(idx, []).append(cmd)
 
     def prep_cutadapt(self):
         r1_o = '%s/%s.R1.fastq.gz' % (self.dir, self.sam)
@@ -209,18 +213,33 @@ class Commands(object):
         cmd += ' -m 10 -o %s -p %s ' % (r1_o, r2_o)
         cmd += ' '.join(self.inputs[self.sam])
         self.out = [r1_o, r2_o]
-        self.cmds[self.sam] = list([cmd])
-        self.soft.io['I']['f'].update(self.inputs)
-        self.soft.io['O']['f'].update([r1_o, r2_o])
+        if self.config.force or not isfile(r1_o) or not isfile(r2_o):
+            self.cmds[self.sam] = list([cmd])
+            self.soft.io['I']['f'].update(self.inputs)
+            self.soft.io['O']['f'].update([r1_o, r2_o])
 
     def prep_midas(self):
         self.soft.io['I']['f'].update(self.inputs)
         for focus, db_species in self.config.midas_foci.items():
             io, cmds, outputs = midas(
                 self.dir, self.sam, self.inputs, self.databases.paths['midas'],
-                self.soft.params['cpus'], focus, db_species)
+                self.soft.params['cpus'], focus, db_species, self.config)
             if outputs:
                 self.out = outputs
+            if cmds:
+                self.softs[self.soft.name].dirs.update(outputs)
+                self.cmds[self.sam] = cmds
+                self.soft.io['I']['d'].update(io['I'])
+                self.soft.io['O']['d'].update(io['O'])
+
+    def prep_kraken2(self):
+        self.soft.io['I']['f'].update(self.inputs)
+        io, cmds, outputs = kraken2(
+            self.dir, self.sam, self.inputs, self.databases.paths['kraken2'],
+            self.soft.params)
+        if outputs:
+            self.out = outputs
+        if cmds:
             self.softs[self.soft.name].dirs.update(outputs)
             self.cmds[self.sam] = cmds
             self.soft.io['I']['d'].update(io['I'])
