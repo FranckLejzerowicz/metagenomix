@@ -36,7 +36,8 @@ class CreateScripts(object):
                 return 'qsub'
             else:
                 return 'sbatch'
-        return ''
+        else:
+            return 'sh'
 
     def get_prjct(self):
         prjct = [x for x in self.config.project if x.lower() not in 'aeiouy']
@@ -118,12 +119,14 @@ class CreateScripts(object):
         if not self.module and params['env']:
             self.cmd.extend(['-e', params['env']])
 
-        if self.config.userscratch:
-            self.cmd.append('--userscratch')
-        if self.config.scratch:
+        if isinstance(params['scratch'], int):
+            self.cmd.extend(['--localscratch', params['scratch']])
+        elif params['scratch'] == 'scratch':
             self.cmd.append('--scratch')
-        if self.config.localscratch:
-            self.cmd.extend(['--localscratch', self.config.localscratch])
+        elif params['scratch'] == 'userscratch':
+            self.cmd.append('--userscratch')
+        if not self.config.verbose:
+            self.cmd.append('--quiet')
 
     def call_cmd(self):
         cmd = ' '.join(map(str, self.cmd))
@@ -149,6 +152,8 @@ class CreateScripts(object):
             else:
                 self.prep_script(self.config.params)
             self.call_cmd()
+        else:
+            self.job_fps.append('%s.sh' % splitext(self.sh)[0])
 
     def write_jobs(self, name: str, soft=None):
         for cdx, chunks in enumerate(self.cmds_chunks):
