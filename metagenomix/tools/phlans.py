@@ -11,7 +11,7 @@ from os.path import dirname, isfile
 
 
 def metaphlan(out_dir: str, sam: str, inputs: dict, path: str, params: dict,
-              strains: list, reads_fps: dict) -> tuple:
+              strains: list, reads_fps: dict, config) -> tuple:
     """
 
     Parameters
@@ -30,6 +30,8 @@ def metaphlan(out_dir: str, sam: str, inputs: dict, path: str, params: dict,
         Names of the strains to focus on.
     reads_fps : dict
         Paths to the read counts files.
+    config
+        Configurations
 
     Returns
     -------
@@ -44,14 +46,14 @@ def metaphlan(out_dir: str, sam: str, inputs: dict, path: str, params: dict,
     tmpdir = '$TMPDIR/metaphlan_%s' % sam
     tmp_cmd = 'mkdir -p %s\n' % tmpdir
 
-    bowtie2out = '%s/bowtie2/%s.bowtie2.bz2' % (out_dir, sam)
-    outputs = list([bowtie2out])
+    b2o = '%s/bowtie2/%s.bowtie2.bz2' % (out_dir, sam)
+    outputs = list([b2o])
     outputs.extend(list(profiling(
-        out_dir, sam, inputs, path, params, bowtie2out, tmpdir, io, cmds)))
+        out_dir, sam, inputs, path, params, b2o, tmpdir, io, cmds)))
 
     reads = get_read_count(sam, reads_fps)
     if reads:
-        analyses(out_dir, sam, params, strains, bowtie2out, reads, io, cmds)
+        analyses(out_dir, sam, params, strains, b2o, reads, io, cmds, config)
     if cmds:
         cmds = [tmp_cmd] + cmds
 
@@ -84,27 +86,29 @@ def get_read_count(sam, reads_fps) -> str:
 
 
 def analyses(out_dir: str, sam: str, params: dict, strains: list,
-             bowtie2out: str, reads: str, io: dict, cmds: list) -> None:
+             b2o: str, reads: str, io: dict, cmds: list, config) -> None:
     """Get the taxonomic analyses Metaphlan command.
 
     Parameters
     ----------
     out_dir : str
-        Path to pipeline output folder for MIDAS.
+        Path to pipeline output folder for MIDAS
     sam : str
         Sample name.
     params : dict
         Run parameters.
     strains : list
         Names of the strains to focus on.
-    bowtie2out : str
-        Input type was a bowtie2 output of the same tool.
+    b2o : str
+        Input type was a bowtie2 output of the same tool
     reads : str
-        Number of reads in the current sample.
+        Number of reads in the current sample
     io : dict
-        Inputs and outputs to potentially move to scratch and back.
+        Inputs and outputs to potentially move to scratch and back
     cmds : list
-        All MIDAS command lines.
+        All MIDAS command lines
+    config
+        Configurations
     """
     tax_levs = ['a', 'k', 'p', 'c', 'o', 'f', 'g', 's']
     for analysis in ['rel_ab',
@@ -117,7 +121,7 @@ def analyses(out_dir: str, sam: str, params: dict, strains: list,
         for tax_lev in tax_levs:
             rad = '%s/%s_t-%s' % (dir_out, sam, tax_lev)
             cmd = 'metaphlan'
-            cmd += ' %s' % bowtie2out
+            cmd += ' %s' % b2o
             cmd += ' --input_type bowtie2out'
             cmd += ' -t %s' % analysis
             cmd += ' --nproc %s' % params['cpus']
@@ -132,13 +136,13 @@ def analyses(out_dir: str, sam: str, params: dict, strains: list,
                     strain_cmd += ' --clade %s' % strain.replace(' ', '_')
                     clade_out = '%s_%s.tsv' % (rad, strain.replace(' ', '_'))
                     strain_cmd += ' -o %s' % clade_out
-                    if not isfile(clade_out):
+                    if config.force or not isfile(clade_out):
                         io['O'].append(clade_out)
                         cmds.append(strain_cmd)
             else:
                 ab_out = '%s.tsv' % rad
                 cmd += ' -o %s' % ab_out
-                if not isfile(ab_out):
+                if config.force or not isfile(ab_out):
                     io['O'].append(ab_out)
                     cmds.append(cmd)
 
@@ -326,7 +330,7 @@ def renorm(input_fp: str, relab_fp: str) -> str:
 
 
 def humann(out_dir: str, sam: str, inputs: dict, path: str,
-           params: dict, profile: dict) -> tuple:
+           params: dict, profile: dict, conf) -> tuple:
     """Create command lines for humann for the current database's species focus.
 
     Parameters
@@ -343,6 +347,8 @@ def humann(out_dir: str, sam: str, inputs: dict, path: str,
         Run parameters.
     profile : dict
         Taxonomic profiles for species to focus humann on.
+    conf
+        Configurations
 
     Returns
     -------
@@ -363,38 +369,37 @@ def humann(out_dir: str, sam: str, inputs: dict, path: str,
     for prof, db, out in zip(*[profiles, dbs, outs]):
 
         b2_ali_fp = '%s/%s_humann_tmp/%s_bowtie2_aligned.sam' % (out, sam, sam)
-        if isfile(b2_ali_fp):
+        if not conf.force and isfile(b2_ali_fp):
             io['I'].append(b2_ali_fp)
         else:
             io['O']['f'].append(b2_ali_fp)
             io['O']['d'].append(out)
 
         base_file = '%s/%s.fastq.gz' % (out, sam)
-        gene_fp = '%s/%s_genefamilies.tsv' % (out, sam)
-        path_fp = '%s/%s_pathabundance.tsv' % (out, sam)
-        cov_fp = '%s/%s_pathcoverage.tsv' % (out, sam)
-        if not isfile(gene_fp) or not isfile(path_fp) or not isfile(cov_fp):
+        gen = '%s/%s_genefamilies.tsv' % (out, sam)
+        pwy = '%s/%s_pathabundance.tsv' % (out, sam)
+        cov = '%s/%s_pathcoverage.tsv' % (out, sam)
+        if conf.force or not isfile(gen) or not isfile(pwy) or not isfile(cov):
             cmds.append(get_cmd(
                 sam, inputs, params, prof, db, out, base_file, b2_ali_fp))
-            io['O']['f'].extend([gene_fp, path_fp, cov_fp])
+            io['O']['f'].extend([gen, pwy, cov])
         else:
-            io['I'].extend([gene_fp, path_fp])
+            io['I'].extend([gen, pwy])
 
-        gene_relab_fp = '%s/%s_genefamilies_relab.tsv' % (out, sam)
-        path_relab_fp = '%s/%s_pathabundance_relab.tsv' % (out, sam)
-        if not isfile(gene_relab_fp) or not isfile(path_relab_fp):
-            io['O']['f'].extend([gene_relab_fp, path_relab_fp])
-            cmds.append(renorm(gene_fp, gene_relab_fp))
-            cmds.append(renorm(path_fp, path_relab_fp))
+        gen_relab = '%s/%s_genefamilies_relab.tsv' % (out, sam)
+        pwy_relab = '%s/%s_pathabundance_relab.tsv' % (out, sam)
+        if conf.force or not isfile(gen_relab) or not isfile(pwy_relab):
+            io['O']['f'].extend([gen_relab, pwy_relab])
+            cmds.append(renorm(gen, gen_relab))
+            cmds.append(renorm(pwy, pwy_relab))
 
-        outputs.append([out, b2_ali_fp, gene_fp, gene_relab_fp,
-                        path_fp, path_relab_fp, cov_fp])
+        outputs.append([out, b2_ali_fp, gen, gen_relab, pwy, pwy_relab, cov])
 
     return io, cmds, outputs
 
 
 def strainphlan(out_dir: str, inputs: dict, params: dict,
-                wol: dict, strains: dict) -> tuple:
+                wol: dict, strains: dict, config) -> tuple:
     """Create command lines for strainphlan.
 
     Parameters
@@ -409,6 +414,8 @@ def strainphlan(out_dir: str, inputs: dict, params: dict,
         Web Of Life database files
     strains : dict
         Species to focus on for strain analyses.
+    config
+        Configurations
 
     Returns
     -------
@@ -435,7 +442,7 @@ def strainphlan(out_dir: str, inputs: dict, params: dict,
     dirs.extend([db_dir, meta_dir])
     io['O'].extend([markers_dir, db_dir, meta_dir])
 
-    if len(glob.glob('%s/*.sam.bz2' % sam_dir)):
+    if config.force or len(glob.glob('%s/*.sam.bz2' % sam_dir)):
         cmd = 'sample2markers.py'
         cmd += ' -i %s/*.sam.bz2' % sam_dir
         cmd += ' -o %s' % markers_dir
@@ -449,7 +456,7 @@ def strainphlan(out_dir: str, inputs: dict, params: dict,
         for st in [x.replace(' ', '_') for x in strains]:
             if st[0] != 's':
                 continue
-            if not isfile('%s/%s.fna' % (strain_dir, st)):
+            if config.force or not isfile('%s/%s.fna' % (strain_dir, st)):
                 cmd = 'extract_markers.py'
                 cmd += ' -c %s' % st
                 cmd += ' -o %s' % db_dir
@@ -458,7 +465,8 @@ def strainphlan(out_dir: str, inputs: dict, params: dict,
             dirs.append(odir)
             io['O'].append(odir)
             outputs[(strain_group, st)] = odir
-            if not isfile('%s/RAxML_bestTree.%s.StrainPhlAn3.tre' % (odir, st)):
+            tree = '%s/RAxML_bestTree.%s.StrainPhlAn3.tre' % (odir, st)
+            if config.force or not isfile(tree):
                 cmd = 'strainphlan'
                 cmd += ' -s %s/*.pkl' % markers_dir
                 cmd += ' -m %s/%s.fna' % (db_dir, st)

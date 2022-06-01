@@ -93,37 +93,40 @@ def get_simka_input(dir_path, inputs) -> str:
 
 
 def simka_cmd(soft, smin: bool, sim_in: str, out_dir: str,
-              k: int, n: int) -> str:
+              k: int, n: int, config) -> str:
     """
 
     Parameters
     ----------
     soft : pipeline.Soft
-        Class instance for the current software.
+        Class instance for the current software
     smin : bool
-        Whether to use SimkaMin (True) or base Simka (False).
+        Whether to use SimkaMin (True) or base Simka (False)
     sim_in : str
-        Input file containing to the fastq file paths for Simka.
+        Input file containing to the fastq file paths for Simka
     out_dir : str
-        Output folder for Simka.
+        Output folder for Simka
     k : int
-        Length of the k-mer.
+        Length of the k-mer
     n : int
-        Number of sequences to inject in the Simka analysis.
+        Number of sequences to inject in the Simka analysis
+    config
+        Configurations
 
     Returns
     -------
     cmd : str
-        Simka command line.
+        Simka command line
     """
     cmd = ''
     if isdir('%s/simkamin' % out_dir):
         cmd = 'rm -rf %s/simkamin\n' % out_dir
     if smin:
-        if isfile('%s/mat_abundance_braycurtis.csv' % out_dir):
-            return ''
-        elif isfile('%s/mat_abundance_braycurtis.csv.gz' % out_dir):
-            return ''
+        if not config.force:
+            if isfile('%s/mat_abundance_braycurtis.csv' % out_dir):
+                return ''
+            elif isfile('%s/mat_abundance_braycurtis.csv.gz' % out_dir):
+                return ''
         cmd += simka_min_cmd(soft, sim_in, out_dir, k, str(n))
     else:
         cmd += simka_base_cmd(soft, sim_in, out_dir, k, str(n))
@@ -203,7 +206,7 @@ def simka_base_cmd(
     return cmd
 
 
-def simka_pcoa_cmd(mat: str, meta_fpo: str) -> str:
+def simka_pcoa_cmd(mat: str, meta_fpo: str, config) -> str:
     """Write the Simka command for the pcoa based on the distance matrices.
 
     Parameters
@@ -212,6 +215,8 @@ def simka_pcoa_cmd(mat: str, meta_fpo: str) -> str:
         Path to the input matrix.
     meta_fpo: str
         Path to the output matrix.
+    config
+        Configurations
 
     Returns
     -------
@@ -219,7 +224,7 @@ def simka_pcoa_cmd(mat: str, meta_fpo: str) -> str:
         Simka command line.
     """
     cmd = ''
-    if 'sym' in mat:
+    if not config.force and 'sym' in mat:
         return cmd
     if mat.endswith('gz'):
         mat_fp = mat.replace('.csv.gz', '.csv')
@@ -229,26 +234,26 @@ def simka_pcoa_cmd(mat: str, meta_fpo: str) -> str:
         mat_fp = mat
 
     mat_o = mat_fp.replace('.csv', '_sym.tsv')
-    if not isfile(mat_o):
+    if config.force or isfile(mat_o):
         cmd += 'python %s/symmetrize_simka_matrix.py' % RESOURCES
         cmd += ' -i %s\n' % mat_fp
 
     mat_dm = mat_o.replace('.tsv', '_dm.qza')
-    if not isfile(mat_dm):
+    if config.force or not isfile(mat_dm):
         cmd += 'qiime tools import'
         cmd += ' --input-path %s' % mat_o
         cmd += ' --output-path %s' % mat_dm
         cmd += ' --type DistanceMatrix\n'
 
     mat_pcoa = mat_dm.replace('.qza', '_pcoa.qza')
-    if not isfile(mat_pcoa):
+    if config.force or not isfile(mat_pcoa):
         cmd += 'qiime diversity pcoa'
         cmd += ' --i-distance-matrix %s' % mat_dm
         cmd += ' --o-pcoa %s\n' % mat_pcoa
 
     mat_pcoa_dir = mat_pcoa.replace('.qza', '')
     mat_pcoa_txt = mat_pcoa.replace('.qza', '.txt')
-    if not isfile(mat_pcoa_txt):
+    if config.force or not isfile(mat_pcoa_txt):
         cmd += 'qiime tools export'
         cmd += ' --input-path %s' % mat_pcoa
         cmd += ' --output-path %s\n' % mat_pcoa_dir
@@ -256,7 +261,7 @@ def simka_pcoa_cmd(mat: str, meta_fpo: str) -> str:
         cmd += 'rm -rf %s\n' % mat_pcoa_dir
 
     mat_emp = mat_pcoa.replace('.qza', '_emp.qzv')
-    if not isfile(mat_emp):
+    if config.force or not isfile(mat_emp):
         cmd += 'qiime emperor plot'
         cmd += ' --i-pcoa %s' % mat_pcoa
         cmd += ' --m-metadata-file %s' % meta_fpo
