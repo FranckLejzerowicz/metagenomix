@@ -156,7 +156,7 @@ def edit_fastq_cmd(
     if source == 'illumina':
         cmd += "{ print $1\"/%s\" } " % str(num)
     elif source == 'ebi':
-        cmd += "{ gsub(/.%s .*/,\"/%s\",$0); print } " % (num, num)
+        cmd += "{ gsub(/ .*/,\"/%s\",$0); print } " % num
     cmd += "else if (NR%s2 == 1) { print \"+\" } " % '%'
     cmd += "else { print } }' | gzip > %s_renamed\n" % fastq_fp
     cmd += "mv %s_renamed %s" % (fastq_fp, fastq_fp)
