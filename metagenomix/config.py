@@ -77,6 +77,7 @@ class AnalysesConfig(object):
             if '/envs/' in env:
                 self.conda_envs[env.split('/')[-1]] = env.split()[-1]
                 self.conda_path = env.split()[-1].split('/envs/')[0]
+        print(self.conda_envs)
 
     def set_metadata(self):
         """Read metadata with first column as index."""
