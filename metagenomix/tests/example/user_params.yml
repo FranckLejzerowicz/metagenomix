@@ -1,8 +1,3 @@
-D1:
-  mem_num: 50
-  mem_dim: gb
-  env: strainphlan
-  chunks: 6
 simka:
   path: /Users/franck/programs/simka
   kmer:
@@ -25,13 +20,15 @@ humann:
 flash:
   min_overlap: 30
   max_mismatch_density: 0
+  scratch: 10
 diamond_annot:
-  db_type: uniref
+  databases:
+    - uniref
 #  db_type: genome
   k:
     - 1
 ioncom:
-  itasser: /Users/franck/programs/I-TASSER5.1
+  itasser_path: /Users/franck/programs/I-TASSER5.1
 metawrap:
   binners:
     - maxbin2
@@ -45,3 +42,22 @@ metawrap:
   blobology:
     - coassembly
     - sample
+shogun:
+  aligners:
+    - bowtie2
+    - burst
+#  pairing: paired
+#  pairing: concat
+#  pairing: single
+  databases:
+    - rep82
+    - wol
+  env: shogun
+  mem_num: 50
+  mem_dim: gb
+  chunks: 6
+  scratch: userscratch
+#bowtie2:
+#  pairing: paired
+#  pairing: concat
+#  pairing: single

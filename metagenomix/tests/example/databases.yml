@@ -1,3 +1,11 @@
+formats:
+  - bowtie2
+  - minimap2
+  - diamond
+  - blastn
+  - burst
+  - qiime2
+  - kracken2
 mar:
   path: /Users/franck/databases/MAR
 pfam:
@@ -11,24 +19,26 @@ dbcan:
     CLAmicrobes: ./metagenomix/tests/example/configs/bugs.txt
 squeezemeta:
   path: /Volumes/Franck_2TB/databases/SqueezeMeta
-wol:
-  path: /Users/franck/databases/wol
 midas:
   path: /Volumes/Franck_2TB/databases/midas_db_v1.2
 metaphlan:
   path: /Volumes/Franck_2TB/databases/metaphlan3
 humann:
   path: /Volumes/Franck_2TB/databases/metaphlan3
-shogun:
-  path:
-    wol: /Users/franck/databases/shogun/wol
-    rep200: /Users/franck/databases/shogun/rep200
 macsyfinder:
   path: /Volumes/Franck_2TB/databases/macsyfinder
-diamond:
-  path:
-    genome: /projects/wol/20170307/diamond/prok
-    uniref: /Users/franck/databases/uniref90
+uniref:
+  path: /Users/franck/databases/uniref90
 ioncom:
   path: /Users/franck/databases/IonCom
   itasser: /Users/franck/databases/I-TASSER_LIB
+wol:
+  path: /Users/franck/databases/wol
+tara_prok:
+  path: /Users/franck/databases/tara_prok
+tara_euk:
+  path: /Users/franck/databases/tara_euk
+gtdb:
+  path: /Users/franck/databases/gtdb
+rep82:
+  path:  /Users/franck/databases/rep82

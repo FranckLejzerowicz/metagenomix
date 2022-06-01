@@ -4,6 +4,6 @@ default:
   nodes: 1
   mem_num: 10
   mem_dim: gb
-  env: mg
+  env:
   chunks: 6
-  scratch: 0
+  scratch:
