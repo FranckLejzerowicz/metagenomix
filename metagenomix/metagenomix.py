@@ -5,7 +5,6 @@
 #
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
-import os
 
 from metagenomix.pipeline import Workflow
 from metagenomix.config import AnalysesConfig
@@ -28,7 +27,7 @@ def metagenomix(**kwargs):
     config.init()
     # print()
     # print('**************** CONFIG *****************')
-    # for i, j in config.__dict__.items():
+    # for i, j in sorted(config.__dict__.items()):
     #     print(i, '\t:\t', j)
     # print('**************** CONFIG *****************')
     # print()
@@ -42,7 +41,7 @@ def metagenomix(**kwargs):
     #         print('\n'.join(cmds))
     # print('*****************************************')
 
-    workflow = Workflow(config)
+    workflow = Workflow(config, databases)
     workflow.init()
     # print('**************** pipeline ***************')
     # for idx, soft in workflow.softs.items():
@@ -63,3 +62,9 @@ def metagenomix(**kwargs):
     scripting = CreateScripts(config)
     scripting.database_cmds(databases)
     scripting.software_cmds(commands)
+    # for name, shs in scripting.run['software'].items():
+    #     print()
+    #     print(name, shs)
+    #     # for sh in shs:
+    #     #     print(sh)
+    #
