@@ -166,8 +166,8 @@ class Workflow(object):
 
     def set_user_params(self, soft):
         user_params = self.config.user_params.get(soft.name, {})
-        print()
-        print("software:\t:\t", soft.name)
+        # print()
+        # print("software:\t:\t", soft.name)
         # print("user_params\t:\t", user_params)
         # print("soft.params\t:\t", soft.params)
         func = 'check_%s' % soft.name
@@ -184,8 +184,6 @@ class Workflow(object):
         for _, soft in self.softs.items():
             self.set_user_params(soft)
             self.set_scratch(soft)
-            print("soft.params")
-            print(soft.params)
 
 
     # def collect_paths(self):

@@ -36,12 +36,11 @@ def check_path(value):
         raise IOError('"%s" do not exist' % value)
 
 
-def check_databases(name, user_params, databases):
-    if 'databases' not in user_params:
-        raise IOError('[%s] "databases" must be a parameter' % name)
-    for db in user_params['databases']:
-        if db not in databases.paths:
-            raise IOError('[%s] database "%s" must have a path' % (name, db))
+def show_valid_params(param, values, soft):
+    m = '[%s] user parameter "%s" must be among:\n' % (soft.name, param)
+    for value in values:
+        m += '  - %s' % value
+    sys.exit(m)
 
 
 def check_generic(defaults, user_params, soft):
@@ -50,21 +49,20 @@ def check_generic(defaults, user_params, soft):
             soft.params[param] = values[0]
         else:
             if isinstance(user_params[param], list):
-                user_param = sorted(user_params[param])
+                if set(sorted(user_params[param])).difference(values):
+                    show_valid_params(param, values, soft)
             else:
-                user_param = user_params[param]
-            if user_param not in values:
-                if isinstance(values, list):
-                    vs = ['- %s\n' % '\n  - '.join(v) for v in values]
-                else:
-                    vs = values
-                m = '[%s] user parameter "%s" must be:\n' % (soft.name, param)
-                for vdx, v in enumerate(vs):
-                    m += '"""\n  %s' % v
-                    m += '"""\n'
-                    if vdx < (len(vs) - 1):
-                        m += ' or\n'
-                sys.exit(m)
+                if user_params[param] not in values:
+                    show_valid_params(param, values, soft)
+
+
+def check_databases(name, user_params, databases):
+    if 'databases' not in user_params:
+        raise IOError('[%s] "databases" must be a parameter' % name)
+    for db in user_params['databases']:
+        if db not in databases.paths:
+            raise IOError('[%s] database "%s" must have a path' % (name, db))
+
 
 # ============================================= #
 #  Below are the function that are called from  #
@@ -78,9 +76,7 @@ def check_shogun(user_params, soft, databases, config):
         # default: 'paired'
         'pairing': ['paired', 'concat', 'single'],
         # default: ['bowtie2']
-        'aligners': [['bowtie2'], ['burst'], ['utree'], ['bowtie2', 'burst'],
-                     ['burst', 'utree'], ['bowtie2', 'utree'],
-                     ['bowtie2', 'burst', 'utree']]
+        'aligners': ['bowtie2', 'burst', 'utree']
     }
     check_generic(defaults, user_params, soft)
     if 1:
@@ -114,4 +110,9 @@ def check_bowtie2(user_params, soft, databases, config):
         'pairing': ['paired', 'concat', 'single'],
         'header': ['yes', 'no'],
     }
+    check_generic(defaults, user_params, soft)
+
+
+def check_kraken2(user_params, soft, databases, config):
+    defaults = {'databases': (['default'] + sorted(databases.paths))}
     check_generic(defaults, user_params, soft)

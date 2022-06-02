@@ -14,7 +14,7 @@ from metagenomix._io_utils import (
 from metagenomix.tools.simka import (
     check_simka_params, get_simka_input, simka_cmd, simka_pcoa_cmd)
 from metagenomix.tools.midas import midas
-# from metagenomix.tools.kraken2 import kraken2
+from metagenomix.tools.kraken2 import kraken2
 from metagenomix.tools.phlans import metaphlan, humann, strainphlan
 from metagenomix.tools.shogun import shogun
 from metagenomix.tools.woltka import woltka
@@ -232,18 +232,17 @@ class Commands(object):
                 self.soft.io['I']['d'].update(io['I'])
                 self.soft.io['O']['d'].update(io['O'])
 
-    # def prep_kraken2(self):
-    #     self.soft.io['I']['f'].update(self.inputs)
-    #     io, cmds, outputs = kraken2(
-    #         self.dir, self.sam, self.inputs, self.databases.paths['kraken2'],
-    #         self.soft.params)
-    #     if outputs:
-    #         self.out = outputs
-    #     if cmds:
-    #         self.softs[self.soft.name].dirs.update(outputs)
-    #         self.cmds[self.sam] = cmds
-    #         self.soft.io['I']['d'].update(io['I'])
-    #         self.soft.io['O']['d'].update(io['O'])
+    def prep_kraken2(self):
+        self.soft.io['I']['f'].update(self.inputs)
+        io, cmds, outputs = kraken2(
+            self.dir, self.sam, self.inputs, self.soft.params,
+            self.databases, self.config)
+        self.out = outputs
+        if cmds:
+            self.softs[self.soft.name].dirs.update(outputs)
+            self.cmds[self.sam] = cmds
+            self.soft.io['I']['d'].update(io['I'])
+            self.soft.io['O']['d'].update(io['O'])
 
     def prep_metaphlan(self):
         io, cmd, outputs = metaphlan(
@@ -1022,9 +1021,6 @@ class Commands(object):
         self.cmds = {}
 
     def prep_closed_ref_qiime1(self):
-        self.cmds = {}
-
-    def prep_kraken2(self):
         self.cmds = {}
 
     def prep_prokka(self):
