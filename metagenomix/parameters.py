@@ -59,9 +59,18 @@ def check_generic(defaults, user_params, soft):
 def check_databases(name, user_params, databases):
     if 'databases' not in user_params:
         raise IOError('[%s] "databases" must be a parameter' % name)
+    dbs_existing = []
+    dbs_missing = []
     for db in user_params['databases']:
-        if db not in databases.paths:
-            raise IOError('[%s] database "%s" must have a path' % (name, db))
+        if db in databases.paths:
+            dbs_existing.append(db)
+        else:
+            dbs_missing.append(db)
+    if not dbs_existing:
+        raise IOError('[%s] No databases: %s' % (name, '; '.join(dbs_missing)))
+    elif dbs_missing:
+        print('[%s] Missing databases: "%s"' % (name, '", "'.join(dbs_missing)))
+    return dbs_existing
 
 
 # ============================================= #
@@ -80,37 +89,52 @@ def check_shogun(user_params, soft, databases, config):
     }
     check_generic(defaults, user_params, soft)
     if 1:
-        if not config.dev:
-            check_databases('shogun', user_params, databases)
-        for db in user_params['databases']:
+        valid_dbs = {}
+        dbs_existing = check_databases('shogun', user_params, databases)
+        for db in dbs_existing:
             path = databases.paths[db]
             metadata_yml = '%s/shogun/metadata.yaml' % path
             if not config.dev and not isfile(metadata_yml):
-                raise IOError('[shogun] database "%s" must have a path' % db)
+                raise IOError('[shogun] file "%s" must exist' % metadata_yml)
             metadata = read_yaml(metadata_yml)
-            final_aligners = []
             for aligner in list(user_params['aligners']):
                 if aligner in metadata:
                     if not config.dev:
                         ali = metadata[aligner]
                         if ali[0] == '/':
-                            aligner_db = ali
+                            formatted = ali
                         else:
-                            aligner_db = '%s/shogun/%s' % (path, ali)
-                        if glob.glob('%s*' % aligner_db):
-                            final_aligners.append(aligner)
+                            formatted = '%s/shogun/%s' % (path, ali)
+                        if glob.glob('%s*' % formatted):
+                            valid_dbs.setdefault(db, []).append(aligner)
+                        else:
+                            print('[shogun] No formatted db "%s"' % formatted)
                     else:
-                        final_aligners.append(aligner)
-            user_params['aligners'] = final_aligners
+                        valid_dbs.setdefault(db, []).append(aligner)
+        user_params['databases'] = valid_dbs
+        if not user_params['databases']:
+            print('[shogun] No database formatted for shogun: will be skipped')
 
 
 def check_bowtie2(user_params, soft, databases, config):
     defaults = {
         # default: 'paired'
         'pairing': ['paired', 'concat', 'single'],
-        'header': ['yes', 'no'],
+        'discordant': [True, False]
     }
     check_generic(defaults, user_params, soft)
+    dbs_existing = check_databases('shogun', user_params, databases)
+    valid_dbs = {}
+    for db in dbs_existing:
+        path = databases.paths[db]
+        bt2_path = '%s/bowtie2/*.*.bt2' % path
+        if not config.dev:
+            bt2_paths = glob.glob(bt2_path)
+            if bt2_paths:
+                valid_dbs[db] = bt2_paths[0].rsplit('.', 2)[0]
+        else:
+            valid_dbs[db] = bt2_path.rsplit('.', 2)[0]
+    user_params['databases'] = valid_dbs
 
 
 def check_kraken2(user_params, soft, databases, config):
