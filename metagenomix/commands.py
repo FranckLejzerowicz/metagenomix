@@ -251,7 +251,7 @@ class Commands(object):
 
     def prep_humann(self):
         self.outputs = humann(
-            self.dir, self.sam, self.inputs, self.databases.humann['path'],
+            self.dir, self.sam, self.inputs, self.databases.paths['humann'],
             self.soft.params, self.config.humann_profile, self.config)
 
     def prep_phylophlan(self):
