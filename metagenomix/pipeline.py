@@ -19,10 +19,9 @@ class Soft(object):
         self.prev = None
         self.nodes = 1
         self.procs = 1
-        self.scratch = 0
-        self.io = {'I': {'f': set(), 'd': set(), 'D': set()},
-                   'O': {'f': set(), 'd': set(), 'D': set()}}
+        self.scratch = None
         self.params = dict(config.params)
+        self.io = {}
         self.inputs = {}
         self.outputs = {}
         self.cmds = {}
@@ -85,11 +84,24 @@ class Workflow(object):
             self.collect_soft_name(softs)
             soft = Soft(self.config)
             soft.get_softs(softs)
+            self.check_workflow(softs)
             self.softs[softs[-1]] = soft
         self.get_names_idx()
         self.make_graph()
         self.get_paths()
         self.set_params()
+
+    def check_workflow(self, softs):
+        if softs[-1] in self.softs:
+            already_used = self.softs[softs[-1]]
+            prev, name = already_used.prev, already_used.name
+            message = 'Error in workflow "%s":\n' % self.config.pipeline_tsv
+            message += "\tCan't run \"%s\" after \"%s\": " % tuple(softs[::-1])
+            message += '"%s" already planned to use after "%s"\n' % (name, prev)
+            message += "Each tool must yield a single output re-used as input\n"
+            message += '-> please re-run for each different workflow "graph"\n'
+            message += "Exiting\n"
+            sys.exit(message)
 
     def collect_soft_name(self, softs: list) -> None:
         """Collect the sequential list of softwares.
@@ -166,10 +178,6 @@ class Workflow(object):
 
     def set_user_params(self, soft):
         user_params = self.config.user_params.get(soft.name, {})
-        # print()
-        # print("software:\t:\t", soft.name)
-        # print("user_params\t:\t", user_params)
-        # print("soft.params\t:\t", soft.params)
         func = 'check_%s' % soft.name
         if hasattr(parameters, func) and callable(getattr(parameters, func)):
             check_ = getattr(parameters, func)
