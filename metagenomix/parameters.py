@@ -126,7 +126,7 @@ def check_bowtie2(user_params, soft, databases, config):
         'discordant': [True, False]
     }
     check_generic(defaults, user_params, soft)
-    dbs_existing = check_databases('shogun', user_params, databases)
+    dbs_existing = check_databases('bowtie2', user_params, databases)
     valid_dbs = {}
     for db in dbs_existing:
         path = databases.paths[db]
