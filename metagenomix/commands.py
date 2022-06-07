@@ -381,9 +381,13 @@ class Commands(object):
             tmp_dir = '%s/spades_%s' % (self.config.scratch, self.pool)
             out_dir = '%s/%s/%s' % (self.dir, self.pool, group)
             cmd = 'spades.py'
-            cmd += ' -m 240 -k 33,55,77,99,127'
+            cmd += ' -m %s' %  self.soft.params['mem_num']
+            cmd += ' -k %s' % ','.join(self.soft.params['k'])
             cmd += ' -t %s' % self.soft.params['cpus']
-            cmd += ' --meta --only-assembler'
+            if self.soft.params['meta']:
+                cmd += ' --meta'
+            if self.soft.params['only-assembler']:
+                cmd += ' --only-assembler'
             cmd += ' --tmp-dir %s -o %s' % (tmp_dir, out_dir)
             for fasta in fastas:
                 if 'extendedFrags' in fasta:
