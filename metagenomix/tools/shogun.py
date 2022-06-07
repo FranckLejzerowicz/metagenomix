@@ -6,166 +6,110 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-import os
 import pkg_resources
 from os.path import basename, isfile, splitext
 
 from metagenomix._io_utils import check_min_lines_count
+from metagenomix.tools.alignment import get_alignment_cmd
 
 scripts = pkg_resources.resource_filename('metagenomix', 'resources/scripts')
 
 
-def append_cmd(config, cmd: list, tab: str, cmds: list):
+def append_cmd(cmds: list, tab: str, outputs: dict, config):
     """Add or not the current SHOGUN command to the list of commands to run
     depending on whether the file already exists or exists but is only a header.
 
     Parameters
     ----------
-    config
-        Configuration.
-    cmd : list
-        List of current SHOGUN command lines.
-    tab : str
-        Path to the output table of the current command.
     cmds : list
-        List of command to possibly expand with the current command.
+        List of current SHOGUN command lines
+    tab : str
+        Path to the output table of the current command
+    outputs : dict
+        All outputs
+    config
+        Configuration
     """
     if config.force:
-        cmds.extend(cmd)
+        outputs['cmds'].extend(cmds)
     elif not isfile(tab) or not check_min_lines_count(tab):
-        cmds.append('file="%s"' % tab)
-        cmds.append('if [ -f "$file" ]')
-        cmds.append('then')
-        cmds.append("FILESIZE=`ls -l $file | cut -d ' ' -f5`")
-        cmds.append("if [[ $FILESIZE -lt 1000 ]]")
-        cmds.append('then')
-        cmds.extend(cmd)
-        cmds.append('fi')
+        cmd = 'file="%s"\n' % tab
+        cmd += 'if [ -f "$file" ]\n'
+        cmd += 'then\n'
+        cmd += "FILESIZE=`ls -l $file | cut -d ' ' -f5`\n"
+        cmd += "if [[ $FILESIZE -lt 1000 ]]\n"
+        cmd += 'then\n'
+        cmd += '\n'.join(cmds)
+        cmd += 'fi\n'
+        outputs['cmds'].append(cmd)
 
 
-def get_functional_cmd(
-        fun_tab: str, fun: str, out_dir: str, cmds: list, config) -> None:
-    """
-
-    Parameters
-    ----------
-    fun_tab : str
-        Path to the input table file.
-    fun : str
-        Path to the functional database.
-    out_dir : str
-        Path to the output functional table.
-    cmds : list
-        List of command to possibly expand with the current command.
-    config
-        Configuration.
-    """
-    cmd = 'shogun functional'
-    cmd += ' -i %s' % fun_tab
-    cmd += ' -d %s' % fun
-    cmd += ' -o %s' % out_dir
-    cmd += ' -l genus'
-    out_file = '%s/%s.genus.normalized.txt' % (
-        out_dir, splitext(basename(fun_tab))[0].replace('_taxt', '_funt'))
-    append_cmd(config, list([cmd]), out_file, cmds)
-
-
-def get_coverage_cmd(ali: str, tax: str, level: str,
-                     cov_tab: str, cmds: list, config) -> None:
-    """Get the SHOGUN command that calculates the coverage per taxon.
-
-    Parameters
-    ----------
-    ali : str
-        Path to the alignment.
-    tax : str
-        Path to the taxonomic database.
-    level : str
-        Taxonomic level for coverage calculation.
-    cov_tab : str
-        Path to the output coverage table file.
-    cmds : list
-        List of command to possibly expand with the current command.
-    config
-        Configuration.
-    """
-    cmd = 'shogun coverage'
-    cmd += ' -i %s' % ali
-    cmd += ' -d %s' % tax
-    cmd += ' -l %s' % level
-    cmd += ' -o %s' % cov_tab
-    append_cmd(config, list([cmd]), cov_tab, cmds)
-
-
-def get_redistribution_command(
-        tax: str, tax_norm: str, cmds: list, config) -> list:
+def redistribute(db: str, aligner: str, tax_norm: str, db_path: str,
+                 outputs: dict, config) -> None:
     """Get the SHOGUN command to redistribute a taxonomic profile
     at various taxonomic levels.
 
     Parameters
     ----------
-    args : dict
-        Arguments incl. 'softs', 'soft', 'config', 'inputs' and 'databases'.
-    tax : str
-        Path to the taxonomic database.
+    db : str
+        Database name
+    aligner : str
+        Name of the aligner
     tax_norm : str
-        Path to the input taxonomic table file.
-    cmds : list
-        List of command to possibly expand with the current command.
+        Path to the input taxonomic table file
+    db_path : str
+        Path to the taxonomic database
+    outputs : dict
+        All outputs
     config
-        Configuration.
-
-    Returns
-    -------
-    redists : list
-        Paths to the redistributed taxonomic table files.
+        Configuration
     """
-    redists, redist_cmds = [], []
+    redist_cmds = []
     for level in ['phylum', 'genus', 'strain']:
-        out_redist = '%s.redist.%s.tsv' % (splitext(tax_norm)[0], level)
-        redists.append(out_redist)
+        redist = '%s.redist.%s.tsv' % (splitext(tax_norm)[0], level)
+        outputs['io']['O']['f'].add(redist)
+        outputs['outs'].setdefault((db, aligner), []).append(redist)
         cmd = 'shogun redistribute'
-        cmd += ' -d %s' % tax
-        cmd += ' -l %s' % level
         cmd += ' -i %s' % tax_norm
-        cmd += ' -o %s' % out_redist
+        cmd += ' -d %s' % db_path
+        cmd += ' -l %s' % level
+        cmd += ' -o %s' % redist
         redist_cmds.append(cmd)
     redist_out = '%s.redist.strain.tsv' % splitext(tax_norm)[0]
-    append_cmd(config, redist_cmds, redist_out, cmds)
-    return redists
+    append_cmd(redist_cmds, redist_out, outputs, config)
 
 
-def assign_taxonomy_cmd(aligner: str, ali: str, tax: str,
-                        out_tab: str, sub_db: str) -> str:
+def assign_taxonomy(aligner: str, ali: str, tax: str, db_path: str,
+                    sub_db: str) -> str:
     """Get the assign taxonomy command.
 
     Parameters
     ----------
     aligner : str
-        Name of the aligner.
+        Name of the aligner
     ali : str
-        Path to the alignment.
+        Path to the alignment
     tax : str
-        Path to the taxonomic database.
-    out_tab : str
-        Path to the output table.
+        Path to the output table
+    db_path : str
+        Path to the database
     sub_db : str
-        Suffix to the database.
+        Suffix to the database
 
     Returns
     -------
     cmd : str
-        assign taxonomy command.
+        assign taxonomy command
     """
     cmd = 'shogun assign_taxonomy'
     cmd += ' -a %s' % aligner
     cmd += ' -i %s' % ali
-    cmd += ' -d %s%s' % (tax, sub_db)
-    cmd += ' -o %s\n' % out_tab
+    cmd += ' -d %s%s' % (db_path, sub_db)
+    cmd += ' -o %s\n' % tax
     return cmd
 
 
-def get_normalize_cmd(input_fp: str, output_fp: str) -> str:
+def normalize(input_fp: str, output_fp: str) -> str:
     """Get the SHOGUN command to normalize table.
 
     Parameters
@@ -184,194 +128,34 @@ def get_normalize_cmd(input_fp: str, output_fp: str) -> str:
     return cmd
 
 
-def get_assign_cmd(aligner: str, ali: str, tax: str,
-                   out_tab: str, cmds: list, sub_db: str, config) -> None:
-    """Get the taxonomic assignment and the taxonomic table
-    normalization SHOGUN commands.
-
-    Parameters
-    ----------
-    aligner : str
-        Name of the aligner.
-    ali : str
-        Path to the alignment.
-    tax : str
-        Path to the taxonomic database.
-    out_tab : str
-        Path to the output table.
-    cmds : list
-        List of command to possibly expand with the current command.
-    sub_db : str
-        Suffix to the database.
-    config
-        Configuration.
-    """
-    out_norm = '%s_norm.tsv' % splitext(out_tab)[0]
-    cmd = assign_taxonomy_cmd(aligner, ali, tax, out_tab, sub_db)
-    cmd += get_normalize_cmd(out_tab, out_norm)
-    append_cmd(config, list([cmd]), out_norm, cmds)
-
-
-def condition_ali_command(fasta: str, ali_out: str, cmd: str) -> list:
-    """Add the conditional statements checking that the alignment
-    already available was not aborted, in which case the alignment
-    will be re-run.
-
-    Parameters
-    ----------
-    fasta : str
-        Path to the input fasta file.
-    ali_out
-        Path to the aligment file.
-    cmd : str
-        Alingment command using SHOGUN.
-
-    Returns
-    -------
-    cmds : list
-        Full list of commands.
-    """
-    tail = [x[1:] for x in os.popen('tail -n 40 %s' % fasta).read().split('\n')
-            if '>' in x]
-    cmds = list()
-    cmds.append('\nlistVar="%s"' % ' '.join(tail))
-    cmds.append('GREPOK=0')
-    cmds.append('for i in $listVar')
-    cmds.append('do')
-    cmds.append('    if grep -q "$i" %s' % ali_out)
-    cmds.append('        then')
-    cmds.append('            GREPOK=1')
-    cmds.append('            break')
-    cmds.append('    fi')
-    cmds.append('\ndone')
-    cmds.append("if [ $GREPOK = 0 ]")
-    cmds.append('then')
-    cmds.append(cmd)
-    cmds.append('fi')
-    return cmds
-
-
-def get_ali_cmd(params: dict, aligner: str, fastx: str, tax: str,
-                out: str) -> tuple:
+def get_ali_cmd(fasta: str, db_path: str, out: str, aligner: str,
+                params: dict) -> str:
     """Get the SHOGUN alignment command.
 
     Parameters
     ----------
-    params : dict
-        Run parameters.
-    aligner : str
-        Name of the aligner.
-    fastx : str
-        Path to the input fasta file.
-    tax : str
-        Path to the shogun database.
+    fasta : str
+        Path to the input fasta file
+    db_path : str
+        Path to the shogun database
     out : str
-        Path to the output folder.
+        Path to the output folder
+    aligner : str
+        Name of the aligner
+    params : dict
+        Run parameters
 
     Returns
     -------
     cmd : str
-        Alignment command using SHOGUN aligner.
-    ali_out : str
-        Path to the output alignment file.
+        Alignment command using SHOGUN aligner
     """
-    if aligner == 'burst':
-        ali_out = '%s/alignment.burst.b6' % out
-        # edx_acx = args['databases'].shogun
-        # cmd = 'burst'
-        # cmd += ' -q %s' % fastx
-        # cmd += ' -r %s' % edx_acx[db]['edx']
-        # cmd += ' -a %s' % edx_acx[db]['acx']
-        # cmd += ' -sa'
-        # cmd += ' -fr'
-        # cmd += ' -i 0.98'
-        # cmd += ' -t %s' % args['soft'].params['cpus']
-        # cmd += ' -o %s' % ali_out
-    else:
-        ali_out = '%s/alignment.bowtie2.sam' % out
-        # if params.get('b2') == 'paired':
-        #     cmd = 'bowtie2'
-        #     cmd += ' -p %s' % params['cpus']
-        #     cmd += ' -x %s' % tax
-        #     cmd += ' -S %s' % out
-        #     cmd += ' -1 02_fastp/SRR17458627_R1.fastq.gz'
-        #     cmd += ' -2 02_fastp/SRR17458627_R2.fastq.gz'
-        #     cmd += ' --seed 12345'
-        #     cmd += ' --very-sensitive'
-        #     cmd += ' -k 16'
-        #     cmd += ' --np 1'
-        #     cmd += ' --mp "1,1"'
-        #     cmd += ' --rdg "0,1"'
-        #     cmd += ' --rfg "0,1"'
-        #     cmd += ' --score-min "L,0,-0.05"'
-        #     cmd += ' --no-head'
-        #     cmd += ' --no-unal'
     cmd = 'shogun align -a %s' % aligner
-    cmd += ' -i %s' % fastx
-    cmd += ' -d %s' % tax
+    cmd += ' -i %s' % fasta
+    cmd += ' -d %s' % db_path
     cmd += ' -t %s' % params['cpus']
     cmd += ' -o %s' % out
-    return cmd, ali_out
-
-
-def get_full_ali_cmd(
-        params: dict, aligner: str, fastx: str,
-        tax: str, out: str) -> list:
-    """Get the full command lines to perform sequence alignment using
-    SHOGUN aligner and potentially, re-run if the output was existing but
-    possibly aborted.
-
-    Parameters
-    ----------
-    params : dict
-        Run parameters.
-    aligner : str
-        Name of the aligner.
-    fastx : str
-        Path to the input fasta / fastq file(s).
-    tax : str
-        Path to the shogun database.
-    out : str
-        Path to the output folder.
-
-    Returns
-    -------
-    ali_cmds : list
-        Alignment commands.
-    """
-    cmd, ali_out = get_ali_cmd(params, aligner, fastx, tax, out)
-    if not isfile(ali_out):
-        ali_cmds = [cmd]
-    elif fastx.endswith('.fasta'):
-        ali_cmds = condition_ali_command(fastx, ali_out, cmd)
-    return ali_cmds
-
-
-def get_out_paths(out: str, ali_base: str, tax_or_fun: str) -> tuple:
-    """Get output path for alignment, table and normalized table.
-
-    Parameters
-    ----------
-    out : str
-        Path to the output folder.
-    ali_base : str
-        Basename of the alignment as outputted by burst or bowtie2.
-    tax_or_fun : str
-        "tax" of "fun"
-
-    Returns
-    -------
-    ali : str
-        Path to alignment file.
-    tab : str
-        Path to raw table file.
-    norm : str
-        Path to normalized table file.
-    """
-    ali = '%s/%s' % (out, ali_base)
-    tab = '%s/%stable.tsv' % (out, tax_or_fun)
-    norm = '%s/%stable_norm.tsv' % (out, tax_or_fun)
-    return ali, tab, norm
+    return cmd
 
 
 def get_alignment_basename(aligner):
@@ -379,6 +163,8 @@ def get_alignment_basename(aligner):
         ali_base = 'alignment.bowtie2.sam'
     elif aligner == 'burst':
         ali_base = 'alignment.burst.b6'
+    else:
+        raise ValueError('No output basename for aligner "%s"' % aligner)
     return ali_base
 
 
@@ -394,35 +180,33 @@ def get_orients(inputs: list):
     return orients
 
 
-def get_combine_cmd(
-        params: dict, sam: str, inputs: dict, out_dir: str, io: dict) -> tuple:
+def get_combine_cmd(sample: str, inputs: dict, out_dir: str,
+                    combine_cmds: list, outputs : dict) -> list:
     """
 
     Parameters
     ----------
-    params : dict
-        Run parameters.
-    sam : str
-        Sample name.
+    sample : str
+        Sample name
     inputs : dict
-        Input files.
+        Input files
     out_dir : str
-        Path to pipeline output folder for SHOGUN.
-    io : dict
-        Inputs and outputs to potentially move to scratch and back.
+        Path to pipeline output folder for SHOGUN
+    combine_cmds : list
+        Commands to turn .fastq or .fastq.gz files into .fasta files
+    outputs : dict
+        All outputs
 
     Returns
     -------
     fastas : list
-        Paths to fasta files to combine for SHOGUN.
-    combine_cmds : list
-        Commands to turn .fastq or .fastq.gz files into .fasta files.
+        Paths to fasta files to combine for SHOGUN
     """
-    fastas, combine_cmds = [], []
+    fastas = []
     # get the fastq versions of input file
-    orients = get_orients(inputs[sam])
-    for pdx, path_ in enumerate(sorted(inputs[sam])):
-        io['I']['f'].append(path_)
+    orients = get_orients(inputs[sample])
+    for pdx, path_ in enumerate(sorted(inputs[sample])):
+        outputs['io']['I']['f'].add(path_)
         path = path_
         if path_.endswith('fastq') or path_.endswith('fastq.gz'):
             # replace non-fasta by fasta extensions
@@ -434,149 +218,349 @@ def get_combine_cmd(
 
         path_out = '%s/%s' % (out_dir, basename(path))
         edit_fasta = 'python3 %s/fasta4shogun.py -i %s -o %s -s %s' % (
-            scripts, path, path_out, sam)
+            scripts, path, path_out, sample)
         orient = orients[pdx]
         if orient:
             edit_fasta += ' -r %s' % orient
         combine_cmds.append(edit_fasta)
         fastas.append(path_out)
-    return fastas, combine_cmds
+    return fastas
 
 
-def combine_inputs(
-        params: dict, sam: str, inputs: dict, out_dir: str, io: dict) -> tuple:
+def combine_inputs(sample: str, inputs: dict, out_dir: str,
+                   combine_cmds: list, outputs: dict) -> str:
     """Combine the fastq/a of the sample to run shogun.
 
     Parameters
     ----------
-    params : dict
-        Run parameters.
-    sam : str
-        Sample name.
+    sample : str
+        Sample name
     inputs : dict
-        Input files.
+        Input files
     out_dir : str
-        Path to pipeline output folder for SHOGUN.
-    io : dict
-        Inputs and outputs to potentially move to scratch and back.
+        Path to pipeline output folder for SHOGUN
+    combine_cmds : list
+        Commands to turn .fastq or .fastq.gz files into .fasta files
+    outputs : dict
+        All outputs
 
     Returns
     -------
-    combine_cmds : list
-        Command lines to perform the combining.
-    comb_path : str
-        Path to the combined sequences fasta file.
+    fasta : str
+        Path to the combined sequences fasta file
     """
-    fastas, combine_cmds = get_combine_cmd(params, sam, inputs, out_dir, io)
+    fastas = get_combine_cmd(sample, inputs, out_dir, combine_cmds, outputs)
     fasta = '%s/combined.fasta' % out_dir
-    combine_cmds.append('cat %s > %s' % (' '.join(fastas), fasta))
-    combine_cmds.append('rm %s' % ' '.join(fastas))
-    return combine_cmds, fasta
+    combine_cmds.extend([
+        'cat %s > %s' % (' '.join(fastas), fasta), 'rm %s' % ' '.join(fastas)])
+    return fasta
 
 
-def add_to_dirs_io(out, dirs, io):
-    dirs.append(out)
-    io['O']['d'].append(out)
+def align_cmds(fasta: str, out: str, db: str, db_path: str, aligner: str,
+               outputs: dict, ali_cmds: list, params: dict) -> str:
+    """
+
+    Parameters
+    ----------
+    fasta : str
+        Path to the combined sequences fasta file
+    out : str
+        Path to pipeline output folder for SHOGUN
+    db : str
+        Database name
+    db_path : str
+    aligner : str
+    outputs : dict
+    ali_cmds : list
+    params : dict
+
+    Returns
+    -------
+    ali : str
+        Alignment output file
+    """
+    out_dir = '%s/%s/%s' % (out, db, aligner)
+    ali = '%s/%s' % (out_dir, get_alignment_basename(aligner))
+
+    outputs['dirs'].append(out_dir)
+    outputs['outs'].setdefault((db, aligner), []).append(ali)
+    outputs['io']['O']['d'].add(out_dir)
+
+    cmd = get_ali_cmd(fasta, db_path, out_dir, aligner, params)
+    cmd = get_alignment_cmd([fasta], cmd, ali)
+    ali_cmds.append(cmd)
+    if cmd.startswith('shogun'):
+        outputs['io']['I']['f'].add(ali)
+    return ali
 
 
-def shogun(
-        out_dir: str,
-        sam: str,
-        inputs: dict,
-        params: dict,
-        databases,
-        config):
+def format_sam(sam_: str, ali_cmds: list, sample: str) -> str:
+    sam = '%s_formatted.sam' % splitext(sam_)[0]
+    cmd = '%s/sam4shogun.py -i %s -o %s -s %s' % (scripts, sam_, sam, sample)
+    ali_cmds.append(cmd)
+    return sam
+
+
+def get_dir(out_dir: str, db: str, aligner: str) -> str:
     """
 
     Parameters
     ----------
     out_dir : str
-        Path to pipeline output folder for SHOGUN.
-    sam : str
-        Sample name.
+        Path to pipeline output folder for SHOGUN
+    db : str
+        Database name
+    aligner : str
+        Name of the aligner
+
+    Returns
+    -------
+    out : str
+        Path to pipeline output folder for SHOGUN
+    """
+    out = '%s/%s' % (out_dir, db)
+    if aligner:
+        # i.e., if the previous software is not bowtie2
+        out += '/%s' % aligner
+    return out
+
+
+def assign_normalize(tab: str, aligner: str, ali: str, db_path: str,
+                     outputs: dict, sub_db: str, config):
+    """Get the assignment and the normalization SHOGUN commands for
+    the taxonomy or functional classifications.
+
+    Parameters
+    ----------
+    tab : str
+        Path to the output table
+    aligner : str
+        Name of the aligner
+    ali : str
+        Path to the alignment
+    db_path : str
+        Path to the database
+    outputs : dict
+        All outputs
+    sub_db : str
+        Suffix to the database
+    config
+        Configuration
+    """
+    cmd = ''
+    tab_norm = '%s_norm.tsv' % splitext(tab)[0]
+    if config.force or not isfile(tab):
+        cmd += assign_taxonomy(aligner, ali, tab, db_path, sub_db)
+    if config.force or not isfile(tab_norm):
+        cmd += normalize(tab, tab_norm)
+    if cmd:
+        append_cmd(list([cmd]), tab_norm, outputs, config)
+
+
+def get_paths(out: str, aligner: str, db: str,
+              outputs: dict, tax_fun: str) -> tuple:
+    """
+
+    Parameters
+    ----------
+    out : str
+        Path to pipeline output folder for SHOGUN
+    aligner : str
+        Name of the aligner
+    db : str
+        Database name
+    outputs : dict
+        All outputs
+    tax_fun : str
+        "taxonomy" or "function"
+
+    Returns
+    -------
+    tax : str
+        Path to the output table
+    tax_norm : str
+        Path to the output table (relative abundances)
+    """
+    out_dir = get_dir(out, db, aligner)
+    outputs['io']['I']['d'].add(out_dir)
+    outputs['dirs'].append(out_dir)
+
+    tab = '%s/%s.tsv' % (out_dir, tax_fun)
+    tab_norm = '%s/%s_norm.tsv' % (out_dir, tax_fun)
+    outputs['outs'].setdefault((db, aligner), []).extend([tab, tab_norm])
+    outputs['io']['O']['f'].update([tab, tab_norm])
+    outputs['io']['O']['f'].update([tab, tab_norm])
+    return tab, tab_norm
+
+
+def get_coverage_cmd(ali: str, db_path: str, level: str, cov_tab: str,
+                     outputs: dict, config) -> None:
+    """Get the SHOGUN command that calculates the coverage per taxon.
+
+    Parameters
+    ----------
+    ali : str
+        Path to the alignment
+    db_path : str
+        Path to the taxonomic database
+    level : str
+        Taxonomic level for coverage calculation
+    cov_tab : str
+        Path to the output coverage table file
+    outputs : dict
+        All outputs, incl. commands
+    config
+        Configuration
+    """
+    cmd = 'shogun coverage'
+    cmd += ' -i %s' % ali
+    cmd += ' -d %s' % db_path
+    cmd += ' -l %s' % level
+    cmd += ' -o %s' % cov_tab
+    append_cmd(list([cmd]), cov_tab, outputs, config)
+
+
+def coverage(out: str, aligner: str, ali: str, db: str, db_path: str,
+             outputs: dict, config) -> None:
+    if aligner == 'burst':
+        cov_tab = '%s/coverage.tsv' % out
+        outputs['outs'].setdefault((db, aligner), []).append(cov_tab)
+        if config.force or not isfile(cov_tab):
+            outputs['io']['O']['f'].append(cov_tab)
+            get_coverage_cmd(ali, db_path, 'strain', cov_tab, outputs, config)
+
+
+def taxonomy(out: str, aligner: str, ali: str, db: str, db_path: str,
+             outputs: dict, config) -> str:
+    """
+
+    Parameters
+    ----------
+    out : str
+        Path to pipeline output folder for SHOGUN
+    aligner : str
+        Name of the aligner
+    ali : str
+        Path to the alignment
+    db : str
+        Database name
+    db_path : str
+        Path to the taxonomic database
+    outputs : dict
+        All outputs
+    config
+        Configuration
+
+    Returns
+    -------
+    norm : str
+        Path to the normalized output table
+    """
+    tab, norm = get_paths(out, aligner, db, outputs, 'taxonomy')
+    assign_normalize(tab, aligner, ali, db_path, outputs, '', config)
+    redistribute(db, aligner, norm, db_path, outputs, config)
+    return norm
+
+
+def function(out: str, aligner: str, ali: str, db: str, db_path: str,
+             outputs: dict, norm: str, config):
+    for sub in ['kegg', 'refseq', 'uniprot']:
+        fun, f_norm = get_paths(out, aligner, db, outputs, 'function-%s' % sub)
+        assign_normalize(fun, aligner, ali, db_path, outputs,
+                         '/functions-%s' % sub, config)
+        redistribute(db, aligner, f_norm, db_path, outputs, config)
+
+    out_dir = out + '/functional'
+    for level in ['genus', 'species']:
+        functional(norm, fun, out_dir, outputs, level, config)
+
+
+def functional(norm: str, db_path: str, out_dir: str,
+               outputs: dict, level: str, config) -> None:
+    """
+
+    Parameters
+    ----------
+    norm : str
+        Path to the input table file
+    db_path : str
+        Path to the functional database
+    out_dir : str
+        Path to the output functional table
+    outputs : dict
+        All outputs
+    level : str
+        Taxonomic level
+    config
+        Configuration
+    """
+    cmd = 'shogun functional'
+    cmd += ' -i %s' % norm
+    cmd += ' -o %s' % out_dir
+    cmd += ' -d %s' % db_path
+    cmd += ' -l %s' % level
+    base = splitext(basename(norm))[0]
+    out = '%s/%s.%s.normalized.txt' % (out_dir, base, level)
+    append_cmd(list([cmd]), out, outputs, config)
+
+
+def shogun(prev: str, out_dir: str, sample: str, inputs: dict, params: dict,
+           databases, config):
+    """Get the SHOGUN commands that consist of the classifications using the
+    databases built for shogun and the alignment in shogun, or not as this
+    may be run after bowtie2, in which case the classifications are performed
+    on the alignment obtained before, provided that it was done on a database
+    formatted for SHOGUN.
+
+    Parameters
+    ----------
+    prev : str
+        Previous software
+    out_dir : str
+        Path to pipeline output folder for SHOGUN
+    sample : str
+        Sample name
     inputs : dict
-        Input files.
+        Input files
     params : dict
-        Run parameters.
+        Run parameters
     databases
-        Databases class instance
+        All databases class instance
     config
         Configuration class instance
 
     Returns
     -------
-    io : dict
-        Inputs and outputs to potentially move to scratch and back.
-    cmds : list
-        All SHOGUN command lines.
     outputs : list
-        All outputs paths.
-    dirs : list
-        List of output folders to create.
+        All outputs
     """
-    io = {'I': {'f': [], 'd': []}, 'O': {'f': [], 'd': []}}
-    outputs, dirs, cmds = {}, [], []
-    out_dir = out_dir + '/' + sam
-    add_to_dirs_io(out_dir, dirs, io)
-    combine_cmds, fasta = combine_inputs(params, sam, inputs, out_dir, io)
-    io['O']['f'].append(fasta)
+    outputs = {
+        'io': {'I': {'d': set(), 'f': set()}, 'O': {'d': set(), 'f': set()}},
+        'cmds': [], 'dirs': [], 'outs': dict({})}
+    combine_cmds, ali_cmds = [], []
 
-    ali_cmds = []
-    for aligner in params['aligners']:
-        ali_base = get_alignment_basename(aligner)
-        for db in params['databases']:
-            tax = '%s/shogun' % databases.paths[db]
-            key = (aligner, 'tax', db)
-            if aligner == 'burst' and db != 'wol':
-                continue
-            out = out_dir + '/' + aligner + '/tax/' + db #+ '/%s' % params['b2']
-            add_to_dirs_io(out, dirs, io)
+    out = out_dir + '/' + sample
+    outputs['dirs'].append(out)
+    outputs['io']['O']['d'].add(out)
 
-            ali, tax_tab, tax_norm = get_out_paths(out, ali_base, 'tax')
-            outputs.setdefault(key, []).extend([ali, tax_tab, tax_norm])
-            io['O']['f'].extend([ali, tax_tab, tax_norm])
+    if prev == 'bowtie2':
+        for (db, pairing), sam_ in inputs[sample].items():
+            path = '%s/shogun' % databases.paths[db]
+            ali = format_sam(sam_, ali_cmds, sample)
+            norm = taxonomy(out, '', ali, db, path, outputs, config)
 
-            ali_cmds = get_full_ali_cmd(params, aligner, fasta, tax, out)
-            get_assign_cmd(aligner, ali, tax, tax_tab, cmds, '', config)
-            redists = get_redistribution_command(
-                tax, tax_norm, cmds, config)
-            io['O']['f'].extend(redists)
+    elif params['databases']:
+        fasta = combine_inputs(sample, inputs, out, combine_cmds, outputs)
+        for db, aligners in params['databases'].items():
+            path = '%s/shogun' % databases.paths[db]
+            for aligner in aligners:
+                ali = align_cmds(
+                    fasta, out, db, path, aligner, outputs, ali_cmds, params)
+                norm = taxonomy(out, aligner, ali, db, path, outputs, config)
+                coverage(out, aligner, ali, db, path, outputs, config)
+                function(out, aligner, ali, db, path, outputs, norm, config)
 
-            if aligner == 'burst':
-                cov_tab = '%s/%s_coverage.tsv' % (out, sam)
-                outputs[key].append(cov_tab)
-                io['O']['f'].append(cov_tab)
-                get_coverage_cmd(ali, tax, 'strain', cov_tab, cmds, config)
+    if outputs['cmds']:
+        outputs['cmds'] = combine_cmds + ali_cmds + outputs['cmds']
 
-        for (fun, db) in shogun.items():
-            key = (aligner, 'fun', db)
-            out = out_dir + '/' + aligner + '/fun/' + db
-            ali, fun_tab, fun_norm = get_out_paths(out, ali_base, 'fun')
-
-            if db == 'shogun':
-                for sub_db in ['kegg', 'refseq', 'uniprot']:
-                    out_db = '%s-%s' % (out, sub_db)
-                    sub_fun_tab = fun_tab.replace(out, out_db)
-                    sub_fun_norm = fun_norm.replace(out, out_db)
-                    outputs.setdefault(key, []).append(sub_fun_tab)
-                    outputs[key].append(sub_fun_norm)
-                    io['O']['f'].extend([sub_fun_tab, sub_fun_norm])
-                    io['O']['d'].append(out_db)
-                    ali = ali.replace('/fun/', '/tax/')
-                    get_assign_cmd(aligner, ali, fun, sub_fun_tab,
-                                   cmds, '/functions-%s' % sub_db, config)
-
-            key = (aligner, 'fun_algo', db)
-            out_db = out_dir + '/' + aligner + '/fun_algo/' + db
-            fun_tab = '%s/%s_taxtable_norm.tsv' % (
-                out_db.replace('/fun_algo/', '/tax/'), sam)
-            out_dir = '%s/%s_fun_table_norm_results' % (out_db, sam)
-            get_functional_cmd(fun_tab, fun, out_dir, cmds, config)
-            outputs.setdefault(key, []).append(out_dir)
-            io['O']['d'].append(out_dir)
-            io['O']['f'].append(fun_tab)
-
-    if cmds:
-        cmds = list(combine_cmds) + list(ali_cmds) + list(cmds)
-
-    return io, cmds, outputs, dirs
+    return outputs
