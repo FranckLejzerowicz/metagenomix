@@ -76,7 +76,10 @@ class Commands(object):
     def get_inputs(self):
         """Update the `inputs` attribute of the software object."""
         if not self.soft.prev or self.soft.name == 'map__drep':
-            self.inputs = self.config.fastq
+            if self.soft.params['scratch']:
+                self.inputs = self.config.fastq_scratch
+            else:
+                self.inputs = self.config.fastq
         else:
             self.inputs = self.softs[self.soft.prev].outputs
 
@@ -84,6 +87,8 @@ class Commands(object):
         self.dir = abspath('%s/%s/after_%s' % (
             self.config.dir, self.soft.name, self.soft.prev))
         self.soft.dirs.add(self.dir)
+        if self.soft.params['scratch']:
+            self.dir = '${SCRATCH_FOLDER}%s' % self.dir
 
     def generic_command(self):
         self.sam = ''
@@ -142,7 +147,8 @@ class Commands(object):
     def pooling(self):
         for pool in self.config.pooling_groups:
             self.pools[pool] = {}
-            self.soft.io[pool] = {}
+            self.soft.io[pool] = {'I': {'f': set(), 'd': set()},
+                                  'O': {'f': set(), 'd': set()}}
             self.soft.outputs[pool] = {}
             for group, group_pd in self.config.meta.groupby(pool):
                 sams = group_pd.index.tolist()
@@ -222,7 +228,7 @@ class Commands(object):
         self.out = [r1_o, r2_o]
         if self.config.force or not isfile(r1_o) or not isfile(r2_o):
             self.cmds[self.sam] = list([cmd])
-            self.soft.io[self.sam]['I']['f'].update(self.inputs)
+            self.soft.io[self.sam]['I']['f'].update(self.inputs[self.sam])
             self.soft.io[self.sam]['O']['f'].update([r1_o, r2_o])
 
     def prep_midas(self):
@@ -272,15 +278,15 @@ class Commands(object):
         outputs = [ext_fa, nc1_fa, nc2_fa]
         self.out = outputs
         if fc or not isfile(ext_fa) or not isfile(nc1_fa) or not isfile(nc2_fa):
-            cur_cmd = 'flash %s %s -m %s -x %s -d %s -o %s -t %s' % (
-                self.inputs[self.sam][0], self.inputs[self.sam][1], min_overlap,
+            cur_cmd = 'flash %s -m %s -x %s -d %s -o %s -t %s' % (
+                ' '.join(self.inputs[self.sam]), min_overlap,
                 max_mismatch_density, out, self.sam, self.soft.params['cpus'])
             self.cmds[self.sam] = [
                 cur_cmd, 'seqtk seq -A %s > %s' % (ext, ext_fa),
                          'seqtk seq -A %s > %s' % (nc1, nc1_fa),
                          'seqtk seq -A %s > %s' % (nc2, nc2_fa)]
-            self.soft.io[self.sam]['I']['f'].update([ext, nc1, nc2])
-            self.soft.io[self.sam]['O']['f'].update(outputs)
+            self.soft.io[self.sam]['I']['f'].update(self.inputs[self.sam])
+            self.soft.io[self.sam]['O']['d'].update(outputs)
 
     def prep_bowtie2(self):
         self.outputs = bowtie(self.dir, self.sam, self.inputs, self.soft.params)
