@@ -7,12 +7,14 @@
 # ----------------------------------------------------------------------------
 
 import glob
-from os.path import basename, dirname, isdir, isfile, splitext
+import itertools
+from os.path import abspath, basename, dirname, isdir, isfile, splitext
 
 from metagenomix._io_utils import (
     get_edit_fastq_cmd, count_reads_cmd, get_out_dir, write_hmms)
 from metagenomix.tools.simka import (
     check_simka_params, get_simka_input, simka_cmd, simka_pcoa_cmd)
+from metagenomix.tools.alignment import bowtie
 from metagenomix.tools.midas import midas
 from metagenomix.tools.kraken2 import kraken2
 from metagenomix.tools.phlans import metaphlan, humann, strainphlan
@@ -34,6 +36,7 @@ class Commands(object):
         self.cmds = {}
         self.args = {}
         self.pools = {}
+        self.outputs = {}
         self.sam = None
         self.pool = None
         self.inputs = None
@@ -56,6 +59,7 @@ class Commands(object):
         for sdx, softs in enumerate(self.config.pipeline):
             self.analysis = softs[-1]
             self.soft = self.softs[self.analysis]
+            print('[Collecting commands] #%s: %s' % (sdx, self.soft.name))
             self.get_inputs()
             self.get_method()
             self.get_dir()
@@ -79,12 +83,12 @@ class Commands(object):
             self.inputs = self.softs[self.soft.prev].outputs
 
     def get_dir(self):
-        self.dir = '%s/%s/after_%s' % (
-            self.config.dir, self.soft.name, self.soft.prev)
-        self.softs[self.soft.name].dirs.add(self.dir)
+        self.dir = abspath('%s/%s/after_%s' % (
+            self.config.dir, self.soft.name, self.soft.prev))
+        self.soft.dirs.add(self.dir)
 
     def generic_command(self):
-        self.sam = None
+        self.sam = ''
         # print()
         # print('name:', self.soft.name)
         if self.soft.name in self.holistics:
@@ -104,9 +108,26 @@ class Commands(object):
         # print(self.soft.io)
         self.register_command()
 
+    def fill_soft_io(self):
+        for i, j in itertools.product(*[['I', 'O'], ['d', 'f']]):
+            self.soft.io[self.sam][i][j].update(
+                self.outputs['io'][i].get(j, set()))
+
+    def extract_outputs(self):
+        if self.outputs:
+            self.out = self.outputs.get('outs', [])
+            if self.outputs.get('cmds', []):
+                self.cmds[self.sam] = self.outputs['cmds']
+                self.soft.dirs.update(self.outputs['dirs'])
+                self.fill_soft_io()
+
     def prep_job(self):
         self.out = []
+        self.outputs = {}
+        self.soft.io[self.sam] = {'I': {'f': set(), 'd': set()},
+                                  'O': {'f': set(), 'd': set()}}
         self.method()
+        self.extract_outputs()
         if 'simka' in self.soft.name or self.soft.name in ['drep', 'mag_data']:
             self.soft.outputs[self.soft.name] = self.out
         else:
@@ -123,13 +144,15 @@ class Commands(object):
     def pooling(self):
         for pool in self.config.pooling_groups:
             self.pools[pool] = {}
-            self.softs[self.soft.name].outputs[pool] = {}
+            self.soft.io[pool] = {}
+            self.soft.outputs[pool] = {}
             for group, group_pd in self.config.meta.groupby(pool):
                 sams = group_pd.index.tolist()
                 self.pools[pool][group] = sams
                 self.prep_pooling(group, sams, pool)
 
     def prep_pooling(self, group, sams, pool):
+        """Full command setup can be contained in this class method"""
         out_dir = self.dir + '/' + pool
         self.soft.dirs.add(out_dir)
         merges = ['']
@@ -147,9 +170,9 @@ class Commands(object):
                         else:
                             cmd = 'cat %s > %s' % (path, fas)
                         self.cmds.setdefault(pool, []).append(cmd)
-                    self.soft.io['I']['f'].update(paths)
-                    self.soft.io['O']['f'].add(fas)
-                    self.soft.io['O']['d'].add(out_dir)
+                    self.soft.io[pool]['I']['f'].update(paths)
+                    self.soft.io[pool]['O']['f'].add(fas)
+                    self.soft.io[pool]['O']['d'].add(out_dir)
             else:
                 if len(paths) > 1:
                     raise ValueError('Error in pooling group...')
@@ -160,6 +183,7 @@ class Commands(object):
                 self.soft.outputs[pool][group] = [fas]
 
     def prep_count_reads_grep(self):
+        """Full command setup can be contained in this class method"""
         out = '%s/%s_read_count.tsv' % (self.dir, self.sam)
         self.out.append(out)
         if self.config.force or not isfile(out):
@@ -167,24 +191,26 @@ class Commands(object):
             for idx, input_path in enumerate(inputs):
                 cmd = count_reads_cmd(idx, input_path, out, self.sam)
                 self.cmds.setdefault(self.sam, []).append(cmd)
-            self.soft.io['I']['f'].update(inputs)
-            self.soft.io['O']['f'].add(out)
+            self.soft.io[self.sam]['I']['f'].update(inputs)
+            self.soft.io[self.sam]['O']['f'].add(out)
 
     def prep_fastqc(self):
+        """Full command setup can be contained in this class method"""
         out_dir = '%s/%s' % (self.dir, self.sam)
         ins = self.inputs[self.sam]
         outs = ['%s_fastqc.html' % x.rsplit('.fastq', 1)[0] for x in ins]
         self.out = out_dir
         if self.config.force or len(outs) != sum([isfile(x) for x in outs]):
             cmd = 'fastqc %s -o %s' % (' '.join(ins), out_dir)
-            self.soft.io['I']['f'].update(ins)
-            self.soft.io['O']['d'].add(out_dir)
+            self.soft.io[self.sam]['I']['f'].update(ins)
+            self.soft.io[self.sam]['O']['d'].add(out_dir)
             self.soft.dirs.add(out_dir)
             self.cmds[self.sam] = list([cmd])
 
     def prep_simka(self):
+        """Command setup resort to calling a module"""
         inp = get_simka_input(self.dir, self.inputs)
-        self.soft.io['I']['f'].add(inp)
+        self.soft.io[self.sam]['I']['f'].add(inp)
         smin = True
         k_space, n_space = check_simka_params(self.soft.params)
         for k in map(int, k_space):
@@ -195,9 +221,10 @@ class Commands(object):
                 if cmd:
                     self.soft.dirs.add(out_d)
                     self.cmds.setdefault(k, []).append(cmd)
-                    self.soft.io['O']['d'].add(out_d)
+                    self.soft.io[self.sam]['O']['d'].add(out_d)
 
     def prep_simka_pcoa(self):
+        """Command setup resort to calling a module"""
         for idx, input_path in enumerate(self.inputs['simka']):
             for mdx, mat in enumerate(glob.glob('%s/mat_*.csv*' % input_path)):
                 cmd = simka_pcoa_cmd(mat, self.config.meta_fp, self.config)
@@ -205,6 +232,7 @@ class Commands(object):
                     self.cmds.setdefault(idx, []).append(cmd)
 
     def prep_cutadapt(self):
+        """Full command setup can be contained in this class method"""
         r1_o = '%s/%s.R1.fastq.gz' % (self.dir, self.sam)
         r2_o = '%s/%s.R2.fastq.gz' % (self.dir, self.sam)
         cmd = 'cutadapt'
@@ -215,74 +243,39 @@ class Commands(object):
         self.out = [r1_o, r2_o]
         if self.config.force or not isfile(r1_o) or not isfile(r2_o):
             self.cmds[self.sam] = list([cmd])
-            self.soft.io['I']['f'].update(self.inputs)
-            self.soft.io['O']['f'].update([r1_o, r2_o])
+            self.soft.io[self.sam]['I']['f'].update(self.inputs)
+            self.soft.io[self.sam]['O']['f'].update([r1_o, r2_o])
 
     def prep_midas(self):
-        self.soft.io['I']['f'].update(self.inputs)
-        for focus, db_species in self.config.midas_foci.items():
-            io, cmds, outputs = midas(
-                self.dir, self.sam, self.inputs, self.databases.paths['midas'],
-                self.soft.params['cpus'], focus, db_species, self.config)
-            if outputs:
-                self.out = outputs
-            if cmds:
-                self.softs[self.soft.name].dirs.update(outputs)
-                self.cmds[self.sam] = cmds
-                self.soft.io['I']['d'].update(io['I'])
-                self.soft.io['O']['d'].update(io['O'])
+        """Command setup resort to calling a module"""
+        self.soft.io[self.sam]['I']['f'].update(self.inputs)
+        for focus, db in self.config.midas_foci.items():
+            self.outputs = midas(
+                self.dir, self.sam, self.inputs, focus, db, self.databases,
+                self.soft.params, self.config)
 
     def prep_kraken2(self):
-        self.soft.io['I']['f'].update(self.inputs)
-        io, cmds, outputs = kraken2(
-            self.dir, self.sam, self.inputs, self.soft.params,
-            self.databases, self.config)
-        self.out = outputs
-        if cmds:
-            self.softs[self.soft.name].dirs.update(outputs)
-            self.cmds[self.sam] = cmds
-            self.soft.io['I']['d'].update(io['I'])
-            self.soft.io['O']['d'].update(io['O'])
+        self.outputs = kraken2(self.dir, self.sam, self.inputs,
+                               self.soft.params, self.databases, self.config)
 
     def prep_metaphlan(self):
-        io, cmd, outputs = metaphlan(
+        self.outputs = metaphlan(
             self.dir, self.sam, self.inputs, self.databases.paths['metaphlan'],
             self.soft.params, self.softs['count_reads_grep'].outputs,
             self.config.strains, self.config)
-        for output in outputs:
-            self.soft.dirs.add(dirname(output))
-        self.out = outputs
-        if cmd:
-            self.cmds[self.sam] = cmd
-            self.soft.io['I']['f'].update(io['I'])
-            self.soft.io['O']['f'].update(io['O'])
 
     def prep_humann(self):
-        io, cmd, outputs = humann(
+        self.outputs = humann(
             self.dir, self.sam, self.inputs, self.databases.humann['path'],
             self.soft.params, self.config.humann_profile, self.config)
-        self.out = outputs
-        if cmd:
-            self.cmds[self.sam] = cmd
-            self.soft.dirs.update([x[0] for x in list(outputs)])
-            self.soft.io['I']['f'].update(io['I'])
-            self.soft.io['O']['f'].update(io['O']['f'])
-            self.soft.io['O']['d'].update(io['O']['d'])
 
     def prep_phylophlan(self):
         self.cmds = {}
 
     def prep_strainphlan(self):
-        io, cmd, outputs, dirs = strainphlan(
-            self.dir, self.inputs, self.soft.params,
-            self.databases.wol, self.config.strains, self.config)
-        self.out = outputs
-        if cmd:
-            self.cmds[''] = cmd
-            self.soft.dirs.update(dirs)
-            self.soft.io['I']['f'].update(io['I']['f'])
-            self.soft.io['I']['d'].update(io['I']['d'])
-            self.soft.io['O']['d'].update(io['O'])
+        self.outputs = strainphlan(
+            self.dir, self.inputs, self.soft.params, self.databases.wol,
+            self.config.strains, self.config)
 
     def prep_flash(self):
         min_overlap = self.soft.params['min_overlap']
@@ -307,32 +300,19 @@ class Commands(object):
                 cur_cmd, 'seqtk seq -A %s > %s' % (ext, ext_fa),
                          'seqtk seq -A %s > %s' % (nc1, nc1_fa),
                          'seqtk seq -A %s > %s' % (nc2, nc2_fa)]
-            self.soft.io['I']['f'].update([ext, nc1, nc2])
-            self.soft.io['O']['f'].update(outputs)
+            self.soft.io[self.sam]['I']['f'].update([ext, nc1, nc2])
+            self.soft.io[self.sam]['O']['f'].update(outputs)
 
-    # CONTINUE FORCE / EMPTY CMDS AVOIDING
+    def prep_bowtie2(self):
+        self.outputs = bowtie(self.dir, self.sam, self.inputs, self.soft.params)
 
     def prep_shogun(self):
-        io, cmds, outputs, dirs = shogun(
-            self.dir, self.sam, self.inputs, self.soft.params,
-            self.databases, self.config)
-        self.out = outputs
-        self.cmds[self.sam] = cmds
-        self.soft.dirs.update(dirs)
-        self.soft.io['I']['f'].update(io['I'])
-        self.soft.io['O']['f'].update(io['O']['f'])
-        self.soft.io['O']['d'].update(io['O']['d'])
+        self.outputs = shogun(self.soft.prev, self.dir, self.sam, self.inputs,
+                              self.soft.params, self.databases, self.config)
 
     def prep_woltka(self):
-        io, cmd, outputs, dirs = woltka(
-            self.dir, self.inputs, self.databases.paths['wol'])
-        self.cmds[''] = cmd
-        self.out = outputs
-        self.soft.dirs.update(dirs)
-        self.soft.io['I']['f'].update(io['I']['f'])
-        self.soft.io['I']['d'].update(io['I']['d'])
-        self.soft.io['O']['f'].update(io['O']['f'])
-        self.soft.io['O']['d'].update(io['O']['d'])
+        self.outputs = woltka(self.soft.prev, self.dir, self.inputs,
+                              self.databases.paths['wol'])
 
     def prep_plass(self):
         cmds = []
@@ -357,9 +337,9 @@ class Commands(object):
             cmds.append('mkdir -p %s' % tmp_dir)
             cmds.append(cmd)
             cmds.append('rm -rf %s' % tmp_dir)
-            self.soft.io['I']['f'].update(inputs)
-            self.soft.io['I']['d'].add(tmp_dir)
-            self.soft.io['O']['f'].add(out_fp)
+            self.soft.io[self.sam]['I']['f'].update(inputs)
+            self.soft.io[self.sam]['I']['d'].add(tmp_dir)
+            self.soft.io[self.sam]['O']['f'].add(out_fp)
         self.cmds[self.sam] = cmds
 
     def prodigal_cmd(self, contigs_fp: str, out_dir: str) -> list:
@@ -375,8 +355,8 @@ class Commands(object):
         outputs = [gbk_out_fp, prot_translated_fp, potential_genes_fp]
         if not isfile(gbk_out_fp):
             self.cmds[self.sam] = cmd
-            self.soft.io['I']['f'].add(contigs_fp)
-            self.soft.io['O']['f'].update(outputs)
+            self.soft.io[self.sam]['I']['f'].add(contigs_fp)
+            self.soft.io[self.sam]['O']['f'].update(outputs)
         return outputs
 
     def prep_prodigal(self):
@@ -420,10 +400,10 @@ class Commands(object):
             outputs = [before_rr, contigs, first_pe, scaffolds, log]
             if not isfile(contigs):
                 self.cmds[self.pool].extend(['mkdir -p %s' % tmp_dir, cmd])
-                self.soft.io['I']['d'].add(tmp_dir)
-                self.soft.io['I']['f'].update(fastas)
-                self.soft.io['O']['d'].add(out_dir)
-                self.soft.io['O']['f'].update(outputs)
+                self.soft.io[self.sam]['I']['d'].add(tmp_dir)
+                self.soft.io[self.sam]['I']['f'].update(fastas)
+                self.soft.io[self.sam]['O']['d'].add(out_dir)
+                self.soft.io[self.sam]['O']['f'].update(outputs)
             self.out[group] = outputs
 
     def prep_read_mapping(self):
@@ -465,9 +445,9 @@ class Commands(object):
                 cmd = 'samtools index %s' % bam_out
                 if not isfile(bam_out_bai) or self.config.force:
                     self.cmds.setdefault(self.pool, []).append(cmd)
-                self.soft.io['I']['f'].add(fasta)
-                self.soft.io['I']['f'].update(fastqs[sam])
-                self.soft.io['O']['f'].update([bam_out, bam_out_bai])
+                self.soft.io[self.sam]['I']['f'].add(fasta)
+                self.soft.io[self.sam]['I']['f'].update(fastqs[sam])
+                self.soft.io[self.sam]['O']['f'].update([bam_out, bam_out_bai])
 
     def prep_map__spades_prodigal(self):
         if 'prodigal' not in self.softs or 'read_mapping' not in self.softs:
@@ -483,18 +463,18 @@ class Commands(object):
         for group, fps in group_fps.items():
             self.out[group] = {}
             for sam in self.pools[self.pool][group]:
-                bam_fp = sams_fps[self.pool][group][sam]
-                prot_fp = prodigals_fps[self.pool][group][1]
+                bam = sams_fps[self.pool][group][sam]
+                prot = prodigals_fps[self.pool][group][1]
                 out_dir = '%s/%s/%s' % (self.dir, self.pool, sam)
-                out_fp = '%s/reads.txt' % out_dir
-                if not isfile(out_fp):
+                out = '%s/reads.txt' % out_dir
+                if not isfile(out):
                     cmd = 'pysam_reads_to_prodigal.py \\\n'
-                    cmd += '-prodigal %s \\\n' % prot_fp
-                    cmd += '-bam %s \\\n' % bam_fp
-                    cmd += '-out %s\n' % out_fp
+                    cmd += '-prodigal %s \\\n' % prot
+                    cmd += '-bam %s \\\n' % bam
+                    cmd += '-out %s\n' % out
                     self.cmds.setdefault(self.pool, []).append(cmd)
-                self.out[group][sam] = out_fp
-                self.soft.io['I']['f'].update([prot_fp, bam_fp, out_fp])
+                self.out[group][sam] = out
+                self.soft.io[self.sam]['I']['f'].update([prot, bam, out])
 
     def custom_cmd(self, input_file, out_dir, dia_hmm):
         for target, gene_hmm_dia in self.databases.hmms_dias.items():
@@ -507,8 +487,8 @@ class Commands(object):
                 if not isfile(out):
                     if dia_hmm == 'hmm':
                         stdout = '%s_hmmer.out' % splitext(out)[0]
-                        self.soft.io['O']['f'].update([out, stdout])
-                        self.soft.io['I']['f'].add(hmm)
+                        self.soft.io[self.sam]['O']['f'].update([out, stdout])
+                        self.soft.io[self.sam]['I']['f'].add(hmm)
                         cmd = 'hmmsearch'
                         cmd += ' --cut_tc'
                         cmd += ' --tblout %s' % out
@@ -516,8 +496,8 @@ class Commands(object):
                         cmd += ' --cpu %s' % self.soft.params['cpus']
                         cmd += ' %s %s' % (hmm, input_file)
                     else:
-                        self.soft.io['O']['f'].add(out)
-                        self.soft.io['I']['f'].add(dia)
+                        self.soft.io[self.sam]['O']['f'].add(out)
+                        self.soft.io[self.sam]['I']['f'].add(dia)
                         tmp = '%s/%s_tmp' % (sam_dir, self.sam)
                         cmd = 'mkdir -p %s\n' % tmp
                         cmd += 'diamond blastp'
@@ -528,12 +508,12 @@ class Commands(object):
                         cmd += ' -p %s' % self.soft.params['cpus']
                         cmd += ' -t %s' % tmp
                     self.cmds.setdefault(target, []).append(cmd)
-                    self.soft.io['O']['f'].add(out)
+                    self.soft.io[self.sam]['O']['f'].add(out)
                 else:
-                    self.soft.io['I']['f'].add(out)
+                    self.soft.io[self.sam]['I']['f'].add(out)
                 out2 = out.replace('.tsv', '_contigs.tsv')
                 if not isfile(out2):
-                    self.soft.io['O']['f'].add(out2)
+                    self.soft.io[self.sam]['O']['f'].add(out2)
                     cmd = 'extract_custom_searched_contigs.py'
                     cmd += ' -i %s' % out
                     cmd += ' -o %s' % out2
@@ -546,11 +526,11 @@ class Commands(object):
             for group in self.pools[self.pool]:
                 self.sam = group
                 o_dir, fp = get_out_dir(self.dir, self.inputs, self.pool, group)
-                self.soft.io['I']['f'].add(fp)
+                self.soft.io[self.sam]['I']['f'].add(fp)
                 self.custom_cmd(fp, o_dir, dia_hmm)
         else:
             o_dir, fp = get_out_dir(self.dir, self.inputs, self.sam)
-            self.soft.io['I']['f'].add(fp)
+            self.soft.io[self.sam]['I']['f'].add(fp)
             self.custom_cmd(fp, o_dir, dia_hmm)
 
     def prep_diamond_custom(self):
@@ -560,12 +540,12 @@ class Commands(object):
         self.prep_custom('hmm')
 
     def macsyfinder_cmd(self, fp, o_dir, folder):
-        self.soft.io['I']['f'].add(fp)
+        self.soft.io[self.sam]['I']['f'].add(fp)
         self.soft.dirs.add(o_dir)
         models = ['CAS', 'TFF-SF', 'TXSS']
         for model in models:
             out_dir = '%s/%s' % (o_dir, model)
-            self.soft.io['O']['d'].add(out_dir)
+            self.soft.io[self.sam]['O']['d'].add(out_dir)
             self.soft.dirs.add(out_dir)
             cmd = 'macsyfinder'
             cmd += ' --db-type unordered'
@@ -587,7 +567,7 @@ class Commands(object):
 
     def prep_macsyfinder(self):
         folder = self.databases.paths['macsyfinder']
-        self.soft.io['I']['d'].add(folder)
+        self.soft.io[self.sam]['I']['d'].add(folder)
         if self.pool in self.pools:
             for group in self.pools[self.pool]:
                 o_dir, fp = get_out_dir(self.dir, self.inputs, self.pool, group)
@@ -600,7 +580,7 @@ class Commands(object):
             self.macsyfinder_cmd(fp_edit, o_dir, folder)
 
     def diamond_annot_cmd(self, o_dir, fp, tmp_dir):
-        self.soft.io['I']['f'].add(fp)
+        self.soft.io[self.sam]['I']['f'].add(fp)
         self.soft.dirs.add(o_dir)
         params = self.soft.params
         for db in params['databases']:
@@ -621,8 +601,8 @@ class Commands(object):
                     cmd += ' --id 80'
                     cmd += ' -t %s' % tmp_dir
                     self.cmds.setdefault(self.sam, []).append(cmd)
-                    self.soft.io['I']['f'].add(fp)
-                    self.soft.io['O']['f'].add(out)
+                    self.soft.io[self.sam]['I']['f'].add(fp)
+                    self.soft.io[self.sam]['O']['f'].add(out)
 
     def prep_diamond_annot(self):
         tmp_dir = '$TMPDIR/diamond_annot_%s' % self.sam
@@ -640,24 +620,24 @@ class Commands(object):
         # --- WILL NEED TO BE REVISED AFTER I-TASSER DOWNLOAD ---
         # -------------------------------------------------------
         itasser_libs = self.databases.ioncom['itasser']
-        itasser_soft = self.soft.params['itasser']
-        ioncom_dir = '%s/IonCom_standalone' % self.databases.paths['ioncom']
-        self.soft.io['I']['d'].extend([ioncom_dir, itasser_soft, itasser_libs])
+        itasser = self.soft.params['itasser']
+        ioncom = '%s/IonCom_standalone' % self.databases.paths['ioncom']
+        self.soft.io[self.sam]['I']['d'].extend([ioncom, itasser, itasser_libs])
         if self.pool in self.pools:
             self.out[self.pool] = []
             for group in self.pools[self.pool]:
                 o_dir, fp = get_out_dir(self.dir, self.inputs, self.pool, group)
-                self.soft.io['I']['f'].add(fp)
-                self.soft.io['O']['d'].add(o_dir)
+                self.soft.io[self.sam]['I']['f'].add(fp)
+                self.soft.io[self.sam]['O']['d'].add(o_dir)
                 self.out[self.pool].append(o_dir)
                 self.soft.dirs.add(o_dir)
 
                 cmd = 'prepare_ioncom_inputs.py'
-                cmd += ' -d %s -p %s -n 1' % (ioncom_dir, fp)
-                cmd += '%s/run_IonCom.pl' % ioncom_dir
+                cmd += ' -d %s -p %s -n 1' % (ioncom, fp)
+                cmd += '%s/run_IonCom.pl' % ioncom
                 self.cmds.setdefault(self.pool, []).append(cmd)
 
-                output = '%s/output' % ioncom_dir
+                output = '%s/output' % ioncom
                 cmd = 'for i in %s/*rehtml\n' % output
                 cmd += 'do\n'
                 # cmd += '    mkdir -p "%s/$(basename $(dirname "$i"))\n' % (
@@ -676,11 +656,11 @@ class Commands(object):
             for group in self.pools[self.pool]:
                 o_dir, fp = get_out_dir(self.dir, self.inputs, self.pool, group)
                 fp_out = fp.replace('.fasta', '_len2000.fasta')
-                self.soft.io['O']['d'].add(o_dir)
+                self.soft.io[self.sam]['O']['d'].add(o_dir)
                 self.out[self.pool].append(o_dir)
                 self.soft.dirs.add(o_dir)
                 hmms_fp = write_hmms(self.dir, self.databases.hmms_dias)
-                self.soft.io['I']['f'].update([fp, hmms_fp])
+                self.soft.io[self.sam]['I']['f'].update([fp, hmms_fp])
                 cmd = 'filter_on_length.py -i %s -o %s -t 2000\n' % (fp, fp_out)
                 cmd += 'integron_finder'
                 cmd += ' --local-max'
@@ -725,9 +705,9 @@ class Commands(object):
                     self.cmds.setdefault(group, []).append(cmd)
             bins_dirs = bins_dirs + ['work_files']
             self.out[group] = bins_dirs
-            self.soft.io['I']['d'].add(tmp_dir)
-            self.soft.io['I']['f'].update(([contigs_fp] + fastq_fps))
-            self.soft.io['O']['d'].update(bins_dirs)
+            self.soft.io[self.sam]['I']['d'].add(tmp_dir)
+            self.soft.io[self.sam]['I']['f'].update(([contigs_fp] + fastq_fps))
+            self.soft.io[self.sam]['O']['d'].update(bins_dirs)
 
     def prep_metawrap_refine(self):
         self.out = {}
@@ -736,7 +716,7 @@ class Commands(object):
         for group in self.pools[self.pool]:
             out_dir = '%s/%s/%s' % (self.dir, self.pool, group)
             bin_folders = self.inputs[self.pool][group][:-1]
-            self.soft.io['I']['d'].update(bin_folders)
+            self.soft.io[self.sam]['I']['d'].update(bin_folders)
             self.soft.dirs.add(out_dir)
 
             has_bins = 0
@@ -754,8 +734,10 @@ class Commands(object):
             if has_bins == len(bin_folders):
                 self.cmds.setdefault(self.pool, []).append(cmd)
             out = '%s/metawrap_%s_%s' % (out_dir, c, x)
-            self.out[group] = ['%s.stats' % out, '%s_bins' % out]
-            self.soft.io['O']['d'].update(['%s.stats' % out, '%s_bins' % out])
+            stats = '%s.stats' % out
+            bins = '%s_bins' % out
+            self.out[group] = [stats, bins]
+            self.soft.io[self.sam]['O']['d'].update([stats, bins])
 
     def prep_metawrap_reassemble(self):
         self.out = {}
@@ -765,11 +747,11 @@ class Commands(object):
         for group in self.pools[self.pool]:
             self.out[group] = {}
             metawrap_ref = self.inputs[self.pool][group][-1]
-            self.soft.io['I']['d'].add(metawrap_ref)
+            self.soft.io[self.sam]['I']['d'].add(metawrap_ref)
             for sam in self.pools[self.pool][group]:
                 out_dir = '%s/%s/%s/%s' % (self.dir, self.pool, group, sam)
-                self.soft.io['I']['f'].update(self.config.fastq[sam])
-                self.soft.io['O']['d'].add(out_dir)
+                self.soft.io[self.sam]['I']['f'].update(self.config.fastq[sam])
+                self.soft.io[self.sam]['O']['d'].add(out_dir)
                 self.soft.dirs.add(out_dir)
                 cmd = 'metawrap reassemble_bins'
                 cmd += ' -o %s' % out_dir
@@ -788,7 +770,7 @@ class Commands(object):
                             out_dir, m, mode_dir)
                         self.cmds.setdefault(self.pool, []).append(cmd)
                     self.out[group].setdefault(sam, []).append(mode_dir)
-                    self.soft.io['I']['d'].add(mode_dir)
+                    self.soft.io[self.sam]['I']['d'].add(mode_dir)
 
     def prep_metawrap_blobology(self):
         self.out = {}
@@ -799,8 +781,8 @@ class Commands(object):
             contigs_fp = self.softs['spades'].outputs[self.pool][group][1]
             fastqs = {sam: self.config.fastq[sam] for sam
                       in self.pools[self.pool][group]}
-            self.soft.io['I']['f'].add(contigs_fp)
-            self.soft.io['I']['d'].add(metawrap_ref)
+            self.soft.io[self.sam]['I']['f'].add(contigs_fp)
+            self.soft.io[self.sam]['I']['d'].add(metawrap_ref)
             for mode in modes:
                 self.out[group][mode] = {}
                 out_dir = '%s/%s/%s/%s' % (self.dir, self.pool, group, mode)
@@ -808,8 +790,8 @@ class Commands(object):
                 for sam, fastq in sams_fastqs.items():
                     if sam:
                         out_dir += '/%s' % sam
-                    self.soft.io['O']['d'].add(out_dir)
-                    self.soft.io['I']['f'].update(fastq)
+                    self.soft.io[self.sam]['O']['d'].add(out_dir)
+                    self.soft.io[self.sam]['I']['f'].update(fastq)
                     self.soft.dirs.add(out_dir)
                     is_file = isfile('%s/contigs.binned.blobplot' % out_dir)
                     if not is_file or self.config.force:
@@ -831,8 +813,8 @@ class Commands(object):
             contigs_fp = self.softs['spades'].outputs[self.pool][group][1]
             fastqs = {sam: self.config.fastq[sam] for sam
                       in self.pools[self.pool][group]}
-            self.soft.io['I']['f'].add(contigs_fp)
-            self.soft.io['I']['d'].add(metawrap_ref)
+            self.soft.io[self.sam]['I']['f'].add(contigs_fp)
+            self.soft.io[self.sam]['I']['d'].add(metawrap_ref)
             for mode in modes:
                 self.out[group][mode] = {}
                 out_dir = '%s/%s/%s/%s' % (self.dir, self.pool, group, mode)
@@ -840,8 +822,8 @@ class Commands(object):
                 for sam, fastq in sams_fastqs.items():
                     if sam:
                         out_dir += '/%s' % sam
-                    self.soft.io['O']['d'].add(out_dir)
-                    self.soft.io['I']['f'].update(fastq)
+                    self.soft.io[self.sam]['O']['d'].add(out_dir)
+                    self.soft.io[self.sam]['I']['f'].update(fastq)
                     self.soft.dirs.add(out_dir)
                     cmd = 'metawrap quant_bins'
                     cmd += ' -b %s' % metawrap_ref
@@ -863,7 +845,7 @@ class Commands(object):
                 bin_dirs = self.inputs[self.pool][group]
             else:
                 raise ValueError('No metawrap classify_bins after %s' % prev)
-            self.soft.io['I']['d'].update(bin_dirs)
+            self.soft.io[self.sam]['I']['d'].update(bin_dirs)
             for sam, bin_dir in bin_dirs.items():
                 for bin in bin_dir:
                     odir = '%s/%s/%s' % (self.dir, self.pool, group)
@@ -873,7 +855,7 @@ class Commands(object):
                         odir += '/strict'
                     if sam:
                         odir += '/%s' % sam
-                    self.soft.io['O']['d'].add(odir)
+                    self.soft.io[self.sam]['O']['d'].add(odir)
                     self.out[group].setdefault(sam, []).append(odir)
                     cmd = 'metawrap %s' % command
                     cmd += ' -b %s' % bin
@@ -903,8 +885,8 @@ class Commands(object):
                 drep_dir = '%s/%s' % (self.dir, pool)
                 if stringency:
                     drep_dir += '/%s' % stringency
-                drep_in, paths = get_drep_inputs(drep_dir, sam_paths)
-                self.soft.io['I']['f'].update(([drep_in] + list(paths)))
+                in_fp, paths = get_drep_inputs(drep_dir, sam_paths)
+                self.soft.io[self.sam]['I']['f'].update(([in_fp] + list(paths)))
                 for algorithm in ['fastANI', 'ANIn']:
                     drep_out = '%s/%s' % (drep_dir, algorithm)
                     self.soft.dirs.add(drep_out)
@@ -917,7 +899,7 @@ class Commands(object):
                     if len(glob.glob('%s/*.fa' % dereplicated_genomes)):
                         continue
                     if isdir(drep_out):
-                        self.soft.io['I']['d'].add(drep_out)
+                        self.soft.io[self.sam]['I']['d'].add(drep_out)
                     cmd = 'dRep dereplicate'
                     cmd += ' %s' % drep_out
                     cmd += ' --S_algorithm %s' % algorithm
@@ -929,7 +911,7 @@ class Commands(object):
                     cmd += ' -pa 0.9 -sa 0.98 -nc 0.3 -cm larger'
                     cmd += ' -p %s' % self.soft.params['cpus']
                     cmd += ' -g %s' % drep_in
-                    self.soft.io['O']['d'].update(outputs)
+                    self.soft.io[self.sam]['O']['d'].update(outputs)
                     self.cmds.setdefault(pool, []).append(cmd)
 
     def prep_metamarker(self):
@@ -937,10 +919,10 @@ class Commands(object):
         self.cmds[''] = cmd
         self.out = outputs
         self.soft.dirs.update(dirs)
-        self.soft.io['I']['f'].update(io['I']['f'])
-        self.soft.io['I']['d'].update(io['I']['d'])
-        self.soft.io['O']['f'].update(io['O']['f'])
-        self.soft.io['O']['d'].update(io['O']['d'])
+        self.soft.io[self.sam]['I']['f'].update(io['I']['f'])
+        self.soft.io[self.sam]['I']['d'].update(io['I']['d'])
+        self.soft.io[self.sam]['O']['f'].update(io['O']['f'])
+        self.soft.io[self.sam]['O']['d'].update(io['O']['d'])
 
     def prep_multiqc(self):
         self.cmds = {}
@@ -1040,12 +1022,6 @@ class Commands(object):
 
     def prep_itasser(self):
         self.cmds = {}
-
-    def get_scratch(self):
-        if self.soft.name in [
-                'spades', 'metamarker', 'diamond_annot', 'ioncom', 'humann2',
-                'cazy', 'human_filtering', 'woltka', 'mycc']:
-            self.softs[self.soft.name].scratch = 1
 
     def register_command(self):
         self.softs[self.analysis].cmds = dict(self.cmds)
