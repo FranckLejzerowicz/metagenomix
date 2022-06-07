@@ -43,8 +43,10 @@ def show_valid_params(param, values, soft):
     sys.exit(m)
 
 
-def check_generic(defaults, user_params, soft):
+def check_generic(defaults, user_params, soft, let_go: list=[]):
     for param, values in defaults.items():
+        if param in let_go:  # skip params checked specifically per software
+            continue
         if param not in user_params:
             soft.params[param] = values[0]
         else:
@@ -140,3 +142,19 @@ def check_bowtie2(user_params, soft, databases, config):
 def check_kraken2(user_params, soft, databases, config):
     defaults = {'databases': (['default'] + sorted(databases.paths))}
     check_generic(defaults, user_params, soft)
+
+
+def check_spades(user_params, soft, databases, config):
+    defaults = {'k': ['33', '55', '77', '99', '127'],
+                'meta': [True, False], 'only_assembler': [True, False]}
+    if 'k' not in user_params:
+        user_params['k'] = defaults['k']
+    else:
+        kerrors = [x for x in user_params['k'] if not str(x).isdigit()]
+        if len(kerrors):
+            sys.exit('[spades] "k" must be integers (%s)' % ','.join(kerrors))
+    check_generic(defaults, user_params, soft, ['k'])
+
+
+# def check_TOOL(user_params, soft, databases, config):
+#     default = {}
