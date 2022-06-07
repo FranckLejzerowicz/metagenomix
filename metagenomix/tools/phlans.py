@@ -323,7 +323,7 @@ def renorm(input_fp: str, relab_fp: str) -> str:
 
 
 def humann(out_dir: str, sam: str, inputs: dict, path: str,
-           params: dict, profile: dict, conf) -> dict:
+           params: dict, profile: dict, config) -> dict:
     """Create command lines for humann for the current database's species focus.
 
     Parameters
@@ -340,7 +340,7 @@ def humann(out_dir: str, sam: str, inputs: dict, path: str,
         Run parameters
     profile : dict
         Taxonomic profiles for species to focus humann on
-    conf
+    config
         Configurations
 
     Returns
@@ -358,7 +358,7 @@ def humann(out_dir: str, sam: str, inputs: dict, path: str,
     for prof, db, out in zip(*[profiles, dbs, outs]):
 
         ali = '%s/%s_humann_tmp/%s_bowtie2_aligned.sam' % (out, sam, sam)
-        if not conf.force and isfile(ali):
+        if not config.force and isfile(ali):
             outputs['io']['I']['f'].add(ali)
         else:
             outputs['io']['O']['f'].add(ali)
@@ -368,16 +368,16 @@ def humann(out_dir: str, sam: str, inputs: dict, path: str,
         gen = '%s/%s_genefamilies.tsv' % (out, sam)
         pwy = '%s/%s_pathabundance.tsv' % (out, sam)
         cov = '%s/%s_pathcoverage.tsv' % (out, sam)
-        if conf.force or not isfile(gen) or not isfile(pwy) or not isfile(cov):
+        if not config.force and isfile(gen) and isfile(pwy) and isfile(cov):
+            outputs['io']['I']['f'].update([gen, pwy])
+        else:
             outputs['cmds'].append(get_cmd(
                 sam, inputs, params, prof, db, out, base_file, ali))
             outputs['io']['O']['f'].update([gen, pwy, cov])
-        else:
-            outputs['io']['I']['f'].update([gen, pwy])
 
         gen_relab = '%s/%s_genefamilies_relab.tsv' % (out, sam)
         pwy_relab = '%s/%s_pathabundance_relab.tsv' % (out, sam)
-        if conf.force or not isfile(gen_relab) or not isfile(pwy_relab):
+        if config.force or not isfile(gen_relab) or not isfile(pwy_relab):
             outputs['io']['O']['f'].update([gen_relab, pwy_relab])
             outputs['cmds'].append(renorm(gen, gen_relab))
             outputs['cmds'].append(renorm(pwy, pwy_relab))
