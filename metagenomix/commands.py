@@ -131,7 +131,7 @@ class Commands(object):
                                   'O': {'f': set(), 'd': set()}}
         self.method()
         self.extract_outputs()
-        if 'simka' in self.soft.name or self.soft.name in ['drep', 'mag_data']:
+        if self.soft.name in ['simka', 'drep', 'mag_data']:
             self.soft.outputs[self.soft.name] = self.out
         else:
             self.soft.outputs[self.pool] = self.out

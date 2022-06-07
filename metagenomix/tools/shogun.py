@@ -547,8 +547,7 @@ def shogun(prev: str, out_dir: str, sample: str, inputs: dict, params: dict,
         for (db, pairing), sam_ in inputs[sample].items():
             path = '%s/shogun' % databases.paths[db]
             ali = format_sam(sam_, ali_cmds, sample)
-            norm = taxonomy(out, '', ali, db, path, outputs, config)
-
+            taxonomy(out, '', ali, db, path, outputs, config)
     elif params['databases']:
         fasta = combine_inputs(sample, inputs, out, combine_cmds, outputs)
         for db, aligners in params['databases'].items():

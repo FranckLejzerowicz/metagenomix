@@ -6,7 +6,7 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-import numpy as np
+import glob
 import pkg_resources
 from os.path import isdir, isfile
 from metagenomix._io_utils import mkdr
@@ -40,14 +40,14 @@ def get_simka_input(dir_path, inputs) -> str:
     return sim_out
 
 
-def simka_cmd(soft, smin: bool, sim_in: str, out_dir: str,
+def simka_cmd(params: dict, smin: bool, sim_in: str, out_dir: str,
               k: int, n: int, config) -> str:
     """
 
     Parameters
     ----------
-    soft : pipeline.Soft
-        Class instance for the current software
+    params : dict
+        Simka parameters
     smin : bool
         Whether to use SimkaMin (True) or base Simka (False)
     sim_in : str
@@ -75,19 +75,20 @@ def simka_cmd(soft, smin: bool, sim_in: str, out_dir: str,
                 return ''
             elif isfile('%s/mat_abundance_braycurtis.csv.gz' % out_dir):
                 return ''
-        cmd += simka_min_cmd(soft, sim_in, out_dir, k, str(n))
+        cmd += simka_min_cmd(params, sim_in, out_dir, k, str(n))
     else:
-        cmd += simka_base_cmd(soft, sim_in, out_dir, k, str(n))
+        cmd += simka_base_cmd(params, sim_in, out_dir, k, str(n))
     return cmd
 
 
-def simka_min_cmd(soft, sim_in: str, out_dir: str, k: int, n: str) -> str:
+def simka_min_cmd(params: dict, sim_in: str, out_dir: str,
+                  k: int, n: str) -> str:
     """Write the Simka command for the SimkaMin algorithm.
 
     Parameters
     ----------
-    soft : pipeline.Soft
-        Class instance for the current software.
+    params : dict
+        Simka parameters
     sim_in : str
         Input file containing to the fastq file paths for Simka.
     out_dir : str
@@ -102,8 +103,8 @@ def simka_min_cmd(soft, sim_in: str, out_dir: str, k: int, n: str) -> str:
     cmd : str
         Simka command line.
     """
-    cmd = 'python %s/simkaMin/simkaMin.py' % soft.params['path']
-    cmd += ' -bin %s/bin/simkaMinCore' % soft.params['path']
+    cmd = 'python %s/simkaMin/simkaMin.py' % params['path']
+    cmd += ' -bin %s/build/bin/simkaMinCore' % params['path']
     cmd += ' -in %s -out %s' % (sim_in, out_dir)
     cmd += ' -kmer-size %s' % str(k)
     cmd += ' -max-reads %s' % n
@@ -111,19 +112,19 @@ def simka_min_cmd(soft, sim_in: str, out_dir: str, k: int, n: str) -> str:
     cmd += ' -max-memory 180000'
     cmd += ' -min-read-size 100'
     cmd += ' -filter'
-    cmd += ' -nb-cores %s\n' % soft.params['cpus']
+    cmd += ' -nb-cores %s\n' % params['cpus']
     cmd += 'rm -rf %s/simkamin' % out_dir
     return cmd
 
 
 def simka_base_cmd(
-        soft, sim_in: str, out_dir: str, k: int, n: str) -> str:
+        params: dict, sim_in: str, out_dir: str, k: int, n: str) -> str:
     """Write the Simka command for the Simka base algorithm.
 
     Parameters
     ----------
-    soft : pipeline.Soft
-        Class instance of for the current software.
+    params : dict
+        Simka parameters
     sim_in : str
         Input file containing to the fastq file paths for Simka.
     out_dir : str
@@ -138,7 +139,9 @@ def simka_base_cmd(
     cmd : str
         Simka command line.
     """
-    cmd = '%s/build/bin/simka' % soft.path
+    print(params)
+    print(paramsfdsa)
+    cmd = '%s/build/bin/simka' % params['path']
     cmd += ' -in %s' % sim_in
     cmd += ' -out %s' % out_dir
     cmd += ' -out-tmp %s_tmp' % out_dir
@@ -147,9 +150,9 @@ def simka_base_cmd(
     cmd += ' -max-reads %s' % n
     cmd += ' -data-info'
     cmd += ' -simple-dist'
-    cmd += ' -nb-cores %s' % soft.params['cpus']
-    cmd += ' -max-count %s' % soft.params['cpus']
-    cmd += ' -max-memory %s\n' % str((int(soft.params['mem_num'][0])*1000)-1000)
+    cmd += ' -nb-cores %s' % params['cpus']
+    cmd += ' -max-count %s' % params['cpus']
+    cmd += ' -max-memory %s\n' % str((int(params['mem_num'][0])*1000)-1000)
     cmd += 'rm -rf %s_tmp' % out_dir
     return cmd
 
@@ -236,24 +239,21 @@ def simka(out_dir, inputs, params, config):
     """
     outputs = {
         'io': {'I': {'d': set(), 'f': set()}, 'O': {'d': set(), 'f': set()}},
-        'cmds': dict({}), 'dirs': [], 'outs': dict({})}
+        'cmds': [], 'dirs': [], 'outs': []}
     input_file = get_simka_input(out_dir, inputs)
     outputs['io']['I']['f'].add(input_file)
     smin = params['simkaMin']
     for k in map(int, params['kmer']):
-        outputs['cmds'][k] = []
         for n in map(int, params['log_reads']):
             out_d = '%s/k%s/n%s' % (out_dir, k, n)
-            cmd = simka_cmd(soft, smin, inp, out_d, k, n, config)
-            outputs['outs'].append(out_d)
+            cmd = simka_cmd(params, smin, input_file, out_d, k, n, config)
             if cmd:
                 outputs['dirs'].append(out_d)
-                outputs['cmds'][k].append(cmd)
+                outputs['cmds'].append(cmd)
                 outputs['io']['O']['d'].add(out_d)
-
             for mdx, mat in enumerate(glob.glob('%s/mat_*.csv*' % out_d)):
                 cmd = simka_pcoa_cmd(mat, config)
                 if cmd:
-                    outputs['cmds'][k].append(cmd)
+                    outputs['cmds'].append(cmd)
                     outputs['io']['O']['d'].add(out_d)
     return outputs
