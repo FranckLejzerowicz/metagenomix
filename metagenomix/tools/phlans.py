@@ -132,13 +132,13 @@ def analyses(out_dir: str, sam: str, params: dict, strains: list,
                     clade_out = '%s_%s.tsv' % (rad, strain.replace(' ', '_'))
                     strain_cmd += ' -o %s' % clade_out
                     if config.force or not isfile(clade_out):
-                        outputs['io']['O']['f'].append(clade_out)
+                        outputs['io']['O']['f'].add(clade_out)
                         outputs['cmds'].append(strain_cmd)
             else:
                 ab_out = '%s.tsv' % rad
                 cmd += ' -o %s' % ab_out
                 if config.force or not isfile(ab_out):
-                    outputs['io']['O']['f'].append(ab_out)
+                    outputs['io']['O']['f'].add(ab_out)
                     outputs['cmds'].append(cmd)
 
 
@@ -176,16 +176,16 @@ def profiling(out_dir: str, sam: str, inputs: dict, path: str, params: dict,
     profile_out = '%s/profiles/%s.tsv' % (out_dir, sam)
 
     if isfile(profile_out):
-        outputs['io']['I']['f'].append(bowtie2out)
+        outputs['io']['I']['f'].add(bowtie2out)
     else:
-        outputs['io']['O']['f'].append(profile_out)
+        outputs['io']['O']['f'].add(profile_out)
         cmd = 'metaphlan'
         if isfile(bowtie2out):
-            outputs['io']['I']['f'].append(bowtie2out)
+            outputs['io']['I']['f'].add(bowtie2out)
             cmd += ' %s' % bowtie2out
             cmd += ' --input_type bowtie2out'
         else:
-            outputs['io']['I']['f'].extend(inputs[sam])
+            outputs['io']['I']['f'].update(inputs[sam])
             cmd += ' %s' % ','.join(inputs[sam])
             cmd += ' --input_type fastq'
             cmd += ' --samout %s' % sam_out
