@@ -59,17 +59,17 @@ def get_drep_inputs(drep_dir: str, sam_paths: list):
 
     Returns
     -------
-    drep_in : str
+    in_fp : str
         File containing the paths corresponding to each bin.
     paths : list
         List of paths corresponding to each bin.
     """
     paths = []
     mkdr(drep_dir)
-    drep_in = '%s/input_genomes.txt' % drep_dir
-    with open(drep_in, 'w') as o:
+    in_fp = '%s/input_genomes.txt' % drep_dir
+    with open(in_fp, 'w') as o:
         for sam_path in sam_paths:
             for path in glob.glob('%s/*fa' % sam_path):
                 paths.append(path)
                 o.write('%s\n' % path)
-    return drep_in, paths
+    return in_fp, paths
