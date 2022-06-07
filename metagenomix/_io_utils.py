@@ -12,7 +12,7 @@ import gzip
 import yaml
 import subprocess
 import pandas as pd
-from os.path import basename, dirname, isfile
+from os.path import abspath, basename, dirname, isfile
 
 
 def read_yaml(
@@ -42,7 +42,7 @@ def read_yaml(
     return yaml_dict
 
 
-def fill_fastq(fastqs: list, sams: set):
+def fill_fastq(fastq_paths: list, sams: set):
     """Populate a `fastq` dict with for each sample (keys) the list of
     fastq file paths (values), which would be either of length 1 if there
     is only one fastq file for the sample, or of length 2 if there are
@@ -56,7 +56,7 @@ def fill_fastq(fastqs: list, sams: set):
 
     Parameters
     ----------
-    fastqs : list
+    fastq_paths : list
         All fastq files in the input folder
     sams : set
         All unique sample names that have a metadata
@@ -67,13 +67,13 @@ def fill_fastq(fastqs: list, sams: set):
         Fastq file path(s) per sample
     """
     fastq = {}
-    for file in sorted(fastqs):
+    for fastq_path in sorted(fastq_paths):
         for sam in sams:
-            if basename(file).startswith(sam):
+            if basename(fastq_path).startswith(sam):
                 if sam in fastq:
-                    fastq[sam].append(file)
+                    fastq[sam].append(abspath(fastq_path))
                 else:
-                    fastq[sam] = [file]
+                    fastq[sam] = [abspath(fastq_path)]
                 break
     return fastq
 
@@ -481,13 +481,15 @@ def inputs_to_scratch(io) -> list:
     # folders
     for folder_ in io['I']['d']:
         folder = folder_.rstrip('/')
-        mkdirs.add('mkdir -p ${SCRATCH_DIR}%s' % folder)
-        rsyncs.add('rsync -aqruv %s/ ${SCRATCH_DIR}%s' % (folder, folder))
+        src = folder_.rstrip('/').replace('${SCRATCH_FOLDER}', '')
+        mkdirs.add('mkdir -p %s' % folder)
+        rsyncs.add('rsync -aqruv %s/ %s' % (src, folder))
     # files
     for file in io['I']['f']:
         folder = dirname(file)
-        mkdirs.add('mkdir -p ${SCRATCH_DIR}%s' % folder)
-        rsyncs.add('rsync -aqruv %s ${SCRATCH_DIR}%s' % (file, file))
+        src = file.replace('${SCRATCH_FOLDER}', '')
+        mkdirs.add('mkdir -p %s' % folder)
+        rsyncs.add('rsync -aqruv %s %s' % (src, file))
     return sorted(mkdirs) + sorted(rsyncs)
 
 
@@ -496,16 +498,16 @@ def outputs_back(io) -> list:
     # folders
     for folder_ in io['O']['d']:
         folder = folder_.rstrip('/')
-        cmd = 'mkdir -p %s; ' % folder
-        cmd += 'rsync -aqruv ${SCRATCH_DIR}%s/ %s' % (folder, folder)
-        cmd = 'if [ -d ${SCRATCH_DIR}%s ]; then %s' % (folder, cmd)
+        src = folder_.rstrip('/').replace('${SCRATCH_FOLDER}', '')
+        cmd = 'mkdir -p %s; rsync -aqruv %s/ %s' % (src, folder, src)
+        cmd = 'if [ -d %s ]; then %s' % (folder, cmd)
         outbound.add(cmd)
     # files
     for file in io['O']['f']:
-        folder = dirname(file)
-        cmd = 'mkdir -p %s; ' % folder
-        cmd += 'rsync -aqruv ${SCRATCH_DIR}%s %s' % (file, file)
-        cmd = 'if [ -f ${SCRATCH_DIR}%s ]; then %s' % (file, cmd)
+        src = file.replace('${SCRATCH_FOLDER}', '')
+        folder = dirname(src)
+        cmd = 'mkdir -p %s; rsync -aqruv %s %s' % (folder, file, src)
+        cmd = 'if [ -f %s ]; then %s' % (file, cmd)
         outbound.add(cmd)
     return sorted(outbound)
 
