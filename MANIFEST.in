@@ -1,0 +1,11 @@
+include metagenomix/resources/scripts/fasta4shogun.py
+include metagenomix/resources/scripts/sam4shogun.py
+include metagenomix/resources/scripts/symmetrize_simka_matrix.py
+include metagenomix/resources/wol/batch_down.sh
+include metagenomix/resources/wol/genome_sizes.txt
+include metagenomix/resources/wol/kegg_query.py
+include metagenomix/resources/wol/lineages.txt
+include metagenomix/resources/wol/make_down_list.py
+include metagenomix/resources/wol/metadata.tsv
+include metagenomix/resources/wol/tree.nwk
+include metagenomix/resources/run_params.yml
