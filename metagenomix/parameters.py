@@ -8,6 +8,7 @@
 
 import sys
 import glob
+import numpy as np
 from os.path import isdir, isfile
 
 from metagenomix._io_utils import read_yaml
@@ -184,7 +185,7 @@ def check_simka(user_params, soft, databases, config):
         user_params['kmer'] = np.linspace(
             kmer['start'], kmer['end'], kmer['size'])
 
-    if 'log_reads' not in params:
+    if 'log_reads' not in user_params:
         user_params['log_reads'] = defaults['log_reads']
     else:
         reads = user_params['log_reads']
