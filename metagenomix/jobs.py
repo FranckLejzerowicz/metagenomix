@@ -10,7 +10,7 @@ import subprocess
 import numpy as np
 from os.path import dirname, splitext
 
-from metagenomix._io_utils import mkdr
+from metagenomix._io_utils import mkdr, scratching
 
 
 class CreateScripts(object):
@@ -86,7 +86,7 @@ class CreateScripts(object):
     def software_cmds(self, commands):
         for name, soft in commands.softs.items():
             self.get_module(name)
-            self.cmds = soft.cmds
+            self.cmds = scratching(soft)
             self.get_cmds_chunks(soft.params['chunks'])
             self.write_jobs(name, soft)
             self.write_main(name, soft)
@@ -101,33 +101,39 @@ class CreateScripts(object):
         mkdr(dirname(self.sh))
 
     def prep_script(self, params: dict) -> None:
+        # mandatory options
         self.cmd = [
             'Xhpc',
             '-j', self.job_name,
             '-t', params['time'],
             '-c', str(params['cpus']),
-            '-n', str(params['nodes']),
             '-M', str(params['mem_num']), params['mem_dim'],
             '--no-stat',
             '-i', self.sh]
+        # whether the cpus requests is per node
+        if params['nodes']:
+            self.cmd.extend(['-n', str(params['nodes'])])
+        # always provide an account
         if self.config.account:
             self.cmd.extend(['-a', self.config.account])
+        # get the job script file path and use it
         job_script = '%s.slm' % splitext(self.sh)[0]
         if self.config.torque:
             self.cmd.append('--torque')
             job_script = '%s.pbs' % splitext(self.sh)[0]
         self.job_fps.append(job_script)
         self.cmd.extend(['-o', job_script])
-
+        # whether an environment must be used for the current software
         if not self.module and params['env']:
             self.cmd.extend(['-e', params['env']])
-
+        # setup the scratch location to be used for the current software
         if isinstance(params['scratch'], int):
             self.cmd.extend(['--localscratch', params['scratch']])
         elif params['scratch'] == 'scratch':
             self.cmd.append('--scratch')
         elif params['scratch'] == 'userscratch':
             self.cmd.append('--userscratch')
+        # quiet Xhpc if metagenomix is not supposed to be verbose
         if not self.config.verbose:
             self.cmd.append('--quiet')
 
