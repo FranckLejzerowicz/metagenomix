@@ -14,58 +14,6 @@ from metagenomix._io_utils import mkdr
 RESOURCES = pkg_resources.resource_filename("metagenomix", "resources/scripts")
 
 
-def throw_error(key: str, kmer_reads: dict) -> None:
-    """Throw an error is the user-defined simka params are not right.
-
-    Parameters
-    ----------
-    key : str
-        "" or ""
-    kmer_reads : dict
-        Params for sampling of the kmers of reads size in Simka
-
-    Raises
-    ------
-    IOError
-        Indicated which params is not right to the user.
-    """
-    for p in ['start', 'end', 'size']:
-        if p not in kmer_reads or not isinstance(kmer_reads[p], int):
-            raise('Please give an integer for simka subparam "%s" (param '
-                  '"%s") in your input .yml params file' % (p, key))
-
-
-def check_simka_params(params: dict) -> tuple:
-    """Get user-defined Simka parameters or use some defaults.
-
-    Parameters
-    ----------
-    params : dict
-        Simka user defined parameters
-
-    Returns
-    -------
-    (k_space, n_space) : tuple
-        k_space: linear space for the different kmer sizes to use in Simka
-        n_space: log  space for the different read sizes to use in Simka
-    """
-    if 'kmer' in params:
-        kmer = params['kmer']
-        throw_error('kmer', kmer)
-        k_space = np.linspace(kmer['start'], kmer['end'], kmer['size'])
-    else:
-        k_space = np.linspace(15, 80, 6)
-
-    if 'log_reads' in params:
-        reads = params['log_reads']
-        throw_error('log_reads', reads)
-        n_space = np.logspace(reads['start'], reads['end'], reads['size'])
-    else:
-        n_space = np.logspace(3, 7, 3)
-
-    return k_space, n_space
-
-
 def get_simka_input(dir_path, inputs) -> str:
     """Write the file containing the paths to each sample.
 
@@ -206,15 +154,13 @@ def simka_base_cmd(
     return cmd
 
 
-def simka_pcoa_cmd(mat: str, meta_fpo: str, config) -> str:
+def simka_pcoa_cmd(mat: str, config) -> str:
     """Write the Simka command for the pcoa based on the distance matrices.
 
     Parameters
     ----------
     mat : str
         Path to the input matrix.
-    meta_fpo: str
-        Path to the output matrix.
     config
         Configurations
 
@@ -264,6 +210,50 @@ def simka_pcoa_cmd(mat: str, meta_fpo: str, config) -> str:
     if config.force or not isfile(mat_emp):
         cmd += 'qiime emperor plot'
         cmd += ' --i-pcoa %s' % mat_pcoa
-        cmd += ' --m-metadata-file %s' % meta_fpo
+        cmd += ' --m-metadata-file %s' % config.meta_fp
         cmd += ' --o-visualization %s' % mat_emp
     return cmd
+
+
+def simka(out_dir, inputs, params, config):
+    """
+
+    Parameters
+    ----------
+    out_dir : str
+        Path to pipeline output folder for Simka
+    inputs : dict
+        Input files
+    params : dict
+        Simka parameters
+    config
+        Configurations
+
+    Returns
+    -------
+    outputs : dict
+        All outputs
+    """
+    outputs = {
+        'io': {'I': {'d': set(), 'f': set()}, 'O': {'d': set(), 'f': set()}},
+        'cmds': dict({}), 'dirs': [], 'outs': dict({})}
+    input_file = get_simka_input(out_dir, inputs)
+    outputs['io']['I']['f'].add(input_file)
+    smin = params['simkaMin']
+    for k in map(int, params['kmer']):
+        outputs['cmds'][k] = []
+        for n in map(int, params['log_reads']):
+            out_d = '%s/k%s/n%s' % (out_dir, k, n)
+            cmd = simka_cmd(soft, smin, inp, out_d, k, n, config)
+            outputs['outs'].append(out_d)
+            if cmd:
+                outputs['dirs'].append(out_d)
+                outputs['cmds'][k].append(cmd)
+                outputs['io']['O']['d'].add(out_d)
+
+            for mdx, mat in enumerate(glob.glob('%s/mat_*.csv*' % out_d)):
+                cmd = simka_pcoa_cmd(mat, config)
+                if cmd:
+                    outputs['cmds'][k].append(cmd)
+                    outputs['io']['O']['d'].add(out_d)
+    return outputs
