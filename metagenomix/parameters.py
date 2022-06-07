@@ -156,5 +156,76 @@ def check_spades(user_params, soft, databases, config):
     check_generic(defaults, user_params, soft, ['k'])
 
 
+def simka_error(key: str, kmer_reads: dict) -> None:
+    """Throw an error is the user-defined simka params are not right.
+
+    Parameters
+    ----------
+    key : str
+        "" or ""
+    kmer_reads : dict
+        Params for sampling of the kmers of reads size in Simka
+    """
+    for p in ['start', 'end', 'size']:
+        if p not in kmer_reads or not isinstance(kmer_reads[p], int):
+            sys.exit('Please give an integer for simka subparam "%s" (param '
+                     '"%s") in your input .yml params file' % (p, key))
+
+
+def check_simka(user_params, soft, databases, config):
+    defaults = {'simkaMin': [True, False],
+                'kmer': np.linspace(15, 80, 6),
+                'log_reads': np.logspace(3, 7, 3)}
+    if 'kmer' not in user_params:
+        user_params['kmer'] = defaults['kmer']
+    else:
+        kmer = user_params['kmer']
+        simka_error('kmer', kmer)
+        user_params['kmer'] = np.linspace(
+            kmer['start'], kmer['end'], kmer['size'])
+
+    if 'log_reads' not in params:
+        user_params['log_reads'] = defaults['log_reads']
+    else:
+        reads = user_params['log_reads']
+        simka_error('log_reads', reads)
+        user_params['log_reads'] = np.logspace(
+            reads['start'], reads['end'], reads['size'])
+
+    check_generic(defaults, user_params, soft, ['kmer', 'log_reads'])
+
+
+# def check_TOOL(user_params, soft, databases, config):
+#     default = {}
+
+
+# def check_TOOL(user_params, soft, databases, config):
+#     default = {}
+
+
+# def check_TOOL(user_params, soft, databases, config):
+#     default = {}
+
+
+# def check_TOOL(user_params, soft, databases, config):
+#     default = {}
+
+
+# def check_TOOL(user_params, soft, databases, config):
+#     default = {}
+
+
+# def check_TOOL(user_params, soft, databases, config):
+#     default = {}
+
+
+# def check_TOOL(user_params, soft, databases, config):
+#     default = {}
+
+
+# def check_TOOL(user_params, soft, databases, config):
+#     default = {}
+
+
 # def check_TOOL(user_params, soft, databases, config):
 #     default = {}
