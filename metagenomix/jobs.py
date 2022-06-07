@@ -85,7 +85,7 @@ class CreateScripts(object):
 
     def software_cmds(self, commands):
         for sdx, (name, soft) in enumerate(commands.softs.items()):
-            print('[Writting commands] #%s: %s' % (sdx, self.soft.name))
+            print('[Writting commands] #%s: %s' % (sdx, soft.name))
             self.get_module(name)
             self.cmds = scratching(soft)
             self.get_cmds_chunks(soft.params['chunks'])
