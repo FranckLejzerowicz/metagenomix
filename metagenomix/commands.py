@@ -12,8 +12,7 @@ from os.path import abspath, basename, dirname, isdir, isfile, splitext
 
 from metagenomix._io_utils import (
     get_edit_fastq_cmd, count_reads_cmd, get_out_dir, write_hmms)
-from metagenomix.tools.simka import (
-    check_simka_params, get_simka_input, simka_cmd, simka_pcoa_cmd)
+from metagenomix.tools.simka import simka
 from metagenomix.tools.alignment import bowtie
 from metagenomix.tools.midas import midas
 from metagenomix.tools.kraken2 import kraken2
@@ -46,7 +45,6 @@ class Commands(object):
         self.holistics = [
             'multiqc',
             'simka',
-            'simka_pcoa',
             'qiita_wol',
             'mag_data',
             'metamarker',
@@ -209,27 +207,8 @@ class Commands(object):
 
     def prep_simka(self):
         """Command setup resort to calling a module"""
-        inp = get_simka_input(self.dir, self.inputs)
-        self.soft.io[self.sam]['I']['f'].add(inp)
-        smin = True
-        k_space, n_space = check_simka_params(self.soft.params)
-        for k in map(int, k_space):
-            for n in map(int, n_space):
-                out_d = '%s/k%s/n%s' % (self.dir, k, n)
-                cmd = simka_cmd(self.soft, smin, inp, out_d, k, n, self.config)
-                self.out.append(out_d)
-                if cmd:
-                    self.soft.dirs.add(out_d)
-                    self.cmds.setdefault(k, []).append(cmd)
-                    self.soft.io[self.sam]['O']['d'].add(out_d)
-
-    def prep_simka_pcoa(self):
-        """Command setup resort to calling a module"""
-        for idx, input_path in enumerate(self.inputs['simka']):
-            for mdx, mat in enumerate(glob.glob('%s/mat_*.csv*' % input_path)):
-                cmd = simka_pcoa_cmd(mat, self.config.meta_fp, self.config)
-                if cmd:
-                    self.cmds.setdefault(idx, []).append(cmd)
+        self.outputs = simka(
+            self.dir, self.inputs, self.soft.params, self.config)
 
     def prep_cutadapt(self):
         """Full command setup can be contained in this class method"""
@@ -377,6 +356,9 @@ class Commands(object):
     def prep_spades(self):
         self.out = {}
         self.cmds[self.pool] = []
+        print(self.inputs)
+        print(self.inputs[self.pool])
+        print(self.inputgfdsa)
         for group, fastas in self.inputs[self.pool].items():
             tmp_dir = '%s/spades_%s' % (self.config.scratch, self.pool)
             out_dir = '%s/%s/%s' % (self.dir, self.pool, group)
