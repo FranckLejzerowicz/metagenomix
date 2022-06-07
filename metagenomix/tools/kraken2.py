@@ -22,41 +22,41 @@ def get_kraken2_db(db, databases, config):
     return db_path
 
 
-def kraken2(out_dir: str, sam: str, inputs: dict,
-            params: dict, databases, config) -> tuple:
+def kraken2(out_dir: str, sample: str, inputs: dict,
+            params: dict, databases, config) -> dict:
     """Create command lines for kraken2.
 
     Parameters
     ----------
     out_dir : str
-        Path to pipeline output folder for MIDAS.
-    sam : str
-        Sample name.
+        Path to pipeline output folder for MIDAS
+    sample : str
+        Sample name
     inputs : dict
-        Input files.
+        Input files
     params : dict
-        Kraken2 parameters.
+        Kraken2 parameters
     databases
-        Path to the database.
+        Path to the database
+    config
+        Configurations
 
     Returns
     -------
-    io : dict
-        Inputs and outputs to potentially move to scratch and back.
-    cmds : list
-        All MIDAS command lines.
-    outputs : list
-        All outputs paths.
+    outputs : dict
+        All outputs
     """
-    io, cmds, outputs = {'I': [], 'O': []}, [], []
+    outputs = {'io': {'I': {'f': set()}, 'O': {'f': set()}},
+               'cmds': [], 'dirs': [], 'outs': []}
     for db in params['databases']:
-        o = '%s/%s/%s' % (out_dir, sam, db)
+        o = '%s/%s/%s' % (out_dir, sample, db)
+        outputs['dirs'].append(o)
         report = '%s/report.tsv' % o
         result = '%s/result.tsv' % o
         if config.force or not isfile(result):
-            io['I'].extend(inputs)
-            io['O'].extend([report, result])
-            outputs.append(result)
+            outputs['io']['I']['f'].update(inputs[sample])
+            outputs['io']['O']['f'].update([report, result])
+            outputs['outs'].append(result)
             db_path = get_kraken2_db(db, databases, config)
             cmd = 'kraken2 '
             cmd += ' -db %s' % db_path
@@ -64,7 +64,7 @@ def kraken2(out_dir: str, sam: str, inputs: dict,
             cmd += ' --report %s/report.tsv' % report
             cmd += ' --gzip-compressed'
             cmd += ' --confidence 0.5'
-            if len(inputs[sam]) > 1:
+            if len(inputs[sample]) > 1:
                 unclass = ['%s/unclassified_%s.fastq' % (o, r) for r in [1, 2]]
                 classif = ['%s/classified_%s.fastq' % (o, r) for r in [1, 2]]
                 cmd += ' --unclassified-out %s/unclassified#.fastq' % o
@@ -75,11 +75,11 @@ def kraken2(out_dir: str, sam: str, inputs: dict,
                 classif = ['%s/classified.fastq' % o]
                 cmd += ' --unclassified-out %s/unclassified.fastq' % o
                 cmd += ' --classified-out %s/classified.fastq' % o
-            if inputs[sam][0].endswith('.gz'):
+            if inputs[sample][0].endswith('.gz'):
                 cmd += ' --gzip-compressed'
-            cmd += ' %s > %s' % (' '.join(inputs[sam]), result)
-            cmds.append(cmd)
-    return io, cmds, outputs
+            cmd += ' %s > %s' % (' '.join(inputs[sample]), result)
+            outputs['cmds'].append(cmd)
+    return outputs
 
 
 def get_species_select(db: str, species_list: str) -> set:

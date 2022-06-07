@@ -11,7 +11,7 @@ from os.path import dirname, isfile
 
 
 def metaphlan(out_dir: str, sam: str, inputs: dict, path: str, params: dict,
-              strains: list, reads_fps: dict, config) -> tuple:
+              strains: list, reads_fps: dict, config) -> dict:
     """
 
     Parameters
@@ -35,29 +35,26 @@ def metaphlan(out_dir: str, sam: str, inputs: dict, path: str, params: dict,
 
     Returns
     -------
-    io : dict
-        Inputs and outputs to potentially move to scratch and back.
-    cmds : list
-        All MIDAS command lines.
-    outputs : list
-        All outputs paths.
+    outputs : dict
+        All outputs
     """
-    io, cmds = {'I': [], 'O': []}, []
+    outputs = {'io': {'I': {'f': set()}, 'O': {'f': set()}},
+               'cmds': [], 'dirs': [], 'outs': []}
     tmpdir = '$TMPDIR/metaphlan_%s' % sam
-    tmp_cmd = 'mkdir -p %s\n' % tmpdir
+    tmp_cmd = ['mkdir -p %s\n' % tmpdir]
 
     b2o = '%s/bowtie2/%s.bowtie2.bz2' % (out_dir, sam)
-    outputs = list([b2o])
-    outputs.extend(list(profiling(
-        out_dir, sam, inputs, path, params, b2o, tmpdir, io, cmds)))
+    outs = profiling(out_dir, sam, inputs, path, params, b2o, tmpdir, outputs)
+    outputs['outs'] = [b2o] + list(outs)
+    outputs['dir'] = [dirname(x) for x in outputs['outs']]
 
     reads = get_read_count(sam, reads_fps)
     if reads:
-        analyses(out_dir, sam, params, strains, b2o, reads, io, cmds, config)
-    if cmds:
-        cmds = [tmp_cmd] + cmds
+        analyses(out_dir, sam, params, strains, b2o, reads, outputs, config)
+    if outputs['cmds']:
+        outputs['cmds'] = tmp_cmd + outputs['cmds']
 
-    return io, cmds, outputs
+    return outputs
 
 
 def get_read_count(sam, reads_fps) -> str:
@@ -86,7 +83,7 @@ def get_read_count(sam, reads_fps) -> str:
 
 
 def analyses(out_dir: str, sam: str, params: dict, strains: list,
-             b2o: str, reads: str, io: dict, cmds: list, config) -> None:
+             b2o: str, reads: str, outputs: dict, config) -> None:
     """Get the taxonomic analyses Metaphlan command.
 
     Parameters
@@ -103,10 +100,8 @@ def analyses(out_dir: str, sam: str, params: dict, strains: list,
         Input type was a bowtie2 output of the same tool
     reads : str
         Number of reads in the current sample
-    io : dict
-        Inputs and outputs to potentially move to scratch and back
-    cmds : list
-        All MIDAS command lines
+    outputs : dict
+        All outputs
     config
         Configurations
     """
@@ -137,62 +132,60 @@ def analyses(out_dir: str, sam: str, params: dict, strains: list,
                     clade_out = '%s_%s.tsv' % (rad, strain.replace(' ', '_'))
                     strain_cmd += ' -o %s' % clade_out
                     if config.force or not isfile(clade_out):
-                        io['O'].append(clade_out)
-                        cmds.append(strain_cmd)
+                        outputs['io']['O']['f'].append(clade_out)
+                        outputs['cmds'].append(strain_cmd)
             else:
                 ab_out = '%s.tsv' % rad
                 cmd += ' -o %s' % ab_out
                 if config.force or not isfile(ab_out):
-                    io['O'].append(ab_out)
-                    cmds.append(cmd)
+                    outputs['io']['O']['f'].append(ab_out)
+                    outputs['cmds'].append(cmd)
 
 
 def profiling(out_dir: str, sam: str, inputs: dict, path: str, params: dict,
-              bowtie2out: str, tmpdir: str, io: dict, cmds: list) -> tuple:
+              bowtie2out: str, tmpdir: str, outputs: dict) -> tuple:
     """Get the taxonomic profiling metaphlan command.
 
     Parameters
     ----------
     out_dir : str
-        Path to pipeline output folder for MIDAS.
+        Path to pipeline output folder for MIDAS
     sam : str
-        Sample name.
+        Sample name
     inputs : dict
-        Input files.
+        Input files
     path : str
-        Path to the metaphlan database.
+        Path to the metaphlan database
     params : dict
-        Run parameters.
+        Run parameters
     bowtie2out : str
-        Input type was a bowtie2 output of the same tool.
+        Input type was a bowtie2 output of the same tool
     tmpdir : str
-        Path to a temporary directory.
-    io : dict
-        Inputs and outputs to potentially move to scratch and back.
-    cmds : list
-        All MIDAS command lines.
+        Path to a temporary directory
+    outputs : dict
+        All Outputs
 
     Returns
     -------
     sam_out : str
-        Alignment output.
+        Alignment output
     profile_out : str
-        Metaphlan taxonomic profile output.
+        Metaphlan taxonomic profile output
     """
     sam_out = '%s/sams/%s.sam.bz2' % (out_dir, sam)
     profile_out = '%s/profiles/%s.tsv' % (out_dir, sam)
 
     if isfile(profile_out):
-        io['I'].append(bowtie2out)
+        outputs['io']['I']['f'].append(bowtie2out)
     else:
-        io['O'].append(profile_out)
+        outputs['io']['O']['f'].append(profile_out)
         cmd = 'metaphlan'
         if isfile(bowtie2out):
-            io['I'].append(bowtie2out)
+            outputs['io']['I']['f'].append(bowtie2out)
             cmd += ' %s' % bowtie2out
             cmd += ' --input_type bowtie2out'
         else:
-            io['I'].extend(inputs[sam])
+            outputs['io']['I']['f'].extend(inputs[sam])
             cmd += ' %s' % ','.join(inputs[sam])
             cmd += ' --input_type fastq'
             cmd += ' --samout %s' % sam_out
@@ -202,7 +195,7 @@ def profiling(out_dir: str, sam: str, inputs: dict, path: str, params: dict,
         cmd += ' -o %s' % profile_out
         cmd += ' --nproc %s' % params['cpus']
         cmd += ' --sample_id_key %s' % sam
-        cmds.append(cmd)
+        outputs['cmds'].append(cmd)
 
     return sam_out, profile_out
 
@@ -255,7 +248,7 @@ def get_profile(out_dir: str, sam: str, path: str, params: dict,
 
 
 def get_cmd(sam: str, inputs: dict, params: dict, profile: str, db: str,
-            out: str, base_file: str, b2_ali_fp: str):
+            out: str, base_file: str, ali: str):
     """Get the humann command line.
 
     Parameters
@@ -274,7 +267,7 @@ def get_cmd(sam: str, inputs: dict, params: dict, profile: str, db: str,
         Path to the output folder.
     base_file : str
         Path to fastq file.
-    b2_ali_fp : str
+    ali : str
         Path to temporary, alignment sam file
 
     Returns
@@ -300,7 +293,7 @@ def get_cmd(sam: str, inputs: dict, params: dict, profile: str, db: str,
         cmd += ' --taxonomic-profile %s' % profile
     if params['skip_translated']:
         cmd += ' --bypass-translated-search'
-    if isfile(b2_ali_fp):
+    if isfile(ali):
         cmd += ' -r'
     cmd += ' --nucleotide-database %s' % params['nucleotide_db']
     cmd += ' --protein-database  %s\n' % params['protein_db']
@@ -330,129 +323,121 @@ def renorm(input_fp: str, relab_fp: str) -> str:
 
 
 def humann(out_dir: str, sam: str, inputs: dict, path: str,
-           params: dict, profile: dict, conf) -> tuple:
+           params: dict, profile: dict, conf) -> dict:
     """Create command lines for humann for the current database's species focus.
 
     Parameters
     ----------
     out_dir : str
-        Path to pipeline output folder for MIDAS.
+        Path to pipeline output folder for MIDAS
     sam : str
-        Sample name.
+        Sample name
     inputs : dict
-        Input files.
+        Input files
     path : str
-        Path to the humann database.
+        Path to the humann database
     params : dict
-        Run parameters.
+        Run parameters
     profile : dict
-        Taxonomic profiles for species to focus humann on.
+        Taxonomic profiles for species to focus humann on
     conf
         Configurations
 
     Returns
     -------
-    io : dict
-        Inputs and outputs to potentially move to scratch and back.
-    cmds : list
-        All MIDAS command lines.
-    outputs : list
-        All outputs paths.
+    outputs : dict
+        All outputs
     """
-    io = {'I': [], 'O': {'f': [], 'd': []}}
+    outputs = {'io': {'I': {'f': set()}, 'O': {'d': set(), 'f': set()}},
+               'cmds': [], 'dirs': [], 'outs': []}
+
     profiles, dbs, outs = get_profile(out_dir, sam, path, params, profile)
     if profiles:
-        io['I'].extend(profiles)
+        outputs['io']['I']['f'].update(profiles)
 
-    cmds = []
-    outputs = []
     for prof, db, out in zip(*[profiles, dbs, outs]):
 
-        b2_ali_fp = '%s/%s_humann_tmp/%s_bowtie2_aligned.sam' % (out, sam, sam)
-        if not conf.force and isfile(b2_ali_fp):
-            io['I'].append(b2_ali_fp)
+        ali = '%s/%s_humann_tmp/%s_bowtie2_aligned.sam' % (out, sam, sam)
+        if not conf.force and isfile(ali):
+            outputs['io']['I']['f'].add(ali)
         else:
-            io['O']['f'].append(b2_ali_fp)
-            io['O']['d'].append(out)
+            outputs['io']['O']['f'].add(ali)
+            outputs['io']['O']['d'].add(out)
 
         base_file = '%s/%s.fastq.gz' % (out, sam)
         gen = '%s/%s_genefamilies.tsv' % (out, sam)
         pwy = '%s/%s_pathabundance.tsv' % (out, sam)
         cov = '%s/%s_pathcoverage.tsv' % (out, sam)
         if conf.force or not isfile(gen) or not isfile(pwy) or not isfile(cov):
-            cmds.append(get_cmd(
-                sam, inputs, params, prof, db, out, base_file, b2_ali_fp))
-            io['O']['f'].extend([gen, pwy, cov])
+            outputs['cmds'].append(get_cmd(
+                sam, inputs, params, prof, db, out, base_file, ali))
+            outputs['io']['O']['f'].update([gen, pwy, cov])
         else:
-            io['I'].extend([gen, pwy])
+            outputs['io']['I']['f'].update([gen, pwy])
 
         gen_relab = '%s/%s_genefamilies_relab.tsv' % (out, sam)
         pwy_relab = '%s/%s_pathabundance_relab.tsv' % (out, sam)
         if conf.force or not isfile(gen_relab) or not isfile(pwy_relab):
-            io['O']['f'].extend([gen_relab, pwy_relab])
-            cmds.append(renorm(gen, gen_relab))
-            cmds.append(renorm(pwy, pwy_relab))
+            outputs['io']['O']['f'].update([gen_relab, pwy_relab])
+            outputs['cmds'].append(renorm(gen, gen_relab))
+            outputs['cmds'].append(renorm(pwy, pwy_relab))
 
-        outputs.append([out, b2_ali_fp, gen, gen_relab, pwy, pwy_relab, cov])
+        outputs['dirs'].append(out)
+        outputs['outs'].append([out, ali, gen, gen_relab, pwy, pwy_relab, cov])
 
-    return io, cmds, outputs
+    return outputs
 
 
 def strainphlan(out_dir: str, inputs: dict, params: dict,
-                wol: dict, strains: dict, config) -> tuple:
+                wol: dict, strains: dict, config) -> dict:
     """Create command lines for strainphlan.
 
     Parameters
     ----------
     out_dir : str
-        Path to pipeline output folder for MIDAS.
+        Path to pipeline output folder
     inputs : dict
-        Input files.
+        Input files
     params : dict
-        Run parameters.
+        Run parameters
     wol : dict
         Web Of Life database files
     strains : dict
-        Species to focus on for strain analyses.
+        Species to focus on for strain analyses
     config
         Configurations
 
     Returns
     -------
-    io : dict
-        Inputs and outputs to potentially move to scratch and back.
-    cmds : list
-        All MIDAS command lines.
-    outputs : list
-        All outputs paths.
-    dirs : list
-        List of output folders to create.
+    outputs : dict
+        All outputs
     """
-    io, cmds, outputs, dirs = {'I': {'f': [], 'd': []}, 'O': []}, [], {}, []
+    outputs = {'io': {'I': {'f': set(), 'd': set()}, 'O': {'d': set()}},
+               'cmds': [], 'dirs': [], 'outs': dict({})}
     bt2_fp, sam_fp = inputs[list(inputs.keys())[0]][:2]
     sam_dir = dirname(sam_fp)
-    io['I']['d'].append(sam_dir)
+    outputs['io']['I']['d'].add(sam_dir)
 
     tmp_dir = '$TMPDIR/strainphlan'
-    cmds.append('mkdir -p %s' % tmp_dir)
+    outputs['cmds'].append('mkdir -p %s' % tmp_dir)
 
     db_dir = '%s/db_markers' % out_dir
     meta_dir = '%s/metadata' % out_dir
     markers_dir = '%s/consensus_markers' % out_dir
-    dirs.extend([db_dir, meta_dir])
-    io['O'].extend([markers_dir, db_dir, meta_dir])
+    outputs['dirs'].extend([db_dir, meta_dir])
+    outputs['io']['O']['d'].update([markers_dir, db_dir, meta_dir])
 
     if config.force or len(glob.glob('%s/*.sam.bz2' % sam_dir)):
         cmd = 'sample2markers.py'
         cmd += ' -i %s/*.sam.bz2' % sam_dir
         cmd += ' -o %s' % markers_dir
         cmd += ' -n %s' % params['cpus']
-        cmds.append(cmd)
+        outputs['cmds'].append(cmd)
 
     wol_genomes_pd = wol['taxonomy']
     for strain_group, strains in strains.items():
         strain_dir = '%s/%s' % (db_dir, strain_group)
-        dirs.append(strain_dir)
+        outputs['dirs'].append(strain_dir)
         for st in [x.replace(' ', '_') for x in strains]:
             if st[0] != 's':
                 continue
@@ -460,11 +445,11 @@ def strainphlan(out_dir: str, inputs: dict, params: dict,
                 cmd = 'extract_markers.py'
                 cmd += ' -c %s' % st
                 cmd += ' -o %s' % db_dir
-                cmds.append(cmd)
+                outputs['cmds'].append(cmd)
             odir = '%s/output/%s' % (out_dir, strain_group)
-            dirs.append(odir)
-            io['O'].append(odir)
-            outputs[(strain_group, st)] = odir
+            outputs['dirs'].append(odir)
+            outputs['io']['O']['d'].add(odir)
+            outputs['outs'][(strain_group, st)] = odir
             tree = '%s/RAxML_bestTree.%s.StrainPhlAn3.tre' % (odir, st)
             if config.force or not isfile(tree):
                 cmd = 'strainphlan'
@@ -473,12 +458,12 @@ def strainphlan(out_dir: str, inputs: dict, params: dict,
                 if st in wol_genomes_pd['species']:
                     fna = '%s/%s.fna.bz2' % (wol['fna'], wol_genomes_pd.loc[
                         wol_genomes_pd['species'] == st, 0])
-                    io['I']['f'].append(fna)
+                    outputs['io']['I']['f'].add(fna)
                     cmd += ' -r %s' % fna
                 cmd += ' -o %s' % odir
                 cmd += ' -n %s' % params['cpus']
                 cmd += ' -c %s' % st
                 cmd += ' --mutation_rates'
-                cmds.append(cmd)
+                outputs['cmds'].append(cmd)
 
-    return io, cmds, outputs, dirs
+    return outputs

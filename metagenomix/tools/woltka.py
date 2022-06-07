@@ -12,31 +12,31 @@ from os.path import basename, isfile, splitext
 RESOURCES = pkg_resources.resource_filename('metagenomix', 'resources')
 
 
-def get_aligments(inputs: dict, io: dict) -> dict:
+def get_aligments(inputs: dict, outputs: dict) -> dict:
     """Get the alignment paths per sample.
 
     Parameters
     ----------
     inputs : dict
-        Input files.
-    io : dict
-        Inputs and outputs to potentially move to scratch and back.
+        Input files
+    outputs : dict
+        All outputs
 
     Returns
     -------
     alis : dict
-        Alignments.
+        Alignments
     """
     alis = {}
     for sam, sam_inputs in inputs.items():
         for ali_tax_db, files in sam_inputs.items():
             if ali_tax_db == ('bowtie2', 'tax', 'wol'):
                 alis[sam] = [x for x in files if x.endswith('.sam')][0]
-    io['I']['f'].extend([alis[x] for x in alis])
+    outputs['io']['I']['f'].update([alis[x] for x in alis])
     return alis
 
 
-def write_woltka_map(alis: dict, out_dir: str, cmds: list) -> str:
+def write_woltka_map(alis: dict, out_dir: str, outputs: dict) -> str:
     """Write the mapping file that servers as input to Woltka.
 
     Parameters
@@ -45,8 +45,8 @@ def write_woltka_map(alis: dict, out_dir: str, cmds: list) -> str:
         Alignments.
     out_dir : str
         Path to the output folder.
-    cmds : list
-        Commands.
+    outputs: dict
+        All outputs
 
     Returns
     -------
@@ -57,15 +57,14 @@ def write_woltka_map(alis: dict, out_dir: str, cmds: list) -> str:
     for idx, sam in enumerate(alis.keys()):
         echo = 'echo -e "%s\\t%s"' % (sam, alis[sam])
         if idx:
-            cmds.append('%s >> %s' % (echo, woltka_map))
+            outputs['cmds'].append('%s >> %s' % (echo, woltka_map))
         else:
-            cmds.append('%s > %s' % (echo, woltka_map))
+            outputs['cmds'].append('%s > %s' % (echo, woltka_map))
     return woltka_map
 
 
-def get_gotus(out_dir: str, woltka_map: str, cmds: list, io: dict,
-              outputs: list) -> str:
-    """Get the Woltka commandfor the gotu classification.
+def get_gotus(out_dir: str, woltka_map: str, outputs: dict) -> str:
+    """Get the Woltka command for the gotu classification.
 
     Parameters
     ----------
@@ -73,12 +72,8 @@ def get_gotus(out_dir: str, woltka_map: str, cmds: list, io: dict,
         Path to pipeline output folder for SHOGUN.
     woltka_map : str
         Path to the output woltka samples file.
-    cmds : list
-        All SHOGUN command lines.
-    io : dict
-        Inputs and outputs to potentially move to scratch and back.
-    outputs : list
-        All outputs paths.
+    outputs: dict
+        All outputs
 
     Returns
     -------
@@ -90,16 +85,16 @@ def get_gotus(out_dir: str, woltka_map: str, cmds: list, io: dict,
         cmd = 'woltka gotu'
         cmd += ' -i %s' % woltka_map
         cmd += ' -o %s' % genomes_out
-        cmds.append(cmd)
-        io['O']['f'].append(genomes_out)
-        outputs.append(genomes_out)
+        outputs['cmds'].append(cmd)
+        outputs['outs'].append(genomes_out)
+        outputs['io']['O']['f'].add(genomes_out)
     return genomes_out
 
 
 def get_tax_cmd(woltka_map: str, out_dir: str, path: str,
-                io: dict, cmds: list, outputs: list) -> str:
-    """Get the taxonomic classification outputs and prepare the Wotlka
-    commands for this classification.
+                outputs: dict) -> str:
+    """Get the taxonomic classification outputs and prepare the
+    Woltka commands for this classification.
 
     Parameters
     ----------
@@ -109,12 +104,8 @@ def get_tax_cmd(woltka_map: str, out_dir: str, path: str,
         Path to pipeline output folder for SHOGUN.
     path : str
         Path to the woltka database.
-    io : dict
-        Inputs and outputs to potentially move to scratch and back.
-    cmds : list
-        All SHOGUN command lines.
-    outputs : list
-        All outputs paths.
+    outputs: dict
+        All outputs
 
     Returns
     -------
@@ -126,15 +117,15 @@ def get_tax_cmd(woltka_map: str, out_dir: str, path: str,
     tax_todo = []
     for tdx, tax_output in enumerate(tax_outputs):
         cur_tax_output = '%s/%s.tsv' % (tax_out, tax_output)
-        outputs.append(cur_tax_output)
+        outputs['cmds'].append(cur_tax_output)
         if not isfile(cur_tax_output):
             tax_todo.append(tax_output)
-            io['O']['f'].append(cur_tax_output)
+            outputs['io']['O']['f'].add(cur_tax_output)
 
     taxid = '%s/taxonomy/taxid.map' % path
     nodes = '%s/taxonomy/nodes.dmp' % path
     names = '%s/taxonomy/names.dmp' % path
-    io['I']['f'].extend([taxid, nodes, names])
+    outputs['io']['I']['f'].update([taxid, nodes, names])
     if len(tax_todo):
         cur_cmd = '\n# taxonomic\n'
         cur_cmd += 'woltka classify'
@@ -149,13 +140,13 @@ def get_tax_cmd(woltka_map: str, out_dir: str, path: str,
         cur_cmd += ' --to-tsv'
         cur_cmd += ' --outmap %s' % tax_outmap
         cur_cmd += ' -o %s' % tax_out
-        cmds.append(cur_cmd)
+        outputs['cmds'].append(cur_cmd)
     return tax_outmap
 
 
 def classif_go(woltka_map: str, out_dir: str, path: str, tax_outmap: str,
-               io: dict, cmds: list, outputs: list):
-    """Get the taxonomic classification outputs and prepare the Wotlka
+               outputs: dict):
+    """Get the taxonomic classification outputs and prepare the Woltka
     commands for this classification.
 
     Parameters
@@ -168,17 +159,13 @@ def classif_go(woltka_map: str, out_dir: str, path: str, tax_outmap: str,
         Path to the woltka database.
     tax_outmap : str
         Path to the folder containing the taxonomic maps.
-    io : dict
-        Inputs and outputs to potentially move to scratch and back.
-    cmds : list
-        All SHOGUN command lines.
-    outputs : list
-        All outputs paths.
+    outputs: dict
+        All outputs
     """
     coords = '%s/release/function/coords.txt.xz' % path
     uniref_map = '%s/release/function/uniref/uniref.map.xz' % path
     uniref_names = '%s/release/function/uniref/uniref.names.xz' % path
-    io['I']['f'].extend([coords, uniref_map, uniref_names])
+    outputs['io']['I']['f'].update([coords, uniref_map, uniref_names])
     go_rt = '%s/release/function/go' % path
     gos = ['process', 'function', 'component']
     woltka_fun_out = '%s/go' % out_dir
@@ -193,14 +180,13 @@ def classif_go(woltka_map: str, out_dir: str, path: str, tax_outmap: str,
         cmd += ' --to-tsv'
         cur_map = '%s/%s.map.xz' % (go_rt, go)
         cmd += ' --map %s' % cur_map
-        if cur_map not in io['I']['f']:
-            io['I']['f'].append(cur_map)
+        outputs['io']['I']['f'].add(cur_map)
         cur_out = '%s/%s.tsv' % (woltka_fun_out, go)
         cmd += ' -o %s' % cur_out
         if not isfile(cur_out):
-            cmds.append(cmd)
-            io['O']['f'].append(cur_out)
-        outputs.append(cur_out)
+            outputs['cmds'].append(cmd)
+            outputs['io']['O']['f'].add(cur_out)
+        outputs['outs'].append(cur_out)
 
     stratifications = ['phylum', 'family', 'genus', 'species']
     for stratification in stratifications:
@@ -220,13 +206,12 @@ def classif_go(woltka_map: str, out_dir: str, path: str, tax_outmap: str,
             go_out = '%s/%s.tsv' % (woltka_fun_out, go)
             cmd += ' -o %s' % go_out
             if not isfile(go_out):
-                cmds.append(cmd)
-                io['O']['f'].append(go_out)
-            outputs.append(go_out)
+                outputs['cmds'].append(cmd)
+                outputs['io']['O']['f'].add(go_out)
+            outputs['outs'].append(go_out)
 
 
-def classif_genes(woltka_map: str, out_dir: str, path: str, io: dict,
-                  cmds: list, outputs: list):
+def classif_genes(woltka_map: str, out_dir: str, path: str, outputs: dict):
     """Get the Woltka commands for the gene-level classification.
 
     Parameters
@@ -237,12 +222,8 @@ def classif_genes(woltka_map: str, out_dir: str, path: str, io: dict,
         Path to pipeline output folder for SHOGUN.
     path : str
         Path to the woltka database.
-    io : dict
-        Inputs and outputs to potentially move to scratch and back.
-    cmds : list
-        All SHOGUN command lines.
-    outputs : list
-        All outputs paths.
+    outputs : dict
+        All outputs
 
     Returns
     -------
@@ -257,16 +238,15 @@ def classif_genes(woltka_map: str, out_dir: str, path: str, io: dict,
         cmd += ' -i %s' % woltka_map
         cmd += ' --coords %s' % coords
         cmd += ' -o %s' % genes
-        cmds.append(cmd)
-        io['O']['f'].append(genes)
+        outputs['cmds'].append(cmd)
+        outputs['io']['O']['f'].add(genes)
     else:
-        io['I']['f'].append(genes)
-    outputs.append(genes)
+        outputs['io']['I']['f'].add(genes)
+    outputs['outs'].append(genes)
     return genes
 
 
-def classif_uniref(genes: str, out_dir: str, path: str, io: dict,
-                   cmds: list, outputs: list):
+def classif_uniref(genes: str, out_dir: str, path: str, outputs: dict):
     """Get the Woltka commands for the uniref-level classification.
 
     Parameters
@@ -277,12 +257,8 @@ def classif_uniref(genes: str, out_dir: str, path: str, io: dict,
         Path to pipeline output folder for SHOGUN.
     path : str
         Path to the woltka database.
-    io : dict
-        Inputs and outputs to potentially move to scratch and back.
-    cmds : list
-        All SHOGUN command lines.
-    outputs : list
-        All outputs paths.
+    outputs : dict
+        All outputs
 
     Returns
     -------
@@ -298,16 +274,15 @@ def classif_uniref(genes: str, out_dir: str, path: str, io: dict,
         cmd += ' --map %s' % uniref_map
         cmd += ' --names %s' % uniref_names
         cmd += ' --output %s' % uniref
-        cmds.append(cmd)
-        io['O']['f'].append(uniref)
+        outputs['cmds'].append(cmd)
+        outputs['io']['O']['f'].add(uniref)
     else:
-        io['I']['f'].append(uniref)
-    outputs.append(uniref)
+        outputs['io']['I']['f'].add(uniref)
+    outputs['outs'].append(uniref)
     return uniref
 
 
-def classif_eggnog(uniref: str, out_dir: str, io: dict,
-                   cmds: list, outputs: list):
+def classif_eggnog(uniref: str, out_dir: str, outputs: dict):
     """Get the Woltka commands for the eggnog-level classification.
 
     Parameters
@@ -316,12 +291,8 @@ def classif_eggnog(uniref: str, out_dir: str, io: dict,
         Path to the uniref classification.
     out_dir : str
         Path to pipeline output folder for SHOGUN.
-    io : dict
-        Inputs and outputs to potentially move to scratch and back.
-    cmds : list
-        All SHOGUN command lines.
-    outputs : list
-        All outputs paths.
+    outputs : dict
+        All outputs
     """
     biom = '%s/eggnog/wol_eggnog.biom' % out_dir
     if not isfile(biom):
@@ -329,22 +300,21 @@ def classif_eggnog(uniref: str, out_dir: str, io: dict,
         cmd += '--input %s' % uniref
         cmd += ' --map /projects/wol/release/annotation/eggnog/eggnog.map.xz'
         cmd += ' --output %s\n\n' % biom
-        cmds.append(cmd)
-        io['O']['f'].append(biom)
+        outputs['cmds'].append(cmd)
+        outputs['io']['O']['f'].add(biom)
     else:
-        io['I']['f'].append(biom)
+        outputs['io']['I']['f'].add(biom)
     tsv = '%s.tsv' % splitext(biom)[0]
     if not isfile(tsv):
         cmd = 'biom convert -i %s -o %s.tmp --to-tsv\n' % (biom, tsv)
         cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
         cmd += 'rm %s.tmp\n' % tsv
-        cmds.append(cmd)
-        io['O']['f'].append(tsv)
-    outputs.extend([tsv, biom])
+        outputs['cmds'].append(cmd)
+        outputs['io']['O']['f'].add(tsv)
+    outputs['outs'].extend([tsv, biom])
 
 
-def classif_cazy(genes: str, out_dir: str, path: str, io: dict,
-                 cmds: list, outputs: list):
+def classif_cazy(genes: str, out_dir: str, path: str, outputs: dict):
     """Get the Woltka commands for the cazy-level classification.
 
     Parameters
@@ -355,12 +325,8 @@ def classif_cazy(genes: str, out_dir: str, path: str, io: dict,
         Path to pipeline output folder for SHOGUN.
     path : str
         Path to the woltka database.
-    io : dict
-        Inputs and outputs to potentially move to scratch and back.
-    cmds : list
-        All SHOGUN command lines.
-    outputs : list
-        All outputs paths.
+    outputs : dict
+        All outputs
     """
     cazy_map = '%s/cazymes/cazy/mapping_3tools.txt' % path
     biom = '%s/cazy/wol_cazy.biom' % out_dir
@@ -369,22 +335,21 @@ def classif_cazy(genes: str, out_dir: str, path: str, io: dict,
         cmd += '--input %s' % genes
         cmd += ' --map %s' % cazy_map
         cmd += ' --output %s\n\n' % biom
-        cmds.append(cmd)
-        io['O']['f'].append(biom)
+        outputs['cmds'].append(cmd)
+        outputs['io']['O']['f'].add(biom)
     else:
-        io['I']['f'].append(biom)
+        outputs['io']['I']['f'].add(biom)
     tsv = '%s.tsv' % splitext(biom)[0]
     if not isfile(tsv):
         cmd = 'biom convert -i %s -o %s.tmp --to-tsv\n' % (biom, tsv)
         cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
         cmd += 'rm %s.tmp\n' % tsv
-        cmds.append(cmd)
-        io['O']['f'].append(tsv)
-    outputs.extend([biom, tsv])
+        outputs['cmds'].append(cmd)
+        outputs['io']['O']['f'].add(tsv)
+    outputs['outs'].extend([biom, tsv])
 
 
-def classif_metacyc(genes: str, out_dir: str, path: str, io: dict,
-                    cmds: list, outputs: list):
+def classif_metacyc(genes: str, out_dir: str, path: str, outputs: dict):
     """Get the Woltka commands for the metacyc-level classification.
 
     Parameters
@@ -395,12 +360,8 @@ def classif_metacyc(genes: str, out_dir: str, path: str, io: dict,
         Path to pipeline output folder for SHOGUN.
     path : str
         Path to the woltka database.
-    io : dict
-        Inputs and outputs to potentially move to scratch and back.
-    cmds : list
-        All SHOGUN command lines.
-    outputs : list
-        All outputs paths.
+    outputs : dict
+        All outputs
     """
     metacyc_dir = '%s/release/function/metacyc' % path
     metacyc = [('protein', 'protein_name.txt', 'protein.map.xz'),
@@ -424,9 +385,9 @@ def classif_metacyc(genes: str, out_dir: str, path: str, io: dict,
                 cmd += ' -o %s' % input_biom
                 cmd += ' --to-hdf5'
                 cmd += ' --table-type="OTU table"\n'
-                io['O']['f'].append(input_biom)
+                outputs['io']['O']['f'].add(input_biom)
             else:
-                io['I']['f'].append(input_biom)
+                outputs['io']['I']['f'].add(input_biom)
         else:
             input_biom = input_fp
         cmd += '\n# %s [no stratification]\n' % level
@@ -449,9 +410,9 @@ def classif_metacyc(genes: str, out_dir: str, path: str, io: dict,
                     cmd += ' --input %s' % files[4]
             cmd += ' --map %s/%s' % (metacyc_dir, maps)
             cmd += ' --output %s\n' % biom
-            io['O']['f'].append(biom)
+            outputs['io']['O']['f'].add(biom)
         else:
-            io['I']['f'].append(biom)
+            outputs['io']['I']['f'].add(biom)
         tsv = '%s/metacyc-%s_pre.tsv' % (woltka_fun_out, level)
         if not isfile(tsv):
             cmd += 'biom convert'
@@ -460,17 +421,16 @@ def classif_metacyc(genes: str, out_dir: str, path: str, io: dict,
             cmd += ' --to-tsv\n'
             cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
             cmd += 'rm %s.tmp\n' % tsv
-            io['O']['f'].append(tsv)
+            outputs['io']['O']['f'].add(tsv)
         else:
-            io['I']['f'].append(tsv)
+            outputs['io']['I']['f'].add(tsv)
         files.extend([biom, tsv])
     if cmd:
-        cmds.append(cmd)
-    outputs.extend(files)
+        outputs['cmds'].append(cmd)
+    outputs['outs'].extend(files)
 
 
-def classif_kegg(uniref: str, out_dir: str, path: str, io: dict,
-                 cmds: list, outputs: list):
+def classif_kegg(uniref: str, out_dir: str, path: str, outputs: dict):
     """Get the Woltka commands for the kegg-level classification.
 
     Parameters
@@ -481,12 +441,8 @@ def classif_kegg(uniref: str, out_dir: str, path: str, io: dict,
         Path to pipeline output folder for SHOGUN.
     path : str
         Path to the woltka database.
-    io : dict
-        Inputs and outputs to potentially move to scratch and back.
-    cmds : list
-        All SHOGUN command lines.
-    outputs : list
-        All outputs paths.
+    outputs : dict
+        All outputs
     """
     ko_names_maps = [
         ('ko', 'ko.name', 'ko.map.xz', ''),
@@ -548,9 +504,9 @@ def classif_kegg(uniref: str, out_dir: str, path: str, io: dict,
                     cmd += ' tail -n +2 %s.tmp\n' % tsv
                     cmd += ' > %s\n' % tsv
                     cmd += ' rm %s.tmp\n' % tsv
-                    io['O']['f'].extend([biom, tsv])
+                    outputs['io']['O']['f'].update([biom, tsv])
                 else:
-                    io['I']['f'].append(biom)
+                    outputs['io']['I']['f'].add(biom)
             else:
                 input_fp = '%s/kegg/kegg-%s.biom' % (out_dir, level)
                 if not isfile(tsv):
@@ -564,59 +520,54 @@ def classif_kegg(uniref: str, out_dir: str, path: str, io: dict,
                     cmd += ' -o %s.tmp --to-tsv\n' % tsv
                     cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
                     cmd += 'rm %s.tmp\n\n' % tsv
-                    io['O']['f'].extend([biom, tsv])
+                    outputs['io']['O']['f'].update([biom, tsv])
                 else:
-                    io['I']['f'].append(biom)
+                    outputs['io']['I']['f'].add(biom)
         else:
             if not isfile('%s/kegg_info.txt' % kegg_maps):
                 cmd += 'cd %s\n' % kegg_maps
                 cmd += 'cp %s %s/%s\n' % (tsv, kegg_maps, basename(tsv))
                 kegg_query = '%s/wol/kegg_query.py' % RESOURCES
                 cmd += 'python3 %s %s\n' % (kegg_query, basename(tsv))
-                io['O']['d'].append(kegg_maps)
+                outputs['io']['O']['d'].add(kegg_maps)
             else:
-                io['I']['d'].append(kegg_maps)
+                outputs['io']['I']['d'].add(kegg_maps)
     if cmd:
-        cmds.append(cmd)
-    outputs.extend(files)
+        outputs['cmds'].append(cmd)
+    outputs['outs'].extend(files)
 
 
-def woltka(out_dir: str, inputs: dict, path: str) -> tuple:
+def woltka(prev: str, out_dir: str, inputs: dict, path: str) -> dict:
     """
 
     Parameters
     ----------
+    prev : str
+        Previous software
     out_dir : str
-        Path to pipeline output folder for SHOGUN.
+        Path to pipeline output folder
     inputs : dict
-        Input files.
+        Input files
     path : str
-        Path to the woltka database.
+        Path to Web of Life database
 
     Returns
     -------
-    io : dict
-        Inputs and outputs to potentially move to scratch and back.
-    cmds : list
-        All SHOGUN command lines.
-    outputs : list
-        All outputs paths.
-    dirs : list
-        List of output folders to create.
+    outputs : dict
+        All outputs
     """
-    outputs, dirs, cmds = [], [], []
-    io = {'I': {'f': [], 'd': []}, 'O': {'f': [], 'd': []}}
-
-    alis = get_aligments(inputs, io)
-    woltka_map = write_woltka_map(alis, out_dir, cmds)
-    get_gotus(out_dir, woltka_map, cmds, io, outputs)
-    tax_outmap = get_tax_cmd(woltka_map, out_dir, path, io, cmds, outputs)
-    classif_go(woltka_map, out_dir, path, tax_outmap, io, cmds, outputs)
-    genes = classif_genes(woltka_map, out_dir, path, io, cmds, outputs)
-    uniref = classif_uniref(genes, out_dir, path, io, cmds, outputs)
-    classif_eggnog(uniref, out_dir, io, cmds, outputs)
-    classif_cazy(genes, out_dir, path, io, cmds, outputs)
-    classif_metacyc(genes, out_dir, path, io, cmds, outputs)
-    classif_kegg(uniref, out_dir, path, io, cmds, outputs)
-
-    return io, cmds, outputs, dirs
+    outputs = {
+        'io': {'I': {'d': set(), 'f': set()}, 'O': {'d': set(), 'f': set()}},
+        'cmds': [], 'dirs': [], 'outs': []}
+    alis = get_aligments(inputs, outputs)
+    woltka_map = write_woltka_map(alis, out_dir, outputs)
+    get_gotus(out_dir, woltka_map, outputs)
+    tax_outmap = get_tax_cmd(woltka_map, out_dir, path, outputs)
+    classif_go(woltka_map, out_dir, path, tax_outmap, outputs)
+    genes = classif_genes(woltka_map, out_dir, path, outputs)
+    uniref = classif_uniref(genes, out_dir, path, outputs)
+    classif_eggnog(uniref, out_dir, outputs)
+    classif_cazy(genes, out_dir, path, outputs)
+    classif_metacyc(genes, out_dir, path, outputs)
+    classif_kegg(uniref, out_dir, path, outputs)
+    return outputs

@@ -9,66 +9,38 @@
 from os.path import isfile
 
 
-def midas(out_dir: str, sam: str, inputs: dict, path: str, cpus: str,
-          focus: str, db_species: tuple, config) -> tuple:
-    """Create command lines for MIDAS for the current database's species focus.
-
-    Parameters
-    ----------
-    out_dir : str
-        Path to pipeline output folder for MIDAS.
-    sam : str
-        Sample name.
-    inputs : dict
-        Input files.
-    path : str
-        Path to the midas database.
-    cpus : str
-        Number of cpus.
-    focus : str
-
-    db_species : tuple
-        (Database name, Path to file containing list of species to focus on.)
-    config
-        Configurations
-
-    Returns
-    -------
-    io : dict
-        Inputs and outputs to potentially move to scratch and back.
-    cmds : list
-        All MIDAS command lines.
-    outputs : list
-        All outputs paths.
-    """
-    io, cmds, outputs = {'I': [], 'O': []}, [], []
-    db, species_list = db_species
-
-    focus_dir = '%s/%s/%s' % (out_dir, focus, sam)
-    if db == path:
+def midas_species(inputs, focus_dir, sam, db, outputs,
+                  cpus, databases, config) -> None:
+    if db == databases.paths['midas']:
         species_out = '%s/species' % focus_dir
         if not config.force and isfile('%s/species_profile.txt' % species_out):
-            io['I'].append(species_out)
+            outputs['io']['I']['d'].add(species_out)
         else:
-            cmds.append(get_cmd(focus_dir, inputs[sam], db, cpus, 'species'))
-            io['O'].append(species_out)
-        outputs.append(species_out)
+            outputs['cmds'].append(
+                get_cmd(focus_dir, inputs[sam], db, cpus, 'species'))
+            outputs['io']['O']['d'].add(species_out)
+        outputs['outs'].append(species_out)
+        outputs['dirs'].append(species_out)
 
-    select = set(get_species_select(db, species_list))
 
-    genes_out = '%s/genes' % focus_dir
+def midas_genus(inputs, focus_dir, genes_out, sam, db, outputs, select,
+                cpus, config):
     if config.force or not isfile('%s/readme.txt' % genes_out):
-        cmds.append(get_cmd(focus_dir, inputs[sam], db, cpus, 'genes', select))
-        io['O'].append(genes_out)
-    outputs.append(genes_out)
+        outputs['cmds'].append(
+            get_cmd(focus_dir, inputs[sam], db, cpus, 'genes', select))
+        outputs['io']['O']['d'].add(genes_out)
+    outputs['outs'].append(genes_out)
+    outputs['dirs'].append(genes_out)
 
-    snps_out = '%s/snps' % focus_dir
+
+def midas_snps(inputs, focus_dir, snps_out, sam, db, outputs, select,
+               cpus, config):
     if config.force or not isfile('%s/readme.txt' % snps_out):
-        cmds.append(get_cmd(focus_dir, inputs[sam], db, cpus, 'snps', select))
-        io['O'].append(snps_out)
-    outputs.append(snps_out)
-
-    return io, cmds, outputs
+        outputs['cmds'].append(
+            get_cmd(focus_dir, inputs[sam], db, cpus, 'snps', select))
+        outputs['io']['O']['d'].add(snps_out)
+    outputs['outs'].append(snps_out)
+    outputs['dirs'].append(snps_out)
 
 
 def get_species_select(db: str, species_list: str) -> set:
@@ -139,3 +111,53 @@ def get_cmd(
     if select:
         cmd += ' --species_id %s' % ','.join(list(select))
     return cmd
+
+
+def midas(out_dir: str, sam: str, inputs: dict, focus: str, db_species: tuple,
+          databases, params, config) -> dict:
+    """Create command lines for MIDAS for the current database's species focus.
+
+    Parameters
+    ----------
+    out_dir : str
+        Path to pipeline output folder for MIDAS
+    sam : str
+        Sample name.
+    inputs : dict
+        Input files.
+    focus : str
+
+    db_species : tuple
+        (Database name, Path to file containing list of species to focus on)
+    databases
+        Databases
+    params
+        Parameters
+    config
+        Configurations
+
+    Returns
+    -------
+    outputs : dict
+        All outputs
+    """
+    outputs = {'io': {'I': {'d': set()}, 'O': {'d': set()}},
+               'cmds': [], 'dirs': [], 'outs': []}
+    db, species_list = db_species
+
+    cpus = params['cpus']
+
+    focus_dir = '%s/%s/%s' % (out_dir, focus, sam)
+    midas_species(inputs, focus_dir, sam, db, outputs, cpus, databases, config)
+
+    select = set(get_species_select(db, species_list))
+
+    genes_out = '%s/genes' % focus_dir
+    midas_genus(inputs, focus_dir, genes_out, sam, db, outputs, select,
+                cpus, config)
+
+    snps_out = '%s/snps' % focus_dir
+    midas_snps(inputs, focus_dir, snps_out, sam, db, outputs, select,
+               cpus, config)
+
+    return outputs
