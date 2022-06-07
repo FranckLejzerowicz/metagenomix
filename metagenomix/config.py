@@ -29,6 +29,7 @@ class AnalysesConfig(object):
         self.modules = {}
         self.soft_paths = []
         self.fastq = {}
+        self.fastq_scratch = {}
         self.r = {}
         self.dir = ''
         self.params = {}
@@ -131,15 +132,16 @@ class AnalysesConfig(object):
         return fastqs
 
     def get_fastq_samples(self):
-        fastqs = self.get_fastq_paths()
-        fastq = fill_fastq(fastqs, set(self.meta.sample_name))
+        fastq_paths = self.get_fastq_paths()
+        fastq = fill_fastq(fastq_paths, set(self.meta.sample_name))
         # keep only the `.fastq.gz` files (if `.fastq` files are also present)
-        self.fastq = {}
-        for sam, fastqs in fastq.items():
-            if len([x for x in fastqs if '.gz' in x]):
-                self.fastq[sam] = [x for x in fastqs if '.gz' in x]
+        for sam, fastqs_ in fastq.items():
+            if len([x for x in fastqs_ if '.gz' in x]):
+                fastqs = [x for x in fastqs_ if '.gz' in x]
             else:
-                self.fastq[sam] = fastqs
+                fastqs = fastqs_
+            self.fastq[sam] = fastqs
+            self.fastq_scratch[sam] = ['${SCRATCH_DIR}%s' % x for x in fastqs]
 
     def set_fastq(self):
         """
