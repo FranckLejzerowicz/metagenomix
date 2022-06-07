@@ -5,7 +5,7 @@
 #
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
-
+import os
 import subprocess
 import numpy as np
 from os.path import dirname, splitext
@@ -106,7 +106,7 @@ class CreateScripts(object):
         self.cmd = [
             'Xhpc',
             '-j', self.job_name,
-            '-t', params['time'],
+            '-t', str(params['time']),
             '-c', str(params['cpus']),
             '-M', str(params['mem_num']), params['mem_dim'],
             '--no-stat',
@@ -129,7 +129,7 @@ class CreateScripts(object):
             self.cmd.extend(['-e', params['env']])
         # setup the scratch location to be used for the current software
         if isinstance(params['scratch'], int):
-            self.cmd.extend(['--localscratch', params['scratch']])
+            self.cmd.extend(['--localscratch', str(params['scratch'])])
         elif params['scratch'] == 'scratch':
             self.cmd.append('--scratch')
         elif params['scratch'] == 'userscratch':
@@ -139,10 +139,11 @@ class CreateScripts(object):
             self.cmd.append('--quiet')
 
     def call_cmd(self):
-        cmd = ' '.join(map(str, self.cmd))
+        cmd = ' '.join(self.cmd)
         if self.config.verbose:
             print('[Running]', cmd)
         subprocess.call(cmd.split())
+        os.remove(self.sh)
 
     def write_chunks(self, chunks: list):
         with open(self.sh, 'w') as sh:
