@@ -37,8 +37,8 @@ class ReferenceDatabases(object):
         self.cazys = {}
         self.gtdb = {}
         self.wol = {}
-        self.formats = ['bowtie2', 'centrifuge', 'minimap2', 'blastn',
-                        'burst', 'utree', 'qiime2', 'kraken2', 'bracken']
+        self.formats = ['blastn', 'bowtie2', 'bracken', 'burst', 'centrifuge',
+                        'diamond', 'kraken2', 'minimap2', 'qiime2', 'utree']
         self.valid_databases = set()
 
     def init(self) -> None:
@@ -47,9 +47,9 @@ class ReferenceDatabases(object):
         self.set_databases()
 
     def get_formats(self):
+        """Override init (default) database formats with those from yaml file"""
         if 'formats' in self.config.databases:
             self.formats = self.config.databases['formats']
-            del self.config.databases['formats']
 
     def validate_databases(self) -> None:
         """Show and validate the presence of databases.
@@ -129,9 +129,6 @@ class ReferenceDatabases(object):
         sizes.columns = ['gid', 'length']
         self.wol['sizes'] = sizes
         self.register_command()
-
-    def set_squeezemeta(self) -> None:
-        pass
 
     def set_mar(self) -> None:
         path = self.config.databases['mar']['path']
@@ -280,27 +277,6 @@ class ReferenceDatabases(object):
                     cmd += 'wget -i https://raw.githubusercontent.com/knights' \
                            '-lab/SHOGUN/master/docs/shogun_db_links.txt\n'
                     self.cmds['download_shogun'] = [cmd]
-
-    # def set_humann(self) -> None:
-    #     self.paths[self.database] = self.config.databases['humann']['path']
-    #
-    # def set_metaphlan(self) -> None:
-    #     self.paths[self.database] = self.config.databases['metaphlan']['path']
-    #
-    # def set_macsyfinder(self) -> None:
-    #     self.paths[self.database] = self.config.databases['macsyfinder']['path']
-    #
-    # def set_gtdb(self) -> None:
-    #     self.paths[self.database] = self.config.databases['gtdb']['path']
-    #
-    # def set_tara_euk(self) -> None:
-    #     self.paths[self.database] = self.config.databases['tara_euk']['path']
-    #
-    # def set_tara_prok(self) -> None:
-    #     self.paths[self.database] = self.config.databases['tara_prok']['path']
-    #
-    # def set_uniref(self) -> None:
-    #     self.paths[self.database] = self.config.databases['uniref']['path']
 
     def set_other_database(self) -> None:
         self.paths[self.database] = self.config.databases[self.database]['path']
