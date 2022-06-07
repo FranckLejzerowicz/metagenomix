@@ -44,7 +44,7 @@ class AnalysesConfig(object):
         self.stand_alone_groupings = {'metamarker': ('metawrap_ref', 'is_ccz')}
 
     def init(self):
-        self.check_xpbs_install()
+        self.check_xhpc_install()
         self.get_conda_envs()
         self.set_metadata()
         self.set_fastq()
@@ -55,9 +55,9 @@ class AnalysesConfig(object):
         self.update_metadata()
         self.get_default_params()
 
-    def check_xpbs_install(self):
+    def check_xhpc_install(self):
         """Try to get the install path of third party tool
-        [Xpbs](https://github.com/FranckLejzerowicz/Xpbs).
+        [Xhpc](https://github.com/FranckLejzerowicz/Xhpc).
             If it exists, nothing happens and the code proceeds.
             Otherwise, the code ends and tells what to do.
         """
@@ -183,7 +183,8 @@ class AnalysesConfig(object):
             if arg == 'pipeline_tsv':
                 with open(self.__dict__[arg]) as f:
                     read = [['edit_fastqs']] + [
-                        x.strip().split() for x in f.readlines() if x[0] != '#']
+                        x.strip().split() for x in f.readlines()
+                        if x[0] != '#' and len(x.strip().split())]
                     setattr(self, arg[:-4], read)
 
     def get_default_params(self):
