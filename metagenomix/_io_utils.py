@@ -469,3 +469,56 @@ def write_hmms(out_dir: str, hmms_dias: dict) -> str:
                 o.write('%s\n' % hmm)
         o.close()
     return hmms_fp
+
+
+def get_roundtrip(io) -> dict:
+    roundtrip = {'to': inputs_to_scratch(io), 'from': outputs_back(io)}
+    return roundtrip
+
+
+def inputs_to_scratch(io) -> list:
+    rsyncs, mkdirs = set(), set()
+    # folders
+    for folder_ in io['I']['d']:
+        folder = folder_.rstrip('/')
+        mkdirs.add('mkdir -p ${SCRATCH_DIR}%s' % folder)
+        rsyncs.add('rsync -aqruv %s/ ${SCRATCH_DIR}%s' % (folder, folder))
+    # files
+    for file in io['I']['f']:
+        folder = dirname(file)
+        mkdirs.add('mkdir -p ${SCRATCH_DIR}%s' % folder)
+        rsyncs.add('rsync -aqruv %s ${SCRATCH_DIR}%s' % (file, file))
+    return sorted(mkdirs) + sorted(rsyncs)
+
+
+def outputs_back(io) -> list:
+    outbound = set()
+    # folders
+    for folder_ in io['O']['d']:
+        folder = folder_.rstrip('/')
+        cmd = 'mkdir -p %s; ' % folder
+        cmd += 'rsync -aqruv ${SCRATCH_DIR}%s/ %s' % (folder, folder)
+        cmd = 'if [ -d ${SCRATCH_DIR}%s ]; then %s' % (folder, cmd)
+        outbound.add(cmd)
+    # files
+    for file in io['O']['f']:
+        folder = dirname(file)
+        cmd = 'mkdir -p %s; ' % folder
+        cmd += 'rsync -aqruv ${SCRATCH_DIR}%s %s' % (file, file)
+        cmd = 'if [ -f ${SCRATCH_DIR}%s ]; then %s' % (file, cmd)
+        outbound.add(cmd)
+    return sorted(outbound)
+
+
+def scratching(soft) -> dict:
+    if soft.params['scratch']:
+        cmds = {}
+        for sam, sam_cmds in soft.cmds.items():
+            if sam in soft.io:
+                roundtrip = get_roundtrip(soft.io[sam])
+                cmds[sam] = (roundtrip['to'] + sam_cmds + roundtrip['from'])
+            else:
+                cmds[sam] = soft.cmds[sam]
+        return cmds
+    else:
+        return soft.cmds
