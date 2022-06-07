@@ -36,8 +36,8 @@ def metagenomix(**kwargs):
     databases.init()
     # print()
     # print('**************** database ***************')
-    # for db in databases.databases_commands:
-    #     for sam, cmds in databases.databases_commands[db].items():
+    # for db in databases.commands:
+    #     for sam, cmds in databases.commands[db].items():
     #         print('\n'.join(cmds))
     # print('*****************************************')
 
