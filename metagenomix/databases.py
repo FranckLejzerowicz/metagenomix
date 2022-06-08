@@ -56,16 +56,17 @@ class ReferenceDatabases(object):
         Whether there are valid databases in the user-defined paths.
         """
         if len(self.config.databases):
-            print('Databases: %s' % self.config.databases_yml)
+            x = '%s\n' % ('#' * (11 + len(self.config.databases_yml)))
+            print('\n%sDatabases: %s\n%s' % (x, self.config.databases_yml, x))
             for db, data in sorted(self.config.databases.items()):
                 if db == 'formats':
                     continue
                 if 'path' not in data:
-                    print('[Database] %s has no "path"' % db)
+                    print('  * %s: "path" parameter missing' % db)
                     continue
                 if not self.config.dev:
                     if not isdir(data['path']):
-                        print('[Database] %s not found %s' % (db, data['path']))
+                        print('  * %s: not found (%s)' % (db, data['path']))
                     else:
                         self.valid_databases.add(db)
                         print('  * %s' % yaml.dump({db: data['path']}), end='')
@@ -79,7 +80,6 @@ class ReferenceDatabases(object):
         for database in sorted(self.valid_databases):
             self.database = database
             if hasattr(self, "set_%s" % database):
-                print('### %s ###' % database)
                 getattr(self, "set_%s" % database)()
             else:
                 self.set_other_database()
