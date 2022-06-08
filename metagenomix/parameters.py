@@ -12,6 +12,7 @@ import numpy as np
 from os.path import isdir, isfile
 
 from metagenomix._io_utils import read_yaml
+from metagenomix.tools.alignment import *
 
 
 def check_ints(param, value, soft):
@@ -44,21 +45,6 @@ def show_valid_params(param, values, soft):
     sys.exit(m)
 
 
-def check_generic(defaults, user_params, soft, let_go: list=[]):
-    for param, values in defaults.items():
-        if param in let_go:  # skip params checked specifically per software
-            continue
-        if param not in user_params:
-            soft.params[param] = values[0]
-        else:
-            if isinstance(user_params[param], list):
-                if set(sorted(user_params[param])).difference(values):
-                    show_valid_params(param, values, soft)
-            else:
-                if user_params[param] not in values:
-                    show_valid_params(param, values, soft)
-
-
 def check_databases(name, user_params, databases):
     if 'databases' not in user_params:
         raise IOError('[%s] "databases" must be a parameter' % name)
@@ -74,6 +60,21 @@ def check_databases(name, user_params, databases):
     elif dbs_missing:
         print('[%s] Missing databases: "%s"' % (name, '", "'.join(dbs_missing)))
     return dbs_existing
+
+
+def check_generic(defaults, user_params, soft, let_go: list = []):
+    for param, values in defaults.items():
+        if param in let_go:  # skip params checked specifically per software
+            continue
+        if param not in user_params:
+            soft.params[param] = values[0]
+        else:
+            if isinstance(user_params[param], list):
+                if set(sorted(user_params[param])).difference(values):
+                    show_valid_params(param, values, soft)
+            else:
+                if user_params[param] not in values:
+                    show_valid_params(param, values, soft)
 
 
 # ============================================= #
@@ -123,9 +124,16 @@ def check_bowtie2(user_params, soft, databases, config):
     defaults = {
         # default: 'paired'
         'pairing': ['paired', 'concat', 'single'],
-        'discordant': [True, False]
+        'discordant': [True, False],
+        'k': '16', 'np': '1',
+        'mp': '1,1', 'rdg': '0,1', 'rfg': '0,1',
+        'score-min': 'L,0,-0.05'
     }
-    check_generic(defaults, user_params, soft)
+    let_go = []
+    check_bowtie_k_np(user_params, defaults, let_go)
+    check_bowtie_mp_rdg_rfg(user_params, defaults, let_go)
+    check_bowtie_score_min(user_params, defaults, let_go)
+    check_generic(defaults, user_params, soft, let_go)
     dbs_existing = check_databases('bowtie2', user_params, databases)
     valid_dbs = {}
     for db in dbs_existing:
