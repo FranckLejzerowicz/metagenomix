@@ -155,20 +155,23 @@ class Workflow(object):
                 if not isdir(directory):
                     os.makedirs(directory)
 
-    def check_basic_params(self, soft_params, soft):
+    def check_basic_params(self, user_params, soft):
         ints = ['time', 'procs', 'mem_num', 'chunks']
-        for param, value in soft_params.items():
-            soft.params[param] = value
+        for param, value in user_params.items():
             if param in ints:
-                check_ints(param, value, soft)
+                check_ints(param, value, soft.name)
             elif param == 'mem_dim':
-                check_mems(param, value, soft)
+                check_mems(param, value, soft.name)
             elif param == 'env':
-                check_env(self.config, value, soft)
+                check_env(self.config, value, soft.name)
             elif param == 'path':
-                check_path(value)
+                check_path(value, soft.name)
+            elif param == 'scratch':
+                check_scratch(value, soft.name)
+            soft.params[param] = value
 
     def set_scratch(self, soft):
+        """scratch set on command line overrides per-software scratches"""
         if self.config.localscratch:
             soft.params['scratch'] = self.config.localscratch
         elif self.config.scratch:
@@ -195,8 +198,8 @@ class Workflow(object):
         for _, soft in self.softs.items():
             print()
             print('<set_params>', soft.name)
-            self.set_user_params(soft)
             self.set_scratch(soft)
+            self.set_user_params(soft)
 
 
     # def collect_paths(self):
