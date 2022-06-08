@@ -58,7 +58,7 @@ class Commands(object):
         for sdx, softs in enumerate(self.config.pipeline):
             self.analysis = softs[-1]
             self.soft = self.softs[self.analysis]
-            print('[Collecting commands] #%s: %s' % (sdx, self.soft.name))
+            print('\n[Collecting commands] #%s: %s' % (sdx, self.soft.name))
             self.get_inputs()
             self.get_method()
             self.get_dir()
@@ -93,21 +93,19 @@ class Commands(object):
 
     def generic_command(self):
         self.sam = ''
-        print()
-        print('name:', self.soft.name, end=' ')
         if self.soft.name in self.holistics:
-            print('--> holistic')
+            print('\t\t--> holistic')
             self.prep_job()
         elif self.soft.name == 'pooling':
-            print('--> pooling')
+            print('\t\t--> pooling')
             self.pooling()
         else:
-            print('--> samples:')
+            print('\t\t--> samples:')
             for sam in sorted(self.inputs):
                 self.sam = sam
                 self.pool = sam
-                print("   # self.sam = sam:", self.sam)
-                print("   # self.pool = sam:", self.pool)
+                print("\t\t\t# self.sam = sam:", self.sam)
+                print("\t\t\t# self.pool = sam:", self.pool)
                 self.prep_job()
         # print('---- cmds:')
         # print(self.cmds)
