@@ -362,9 +362,6 @@ class Commands(object):
     def prep_spades(self):
         self.out = {}
         self.cmds[self.pool] = []
-        print(self.inputs)
-        print(self.inputs[self.pool])
-        print(self.inputgfdsa)
         for group, fastas in self.inputs[self.pool].items():
             tmp_dir = '%s/spades_%s' % (self.config.scratch, self.pool)
             out_dir = '%s/%s/%s' % (self.dir, self.pool, group)
