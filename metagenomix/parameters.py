@@ -6,10 +6,9 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-import sys
 import glob
 import numpy as np
-from os.path import isdir, isfile
+from os.path import isdir
 
 from metagenomix._io_utils import read_yaml
 from metagenomix.tools.alignment import *
@@ -47,16 +46,16 @@ def show_valid_params(param, values, soft):
 
 def check_databases(name, user_params, databases):
     if 'databases' not in user_params:
-        raise IOError('[%s] "databases" must be a parameter' % name)
+        sys.exit('[%s] "databases" must be a parameter' % name)
     dbs_existing = []
     dbs_missing = []
     for db in user_params['databases']:
-        if db in databases.paths:
+        if db in databases.paths or db == 'default':
             dbs_existing.append(db)
         else:
             dbs_missing.append(db)
     if not dbs_existing:
-        raise IOError('[%s] No databases: %s' % (name, '; '.join(dbs_missing)))
+        sys.exit('[%s] No databases: %s' % (name, '; '.join(dbs_missing)))
     elif dbs_missing:
         print('[%s] Missing databases: "%s"' % (name, '", "'.join(dbs_missing)))
     return dbs_existing
@@ -66,8 +65,13 @@ def check_generic(defaults, user_params, soft, let_go: list = []):
     for param, values in defaults.items():
         if param in let_go:  # skip params checked specifically per software
             continue
+        print(' - param:', param)
+        print('   > values:', values)
         if param not in user_params:
-            soft.params[param] = values[0]
+            if param in ['aligners']:
+                soft.params[param] = [values[0]]
+            else:
+                soft.params[param] = values[0]
         else:
             if isinstance(user_params[param], list):
                 if set(sorted(user_params[param])).difference(values):
@@ -84,13 +88,14 @@ def check_generic(defaults, user_params, soft, let_go: list = []):
 # ============================================= #
 
 
+def check_kraken2(user_params, soft, databases, config):
+    defaults = {'databases': (['default'] + sorted(databases.paths))}
+    dbs_existing = check_databases('bowtie2', user_params, databases)
+    check_generic(defaults, user_params, soft)
+
+
 def check_shogun(user_params, soft, databases, config):
-    defaults = {
-        # default: 'paired'
-        'pairing': ['paired', 'concat', 'single'],
-        # default: ['bowtie2']
-        'aligners': ['bowtie2', 'burst', 'utree']
-    }
+    defaults = {'aligners': ['bowtie2', 'burst', 'utree']}
     check_generic(defaults, user_params, soft)
     if 1:
         valid_dbs = {}
@@ -130,9 +135,9 @@ def check_bowtie2(user_params, soft, databases, config):
         'score-min': 'L,0,-0.05'
     }
     let_go = []
-    check_bowtie_k_np(user_params, defaults, let_go)
-    check_bowtie_mp_rdg_rfg(user_params, defaults, let_go)
-    check_bowtie_score_min(user_params, defaults, let_go)
+    check_bowtie_k_np(soft, user_params, defaults, let_go)
+    check_bowtie_mp_rdg_rfg(soft, user_params, defaults, let_go)
+    check_bowtie_score_min(soft, user_params, defaults, let_go)
     check_generic(defaults, user_params, soft, let_go)
     dbs_existing = check_databases('bowtie2', user_params, databases)
     valid_dbs = {}
@@ -146,11 +151,6 @@ def check_bowtie2(user_params, soft, databases, config):
         else:
             valid_dbs[db] = bt2_path.rsplit('.', 2)[0]
     user_params['databases'] = valid_dbs
-
-
-def check_kraken2(user_params, soft, databases, config):
-    defaults = {'databases': (['default'] + sorted(databases.paths))}
-    check_generic(defaults, user_params, soft)
 
 
 def check_spades(user_params, soft, databases, config):
