@@ -14,27 +14,32 @@ from metagenomix._io_utils import read_yaml
 from metagenomix.tools.alignment import *
 
 
-def check_ints(param, value, soft):
+def check_ints(param, value, name):
     if not str(value).isdigit():
-        raise IOError('Param "%s" for "%s" must be integer' % (
-            param, soft.name))
+        raise sys.exit('Param "%s" for "%s" must be integer' % (param, name))
 
 
-def check_mems(param, value, soft):
+def check_mems(param, value, name):
     mems = ['kb', 'mb', 'gb']
     if value not in mems:
-        raise IOError('Param "%s" for "%s" must be of %s' % (
-            param, soft.name, str(mems)))
+        raise sys.exit('Param "%s" for "%s" must be of %s' % (
+            param, name, str(mems)))
 
 
-def check_env(config, value, soft):
-    if soft.name not in config.modules and value not in config.conda_envs:
-        raise EnvironmentError('"%s" not a module or conda env' % value)
+def check_env(config, value, name):
+    if name not in config.modules and value not in config.conda_envs:
+        sys.exit('"%s" not a module or conda env' % value)
 
 
-def check_path(value):
+def check_path(value, name):
     if not isfile(value) and not isdir(value):
-        raise IOError('"%s" do not exist' % value)
+        sys.exit('path "%s" for "%s" do not exist' % (value, name))
+
+
+def check_scratch(value, name):
+    if value not in ['scratch', 'userscratch'] and not isinstance(value, int):
+        sys.exit('"%s" for "%s" must be "scratch", "userscratch" or an int' % (
+            value, name))
 
 
 def show_valid_params(param, values, soft):
