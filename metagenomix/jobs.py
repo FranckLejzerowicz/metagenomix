@@ -137,6 +137,7 @@ class CreateScripts(object):
         # quiet Xhpc if metagenomix is not supposed to be verbose
         if not self.config.verbose:
             self.cmd.append('--quiet')
+        print(' '.join(self.cmd))
 
     def call_cmd(self):
         cmd = ' '.join(self.cmd)
