@@ -19,6 +19,7 @@ from metagenomix.tools.kraken2 import kraken2
 from metagenomix.tools.phlans import metaphlan, humann, strainphlan
 from metagenomix.tools.shogun import shogun
 from metagenomix.tools.woltka import woltka
+from metagenomix.tools.spades import spades
 from metagenomix.tools.metawrap import get_sams_fastqs
 from metagenomix.tools.drep import get_drep_bins, get_drep_inputs
 # from metagenomix.tools.metamarker import metamarker
@@ -92,16 +93,21 @@ class Commands(object):
 
     def generic_command(self):
         self.sam = ''
-        # print()
-        # print('name:', self.soft.name)
+        print()
+        print('name:', self.soft.name, end=' ')
         if self.soft.name in self.holistics:
+            print('--> holistic')
             self.prep_job()
         elif self.soft.name == 'pooling':
+            print('--> pooling')
             self.pooling()
         else:
+            print('--> samples:')
             for sam in sorted(self.inputs):
                 self.sam = sam
                 self.pool = sam
+                print("   # self.sam = sam:", self.sam)
+                print("   # self.pool = sam:", self.pool)
                 self.prep_job()
         # print('---- cmds:')
         # print(self.cmds)
@@ -164,6 +170,7 @@ class Commands(object):
             merges = ['extendedFrags', 'notCombined_1', 'notCombined_2']
         for merge in merges:
             paths = [x for s in sams for x in self.inputs[s] if merge in x]
+            # only pool if there is min 2 samples being merged
             if len(sams) > 1:
                 fas = '%s/%s.%s.fasta' % (out_dir, group, merge)
                 fas = fas.replace(' ', '_').replace('..', '.')
@@ -233,7 +240,6 @@ class Commands(object):
 
     def prep_midas(self):
         """Command setup resort to calling a module"""
-        self.soft.io[self.sam]['I']['f'].update(self.inputs)
         for focus, db in self.config.midas_foci.items():
             self.outputs = midas(
                 self.dir, self.sam, self.inputs, focus, db, self.databases,
@@ -360,6 +366,8 @@ class Commands(object):
             self.out = outputs
 
     def prep_spades(self):
+        # self.outputs = spades(self.dir, self.pool, self.inputs, self.soft,
+        #                       self.config)
         self.out = {}
         self.cmds[self.pool] = []
         for group, fastas in self.inputs[self.pool].items():
@@ -367,7 +375,7 @@ class Commands(object):
             out_dir = '%s/%s/%s' % (self.dir, self.pool, group)
             cmd = 'spades.py'
             cmd += ' -m %s' %  self.soft.params['mem_num']
-            cmd += ' -k %s' % ','.join(self.soft.params['k'])
+            cmd += ' -k %s' % ','.join(map(str, self.soft.params['k']))
             cmd += ' -t %s' % self.soft.params['cpus']
             if self.soft.params['meta']:
                 cmd += ' --meta'
@@ -394,6 +402,42 @@ class Commands(object):
                 self.soft.io[self.sam]['O']['d'].add(out_dir)
                 self.soft.io[self.sam]['O']['f'].update(outputs)
             self.out[group] = outputs
+
+    # def prep_spades(self):
+    #     self.out = {}
+    #     self.cmds[self.pool] = []
+    #     for group, fastas in self.inputs[self.pool].items():
+    #         tmp_dir = '%s/spades_%s' % (self.config.scratch, self.pool)
+    #         out_dir = '%s/%s/%s' % (self.dir, self.pool, group)
+    #         cmd = 'spades.py'
+    #         cmd += ' -m %s' %  self.soft.params['mem_num']
+    #         cmd += ' -k %s' % ','.join(map(str, self.soft.params['k']))
+    #         cmd += ' -t %s' % self.soft.params['cpus']
+    #         if self.soft.params['meta']:
+    #             cmd += ' --meta'
+    #         if self.soft.params['only_assembler']:
+    #             cmd += ' --only-assembler'
+    #         cmd += ' --tmp-dir %s -o %s' % (tmp_dir, out_dir)
+    #         for fasta in fastas:
+    #             if 'extendedFrags' in fasta:
+    #                 cmd += ' --merge %s' % fasta
+    #             elif 'notCombined_1' in fasta:
+    #                 cmd += ' -1 %s' % fasta
+    #             elif 'notCombined_2' in fasta:
+    #                 cmd += ' -2 %s' % fasta
+    #         before_rr = '%s/before_rr.fasta' % out_dir
+    #         contigs = '%s/contigs.fasta' % out_dir
+    #         first_pe = '%s/first_pe_contigs.fasta' % out_dir
+    #         scaffolds = '%s/scaffolds.fasta' % out_dir
+    #         log = '%s/spades.log' % out_dir
+    #         outputs = [before_rr, contigs, first_pe, scaffolds, log]
+    #         if not isfile(contigs):
+    #             self.cmds[self.pool].extend(['mkdir -p %s' % tmp_dir, cmd])
+    #             self.soft.io[self.sam]['I']['d'].add(tmp_dir)
+    #             self.soft.io[self.sam]['I']['f'].update(fastas)
+    #             self.soft.io[self.sam]['O']['d'].add(out_dir)
+    #             self.soft.io[self.sam]['O']['f'].update(outputs)
+    #         self.out[group] = outputs
 
     def prep_read_mapping(self):
         refs = {}
