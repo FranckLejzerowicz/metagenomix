@@ -1,7 +1,7 @@
-# ------------------ Follow the format examples below ----------------- #
-#  <software name>: <module>                                            #
-#  "<module>" should be as appears in the list return by `module avail` #
-# ----------------------------------------------------------------------#
+# -------------------- Follow the format examples below -------------------- #
+#software_name: module_name                                                  #
+#  "module_name" should be as appears in the list returned by `module avail` #
+# -------------------------------------------------------------------------- #
 fastqc: FastQC/0.11.9-Java-11
 cutadapt: cutadapt/3.5-GCCcore-11.2.0
 flash: FLASH/1.2.11-foss-2019b
