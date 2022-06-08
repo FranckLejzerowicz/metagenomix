@@ -364,7 +364,7 @@ def count_reads_cmd(idx: int, input_path: str, out: str, sam: str) -> str:
         Command to count reads and output the counts.
     """
     if input_path.endswith('fastq.gz'):
-        cmd = "n%s=`gzcat %s | wc -l | " % (idx, input_path)
+        cmd = "n%s=`zcat %s | wc -l | " % (idx, input_path)
         cmd += "sed 's/ //g' | awk '{x=$1/4; print x}'`\n"
         # cmd += "cut -d ' ' -f 1 | awk '{x=$1/4; print x}'`"
     elif input_path.endswith('fasta'):
