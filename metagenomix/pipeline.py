@@ -190,6 +190,8 @@ class Workflow(object):
         params passed by the user for each of the software.
         """
         for _, soft in self.softs.items():
+            print()
+            print('<set_params>', soft.name)
             self.set_user_params(soft)
             self.set_scratch(soft)
 
