@@ -86,6 +86,8 @@ class CreateScripts(object):
 
     def software_cmds(self, commands):
         for sdx, (name, soft) in enumerate(commands.softs.items()):
+            if not len(soft.cmds):
+                continue
             print()
             print('[Writting commands] #%s: %s' % (sdx, soft.name))
             if soft.params['scratch']:
