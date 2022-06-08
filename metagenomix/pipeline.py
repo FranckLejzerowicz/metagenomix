@@ -183,6 +183,9 @@ class Workflow(object):
             check_ = getattr(parameters, func)
             check_(user_params, soft, self.databases, self.config)
         self.check_basic_params(user_params, soft)
+        if isinstance(user_params['scratch'], int):
+            soft.params['mem_num'] = user_params['scratch']
+            soft.params['mem_dim'] = 'gb'
 
     def set_params(self) -> None:
         """
