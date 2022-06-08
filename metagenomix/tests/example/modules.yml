@@ -1,0 +1,11 @@
+# ------------------ Follow the format examples below ----------------- #
+#  <software name>: <module>                                            #
+#  "<module>" should be as appears in the list return by `module avail` #
+# ----------------------------------------------------------------------#
+fastqc: FastQC/0.11.9-Java-11
+cutadapt: cutadapt/3.5-GCCcore-11.2.0
+flash: FLASH/1.2.11-foss-2019b
+spades: SPAdes/3.14.1-GCC-9.3.0-Python-3.8.2
+prodigal: prodigal/2.6.3-GCCcore-11.2.0
+diamond_custom: DIAMOND/2.0.13-GCC-11.2.0
+hmmer_custom: HMMER/3.3.2-iimpi-2021b
