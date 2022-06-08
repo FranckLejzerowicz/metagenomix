@@ -6,6 +6,7 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
+import sys
 import pkg_resources
 from os.path import isfile, splitext
 
@@ -203,3 +204,38 @@ def bowtie(out_dir, sample, inputs, params) -> dict:
         outputs['outs'][(db, params['pairing'])] = sam
         outputs['cmds'].append(get_alignment_cmd(fastx, cmd, sam))
     return outputs
+
+
+def check_bowtie_k_np(params, defaults, let_go):
+    for opt in ['k', 'np']:
+        if opt in params and not str(params[opt]).isdigit():
+            sys.exit('[bowtie2] "%s" option invalid' % opt)
+        else:
+            params[opt] = defaults[opt]
+        let_go.append(opt)
+
+
+def check_bowtie_mp_rdg_rfg(params, defaults, let_go):
+    for opt in ['mp', 'rdg', 'rfg']:
+        if opt in params:
+            if len([x.isdigit() for x in str(params[opt]).split(',')]) != 2:
+                sys.exit('[bowtie2] "%s" option invalid' % opt)
+        else:
+            params[opt] = defaults[opt]
+        let_go.append(opt)
+
+
+def check_bowtie_score_min(params, defaults, let_go):
+    if 'score-min' in params:
+        s = params['score-min'].split(',')
+        if len(s) != 3 or s[0] not in 'CLSG':
+            sys.exit('[bowtie2] "score-min" option invalid')
+        else:
+            for r in [1, 2]:
+                try:
+                    float(s[r])
+                except ValueError:
+                    sys.exit('[bowtie2] "score-min" option invalid')
+    else:
+        params['score-min'] = defaults['score-min']
+    let_go.append('score-min')
