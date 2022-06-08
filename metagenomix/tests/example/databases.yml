@@ -1,44 +1,73 @@
+# -------------------- Follow the format examples below -------------------- #
+#formats:                                                                    #
+#  - a format                                                                #
+#  - another format                                                          #
+#  - etc                                                                     #
+#                                                                            #
+#  a "format" is the name of a folder where a database is built, for example #
+#  "blastn" if for the path of a database (below), there is a "blastn" sub-  #
+#  folder containing the database formatted for BLASTn, e.g. for <DATABASE>: #
+#  ```                                                                       #
+#  DATABASE:                                                                 #
+#    path: /the/absolute/path/to/DATABASE                                    #
+#  ```                                                                       #
+#  then the `/the/absolute/path/to/DATABASE/blastn` folder would be searched #
+#                                                                            #
+#my_database_name:                                                           #
+#  path: /a/path/to/the/folder/containing/my/database                        #
+#                                                                            #
+#  for the tools that ship with a database, such as humann, wol, midas, etc, #
+#  then this must be the path where the database is installed, but if you    #
+#  have created re-formatted versions of these databases (or others), then   #
+#  this path must contain the formatting sub-folders (as explained  above)   #
+# -------------------------------------------------------------------------- #
 formats:
-  - bowtie2
-  - minimap2
-  - diamond
   - blastn
+  - bowtie2
+  - bracken
   - burst
-  - qiime2
+  - centrifuge
+  - diamond
   - kracken2
+  - minimap2
+  - qiime2
+  - utree
 mar:
-  path: /Users/franck/databases/MAR
+  path: /path/to/my/databases/MAR
 pfam:
-  path: /Users/franck/databases/PFAM
+  path: /path/to/my/databases/PFAM
   terms:
     - metal
     - manganese
 dbcan:
-  path: /Users/franck/databases/dbCAN/
+  path: /path/to/my/databases/dbCAN
   taxa:
-    CLAmicrobes: ./metagenomix/tests/example/configs/bugs.txt
+    name_of_a_taxon: /path/to/my/dbcan/taxa/groups/a.txt
+    name_of_another_taxon: /path/to/my/dbcan/taxa/groups/b.txt
 squeezemeta:
-  path: /Volumes/Franck_2TB/databases/SqueezeMeta
+  path: /path/to/my/databases/SqueezeMeta
 midas:
-  path: /Volumes/Franck_2TB/databases/midas_db_v1.2
+  path: /path/to/my/databases/midas_db_v1.2
 metaphlan:
-  path: /Volumes/Franck_2TB/databases/metaphlan3
+  path: /path/to/my/databases/metaphlan3
 humann:
-  path: /Volumes/Franck_2TB/databases/metaphlan3
+  path: /path/to/my/databases/metaphlan3
 macsyfinder:
-  path: /Volumes/Franck_2TB/databases/macsyfinder
+  path: /path/to/my/databases/macsyfinder
 uniref:
-  path: /Users/franck/databases/uniref90
+  path: /path/to/my/databases/uniref90
 ioncom:
-  path: /Users/franck/databases/IonCom
-  itasser: /Users/franck/databases/I-TASSER_LIB
+  path: /path/to/my/databases/IonCom
+  itasser: /path/to/my/databases/I-TASSER_LIB
 wol:
-  path: /Users/franck/databases/wol
+  path: /path/to/my/databases/wol
 tara_prok:
-  path: /Users/franck/databases/tara_prok
+  path: /path/to/my/databases/tara_prok
 tara_euk:
-  path: /Users/franck/databases/tara_euk
+  path: /path/to/my/databases/tara_euk
 gtdb:
-  path: /Users/franck/databases/gtdb
+  path: /path/to/my/databases/gtdb
 rep82:
-  path:  /Users/franck/databases/rep82
+  path:  /path/to/my/databases/rep82
+kraken2:
+  path: /path/to/my/databases/Kraken2
