@@ -49,7 +49,6 @@ def kraken2(out_dir: str, sample: str, inputs: dict,
     outputs = {'io': {'I': {'f': set()}, 'O': {'f': set()}},
                'cmds': [], 'dirs': [], 'outs': []}
     for db in params['databases']:
-        print(db)
         o = '%s/%s/%s' % (out_dir, sample, db)
         outputs['dirs'].append(o)
         report = '%s/report.tsv' % o
@@ -59,7 +58,6 @@ def kraken2(out_dir: str, sample: str, inputs: dict,
             outputs['io']['O']['f'].update([report, result])
             outputs['outs'].append(result)
             db_path = get_kraken2_db(db, databases, config)
-            print(db_path)
             cmd = 'kraken2 '
             cmd += ' -db %s' % db_path
             cmd += ' --threads %s' % params['cpus']
