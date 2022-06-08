@@ -19,7 +19,7 @@ from metagenomix.tools.kraken2 import kraken2
 from metagenomix.tools.phlans import metaphlan, humann, strainphlan
 from metagenomix.tools.shogun import shogun
 from metagenomix.tools.woltka import woltka
-from metagenomix.tools.spades import spades
+# from metagenomix.tools.spades import spades
 from metagenomix.tools.metawrap import get_sams_fastqs
 from metagenomix.tools.drep import get_drep_bins, get_drep_inputs
 # from metagenomix.tools.metamarker import metamarker
