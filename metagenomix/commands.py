@@ -371,7 +371,7 @@ class Commands(object):
             cmd += ' -t %s' % self.soft.params['cpus']
             if self.soft.params['meta']:
                 cmd += ' --meta'
-            if self.soft.params['only-assembler']:
+            if self.soft.params['only_assembler']:
                 cmd += ' --only-assembler'
             cmd += ' --tmp-dir %s -o %s' % (tmp_dir, out_dir)
             for fasta in fastas:
