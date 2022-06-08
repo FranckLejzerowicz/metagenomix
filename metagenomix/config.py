@@ -137,11 +137,11 @@ class AnalysesConfig(object):
         # keep only the `.fastq.gz` files (if `.fastq` files are also present)
         for sam, fastqs_ in fastq.items():
             if len([x for x in fastqs_ if '.gz' in x]):
-                fastqs = [x for x in fastqs_ if '.gz' in x]
+                fqs = [x for x in fastqs_ if '.gz' in x]
             else:
-                fastqs = fastqs_
-            self.fastq[sam] = fastqs
-            self.fastq_scratch[sam] = ['${SCRATCH_DIR}%s' % x for x in fastqs]
+                fqs = fastqs_
+            self.fastq[sam] = fqs
+            self.fastq_scratch[sam] = ['${SCRATCH_FOLDER}%s' % x for x in fqs]
 
     def set_fastq(self):
         """
