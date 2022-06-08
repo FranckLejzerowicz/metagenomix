@@ -173,6 +173,7 @@ class CreateScripts(object):
             self.job_fps.append('%s.sh' % splitext(self.sh)[0])
 
     def write_jobs(self, name: str, soft=None):
+        print('#chunks:', len(self.cmds_chunks))
         for cdx, chunks in enumerate(self.cmds_chunks):
             self.get_sh(name, cdx, soft)
             self.write_chunks(chunks)
