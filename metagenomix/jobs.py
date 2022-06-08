@@ -53,6 +53,7 @@ class CreateScripts(object):
             self.cmds_chunks = [[x] for x in self.cmds]
 
     def get_main_sh(self, name, soft=None) -> str:
+        print('get_main_sh:', self.sh)
         main = '%s/run_%s' % (self.sh.rsplit('/', 2)[0], name)
         if soft:
             main += '_after_%s.sh' % soft.prev
