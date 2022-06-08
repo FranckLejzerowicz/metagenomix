@@ -62,17 +62,17 @@ class ReferenceDatabases(object):
                 if db == 'formats':
                     continue
                 if 'path' not in data:
-                    print('  * %s: "path" parameter missing' % db)
+                    print('  - %s: "path" parameter missing' % db)
                     continue
                 if not self.config.dev:
                     if not isdir(data['path']):
-                        print('  * %s: not found (%s)' % (db, data['path']))
+                        print('  - %s: not found... (%s)' % (db, data['path']))
                     else:
                         self.valid_databases.add(db)
-                        print('  * %s' % yaml.dump({db: data['path']}), end='')
+                        print('  + %s' % yaml.dump({db: data['path']}), end='')
                 else:
                     self.valid_databases.add(db)
-                    print('  * %s' % yaml.dump({db: data['path']}), end='')
+                    print('  + %s' % yaml.dump({db: data['path']}), end='')
         else:
             print('No database passed using option `-d`')
 
