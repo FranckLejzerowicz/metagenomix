@@ -13,11 +13,13 @@ def midas_species(inputs, focus_dir, sam, db, outputs,
                   cpus, databases, config) -> None:
     if db == databases.paths['midas']:
         species_out = '%s/species' % focus_dir
-        if not config.force and isfile('%s/species_profile.txt' % species_out):
+        species_profile = '%s/species_profile.txt' % species_out
+        if not config.force and isfile(species_profile):
             outputs['io']['I']['d'].add(species_out)
         else:
             outputs['cmds'].append(
                 get_cmd(focus_dir, inputs[sam], db, cpus, 'species'))
+            outputs['io']['I']['f'].update(inputs[sam])
             outputs['io']['O']['d'].add(species_out)
         outputs['outs'].append(species_out)
         outputs['dirs'].append(species_out)
@@ -141,7 +143,7 @@ def midas(out_dir: str, sam: str, inputs: dict, focus: str, db_species: tuple,
     outputs : dict
         All outputs
     """
-    outputs = {'io': {'I': {'d': set()}, 'O': {'d': set()}},
+    outputs = {'io': {'I': {'d': set(), 'f': set()}, 'O': {'d': set()}},
                'cmds': [], 'dirs': [], 'outs': []}
     db, species_list = db_species
 
