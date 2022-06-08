@@ -58,6 +58,8 @@ class ReferenceDatabases(object):
         if len(self.config.databases):
             print('Databases: %s' % self.config.databases_yml)
             for db, data in sorted(self.config.databases.items()):
+                if db == 'formats':
+                    continue
                 if 'path' not in data:
                     print('[Database] %s has no "path"' % db)
                     continue
