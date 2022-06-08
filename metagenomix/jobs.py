@@ -147,6 +147,7 @@ class CreateScripts(object):
         # os.remove(self.sh)
 
     def write_chunks(self, chunks: list):
+        print('write_chunks', self.sh)
         with open(self.sh, 'w') as sh:
             if self.module:
                 sh.write('module load %s\n' % self.module)
