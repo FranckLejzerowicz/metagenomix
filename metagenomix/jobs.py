@@ -144,7 +144,7 @@ class CreateScripts(object):
         if self.config.verbose:
             print('[Running]', cmd)
         subprocess.call(cmd.split())
-        os.remove(self.sh)
+        # os.remove(self.sh)
 
     def write_chunks(self, chunks: list):
         with open(self.sh, 'w') as sh:
