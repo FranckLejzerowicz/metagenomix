@@ -24,9 +24,8 @@ classes = """
 classifiers = [s.strip() for s in classes.split('\n') if s]
 
 description = (
-    "routine_qiime2_analyses is a command line tool that write"
-    "commands to run one by one to perform standard qiime2 analyses on a"
-    "HPC running Torque."
+    "metagenomix is a pipeline of pipelines to conduct metagenomic analyses "
+    "on Slurm/Torque"
 )
 
 with open("README.md") as f:
@@ -61,7 +60,8 @@ setup(
         "numpy",
         "pandas",
         "pyyaml",
-        "seaborn"
+        "seaborn",
+        "Xhpc"
     ],
     classifiers=classifiers,
     entry_points={'console_scripts': standalone},
