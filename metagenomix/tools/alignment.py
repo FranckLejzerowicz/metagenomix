@@ -9,6 +9,7 @@
 import sys
 import pkg_resources
 from os.path import isfile, splitext
+from metagenomix._io_utils import io_update
 
 # Keep line because read mapping alignments will be python scripts
 # scripts = pkg_resources.resource_filename('metagenomix', 'resources/scripts')
@@ -95,18 +96,16 @@ def get_burst_cmd(fastx: str, db_path: str, params: dict, out: str) -> str:
     return cmd
 
 
-def get_bowtie2_cmd(params: dict, fastx: list, db_path: str,
-                    db_out: str) -> tuple:
+def get_bowtie2_cmd(self, fastx: list, db_path: str, db_out: str) -> tuple:
     """Get the bowtie2 alignment command.
 
     Parameters
     ----------
-    params : dict
-        Run parameters
+    self : Commands class instance
+        .soft.params
+            Parameters for humann
     fastx : list
         Path to the input fasta/fastq/fastq.gz files
-    db : str
-        Database name
     db_path : str
         Path to the bowtie2 database
     db_out: str
@@ -116,15 +115,17 @@ def get_bowtie2_cmd(params: dict, fastx: list, db_path: str,
     -------
     cmd : str
         Alignment command
+    sam : str
+        Alignment .sam file
     """
     cmd = 'bowtie2'
-    cmd += ' -p %s' % params['cpus']
+    cmd += ' -p %s' % self.soft.params['cpus']
     cmd += ' -x %s' % db_path
     sam = '%s/alignment.bowtie2' % db_out
-    if len(fastx) == 2 and params['pairing'] == 'paired':
+    if len(fastx) == 2 and self.soft.params['pairing'] == 'paired':
         cmd += ' -1 %s' % fastx[0]
         cmd += ' -2 %s' % fastx[1]
-        if not params['discordant']:
+        if not self.soft.params['discordant']:
             cmd += ' --no-discordant'
             sam += '.nodiscordant'
     else:
@@ -133,12 +134,12 @@ def get_bowtie2_cmd(params: dict, fastx: list, db_path: str,
     cmd += ' -S %s' % sam
     cmd += ' --seed 12345'
     cmd += ' --very-sensitive'
-    cmd += ' -k %s' % params['k']
-    cmd += ' --np %s' % params['np']
-    cmd += ' --mp "%s"' % params['mp']
-    cmd += ' --rdg "%s"' % params['rdg']
-    cmd += ' --rfg "%s"' % params['rfg']
-    cmd += ' --score-min "%s"' % params['score-min']
+    cmd += ' -k %s' % self.soft.params['k']
+    cmd += ' --np %s' % self.soft.params['np']
+    cmd += ' --mp "%s"' % self.soft.params['mp']
+    cmd += ' --rdg "%s"' % self.soft.params['rdg']
+    cmd += ' --rfg "%s"' % self.soft.params['rfg']
+    cmd += ' --score-min "%s"' % self.soft.params['score-min']
     cmd += ' --met-file %s.met' % splitext(sam)[0]
     cmd += ' --met 240'
     cmd += ' --no-unal'
@@ -170,40 +171,37 @@ def get_alignment_cmd(fastx: list, cmd: str, ali: str) -> str:
         return condition_ali_command(fastx, cmd, ali)
 
 
-def bowtie(out_dir, sample, inputs, params) -> dict:
+def bowtie2(self) -> None:
     """Get the full command lines to perform sequence alignment using
      bowtie2 and potentially, re-run if the output was existing but
      possibly aborted.
 
     Parameters
     ----------
-    out_dir : str
-        Path to output folder
-    sample : str
-        Sample name
-    inputs : dict
-        Input files
-    params : dict
-        Software parameters
-
-    Returns
-    -------
-    outputs : dict
-        All outputs
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for humann
+        .sam : str
+            Sample name
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters for humann
     """
-    outputs = {'io': {'I': {'d': set(), 'f': set()}, 'O': {'d': set()}},
-               'cmds': [], 'dirs': [], 'outs': dict({})}
-    out = out_dir + '/' + sample
-    fastx = inputs[sample]
-    outputs['io']['I']['f'].update(fastx)
-    for db, db_path in params['databases'].items():
-        db_out = '%s/%s/%s' % (out, db, params['pairing'])
-        outputs['io']['O']['d'].add(db_out)
-        outputs['dirs'].append(db_out)
-        cmd, sam = get_bowtie2_cmd(params, fastx, db_path, db_out)
-        outputs['outs'][(db, params['pairing'])] = sam
-        outputs['cmds'].append(get_alignment_cmd(fastx, cmd, sam))
-    return outputs
+    out = self.dir + '/' + self.sam
+    self.outputs['outs'] = dict()
+    fastx = self.inputs[self.sam]
+    for db, db_path in self.soft.params['databases'].items():
+        db_out = '%s/%s/%s' % (out, db, self.soft.params['pairing'])
+        cmd, sam = get_bowtie2_cmd(self, fastx, db_path, db_out)
+        cmd = get_alignment_cmd(fastx, cmd, sam)
+        key = (db, self.soft.params['pairing'])
+        self.outputs['outs'][key] = sam
+        self.outputs['cmds'].append(cmd)
+        self.outputs['dirs'].append(db_out)
+        io_update(self, i_f=fastx, o_d=db_out)
 
 
 def check_bowtie_k_np(soft, params, defaults, let_go):
@@ -239,3 +237,52 @@ def check_bowtie_score_min(soft, params, defaults, let_go):
     else:
         soft.params['score-min'] = defaults['score-min']
     let_go.append('score-min')
+
+
+def flash(self):
+    """Create command lines for FLASh
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for humann
+        .sam : str
+            Sample name
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters for humann
+        .config
+            Configurations
+    """
+    min_overlap = self.soft.params['min_overlap']
+    max_overlap = self.soft.params['max_overlap']
+    mismatch = self.soft.params['mismatch']
+    out = '%s/m%s_M%s_e%s/%s' % (
+        self.dir, min_overlap, max_overlap, mismatch, self.sam)
+    rad = out + '/' + self.sam
+    ext_fq = '%s.extendedFrags.fastq' % rad
+    ext = ext_fq.replace('.fastq', '.fasta')
+    nc1_fq = '%s.notCombined_1.fastq' % rad
+    nc1 = nc1_fq.replace('.fastq', '.fasta')
+    nc2_fq = '%s.notCombined_2.fastq' % rad
+    nc2 = nc2_fq.replace('.fastq', '.fasta')
+    out_fps = [ext, nc1, nc2]
+    self.outputs['dirs'].append(out)
+    self.outputs['outs'].extend(out_fps)
+    if self.config.force or len([not isfile(x) for x in out_fps]):
+        cmd = 'flash %s' % ' '.join(self.inputs[self.sam])
+        cmd += ' -m %s' % min_overlap
+        cmd += ' -M %s' % max_overlap
+        cmd += ' -x %s' % mismatch
+        cmd += ' -d %s' % out
+        cmd += ' -o %s' % self.sam
+        cmd += ' -t %s\n' % self.soft.params['cpus']
+        cmd += 'seqtk seq -A %s > %s\n' % (ext_fq, ext)
+        cmd += 'seqtk seq -A %s > %s\n' % (nc1_fq, nc1)
+        cmd += 'seqtk seq -A %s > %s\n' % (nc2_fq, nc2)
+        self.outputs['cmds'].append(cmd)
+        io_update(self, i_f=self.inputs[self.sam], o_f=out_fps)
