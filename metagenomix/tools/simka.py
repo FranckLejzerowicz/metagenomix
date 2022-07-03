@@ -9,45 +9,50 @@
 import glob
 import pkg_resources
 from os.path import isdir, isfile
-from metagenomix._io_utils import mkdr
+from metagenomix._io_utils import mkdr, io_update
 
 RESOURCES = pkg_resources.resource_filename("metagenomix", "resources/scripts")
 
 
-def get_simka_input(dir_path, inputs) -> str:
+def get_simka_input(self) -> str:
     """Write the file containing the paths to each sample.
 
     Parameters
     ----------
-    dir_path : str
-        Path to the output directory for the simka analyses.
-    inputs : dict
-        Lists of fastq files per sample name.
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for spades
+        .inputs : dict
+            Input files
 
     Returns
     -------
     sim_out : str
         Path to the file to write.
     """
-    sim_out = '%s/samples_files.txt' % dir_path
+    out_dir = self.dir.replace('${SCRATCH_FOLDER}', '')
+    sim_out = '%s/samples_files.txt' % out_dir
     mkdr(sim_out, True)
     with open(sim_out, 'w') as o:
-        for sam in inputs:
-            fs = inputs[sam]
-            if 'after_None' not in dir_path:
+        for sam in self.inputs:
+            fs = self.inputs[sam]
+            if 'after_None' not in out_dir:
                 fs = ['%sq' % x[:-1] if 'notCombined_' in x else x for x in fs]
             o.write('%s: %s\n' % (sam, '; '.join(fs)))
     return sim_out
 
 
-def simka_cmd(params: dict, smin: bool, sim_in: str, out_dir: str,
-              k: int, n: int, config) -> str:
+def simka_cmd(self, smin: bool, sim_in: str, out_dir: str,
+              k: int, n: int) -> str:
     """
 
     Parameters
     ----------
-    params : dict
-        Simka parameters
+    self : Commands class instance
+        .soft.params
+            Parameters
+        .config
+            Configurations
     smin : bool
         Whether to use SimkaMin (True) or base Simka (False)
     sim_in : str
@@ -58,8 +63,6 @@ def simka_cmd(params: dict, smin: bool, sim_in: str, out_dir: str,
         Length of the k-mer
     n : int
         Number of sequences to inject in the Simka analysis
-    config
-        Configurations
 
     Returns
     -------
@@ -70,14 +73,14 @@ def simka_cmd(params: dict, smin: bool, sim_in: str, out_dir: str,
     if isdir('%s/simkamin' % out_dir):
         cmd = 'rm -rf %s/simkamin\n' % out_dir
     if smin:
-        if not config.force:
+        if not self.config.force:
             if isfile('%s/mat_abundance_braycurtis.csv' % out_dir):
                 return ''
             elif isfile('%s/mat_abundance_braycurtis.csv.gz' % out_dir):
                 return ''
-        cmd += simka_min_cmd(params, sim_in, out_dir, k, str(n))
+        cmd += simka_min_cmd(self.soft.params, sim_in, out_dir, k, str(n))
     else:
-        cmd += simka_base_cmd(params, sim_in, out_dir, k, str(n))
+        cmd += simka_base_cmd(self.soft.params, sim_in, out_dir, k, str(n))
     return cmd
 
 
@@ -145,8 +148,6 @@ def simka_base_cmd(
     cmd : str
         Simka command line.
     """
-    print(params)
-    print(paramsfdsa)
     cmd = '%s/build/bin/simka' % params['path']
     cmd += ' -in %s' % sim_in
     cmd += ' -out %s' % out_dir
@@ -224,42 +225,36 @@ def simka_pcoa_cmd(mat: str, config) -> str:
     return cmd
 
 
-def simka(out_dir, inputs, params, config):
-    """
+def simka(self) -> None:
+    """Create command lines for Simka.
 
     Parameters
     ----------
-    out_dir : str
-        Path to pipeline output folder for Simka
-    inputs : dict
-        Input files
-    params : dict
-        Simka parameters
-    config
-        Configurations
-
-    Returns
-    -------
-    outputs : dict
-        All outputs
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for spades
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
     """
-    outputs = {
-        'io': {'I': {'d': set(), 'f': set()}, 'O': {'d': set(), 'f': set()}},
-        'cmds': [], 'dirs': [], 'outs': []}
-    input_file = get_simka_input(out_dir, inputs)
-    outputs['io']['I']['f'].add(input_file)
-    smin = params['simkaMin']
-    for k in map(int, params['kmer']):
-        for n in map(int, params['log_reads']):
-            out_d = '%s/k%s/n%s' % (out_dir, k, n)
-            cmd = simka_cmd(params, smin, input_file, out_d, k, n, config)
+    input_file = get_simka_input(self)
+    io_update(self, i_f=input_file)
+    smin = self.soft.params['simkaMin']
+    for k in map(int, self.soft.params['kmer']):
+        for n in map(int, self.soft.params['log_reads']):
+            out_d = '%s/k%s/n%s' % (self.dir, k, n)
+            cmd = simka_cmd(self, smin, input_file, out_d, k, n)
             if cmd:
-                outputs['dirs'].append(out_d)
-                outputs['cmds'].append(cmd)
-                outputs['io']['O']['d'].add(out_d)
+                self.outputs['dirs'].append(out_d)
+                self.outputs['cmds'].append(cmd)
+                io_update(self, o_d=out_d)
             for mdx, mat in enumerate(glob.glob('%s/mat_*.csv*' % out_d)):
-                cmd = simka_pcoa_cmd(mat, config)
+                cmd = simka_pcoa_cmd(mat, self.config)
                 if cmd:
-                    outputs['cmds'].append(cmd)
-                    outputs['io']['O']['d'].add(out_d)
-    return outputs
+                    self.outputs['cmds'].append(cmd)
+                    io_update(self, o_d=out_d)
