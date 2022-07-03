@@ -14,7 +14,7 @@ from metagenomix.jobs import CreateScripts
 
 
 def metagenomix(**kwargs):
-    """Main metagenomics workflow.
+    """Run metagenomix to account for the passed commanbd line a.
 
     Parameters
     ----------
@@ -22,44 +22,26 @@ def metagenomix(**kwargs):
         All arguments passed in command line, including defaults
     """
 
-    # Collect general config and initialization checks
+    # Parse the command line arguments and validate computing environment
     config = AnalysesConfig(**kwargs)
-    config.init()
-    # print()
-    # print('**************** CONFIG *****************')
-    # for i, j in sorted(config.__dict__.items()):
-    #     print(i, '\t:\t', j)
-    # print('**************** CONFIG *****************')
-    # print()
+    config.run()
 
+    # Validate and get commands to set up the passed databases if need be
     databases = ReferenceDatabases(config)
-    databases.init()
-    # print()
-    # print('**************** database ***************')
-    # for db in databases.commands:
-    #     for sam, cmds in databases.commands[db].items():
-    #         print('\n'.join(cmds))
-    # print('*****************************************')
+    databases.run()
 
+    # Read and validate the workflow of tools to run as a pipeline
     workflow = Workflow(config, databases)
-    workflow.init()
-    # print('**************** pipeline ***************')
-    # for idx, soft in workflow.softs.items():
-    #     print(idx, soft.prev, soft.name, soft.params)
-    # print('*****************************************')
-    # print()
+    workflow.run()
 
+    # Collect the command line and  the workflow of tools to run as a pipeline
     commands = Commands(config, databases, workflow)
-    commands.collect()
-    workflow.make_dirs()
-    # print()
-    # print('**************** analyses ***************')
-    # for soft in commands.analyses_commands:
-    #     for sam, cmds in commands.analyses_commands[soft].items():
-    #         print('\n'.join(cmds))
-    # print('*****************************************')
+    commands.run()
 
+    workflow.make_dirs()
+
+    # Make .sh and scheduler (.slm or .pbs) scripts to
     scripting = CreateScripts(config)
-    scripting.database_cmds(databases)
-    scripting.software_cmds(commands)
-    scripting.display()
+    scripting.database_cmds(databases)  # build the databases
+    scripting.software_cmds(commands)   # run the analysis pipeline
+    scripting.display()  # show the scripts to run
