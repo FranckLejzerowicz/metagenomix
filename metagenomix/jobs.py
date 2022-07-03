@@ -5,7 +5,7 @@
 #
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
-import os
+
 import subprocess
 import numpy as np
 from os.path import dirname, splitext
@@ -25,7 +25,7 @@ class CreateScripts(object):
         self.run = {'database': {}, 'software': {}}
         self.job_fps = []
         self.job_name = ''
-        self.module = ''
+        self.modules = {}
         self.pjct = self.get_prjct()
         self.scheduler = self.get_scheduler()
 
@@ -53,7 +53,6 @@ class CreateScripts(object):
             self.cmds_chunks = [[x] for x in self.cmds]
 
     def get_main_sh(self, name, soft=None) -> str:
-        print('get_main_sh:', self.sh)
         main = '%s/run_%s' % (self.sh.rsplit('/', 2)[0], name)
         if soft:
             main += '_after_%s.sh' % soft.prev
@@ -81,24 +80,34 @@ class CreateScripts(object):
             self.write_jobs(db)
             self.write_main(db)
 
-    def get_module(self, name: str):
-        self.module = self.config.modules.get(name)
+    def get_modules(self, name: str):
+        self.modules = self.config.modules.get(name, [])
 
     def software_cmds(self, commands):
         for sdx, (name, soft) in enumerate(commands.softs.items()):
             if not len(soft.cmds):
                 continue
-            print()
-            print('[Writting commands] #%s: %s' % (sdx, soft.name))
-            if soft.params['scratch']:
-                print('\t -> scratching:', soft.params['scratch'])
-            self.get_module(name)
-            self.cmds = scratching(soft)
+            print('[Writing commands] #%s: %s' % (sdx, soft.name))
+            self.get_modules(name)
+            self.cmds = scratching(soft, commands)
             self.get_cmds_chunks(soft.params['chunks'])
             self.write_jobs(name, soft)
             self.write_main(name, soft)
 
     def get_sh(self, name: str, cdx: int, soft=None) -> None:
+        """
+
+        Parameters
+        ----------
+        name : str
+            Name of the current software of the pipeline workflow
+        cdx
+        soft
+
+        Returns
+        -------
+
+        """
         if soft:
             self.sh = '%s/%s/jobs/run_%s_after_%s_%s.sh' % (
                 self.config.dir, name, name, soft.prev, cdx)
@@ -131,7 +140,7 @@ class CreateScripts(object):
         self.job_fps.append(job_script)
         self.cmd.extend(['-o', job_script])
         # whether an environment must be used for the current software
-        if not self.module and params['env']:
+        if not self.modules and params['env']:
             self.cmd.extend(['-e', params['env']])
         # setup the scratch location to be used for the current software
         if isinstance(params['scratch'], int):
@@ -143,7 +152,7 @@ class CreateScripts(object):
         # quiet Xhpc if metagenomix is not supposed to be verbose
         if not self.config.verbose:
             self.cmd.append('--quiet')
-        print(' '.join(self.cmd))
+        # print(' '.join(self.cmd))
 
     def call_cmd(self):
         cmd = ' '.join(self.cmd)
@@ -153,10 +162,9 @@ class CreateScripts(object):
         # os.remove(self.sh)
 
     def write_chunks(self, chunks: list):
-        print('write_chunks', self.sh)
         with open(self.sh, 'w') as sh:
-            if self.module:
-                sh.write('module load %s\n' % self.module)
+            for module in self.modules:
+                sh.write('module load %s\n' % module)
             for chunk in chunks:
                 for cmd in self.cmds[chunk]:
                     sh.write('%s\n' % cmd)
@@ -175,7 +183,6 @@ class CreateScripts(object):
             self.job_fps.append('%s.sh' % splitext(self.sh)[0])
 
     def write_jobs(self, name: str, soft=None):
-        print('#chunks:', len(self.cmds_chunks))
         for cdx, chunks in enumerate(self.cmds_chunks):
             self.get_sh(name, cdx, soft)
             self.write_chunks(chunks)
