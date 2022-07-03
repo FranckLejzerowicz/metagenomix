@@ -1,3 +1,8 @@
+# --------------- count -----------------
+count:
+  cat: zcat
+
+# --------------- simka -----------------
 simka:
   path: /Users/franck/programs/simka
   kmer:
@@ -8,32 +13,67 @@ simka:
     start: 4
     end: 7
     size: 3
+  mem_num: 10
+  mem_dim: gb
+  simkaMin: yes
+  scratch: 9
+
+# --------------- humann -----------------
 humann:
   evalue: 0.1
   id_thresh: 90
   uniref: uniref90
   query_cov: 80
   subject_cov: 80
-  skip_translated: 0
+  prescreen_threshold: 0.01
+  skip_translated: no
   nucleotide_db: /path/to/full_chocophlan.v0.1.1/chocophlan
   protein_db: /path/to/uniref90/uniref
+  profiles:
+    cla: cla_profile_rep82_7_filt.txt
+
+# --------------- flash ------------------
 flash:
-  min_overlap: 30
-  max_mismatch_density: 0
-  scratch: 10
-diamond_annot:
+  min_overlap: 50
+  max_overlap: 90
+  mismatch: 0
+  scratch: scratch
+
+# --------------- search -----------------
+search:
   databases:
     - uniref
-#  db_type: genome
-  k:
-    - 1
+    - tara_eukaryotes
+  diamond:
+    k: 10
+    top: 2
+    evalue: 0.001
+    identiy: 100
+    query_cover: 80
+    mode: no
+  hmmer:
+    Z: 10
+    E: 1
+    domZ: 10
+    domE: 1
+    max: yes
+    nobias: yes
+#    terms:
+#      - metal
+#      - manganese
+  cpus: 4
+
+# --------------- ioncom -----------------
 ioncom:
   itasser_path: /Users/franck/programs/I-TASSER5.1
+
+# --------------- metawrap -----------------
 metawrap:
-  binners:
+  tools:
     - maxbin2
     - metabat2
     - concoct
+  min_contig_length: 1000
   min_completion: 25
   min_contamination: 5
   reassembly:
@@ -42,22 +82,127 @@ metawrap:
   blobology:
     - coassembly
     - sample
+
+# --------------- metawrap_specific -----------------
+metawrap_blobology:
+  env: metawrap-env
+  mem_num: 50
+  mem_dim: gb
+  chunks: 12
+  scratch: scratch
+
+# --------------- kraken2 -----------------
+kraken2:
+  confidence: 0.5
+  databases:
+    - default
+    - wol
+
+# --------------- shogun -----------------
 shogun:
   aligners:
     - bowtie2
     - burst
-#  pairing: paired
-#  pairing: concat
-#  pairing: single
   databases:
     - rep82
     - wol
+    - nope
   env: shogun
   mem_num: 50
   mem_dim: gb
   chunks: 6
+  scratch: scratch
+
+# --------------- bowtie2 -----------------
+bowtie2:
   scratch: userscratch
-#bowtie2:
-#  pairing: paired
+  databases:
+    - rep82
+    - wol
+    - nope
+  discordant: no
+  pairing: paired
 #  pairing: concat
 #  pairing: single
+  k: 16
+  np: 1
+  mp: 1,1
+  rdg: 0,1
+  rfg: 0,1
+  score-min: L,0,-0.05
+
+# --------------- woltka -----------------
+#woltka:
+#  scratch: 10
+
+# --------------- spades -----------------
+spades:
+  k:
+    - 1
+    - 2
+    - 3
+  meta: yes
+  only_assembler: yes
+  mem_num: 20
+  mem_dim: gb
+
+# --------------- metamarker -----------------
+metamarker:
+  groups:
+    - light
+
+# --------------- prodigal -----------------
+prodigal:
+  procedure: meta
+
+# --------------- midas -----------------
+midas:
+  tracking:
+    - light
+    - not_a_metadata
+  focus:
+    prokaryotes:
+      - database_name
+      - /path/to/species_list.txt
+
+# --------------- macsyfinder -----------------
+macsyfinder:
+  env: macsyfinder
+
+# --------------- woltka -----------------
+strainphlan:
+  env: phlans
+# --------------- atropos -----------------
+atropos:
+  env: shogun
+
+# --------------- integron_finder -----------------
+integron_finder:
+  pdf: false
+  union_integrases: true
+  env: metagenomics
+
+# --------------- kneaddata -----------------
+kneaddata:
+  trimmomatic: '/some/path/to/trimmomatic'
+  databases:
+    - /databases/bowtie/Homo_sapiens_Bowtie2_v0.1/Homo_sapiens
+    - /databases/bowtie/phiX/phix
+    - /home/flejzerowicz/databases/SILVA_128/SILVA_128_LSUParc_SSUParc_ribosomal_RNA
+
+# --------------- filtering -----------------
+filtering:
+  databases:
+   - /databases/bowtie/Homo_sapiens_Bowtie2_v0.1/Homo_sapiens
+   - /databases/bowtie/Pan_troglodites_Bowtie2_v0.1/Pan_troglodites
+
+# --------------- quast -----------------
+quast:
+  label: light
+
+# --------------- prokka -----------------
+prokka:
+  norrna: yes
+  notrna: yes
+  config: /Users/franck/programs/metagenomix/metagenomix/tests/example/prokka.tsv
+
