@@ -7,6 +7,7 @@
 # ----------------------------------------------------------------------------
 
 import os
+import yaml
 from collections import defaultdict
 from metagenomix import parameters
 from metagenomix.parameters import *
@@ -17,15 +18,15 @@ class Soft(object):
     def __init__(self, config):
         self.name = ''
         self.prev = None
-        self.nodes = 1
-        self.procs = 1
-        self.scratch = None
-        self.params = dict(config.params)
+        self.scratch = None   # no use of the scratch file system by default
+        self.params = dict(config.params)  # init with default params
+        # key attributes to be filled by each tool-specific code
         self.io = {}
         self.inputs = {}
         self.outputs = {}
         self.cmds = {}
         self.dirs = set()
+        self.defaults = {}
 
     def get_softs(self, softs):
         if len(softs) == 1:
@@ -73,8 +74,9 @@ class Workflow(object):
         self.softs = {}
         self.names_idx = {}
         self.names_idx_rev = {}
+        self.skip = {}
 
-    def init(self) -> None:
+    def run(self) -> None:
         """
         Parse the list of softwares, collect their sequence in the
         attribute `self.softs`, and collect all the paths of their
@@ -159,7 +161,7 @@ class Workflow(object):
         ints = ['time', 'procs', 'mem_num', 'chunks']
         for param, value in user_params.items():
             if param in ints:
-                check_ints(param, value, soft.name)
+                check_int(param, value, soft.name)
             elif param == 'mem_dim':
                 check_mems(param, value, soft.name)
             elif param == 'env':
@@ -169,6 +171,14 @@ class Workflow(object):
             elif param == 'scratch':
                 check_scratch(value, soft.name)
             soft.params[param] = value
+
+    def ignored_params(self, user_params, soft):
+        valid_params = set(soft.defaults) | set(self.config.params)
+        for param in sorted(user_params):
+            if param not in valid_params:
+                name = soft.name
+                print('[%s] Param "%s" unknown and ignored' % (name, param))
+                del user_params[param]
 
     def set_scratch(self, soft):
         """scratch set on command line overrides per-software scratches"""
@@ -180,15 +190,42 @@ class Workflow(object):
             soft.params['scratch'] = 'userscratch'
 
     def set_user_params(self, soft):
-        user_params = self.config.user_params.get(soft.name, {})
-        func = 'check_%s' % soft.name
+        name = soft.name.split('_')[0]
+        user_params = dict(self.config.user_params.get(name, {}))
+        func = 'check_%s' % name
         if hasattr(parameters, func) and callable(getattr(parameters, func)):
             check_ = getattr(parameters, func)
-            check_(user_params, soft, self.databases, self.config)
+            soft.defaults = check_(self, user_params, soft)
+            self.ignored_params(user_params, soft)
+
         self.check_basic_params(user_params, soft)
         if isinstance(soft.params['scratch'], int):
             soft.params['mem_num'] = soft.params['scratch']
             soft.params['mem_dim'] = 'gb'
+
+    def skip_params(self, soft) -> bool:
+        if '_' in soft.name:
+            if self.skip.get(soft.name.split('_')[0], False):
+                return True
+            self.skip[soft.name.split('_')[0]] = True
+
+    def show_params(self, soft):
+        params_show = dict(
+            x for x in soft.params.items() if x[0] not in self.config.params)
+        if params_show:
+            print('[Parameters] %s' % soft.name)
+            print('=' * 30)
+            if soft.name.startswith('search'):
+                databases = params_show['databases']
+                del params_show['databases']
+                params = {'search': {soft.name.split('_')[-1]: params_show,
+                                     'databases': databases}}
+                print(yaml.dump(params))
+            else:
+                print(yaml.dump(params_show))
+            print('%s defaults %s' % ('-' * 10, '-' * 10))
+            print(yaml.dump(soft.defaults))
+            print('=' * 30)
 
     def set_params(self) -> None:
         """
@@ -196,11 +233,17 @@ class Workflow(object):
         params passed by the user for each of the software.
         """
         for _, soft in self.softs.items():
-            print()
-            print('<set_params>', soft.name)
+            # print()
+            # print()
+            # print('-----------------')
+            # print(soft.name)
             self.set_scratch(soft)
             self.set_user_params(soft)
-
+            # print('soft.params:', soft.params)
+            # print('-----------------')
+        if self.config.show_params:
+            for _, soft in self.softs.items():
+                self.show_params(soft)
 
     # def collect_paths(self):
     #
