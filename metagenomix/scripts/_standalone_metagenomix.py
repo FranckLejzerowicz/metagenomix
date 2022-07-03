@@ -60,6 +60,15 @@ from metagenomix import __version__
     "--userscratch/--no-userscratch", default=False, show_default=True,
     help="Use the userscratch folder to move files and compute")
 @click.option(
+    "--show-params/--no-show-params", default=False, show_default=False,
+    help="Show all possible parameters for all tools of your pipeline.")
+@click.option(
+    "--show-pfams/--no-show-pfams", default=False, show_default=False,
+    help="Show terms for which Pfam HMM models were already extracted before.")
+@click.option(
+    "--purge-pfams", "--no-purge-pfams", default=None, show_default=False,
+    help="Remove terms for Pfam HMM models that were already extracted before.")
+@click.option(
     "--verbose/--no-verbose", default=False, show_default=True,
     help="Whether to show expected input and outputs and other tools' details.")
 @click.option(
@@ -86,6 +95,9 @@ def standalone_metagenomix(
         localscratch,
         scratch,
         userscratch,
+        show_params,
+        show_pfams,
+        purge_pfams,
         verbose,
         dev
 ):
@@ -108,6 +120,9 @@ def standalone_metagenomix(
         localscratch=localscratch,
         scratch=scratch,
         userscratch=userscratch,
+        show_params=show_params,
+        show_pfams=show_pfams,
+        purge_pfams=purge_pfams,
         verbose=verbose,
         dev=dev
     )
