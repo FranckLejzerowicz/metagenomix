@@ -16,7 +16,7 @@ from skbio.io import read
 from skbio.tree import TreeNode
 from os.path import basename, dirname, isdir, isfile, splitext
 
-from metagenomix._io_utils import (mkdr, get_pfam_file, get_hmm_dat,
+from metagenomix._io_utils import (mkdr, get_pfam_wget_cmd, get_hmm_dat,
                                    get_pfams_cmd, reads_lines)
 
 RESOURCES = pkg_resources.resource_filename('metagenomix', 'resources')
@@ -31,17 +31,19 @@ class ReferenceDatabases(object):
         self.paths = {}
         self.builds = {}
         self.database = ''
+        self.pfams = {'terms': {}}
         self.hmms_dias = {}
         self.hmms_pd = pd.DataFrame()
         self.dbcan_meta = pd.DataFrame()
         self.cazys = {}
         self.gtdb = {}
         self.wol = {}
-        self.formats = ['blastn', 'bowtie2', 'bracken', 'burst', 'centrifuge',
-                        'diamond', 'kraken2', 'minimap2', 'qiime2', 'utree']
+        self.formats = ['blastn', 'bowtie2', 'bracken', 'burst',
+                        'centrifuge', 'diamond', 'hmmer', 'kraken2',
+                        'minimap2', 'qiime2', 'utree']
         self.valid_databases = set()
 
-    def init(self) -> None:
+    def run(self) -> None:
         self.get_formats()
         self.validate_databases()
         self.set_databases()
@@ -59,30 +61,47 @@ class ReferenceDatabases(object):
             x = '%s\n' % ('#' * (11 + len(self.config.databases_yml)))
             print('\n%sDatabases: %s\n%s' % (x, self.config.databases_yml, x))
             for db, data in sorted(self.config.databases.items()):
-                if db == 'formats':
+                if db == 'formats':  # "formats" is not a database
                     continue
-                if 'path' not in data:
-                    print('  - %s: "path" parameter missing' % db)
+                if 'path' not in data:  # every database must have a "path"
+                    print('  - %s: "path" parameter missing (ignored)' % db)
                     continue
+                path = data['path']
                 if not self.config.dev:
-                    if not isdir(data['path']):
-                        print('  - %s: not found... (%s)' % (db, data['path']))
-                    else:
+                    if not isdir(path):  # not-found database will be ignored
+                        print("  - %s: can't find %s (ignored)" % (db, path))
+                    else:  # print database input if it found to exist
                         self.valid_databases.add(db)
-                        print('  + %s' % yaml.dump({db: data['path']}), end='')
-                else:
+                        print('  + %s' % yaml.dump({db: path}), end='')
+                else:  # print database input if it found to exist in dev mode
                     self.valid_databases.add(db)
-                    print('  + %s' % yaml.dump({db: data['path']}), end='')
+                    print('  + %s' % yaml.dump({db: path}), end='')
         else:
-            print('No database passed using option `-d`')
+            print('No database passed to option `-d`')
 
     def set_databases(self) -> None:
         for database in sorted(self.valid_databases):
             self.database = database
             if hasattr(self, "set_%s" % database):
+                # this is true for the following databases:
+                #  - wol
+                #  - mar
+                #  - pfam
+                #  - dbcan
+                #  - ioncom
+                #  - shogun
                 getattr(self, "set_%s" % database)()
             else:
-                self.set_other_database()
+                self.set_path()
+
+    def set_path(self) -> None:
+        self.paths[self.database] = self.config.databases[self.database]['path']
+
+    def register_command(self) -> None:
+        self.commands.setdefault(self.database, {}).update(dict(self.cmds))
+        self.cmds = {}
+
+    # Below are the database-specific functions, potentially to make builds
 
     def get_db_formats(self):
         path = self.config.databases[self.database]['path']
@@ -164,26 +183,58 @@ class ReferenceDatabases(object):
         self.register_command()
 
     def set_pfam(self) -> None:
-        pfam_dir = self.config.databases['pfam']['path']
-        pfam_job = '%s/jobs' % pfam_dir
-        mkdr(pfam_job)
-        fas_dir = '%s/fastas' % pfam_dir
-        mkdr(fas_dir)
-        hmm = '%s/Pfam-A.hmm' % pfam_dir
-        fas = '%s/Pfam-A.fasta' % pfam_dir
-        dat = '%s/Pfam-A.hmm.dat' % pfam_dir
-        tsv = '%s/Pfam-A.hmm.dat.tsv' % pfam_dir
-        if get_pfam_file(hmm) and get_pfam_file(dat) and get_pfam_file(fas):
-            self.hmms_pd = get_hmm_dat(dat, tsv)
-            if self.config.databases['pfam']['terms']:
-                for t in self.config.databases['pfam']['terms']:
-                    term_pd = self.hmms_pd.loc[
-                        self.hmms_pd['DE'].str.lower().str.contains(t)].copy()
-                    if not term_pd.shape[0]:
-                        continue
-                    pfams, cmd = get_pfams_cmd(hmm, term_pd, pfam_dir, t)
-                    self.hmms_dias[t] = pfams
-                    self.cmds[t] = [cmd]
+        pfams_dir = self.config.databases[self.database]['path']
+        self.paths[self.database] = pfams_dir
+        self.pfams['dir'] = pfams_dir
+        cmd = get_pfam_wget_cmd(pfams_dir)
+        if cmd:
+            self.cmds[''] = [cmd]
+        else:
+            self.hmms_pd = get_hmm_dat(pfams_dir)
+        self.register_command()
+        self.pfam_models()
+
+    def pfam_models(self):
+        pfam_terms_dir = '%s/pfam_terms' % RESOURCES
+        self.pfams['res'] = pfam_terms_dir
+        mkdr(pfam_terms_dir)
+        if self.config.show_pfams or self.config.purge_pfams:
+            term_dirs = sorted(glob.glob('%s/*' % pfam_terms_dir))
+            if self.config.show_pfams:
+                if term_dirs:
+                    print(' > already extracted Pfam models', end='')
+                    if self.config.purge_pfams:
+                        print(' and removed:')
+                    else:
+                        print(':')
+                    for term_dir in term_dirs:
+                        hmm_fps = glob.glob('%s/*.hmm' % term_dir)
+                        print('   - %s (%s HMMs)' % (term_dir, len(hmm_fps)))
+                        if self.config.purge_pfams:
+                            for hmm_fp in hmm_fps:
+                                os.remove(hmm_fp)
+                            os.rmdir(term_dir)
+                else:
+                    print(' > No Pfam models previously extracted')
+
+    def get_pfam_terms(self, params):
+        self.database = 'pfam'
+        terms = {}
+        hmm = '%s/Pfam-A.hmm' % self.pfams['dir']
+        for term in params['terms']:
+            term_pd = self.hmms_pd.loc[
+                self.hmms_pd['DE'].str.lower().str.contains(term.lower())
+            ].copy()
+            if not term_pd.shape[0]:
+                print('[hmmer] No Pfam model for term "%s" (ignored)' % term)
+                continue
+            pfams, cmd = get_pfams_cmd(hmm, term_pd, term, self.pfams['res'])
+            terms[term] = pfams
+            self.cmds[term] = [cmd]
+        # collect the "pfams per term" for the parameters of the current tools
+        params['terms'] = terms
+        # add these "pfams per term" to a full, database-level collection
+        self.pfams['terms'].update(terms)
         self.register_command()
 
     def get_dbcan_hmms(self) -> None:
@@ -260,11 +311,6 @@ class ReferenceDatabases(object):
             self.dbcan_meta = pd.read_csv(m, header=0, index_col=0, sep='\t')
             self.set_dbcan_taxa()
 
-    def set_midas(self) -> None:
-        midas_db_path = self.config.databases['midas']['path']
-        self.paths[self.database] = midas_db_path
-        self.config.midas_foci['all'] = (midas_db_path, '')
-
     def set_ioncom(self) -> None:
         self.paths[self.database] = self.config.databases['ioncom']['path']
         self.paths['itasser'] = self.config.databases['ioncom']['itasser']
@@ -279,12 +325,5 @@ class ReferenceDatabases(object):
                     cmd += 'wget -i https://raw.githubusercontent.com/knights' \
                            '-lab/SHOGUN/master/docs/shogun_db_links.txt\n'
                     self.cmds['download_shogun'] = [cmd]
-
-    def set_other_database(self) -> None:
-        self.paths[self.database] = self.config.databases[self.database]['path']
-
-    def register_command(self) -> None:
-        self.commands[self.database] = dict(self.cmds)
-        self.cmds = {}
 
 
