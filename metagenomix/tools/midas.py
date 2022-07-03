@@ -7,49 +7,94 @@
 # ----------------------------------------------------------------------------
 
 from os.path import isfile
+from metagenomix._io_utils import io_update
 
 
-def midas_species(inputs, focus_dir, sam, db, outputs,
-                  cpus, databases, config) -> None:
-    if db == databases.paths['midas']:
+def get_cmd(
+        self,
+        focus_dir: str,
+        db: str,
+        analysis: str,
+        select: set = None) -> str:
+    """Build the command line for MIDAS analysis.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .sam : str
+            Sample name
+        .inputs : dict
+            Input files
+        .soft.params
+            Parameters
+    focus_dir : str
+        Path to the output folder.
+    db : str
+        Path to MIDAS database.
+    analysis : str
+        MIDAS analysis (any of "species", "genes" or "snps").
+    select : set
+        Species names for which there is a reference in the database.
+
+    Returns
+    -------
+    cmd : str
+        Midas command line for the species level.
+    """
+    cmd = 'run_midas.py %s' % analysis
+    cmd += ' %s' % focus_dir
+    cmd += ' -1 %s' % self.inputs[self.sam][0]
+    if len(self.inputs[self.sam]) > 1:
+        cmd += ' -2 %s' % self.inputs[self.sam][1]
+    cmd += ' -d %s' % db
+    cmd += ' -t %s' % self.soft.params['cpus']
+    cmd += ' --remove_temp'
+    if analysis != 'species':
+        cmd += ' --species_cov 1'
+    if select:
+        cmd += ' --species_id %s' % ','.join(list(select))
+    return cmd
+
+
+def midas_species(self, focus_dir, db) -> None:
+    if db == self.databases.paths['midas']:
         species_out = '%s/species' % focus_dir
         species_profile = '%s/species_profile.txt' % species_out
-        if not config.force and isfile(species_profile):
-            outputs['io']['I']['d'].add(species_out)
+        if not self.config.force and isfile(species_profile):
+            io_update(self, i_d=species_out)
         else:
-            outputs['cmds'].append(
-                get_cmd(focus_dir, inputs[sam], db, cpus, 'species'))
-            outputs['io']['I']['f'].update(inputs[sam])
-            outputs['io']['O']['d'].add(species_out)
-        outputs['outs'].append(species_out)
-        outputs['dirs'].append(species_out)
+            self.outputs['cmds'].append(get_cmd(self, focus_dir, db, 'species'))
+            io_update(self, i_f=self.inputs[self.sam], o_d=species_out)
+        self.outputs['outs'].append(species_out)
+        self.outputs['dirs'].append(species_out)
 
 
-def midas_genus(inputs, focus_dir, genes_out, sam, db, outputs, select,
-                cpus, config):
-    if config.force or not isfile('%s/readme.txt' % genes_out):
-        outputs['cmds'].append(
-            get_cmd(focus_dir, inputs[sam], db, cpus, 'genes', select))
-        outputs['io']['O']['d'].add(genes_out)
-    outputs['outs'].append(genes_out)
-    outputs['dirs'].append(genes_out)
+def midas_genus(self, focus_dir, genes_out, db, select):
+    if self.config.force or not isfile('%s/readme.txt' % genes_out):
+        self.outputs['cmds'].append(
+            get_cmd(self, focus_dir, db, 'genes', select))
+        io_update(self, o_d=genes_out)
+    self.outputs['outs'].append(genes_out)
+    self.outputs['dirs'].append(genes_out)
 
 
-def midas_snps(inputs, focus_dir, snps_out, sam, db, outputs, select,
-               cpus, config):
-    if config.force or not isfile('%s/readme.txt' % snps_out):
-        outputs['cmds'].append(
-            get_cmd(focus_dir, inputs[sam], db, cpus, 'snps', select))
-        outputs['io']['O']['d'].add(snps_out)
-    outputs['outs'].append(snps_out)
-    outputs['dirs'].append(snps_out)
+def midas_snps(self, focus_dir, snps_out, db, select):
+    if self.config.force or not isfile('%s/readme.txt' % snps_out):
+        self.outputs['cmds'].append(
+            get_cmd(self, focus_dir, db, 'snps', select))
+        io_update(self, o_d=snps_out)
+    self.outputs['outs'].append(snps_out)
+    self.outputs['dirs'].append(snps_out)
 
 
-def get_species_select(db: str, species_list: str) -> set:
+def get_species_select(self, db: str, species_list: str) -> set:
     """Get the species names for which there is a reference in the database.
 
     Parameters
     ----------
+    self : Commands class instance
+        .config
+            Configurations
     db : str
         Database name.
     species_list : str
@@ -62,104 +107,49 @@ def get_species_select(db: str, species_list: str) -> set:
     """
     select = set()
     if species_list:
-        midas_species = [x.strip() for x in open(species_list).readlines()]
+        if self.config.dev and not isfile(species_list):
+            select.add('Escherichia')
+            return select
+        else:
+            species = [x.strip() for x in open(species_list).readlines()]
         with open('%s/species_info.txt' % db) as f:
             for line in f:
-                for genus_species in midas_species:
+                for genus_species in species:
                     if genus_species.replace(' ', '_') in line:
                         select.add(line.split('\t')[0])
     return select
 
 
-def get_cmd(
-        out: str,
-        inputs: list,
-        db: str,
-        cpus: str,
-        analysis: str,
-        select: set = None) -> str:
-    """Build the command line for MIDAS analysis.
-
-    Parameters
-    ----------
-    out : str
-        Path to the output folder.
-    inputs : list
-        Input files.
-    db : str
-        Path to MIDAS database.
-    cpus : str
-        Number of CPUs.
-    analysis : str
-        MIDAS analysis (any of "species", "genes" or "snps").
-    select : set
-        Species names for which there is a reference in the database.
-
-    Returns
-    -------
-    cmd : str
-        Midas command line for the species level.
-    """
-    cmd = 'run_midas.py %s' % analysis
-    cmd += ' %s' % out
-    cmd += ' -1 %s' % inputs[0]
-    if len(inputs) > 1:
-        cmd += ' -2 %s' % inputs[1]
-    cmd += ' -d %s' % db
-    cmd += ' -t %s' % cpus
-    cmd += ' --remove_temp'
-    if analysis != 'species':
-        cmd += ' --species_cov 1'
-    if select:
-        cmd += ' --species_id %s' % ','.join(list(select))
-    return cmd
-
-
-def midas(out_dir: str, sam: str, inputs: dict, focus: str, db_species: tuple,
-          databases, params, config) -> dict:
+def midas(self) -> None:
     """Create command lines for MIDAS for the current database's species focus.
 
     Parameters
     ----------
-    out_dir : str
-        Path to pipeline output folder for MIDAS
-    sam : str
-        Sample name.
-    inputs : dict
-        Input files.
-    focus : str
-
-    db_species : tuple
-        (Database name, Path to file containing list of species to focus on)
-    databases
-        Databases
-    params
-        Parameters
-    config
-        Configurations
-
-    Returns
-    -------
-    outputs : dict
-        All outputs
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for MIDAS
+        .sam : str
+            Sample name
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .databases
+            All databases class instance
+        .config
+            Configurations
     """
-    outputs = {'io': {'I': {'d': set(), 'f': set()}, 'O': {'d': set()}},
-               'cmds': [], 'dirs': [], 'outs': []}
-    db, species_list = db_species
+    for focus, (db, species_list) in self.soft.params['focus'].items():
 
-    cpus = params['cpus']
+        focus_dir = '%s/%s/%s' % (self.dir, focus, self.sam)
+        midas_species(self, focus_dir, db)
 
-    focus_dir = '%s/%s/%s' % (out_dir, focus, sam)
-    midas_species(inputs, focus_dir, sam, db, outputs, cpus, databases, config)
+        select = set(get_species_select(self, db, species_list))
 
-    select = set(get_species_select(db, species_list))
+        genes_out = '%s/genes' % focus_dir
+        midas_genus(self, focus_dir, genes_out, db, select)
 
-    genes_out = '%s/genes' % focus_dir
-    midas_genus(inputs, focus_dir, genes_out, sam, db, outputs, select,
-                cpus, config)
-
-    snps_out = '%s/snps' % focus_dir
-    midas_snps(inputs, focus_dir, snps_out, sam, db, outputs, select,
-               cpus, config)
-
-    return outputs
+        snps_out = '%s/snps' % focus_dir
+        midas_snps(self, focus_dir, snps_out, db, select)
