@@ -7,6 +7,7 @@
 # ----------------------------------------------------------------------------
 
 import re
+import sys
 import pandas as pd
 from os.path import isfile, splitext
 
@@ -242,3 +243,15 @@ def songbird_cmd(
         cmd += run_export(out_paths['tens'], out_paths['html'], 'songbird')
 
     return cmd, fcmd, bcmd
+
+
+def caller(self, namespace):
+    """Calls as function the part of the software name that follows the first
+    underscore.
+    For example, software name "search_diamond" would call function`diamond()`.
+    """
+    func = self.soft.name.rsplit('_', 1)[1]
+    module = sys.modules[namespace]
+    if hasattr(module, func) and callable(getattr(module, func)):
+        module_call = getattr(module, func)
+        module_call(self)
