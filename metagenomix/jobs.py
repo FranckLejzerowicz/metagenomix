@@ -143,6 +143,8 @@ class CreateScripts(object):
         if not self.modules and params['env']:
             self.cmd.extend(['-e', params['env']])
         # setup the scratch location to be used for the current software
+        # print(params)
+        # print(paramsfds)
         if isinstance(params['scratch'], int):
             self.cmd.extend(['--localscratch', str(params['scratch'])])
         elif params['scratch'] == 'scratch':
@@ -152,7 +154,7 @@ class CreateScripts(object):
         # quiet Xhpc if metagenomix is not supposed to be verbose
         if not self.config.verbose:
             self.cmd.append('--quiet')
-        # print(' '.join(self.cmd))
+        print(' '.join(self.cmd))
 
     def call_cmd(self):
         cmd = ' '.join(self.cmd)
@@ -163,6 +165,8 @@ class CreateScripts(object):
 
     def write_chunks(self, chunks: list):
         with open(self.sh, 'w') as sh:
+            if self.modules:
+                sh.write('module purge\n')
             for module in self.modules:
                 sh.write('module load %s\n' % module)
             for chunk in chunks:

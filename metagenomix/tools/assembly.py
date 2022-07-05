@@ -161,7 +161,7 @@ def plass(self):
 
     self : Commands class instance
         .dir : str
-            Path to pipeline output folder for spades
+            Path to pipeline output folder for plass
         .sam : str
             Sample name
         .inputs : dict
@@ -257,7 +257,7 @@ def get_pools(self, pool: str, group: str, sams: list) -> list:
     ----------
     self : Commands class instance
         .dir : str
-            Path to pipeline output folder for spades
+            Path to pipeline output folder for pools
         .inputs : dict
             Input files
         .cmds
