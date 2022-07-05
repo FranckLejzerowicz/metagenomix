@@ -13,7 +13,7 @@ import pkg_resources
 
 import pandas as pd
 from skbio.tree import TreeNode
-from os.path import basename, dirname, isdir, isfile, splitext
+from os.path import basename, isdir, isfile, splitext
 
 from metagenomix._io_utils import (mkdr, get_pfam_wget_cmd, get_hmm_dat,
                                    get_pfams_cmd)
