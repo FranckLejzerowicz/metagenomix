@@ -154,14 +154,14 @@ class CreateScripts(object):
         # quiet Xhpc if metagenomix is not supposed to be verbose
         if not self.config.verbose:
             self.cmd.append('--quiet')
-        print(' '.join(self.cmd))
+        # print(' '.join(self.cmd))
 
     def call_cmd(self):
         cmd = ' '.join(self.cmd)
         if self.config.verbose:
             print('[Running]', cmd)
         subprocess.call(cmd.split())
-        # os.remove(self.sh)
+        os.remove(self.sh)
 
     def write_chunks(self, chunks: list):
         with open(self.sh, 'w') as sh:

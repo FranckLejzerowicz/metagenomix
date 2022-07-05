@@ -167,7 +167,7 @@ class AnalysesConfig(object):
         """Check if main output folder exists or create it."""
         if not isdir(self.output_dir):
             os.makedirs(self.output_dir)
-        self.dir = self.output_dir
+        self.dir = os.path.abspath(self.output_dir)
 
     def parse_yamls(self):
         for arg in list(self.__dict__):

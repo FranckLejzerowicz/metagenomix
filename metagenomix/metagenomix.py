@@ -42,6 +42,6 @@ def metagenomix(**kwargs):
 
     # Make .sh and scheduler (.slm or .pbs) scripts to
     scripting = CreateScripts(config)
-    scripting.database_cmds(databases)  # build the databases
+    # scripting.database_cmds(databases)  # build the databases
     scripting.software_cmds(commands)   # run the analysis pipeline
     scripting.display()  # show the scripts to run
