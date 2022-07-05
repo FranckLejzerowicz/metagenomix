@@ -267,7 +267,9 @@ def cutadapt(self) -> None:
     cmd = 'cutadapt'
     cmd += ' -a AGATCGGAAGAGCACACGTCTGAACTCCAGTCA'
     cmd += ' -A AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT'
-    cmd += ' -m 10 -o %s -p %s ' % (r1_o, r2_o)
+    cmd += ' -m 10'
+    cmd += ' -o %s' % r1_o
+    cmd += ' -p %s ' % r2_o
     cmd += ' '.join(self.inputs[self.sam])
     outs = [r1_o, r2_o]
     self.outputs['outs'].extend(outs)

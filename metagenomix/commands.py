@@ -16,7 +16,7 @@ from metagenomix.tools.preprocess import (
     edit, count, fastqc, fastp, cutadapt, atropos, kneaddata, filtering)
 from metagenomix.tools.simka import simka
 from metagenomix.tools.alignment import bowtie2, flash
-from metagenomix.tools.profiling import shogun, woltka, kraken2, midas
+from metagenomix.tools.profiling import shogun, woltka, kraken2, midas, metaxa2
 from metagenomix.tools.phlans import metaphlan, humann, strainphlan
 from metagenomix.tools.assembly import (
     pooling, spades, quast, plass, viralverify)

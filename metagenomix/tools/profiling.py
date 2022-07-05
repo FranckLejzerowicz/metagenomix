@@ -5,7 +5,7 @@
 #
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
-
+import os
 import sys
 import pkg_resources
 from os.path import basename, isdir, isfile, splitext
@@ -1346,3 +1346,76 @@ def kraken2(self) -> None:
             self.outputs['outs'].append(result)
             self.outputs['cmds'].append(cmd)
             io_update(self, i_f=self.inputs[self.sam], o_f=[report, result])
+
+
+def metaxa2(self) -> None:
+    if self.soft.prev == 'kneaddata':
+        fas = basename(self.inputs[self.sam][0]).split('_1.fastq')[0]
+    else:
+        fas = basename(self.inputs[self.sam][0]).split('_R1.fastq')[0]
+
+    databases = {'greengenes': '/home/flejzerowicz/databases/metaxa2/gg',
+                 'wol_ssu': '/home/flejzerowicz/databases/metaxa2/wl',
+                 'wol_ssu_g': '/home/flejzerowicz/databases/metaxa2/wl_g'}
+    io_update(self, i_f=self.inputs[self.sam])
+    for db, db_path in databases.items():
+        dir_db = self.dir + '/' + db
+        if not isdir(dir_db):
+            os.makedirs(dir_db)
+        rad = dir_db + '/' + fas
+        summary = '%s.summary.txt' % rad
+        taxonomy = '%s.taxonomy.txt' % rad
+        reltax = '%s.reltax.txt' % rad
+        cmd = ''
+        if self.config.force or not isfile(summary):
+            cmd += 'metaxa2'
+            for idx, fastq in enumerate(self.inputs[self.sam]):
+                cmd += ' -%s %s' % ((idx + 1), fastq)
+            cmd += ' -o %s' % rad
+            if db_path:
+                cmd += ' -p %s/HMMs' % db_path
+                cmd += ' -d %s/blast' % db_path
+            if idx:
+                if fastq.endswith('fasta'):
+                    cmd += ' -f paired-fasta'
+                else:
+                    cmd += ' -f paired-end'
+            else:
+                if fastq.endswith('fasta'):
+                    cmd += ' -f fasta'
+                else:
+                    cmd += ' -f fastq'
+            if fastq.endswith('gz'):
+                cmd += ' -z gzip'
+            cmd += ' --megablast %s' % self.soft.params['megablast']
+            cmd += ' --align %s' % self.soft.params['align']
+            cmd += ' --mode %s' % self.soft.params['mode']
+            cmd += ' --plus %s' % self.soft.params['plus']
+            cmd += ' --cpu %s' % self.soft.params['cpus']
+            if self.soft.params['graphical']:
+                cmd += ' --graphical'
+            if self.soft.params['reltax']:
+                cmd += ' --reltax'
+            if db == 'wol_ssu_g':
+                cmd += ' --taxlevel 8'
+            else:
+                cmd += ' --taxlevel 7'
+            cmd += '\n'
+            io_update(self, o_f=[summary, taxonomy, reltax])
+        else:
+            io_update(self, i_f=taxonomy)
+        self.outputs['outs'].extend([summary, taxonomy, reltax])
+
+        redist_rad = '%s.redist' % rad
+        redist_taxonomy = '%s.taxonomy.summary.txt' % redist_rad
+        if self.config.force or not isfile(redist_taxonomy):
+            cmd += '\nmetaxa2_ttt'
+            cmd += ' -i %s' % taxonomy
+            cmd += ' -o %s' % redist_rad
+            cmd += ' -r 0.8'
+            cmd += ' -d 0.7'
+            io_update(self, o_f=redist_taxonomy)
+
+        if cmd:
+            self.outputs['cmds'].append(cmd)
+        self.outputs['outs'].append(redist_taxonomy)

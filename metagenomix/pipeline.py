@@ -167,7 +167,7 @@ class Workflow(object):
             elif param == 'env':
                 check_env(self.config, value, soft.name)
             elif param == 'path':
-                check_path(value, soft.name)
+                check_path(self.config, value, soft.name)
             elif param == 'scratch':
                 check_scratch(value, soft.name)
             soft.params[param] = value

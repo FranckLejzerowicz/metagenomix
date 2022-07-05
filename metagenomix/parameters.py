@@ -7,6 +7,8 @@
 # ----------------------------------------------------------------------------
 
 import glob
+import sys
+
 import numpy as np
 from os.path import isdir
 
@@ -34,9 +36,9 @@ def check_env(config, value, name):
         sys.exit('"%s" not a module or conda env' % value)
 
 
-def check_path(value, name):
+def check_path(config, value, name):
     """Verifies that a path exists (usually for databases)."""
-    if not isfile(value) and not isdir(value):
+    if not config.dev and not isfile(value) and not isdir(value):
         sys.exit('path "%s" for "%s" do not exist' % (value, name))
 
 
@@ -498,6 +500,28 @@ def search_hmmer(params, soft) -> dict:
     return defaults
 
 
+def check_metaxa2(self, params, soft) -> dict:
+    defaults = {'align': ['none', 'all', 'uncertain'],
+                'mode': ['metagenome', 'genome'],
+                'megablast': [True, False],
+                'graphical': [True, False],
+                'reltax': [True, False],
+                'plus': [True, False],
+                'T': '0,60,70,75,85,90,97',
+                'E': 1, 'S': 12, 'N': 2, 'M': 5, 'R': 75,
+                'r': 0.8, 'd': 0.7, 'l': 50}
+    if 'T' not in params:
+        params['T'] = defaults['T']
+    elif len([x for x in str(params['T']).split(',') if x.isdigit()]) != 7:
+        sys.exit('[metaxa2] Param "T" must be 7 tab-separated integers [0-100]')
+    check_nums(params, defaults, ['r', 'd', 'E'], float, soft.name, 0, 1)
+    check_nums(params, defaults, ['R'], int, soft.name, 0, 100)
+    check_nums(params, defaults, ['S', 'N', 'M', 'l'], int, soft.name)
+    check_default(params, defaults, soft.name, ['r', 'd', 'E', 'R',
+                                                'S', 'N', 'M', 'l', 'T'])
+    return defaults
+
+
 def check_count(self, params, soft):
     defaults = {'cat': ['zcat', 'gzcat']}
     check_default(params, defaults, soft.name)
@@ -593,7 +617,9 @@ def check_spades(self, params, soft):
 
 
 def check_viralverify(self, params, soft):
-    if 'path' not in params or not isdir(params['path']):
+    if 'path' not in params:
+        sys.exit("[viralverify] Please provide path to software's 'bin' folder")
+    if not self.config.dev and not isdir(params['path']):
         sys.exit("[viralverify] Please provide path to software's 'bin' folder")
     defaults = {'thr': 7, 'p': [False, True], 'db': [False, True]}
     check_nums(params, defaults, ['thr'], int, 'viralverify')

@@ -215,3 +215,7 @@ cazy:
   taxa:
     name_of_a_taxon: /path/to/my/dbcan/taxa/groups/a.txt
     name_of_another_taxon: /path/to/my/dbcan/taxa/groups/b.txt
+
+# -------------- metaxa2 -----------------
+metaxa2:
+  T: 0,50,60,70,80,95,98
