@@ -38,9 +38,9 @@ class ReferenceDatabases(object):
         self.cazys = {}
         self.gtdb = {}
         self.wol = {}
-        self.formats = ['blastn', 'bowtie2', 'bracken', 'burst',
-                        'centrifuge', 'diamond', 'hmmer', 'kraken2',
-                        'minimap2', 'qiime2', 'utree']
+        self.formats = [
+            'bbmap', 'blastn', 'bowtie2', 'burst', 'centrifuge', 'diamond',
+            'hmmer', 'kraken2', 'minimap2', 'qiime2', 'utree']
         self.valid_databases = set()
 
     def run(self) -> None:
@@ -60,13 +60,12 @@ class ReferenceDatabases(object):
         if len(self.config.databases):
             x = '%s\n' % ('#' * (11 + len(self.config.databases_yml)))
             print('\n%sDatabases: %s\n%s' % (x, self.config.databases_yml, x))
-            for db, data in sorted(self.config.databases.items()):
+            for db, path in sorted(self.config.databases.items()):
                 if db == 'formats':  # "formats" is not a database
                     continue
-                if 'path' not in data:  # every database must have a "path"
-                    print('  - %s: "path" parameter missing (ignored)' % db)
+                if not path or not isinstance(path, str):  # must have a "path"
+                    print('  - %s: path (char. string) missing (ignored)' % db)
                     continue
-                path = data['path']
                 if not self.config.dev:
                     if not isdir(path):  # not-found database will be ignored
                         print("  - %s: can't find %s (ignored)" % (db, path))
@@ -95,7 +94,8 @@ class ReferenceDatabases(object):
                 self.set_path()
 
     def set_path(self) -> None:
-        self.paths[self.database] = self.config.databases[self.database]['path']
+        self.paths[self.database] = self.config.databases[self.database]
+        self.builds[self.database] = self.get_db_formats()
 
     def register_command(self) -> None:
         self.commands.setdefault(self.database, {}).update(dict(self.cmds))
@@ -104,26 +104,26 @@ class ReferenceDatabases(object):
     # Below are the database-specific functions, potentially to make builds
 
     def get_db_formats(self):
-        path = self.config.databases[self.database]['path']
+        path = self.paths[self.database]
         formats = {}
         for db_format in self.formats:
-            db_format_dir = path + '/' + db_format
-            if not self.config.dev and isdir(db_format_dir):
+            for subfolder in ['', 'databases/']:
+                db_format_dir = path + '/%s' % subfolder + db_format
+                if not self.config.dev and not isdir(db_format_dir):
+                    continue
                 formats[db_format] = db_format_dir
-            else:
-                formats[db_format] = db_format_dir
+                break
         return formats
 
     def set_wol(self) -> None:
-        wol_dir = self.config.databases[self.database]['path']
+        wol_dir = self.config.databases[self.database]
         self.paths[self.database] = wol_dir
         self.builds[self.database] = self.get_db_formats()
         # WOL is a fasta file used to build indices
-
         fna_dir = '%s/genomes' % wol_dir
         genomes = glob.glob('%s/fna/*' % fna_dir)
-        if genomes:
-            metadata_fp = '%s/wol/metadata.tsv' % RESOURCES
+        if not genomes:
+            metadata_fp = '%s/wol/metadata.tsv' % wol_dir
             batch_down_fp = '%s/wol/batch_down.sh' % RESOURCES
             make_down_list_py = '%s/wol/make_down_list.py' % RESOURCES
             cmd = 'mkdir -p %s\n' % fna_dir
@@ -151,39 +151,8 @@ class ReferenceDatabases(object):
         self.wol['sizes'] = sizes
         self.register_command()
 
-    def set_mar(self) -> None:
-        path = self.config.databases['mar']['path']
-        self.paths[self.database] = path
-        mol_type_per_db = {
-            'BLAST': [['nucleotides', 'fna'], ['proteins', 'faa']],
-            'Genomes': [['genomic', 'fa'], ['protein', 'faa']]}
-        for db_type, types in mol_type_per_db.items():
-            # Build the database from concatenation of MArDB and MarRef
-            for (typ, ext) in types:
-                name = '%s_%s' % (db_type,typ)
-                out_fp = '%s/%s/%s.%s' % (path, name, name, ext)
-                if isfile(out_fp):
-                    continue
-                out_dir = dirname(out_fp)
-                mkdr(out_dir)
-                cmd = ''
-                for idx, mar in enumerate(['MarRef', 'MarDB']):
-                    if db_type == 'Genomes':
-                        to_glob = '%s/%s/%s/*/*%s.%s' % (
-                            path, mar, db_type, typ, ext)
-                    elif db_type == 'BLAST':
-                        to_glob = '%s/%s/%s/%s/*%s_V3.%s' % (
-                            path, mar, db_type, typ, typ, ext)
-                    for path in glob.glob(to_glob):
-                        if idx:
-                            cmd += 'cat %s >> %s\n' % (path, out_fp)
-                        else:
-                            cmd += 'cat %s > %s\n' % (path, out_fp)
-                self.cmds.setdefault(name, []).append(cmd)
-        self.register_command()
-
     def set_pfam(self) -> None:
-        pfams_dir = self.config.databases[self.database]['path']
+        pfams_dir = self.config.databases[self.database]
         self.paths[self.database] = pfams_dir
         self.pfams['dir'] = pfams_dir
         cmd = get_pfam_wget_cmd(pfams_dir)
@@ -239,7 +208,7 @@ class ReferenceDatabases(object):
 
     def get_dbcan_hmms(self) -> None:
         """Get all the .hmm files from the dbCAN database."""
-        for root, _, files in os.walk(self.config.databases['dbcan']['path']):
+        for root, _, files in os.walk(self.config.databases['dbcan']):
             for fil in files:
                 if fil.endswith('.hmm'):
                     hmm = root + '/' + fil
@@ -269,7 +238,7 @@ class ReferenceDatabases(object):
         cmd : str
             Command to make the diamond db from the subsets fasta file.
         """
-        path = self.config.databases['dbcan']['path']
+        path = self.config.databases['dbcan']
         cmd = ""
         fas_fp = '%s/%s.fa' % (folder, name)
         dia_fp = '%s.dmnd' % splitext(fas_fp)[0]
@@ -299,24 +268,20 @@ class ReferenceDatabases(object):
             taxa = list(reads_lines(fp))
             if not taxa:
                 continue
-            folder = '%s/subset' % self.config.databases['dbcan']['path']
+            folder = '%s/subset' % self.config.databases['dbcan']
             mkdr(folder)
             self.cazys[name] = folder
             self.write_dbcan_subset(taxa, folder, name)
 
     def set_dbcan(self) -> None:
         self.get_dbcan_hmms()
-        m = '%s/dbCAN-seq/metadata.txt' % self.config.databases['dbcan']['path']
+        m = '%s/dbCAN-seq/metadata.txt' % self.config.databases['dbcan']
         if isfile(m):
             self.dbcan_meta = pd.read_csv(m, header=0, index_col=0, sep='\t')
             self.set_dbcan_taxa()
 
-    def set_ioncom(self) -> None:
-        self.paths[self.database] = self.config.databases['ioncom']['path']
-        self.paths['itasser'] = self.config.databases['ioncom']['itasser']
-
     def set_shogun(self) -> None:
-        shogun_config = self.config.databases['shogun']['path']
+        shogun_config = self.config.databases['shogun']
         self.paths[self.database] = shogun_config
         for k, v in shogun_config.items():
             if k == 'rep82':

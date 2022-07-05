@@ -135,10 +135,11 @@ def viralverify(self):
         sys.exit('[viralVerify] can only be run on assembly output')
     pfam = '%s/Pfam-A.hmm' % self.databases.pfams.get('dir')
     if not self.config.dev and not isfile(pfam):
-        sys.exit('[viralVerify] Needs a Pfam .hmm database in database config')
+        sys.exit('[viralVerify] Needs the Pfam .hmm database in database yaml')
     for group, spades_outs in self.inputs[self.pool].items():
         out = '%s/%s/%s' % (self.dir, self.pool, group)
-        cmd = 'viralverify'
+        cmd = 'export PATH=$PATH:%s' % self.soft.params['path']
+        cmd += '\nviralverify'
         cmd += ' -f %s' % spades_outs[1]
         cmd += ' -o %s' % out
         if self.soft.params['db']:

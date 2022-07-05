@@ -593,9 +593,12 @@ def check_spades(self, params, soft):
 
 
 def check_viralverify(self, params, soft):
+    if 'path' not in params or not isdir(params['path']):
+        sys.exit("[viralverify] Please provide path to software's 'bin' folder")
     defaults = {'thr': 7, 'p': [False, True], 'db': [False, True]}
     check_nums(params, defaults, ['thr'], int, 'viralverify')
     check_default(params, defaults, soft.name, ['thr'])
+    defaults['path'] = '<Path to the software "bin" folder>'
     return defaults
 
 

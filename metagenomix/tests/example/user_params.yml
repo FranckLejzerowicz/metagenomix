@@ -206,3 +206,6 @@ prokka:
   notrna: yes
   config: /Users/franck/programs/metagenomix/metagenomix/tests/example/prokka.tsv
 
+# --------------- viralverify -----------------
+viralverify:
+  path: /path/to/
