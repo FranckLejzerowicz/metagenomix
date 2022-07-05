@@ -167,7 +167,7 @@ def count_cmd(self, idx: int, input_fp: str, out: str) -> str:
         Command to count reads and output the counts.
     """
     if input_fp.endswith('fastq.gz'):
-        cmd = "n%s=`%s %s | wc -l | " % (self.soft.params['cat'], idx, input_fp)
+        cmd = "n%s=`%s %s | wc -l | " % (idx, self.soft.params['cat'], input_fp)
         cmd += "sed 's/ //g' | awk '{x=$1/4; print x}'`\n"
         # cmd += "cut -d ' ' -f 1 | awk '{x=$1/4; print x}'`"
     elif input_fp.endswith('fasta'):
