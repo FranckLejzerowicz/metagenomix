@@ -209,3 +209,9 @@ prokka:
 # --------------- viralverify -----------------
 viralverify:
   path: /path/to/
+
+# --------------- cazy ------------------
+cazy:
+  taxa:
+    name_of_a_taxon: /path/to/my/dbcan/taxa/groups/a.txt
+    name_of_another_taxon: /path/to/my/dbcan/taxa/groups/b.txt

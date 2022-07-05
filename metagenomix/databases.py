@@ -12,12 +12,11 @@ import yaml
 import pkg_resources
 
 import pandas as pd
-from skbio.io import read
 from skbio.tree import TreeNode
 from os.path import basename, dirname, isdir, isfile, splitext
 
 from metagenomix._io_utils import (mkdr, get_pfam_wget_cmd, get_hmm_dat,
-                                   get_pfams_cmd, reads_lines)
+                                   get_pfams_cmd)
 
 RESOURCES = pkg_resources.resource_filename('metagenomix', 'resources')
 
@@ -220,65 +219,11 @@ class ReferenceDatabases(object):
                     self.hmms_dias['cazy'][basename(rad)] = [hmm, dia]
                     self.cmds.setdefault(basename(rad), []).append(cmd)
 
-    def write_dbcan_subset(self, taxa: list, folder: str, name: str) -> str:
-        """Write the fasta file suset to the target features and
-        the command to make it a diamond database.
-
-        Parameters
-        ----------
-        taxa : list
-            Taxa from the user file.
-        folder : str
-            dbCAN-Seq folder.
-        name : str
-            Current subset name.
-
-        Returns
-        -------
-        cmd : str
-            Command to make the diamond db from the subsets fasta file.
-        """
-        path = self.config.databases['dbcan']
-        cmd = ""
-        fas_fp = '%s/%s.fa' % (folder, name)
-        dia_fp = '%s.dmnd' % splitext(fas_fp)[0]
-        if not isfile(dia_fp):
-            with open(fas_fp, 'w') as o:
-                taxon_found = False
-                for taxon in taxa:
-                    meta_taxon_pd = self.dbcan_meta.loc[
-                        self.dbcan_meta.genome_name.str.contains(taxon), :]
-                    if not meta_taxon_pd.shape[0]:
-                        continue
-                    gcf_dir = '%s/dbCAN-seq/CAZyme_seq_list' % path
-                    if not isdir(gcf_dir):
-                        os.makedirs(gcf_dir)
-                    for gcf in set(meta_taxon_pd.index):
-                        gcf_fas = '%s/%s.fasta' % (gcf_dir, gcf)
-                        if isfile(gcf_fas):
-                            for e in read(gcf_fas, 'fasta'):
-                                o.write('>%s\n%s\n' % (e.metadata['id'], e))
-                            taxon_found = True
-            if taxon_found:
-                cmd = "diamond makedb --in %s -d %s\n" % (fas_fp, dia_fp)
-        return cmd
-
-    def set_dbcan_taxa(self) -> None:
-        for name, fp in self.config.databases['dbcan'].get('taxa', {}).items():
-            taxa = list(reads_lines(fp))
-            if not taxa:
-                continue
-            folder = '%s/subset' % self.config.databases['dbcan']
-            mkdr(folder)
-            self.cazys[name] = folder
-            self.write_dbcan_subset(taxa, folder, name)
-
     def set_dbcan(self) -> None:
         self.get_dbcan_hmms()
         m = '%s/dbCAN-seq/metadata.txt' % self.config.databases['dbcan']
         if isfile(m):
             self.dbcan_meta = pd.read_csv(m, header=0, index_col=0, sep='\t')
-            self.set_dbcan_taxa()
 
     def set_shogun(self) -> None:
         shogun_config = self.config.databases['shogun']
