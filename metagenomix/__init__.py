@@ -6,4 +6,4 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-__version__ = "2.2.5"
+__version__ = "2.2.6"

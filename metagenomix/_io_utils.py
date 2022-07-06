@@ -149,8 +149,8 @@ def get_hmm_dat(pfam_dir: str) -> pd.DataFrame:
     return pfam_pd
 
 
-def get_pfams_cmd(hmm: str, term_pd: pd.DataFrame,
-                  term: str, odir: str) -> tuple:
+def get_hmms_dias_cmd(hmm: str, term_pd: pd.DataFrame,
+                      term: str, odir: str) -> tuple:
     """Collect the hmm profiles and diamond database for different term targets.
 
     Parameters
@@ -166,14 +166,14 @@ def get_pfams_cmd(hmm: str, term_pd: pd.DataFrame,
 
     Returns
     -------
-    pfams : dict
+    hmms_dias : dict
         [.hmm, .dmnd] files for each term.
     cmd : str
         Command to hmmfetch these term's hmms.
     """
     comp = re.compile("[\\ \-\",()%':&/.\[\]]")
     cmd = ''
-    pfams = {}
+    hmms_dias = {}
     pfam_out = '%s/%s' % (odir, comp.sub('_', term))
     mkdr(pfam_out)
     for r, row in term_pd.iterrows():
@@ -189,8 +189,8 @@ def get_pfams_cmd(hmm: str, term_pd: pd.DataFrame,
             cmd += 'cp %s %s\n' % (fa, fo)
             cmd += 'diamond makedb --in %s -d %s\n' % (fo, dia)
             cmd += 'rm %s\n' % fo
-        pfams[name] = [hmm_fp, dia]
-    return pfams, cmd
+        hmms_dias[name] = [hmm_fp, dia]
+    return hmms_dias, cmd
 
 
 def reads_lines(file_fp: str) -> list:

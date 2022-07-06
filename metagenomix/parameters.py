@@ -242,13 +242,20 @@ def check_search(self, params, soft):
     if tool == 'hmmer':
         defaults.update(search_hmmer(params, soft))
         if 'terms' not in params:
-            print('[search] Params "%s:terms" missing (search ignored)' % tool)
+            print('[search] Params "%s:terms" missing (ignored)' % tool)
         else:
-            terms = str(params['terms'])
-            self.databases.get_pfam_terms(params)
-            if not params['terms']:
-                print('[search] Params "%s:terms" has no HMM profile for %s' % (
-                    tool, terms))
+            terms = params['terms']
+            if not self.databases.hmms_pd.shape[0]:
+                print('[search:%s] Pfam database not found (ignored)' % tool)
+            else:
+                terms_hmms_dias = self.databases.get_pfam_terms(params)
+                not_found_terms = set(terms).difference(set(terms_hmms_dias))
+                if not_found_terms:
+                    print('[search] No HMM for "%s:terms":' % tool)
+                    for term in not_found_terms:
+                        print('[search]    - %s' % term)
+                    if len(not_found_terms) == len(set(terms)):
+                        print('[search]    (i.e. all terms, %s ignored)' % tool)
     defaults['databases'] = '<list of databases>'
     return defaults
 
@@ -729,12 +736,12 @@ def check_humann(self, params, soft):
         'query_cov': 80,
         'subject_cov': 80,
         'prescreen_threshold': 0.001,
-        'uniref': ['uniref90'],
+        'uniref': ['uniref90', 'uniref50'],
         'skip_translated': [False, True],
         'nucleotide_db': '/path/to/full_chocophlan.v0.1.1/chocophlan',
-        'protein_db': '/path/to/uniref90/uniref',
+        'protein_db': '/path/to/uniref90',
     })
-    let_go = ['profiles']
+    let_go = ['profiles', 'nucleotide_db', 'protein_db']
     param_dtype = [('evalue', float), ('prescreen_threshold', float),
                    ('identity', int), ('query_cov', int), ('subject_cov', int)]
     for (param, dtype) in param_dtype:
@@ -768,7 +775,7 @@ def check_humann(self, params, soft):
 
 
 def check_midas(self, params, soft):
-    defaults = {'focus': {'all': [self.databases.paths['midas'], '']}}
+    defaults = {'focus': {'all': ''}}
     if 'tracking' not in params:
         params['tracking'] = []
     else:
@@ -781,17 +788,19 @@ def check_midas(self, params, soft):
             print('[midas] Param "tracking" no metadata var "%s" (ignored)' % v)
         if not params['tracking']:
             print('[midas] Param "tracking" no metadata variable (ignored)')
+
     if 'focus' not in params:
         params['focus'] = defaults['focus']
     else:
         if not isinstance(params['focus'], dict):
             sys.exit('[midas] Param "focus" must be a dict structure')
         for k, v in params['focus'].items():
-            if not isinstance(v, list) or len(v) != 2:
-                sys.exit('[midas] Param "focus::%s" must be 2-items list' % k)
-            if not self.config.dev and not isfile(v[1]):
-                sys.exit('[midas] Param "focus::%s::%s" not a file' % (k, v[1]))
-    defaults = {'focus': '<dict of >'}
+            if not isinstance(v, str):
+                sys.exit('[midas] Param "focus::%s" must be a char. string' % k)
+            if not self.config.dev and not isfile(v):
+                sys.exit('[midas] Param "focus::%s::%s" not a file' % (k, v))
+    defaults = {'focus': '<dict of key:value pair some_name: /path/to/spc.txt',
+                'tracking': '<list of metadata columns>'}
     return defaults
 
 

@@ -425,8 +425,8 @@ def humann(self) -> None:
             self.outputs['cmds'].append(renorm(pwy, pwy_relab))
             io_update(self, o_f=[gen_relab, pwy_relab])
         self.outputs['dirs'].append(out)
-        self.outputs['outs'].append([out, ali, gen, gen_relab,
-                                     pwy, pwy_relab, cov])
+        self.outputs['outs'].append([out, ali, gen, gen_relab, pwy,
+                                     pwy_relab, cov])
 
 
 def get_sample_to_marker(self, sam_dir, markers_dir):

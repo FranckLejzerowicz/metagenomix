@@ -16,7 +16,7 @@ from skbio.tree import TreeNode
 from os.path import basename, isdir, isfile, splitext
 
 from metagenomix._io_utils import (mkdr, get_pfam_wget_cmd, get_hmm_dat,
-                                   get_pfams_cmd)
+                                   get_hmms_dias_cmd)
 
 RESOURCES = pkg_resources.resource_filename('metagenomix', 'resources')
 
@@ -187,23 +187,24 @@ class ReferenceDatabases(object):
 
     def get_pfam_terms(self, params):
         self.database = 'pfam'
-        terms = {}
+        terms_hmms_dias = {}
         hmm = '%s/Pfam-A.hmm' % self.pfams['dir']
         for term in params['terms']:
             term_pd = self.hmms_pd.loc[
                 self.hmms_pd['DE'].str.lower().str.contains(term.lower())
             ].copy()
             if not term_pd.shape[0]:
-                print('[hmmer] No Pfam model for term "%s" (ignored)' % term)
                 continue
-            pfams, cmd = get_pfams_cmd(hmm, term_pd, term, self.pfams['res'])
-            terms[term] = pfams
+            hmms_dias, cmd = get_hmms_dias_cmd(
+                hmm, term_pd, term, self.pfams['res'])
+            terms_hmms_dias[term] = hmms_dias
             self.cmds[term] = [cmd]
         # collect the "pfams per term" for the parameters of the current tools
-        params['terms'] = terms
+        # params['terms'] = terms
         # add these "pfams per term" to a full, database-level collection
-        self.pfams['terms'].update(terms)
+        self.pfams['terms'].update(terms_hmms_dias)
         self.register_command()
+        return terms_hmms_dias
 
     def get_dbcan_hmms(self) -> None:
         """Get all the .hmm files from the dbCAN database."""

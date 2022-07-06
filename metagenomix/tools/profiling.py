@@ -1133,7 +1133,6 @@ def woltka(self) -> None:
 def get_midas_cmd(
         self,
         focus_dir: str,
-        db: str,
         analysis: str,
         select: set = None) -> str:
     """Build the command line for MIDAS analysis.
@@ -1149,8 +1148,6 @@ def get_midas_cmd(
             Parameters
     focus_dir : str
         Path to the output folder.
-    db : str
-        Path to MIDAS database.
     analysis : str
         MIDAS analysis (any of "species", "genes" or "snps").
     select : set
@@ -1166,7 +1163,7 @@ def get_midas_cmd(
     cmd += ' -1 %s' % self.inputs[self.sam][0]
     if len(self.inputs[self.sam]) > 1:
         cmd += ' -2 %s' % self.inputs[self.sam][1]
-    cmd += ' -d %s' % db
+    cmd += ' -d %s' % self.databases.paths['midas']
     cmd += ' -t %s' % self.soft.params['cpus']
     cmd += ' --remove_temp'
     if analysis != 'species':
@@ -1176,38 +1173,35 @@ def get_midas_cmd(
     return cmd
 
 
-def midas_species(self, focus_dir, db, tax) -> None:
-    if db == self.databases.paths['midas']:
-        species_out = '%s/species' % focus_dir
-        species_profile = '%s/species_profile.txt' % species_out
-        if not self.config.force and isfile(species_profile):
-            io_update(self, i_d=species_out)
-        else:
-            self.outputs['cmds'].append(get_midas_cmd(self, focus_dir, db, tax))
-            io_update(self, i_f=self.inputs[self.sam], o_d=species_out)
-        self.outputs['outs'].append(species_out)
-        self.outputs['dirs'].append(species_out)
+def midas_species(self, focus_dir, tax) -> None:
+    species_out = '%s/species' % focus_dir
+    species_profile = '%s/species_profile.txt' % species_out
+    if not self.config.force and isfile(species_profile):
+        io_update(self, i_d=species_out)
+    else:
+        self.outputs['cmds'].append(get_midas_cmd(self, focus_dir, tax))
+        io_update(self, i_f=self.inputs[self.sam], o_d=species_out)
+    self.outputs['outs'].append(species_out)
+    self.outputs['dirs'].append(species_out)
 
 
-def midas_genus(self, focus_dir, genes_out, db, tax, select):
+def midas_genus(self, focus_dir, genes_out, tax, select):
     if self.config.force or not isfile('%s/readme.txt' % genes_out):
-        self.outputs['cmds'].append(
-            get_midas_cmd(self, focus_dir, db, tax, select))
+        self.outputs['cmds'].append(get_midas_cmd(self, focus_dir, tax, select))
         io_update(self, o_d=genes_out)
     self.outputs['outs'].append(genes_out)
     self.outputs['dirs'].append(genes_out)
 
 
-def midas_snps(self, focus_dir, snps_out, db, tax, select):
+def midas_snps(self, focus_dir, snps_out, tax, select):
     if self.config.force or not isfile('%s/readme.txt' % snps_out):
-        self.outputs['cmds'].append(
-            get_midas_cmd(self, focus_dir, db, tax, select))
+        self.outputs['cmds'].append(get_midas_cmd(self, focus_dir, tax, select))
         io_update(self, o_d=snps_out)
     self.outputs['outs'].append(snps_out)
     self.outputs['dirs'].append(snps_out)
 
 
-def get_species_select(self, db: str, species_list: str) -> set:
+def get_species_select(self, species_list: str) -> set:
     """Get the species names for which there is a reference in the database.
 
     Parameters
@@ -1215,8 +1209,6 @@ def get_species_select(self, db: str, species_list: str) -> set:
     self : Commands class instance
         .config
             Configurations
-    db : str
-        Database name.
     species_list : str
         Path to file containing list of species to focus on.
 
@@ -1232,7 +1224,7 @@ def get_species_select(self, db: str, species_list: str) -> set:
             return select
         else:
             species = [x.strip() for x in open(species_list).readlines()]
-        with open('%s/species_info.txt' % db) as f:
+        with open('%s/species_info.txt' % self.databases.paths['midas']) as f:
             for line in f:
                 for genus_species in species:
                     if genus_species.replace(' ', '_') in line:
@@ -1261,18 +1253,18 @@ def midas(self) -> None:
         .config
             Configurations
     """
-    for focus, (db, species_list) in self.soft.params['focus'].items():
+    for focus, species_list in self.soft.params['focus'].items():
 
         focus_dir = '%s/%s/%s' % (self.dir, focus, self.sam)
-        midas_species(self, focus_dir, db, 'species')
+        midas_species(self, focus_dir, 'species')
 
-        select = set(get_species_select(self, db, species_list))
+        select = set(get_species_select(self, species_list))
 
         genes_out = '%s/genes' % focus_dir
-        midas_genus(self, focus_dir, genes_out, db, 'genus', select)
+        midas_genus(self, focus_dir, genes_out, 'genus', select)
 
         snps_out = '%s/snps' % focus_dir
-        midas_snps(self, focus_dir, snps_out, db, 'snps', select)
+        midas_snps(self, focus_dir, snps_out, 'snps', select)
 
 
 def get_kraken2_db(self, db):

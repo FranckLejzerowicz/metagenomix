@@ -54,14 +54,6 @@ def edit_fastq_cmd(fastq_fp: str, num: int) -> str:
     cmd = '%s %s | ' % (cat, fastq_fp)
     cmd += "bioawk -c fastx "
     cmd += "'{print \">\"$1\"/%s\\n\"$2\"\\n+\\n\"$3}' " % str(num)
-    # cmd += "awk '{ if (NR%s4==1) " % '%'
-    # if source == 'illumina':
-    #     cmd += "{ print $1\"/%s\" } " % str(num)
-    # elif source == 'ebi':
-    #     cmd += "{ gsub(/ .*/,\"/%s\",$0); print } " % num
-    # cmd += "else if (NR%s2 == 1) { print \"+\" } " % '%'
-    # cmd += "else { print } }'"
-    # if fastq_fp.endswith('.gz'):
     cmd += " | gzip > %s_renamed\n" % fastq_fp
     cmd += "mv %s_renamed %s" % (fastq_fp, fastq_fp)
     if fastq_fp.endswith('.fastq'):
@@ -118,12 +110,6 @@ def get_edit_cmd(self, num: int) -> None:
     if not line_split[0].endswith('/%s' % num):
         if len(line_split) > 1:
             cmd = edit_fastq_cmd(fastq_fp, num)
-            # if line_split[1].startswith('%s:N:' % num):
-            #     cmd = edit_fastq_cmd(fastq_fp, num, 'illumina')
-            # elif line_split[0].endswith('.%s' % num):
-            #     cmd = edit_fastq_cmd(fastq_fp, num, 'ebi')
-            # else:
-            #     sys.exit('Fastq file headers not editable:\n%s' % line)
             self.outputs['cmds'].append(cmd)
     io_update(self, i_f=fastqs_fps, o_f=fastqs_fps)
 

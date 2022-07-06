@@ -21,7 +21,7 @@ simka:
 # --------------- humann -----------------
 humann:
   evalue: 0.1
-  id_thresh: 90
+  identity: 90
   uniref: uniref90
   query_cov: 80
   subject_cov: 80
@@ -61,8 +61,10 @@ search:
     max: yes
     nobias: yes
     terms:
-      - metal
-      - antibiotic
+#      - metal
+#      - antibiotic
+      - fdshv
+      - fdshvfds
   cpus: 4
 
 # --------------- ioncom -----------------
@@ -163,9 +165,8 @@ midas:
     - light
     - not_a_metadata
   focus:
-    prokaryotes:
-      - database_name
-      - /path/to/species_list.txt
+    prokaryotes: /path/to/prokaryotes_species_list.txt
+    chemosynths: /path/to/chemosynths_species_list.txt
 
 # --------------- macsyfinder -----------------
 macsyfinder:

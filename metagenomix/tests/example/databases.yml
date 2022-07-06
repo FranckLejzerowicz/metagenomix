@@ -24,7 +24,6 @@
 formats:
   - blastn
   - bowtie2
-  - bracken
   - burst
   - centrifuge
   - diamond
@@ -32,42 +31,19 @@ formats:
   - minimap2
   - qiime2
   - utree
-mar:
-  path: /path/to/my/databases/MAR
-pfam:
-  path: /path/to/my/databases/PFAM
-  terms:
-    - metal
-    - manganese
-dbcan:
-  path: /path/to/my/databases/dbCAN
-  taxa:
-    name_of_a_taxon: /path/to/my/dbcan/taxa/groups/a.txt
-    name_of_another_taxon: /path/to/my/dbcan/taxa/groups/b.txt
-squeezemeta:
-  path: /path/to/my/databases/SqueezeMeta
-midas:
-  path: /path/to/my/databases/midas_db_v1.2
-metaphlan:
-  path: /path/to/my/databases/metaphlan3
-humann:
-  path: /path/to/my/databases/metaphlan3
-macsyfinder:
-  path: /path/to/my/databases/macsyfinder
-uniref:
-  path: /path/to/my/databases/uniref90
-ioncom:
-  path: /path/to/my/databases/IonCom
-  itasser: /path/to/my/databases/I-TASSER_LIB
-wol:
-  path: /path/to/my/databases/wol
-tara_prok:
-  path: /path/to/my/databases/tara_prok
-tara_euk:
-  path: /path/to/my/databases/tara_euk
-gtdb:
-  path: /path/to/my/databases/gtdb
-rep82:
-  path:  /path/to/my/databases/rep82
-kraken2:
-  path: /path/to/my/databases/Kraken2
+mar: /path/to/my/databases/MAR
+pfam: /path/to/my/databases/PFAM
+dbcan: /path/to/my/databases/dbCAN/
+squeezemeta: /path/to/my/databases/SqueezeMeta
+midas: /path/to/my/databases/midas_db_v1.2
+metaphlan: /path/to/my/databases/metaphlan3
+humann: /path/to/my/databases/metaphlan3
+macsyfinder: /path/to/my/databases/macsyfinder
+uniref: /path/to/my/databases/uniref90
+ioncom: /path/to/my/databases/IonCom
+wol: /path/to/my/databases/wol
+tara_prok: /path/to/my/databases/tara_prok
+tara_euk: /path/to/my/databases/tara_euk
+gtdb: /path/to/my/databases/gtdb
+rep82: /path/to/my/databases/rep82
+kraken2: /path/to/my/databases/Kraken2/latest
