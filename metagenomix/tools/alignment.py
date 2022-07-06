@@ -193,7 +193,11 @@ def bowtie2(self) -> None:
     out = self.dir + '/' + self.sam
     self.outputs['outs'] = dict()
     fastx = self.inputs[self.sam]
+    print("fastx")
+    print(fastx)
     for db, db_path in self.soft.params['databases'].items():
+        print("db, db_path")
+        print(db, db_path)
         db_out = '%s/%s/%s' % (out, db, self.soft.params['pairing'])
         cmd, sam = get_bowtie2_cmd(self, fastx, db_path, db_out)
         key = (db, self.soft.params['pairing'])
@@ -201,7 +205,7 @@ def bowtie2(self) -> None:
         if self.config.force or not isfile(sam):
             cmd = get_alignment_cmd(fastx, cmd, sam)
             print()
-            print(self.sam)
+            print("self.sam", self.sam)
             print(cmd)
             print(key)
             print(cmd)
