@@ -53,7 +53,7 @@ def edit_fastq_cmd(fastq_fp: str, num: int) -> str:
     cat = get_cat_zcat(fastq_fp)
     cmd = '%s %s | ' % (cat, fastq_fp)
     cmd += "bioawk -c fastx "
-    cmd += "'{print \">\"$1/%s\"\\n\"$2\"\\n+\\n\"$3}' " % str(num)
+    cmd += "'{print \">\"$1\"/%s\\n\"$2\"\\n+\\n\"$3}' " % str(num)
     # cmd += "awk '{ if (NR%s4==1) " % '%'
     # if source == 'illumina':
     #     cmd += "{ print $1\"/%s\" } " % str(num)
