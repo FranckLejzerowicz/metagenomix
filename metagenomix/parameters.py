@@ -598,18 +598,26 @@ def check_bowtie2(self, params, soft):
     check_bowtie_score_min(soft, params, defaults, let_go)
     check_default(params, defaults, soft.name, let_go)
     dbs_existing = check_databases('bowtie2', params, self.databases)
+    print("dbs_existing")
+    print(dbs_existing)
     valid_dbs = {}
     for db in dbs_existing:
-        path = self.databases.paths[db]
-        bt2_path = '%s/bowtie2/*.*.bt2' % path
-        if not self.config.dev:
-            bt2_paths = glob.glob(bt2_path)
-            if bt2_paths:
-                valid_dbs[db] = bt2_paths[0].rsplit('.', 2)[0]
-        else:
-            valid_dbs[db] = bt2_path.rsplit('.', 2)[0]
+        print("self.databases.paths[db]")
+        print(self.databases.paths[db])
+        print("self.databases.builds[db]")
+        print(self.databases.builds[db])
+        if 'bowtie2' in self.databases.builds[db]:
+            bt2_path = '%s/*.*.bt2' % self.databases.builds[db]['bowtie2']
+            if not self.config.dev:
+                bt2_paths = glob.glob(bt2_path)
+                if bt2_paths:
+                    valid_dbs[db] = bt2_paths[0].rsplit('.', 2)[0]
+            else:
+                valid_dbs[db] = bt2_path.rsplit('.', 2)[0]
     params['databases'] = valid_dbs
     defaults['databases'] = '<list of databases>'
+    print("params['databases']")
+    print(params['databases'])
     return defaults
 
 
