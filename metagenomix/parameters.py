@@ -610,6 +610,8 @@ def check_bowtie2(self, params, soft):
             bt2_path = '%s/*.*.bt2' % self.databases.builds[db]['bowtie2']
             if not self.config.dev:
                 bt2_paths = glob.glob(bt2_path)
+                print("bt2_paths")
+                print(bt2_paths)
                 if bt2_paths:
                     valid_dbs[db] = bt2_paths[0].rsplit('.', 2)[0]
             else:
