@@ -197,6 +197,7 @@ def bowtie2(self) -> None:
     print(fastx)
     print("self.soft.params['databases']")
     print(self.soft.params['databases'])
+    self.builds
     for db, db_path in self.soft.params['databases'].items():
         print("db, db_path")
         print(db, db_path)
