@@ -10,7 +10,7 @@ import glob
 import sys
 
 import numpy as np
-from os.path import isdir
+from os.path import dirname, isdir
 
 from metagenomix._io_utils import read_yaml
 from metagenomix.tools.alignment import *
@@ -569,7 +569,7 @@ def check_shogun(self, params, soft):
                         if ali[0] == '/':
                             formatted = ali
                         else:
-                            formatted = '%s/shogun/%s' % (path, ali)
+                            formatted = '%s/%s' % (dirname(yaml), ali)
                         if glob.glob('%s*' % formatted):
                             valid_dbs.setdefault(db, []).append(aligner)
                         else:
