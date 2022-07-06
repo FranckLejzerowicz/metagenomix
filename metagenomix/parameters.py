@@ -551,12 +551,17 @@ def check_shogun(self, params, soft):
         dbs_existing = check_databases('shogun', params, self.databases)
         for db in dbs_existing:
             path = self.databases.paths[db]
+            yamls = []
             for folder in ['', 'databases/']:
-                meta_yml = '%s/%s/shogun/metadata.yaml' % (path, folder)
-                if not self.config.dev and not isfile(meta_yml):
-                    raise IOError('[shogun] file "%s" must exist' % meta_yml)
-                break
-            metadata = read_yaml(meta_yml)
+                yaml = '%s/%sshogun/metadata.yaml' % (path, folder)
+                yamls.append(yaml)
+                if isfile(yaml):
+                    break
+            else:
+                if not self.config.dev:
+                    raise IOError(
+                        '[shogun] file must exist: %s' % ' or '.join(yamls))
+            metadata = read_yaml(yaml)
             for aligner in list(params['aligners']):
                 if aligner in metadata:
                     if not self.config.dev:
