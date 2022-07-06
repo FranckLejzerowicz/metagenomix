@@ -83,7 +83,7 @@ class Commands(object):
         self.dir = abspath('%s/%s/after_%s' % (
             self.config.dir, self.soft.name, self.soft.prev))
         self.soft.dirs.add(self.dir)
-        if self.soft.params['scratch']:
+        if self.soft.params['scratch'] and self.config.jobs:
             self.dir = '${SCRATCH_FOLDER}%s' % self.dir
 
     def is_pool(self):
