@@ -238,7 +238,6 @@ def check_search(self, params, soft):
             else:
                 valid_dbs[db] = [dmnds]
         params['databases'] = valid_dbs
-        print(valid_dbs)
 
     if tool == 'hmmer':
         defaults.update(search_hmmer(params, soft))
