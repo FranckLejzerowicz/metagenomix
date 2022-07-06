@@ -200,6 +200,11 @@ def bowtie2(self) -> None:
         self.outputs['outs'][key] = sam
         if self.config.force or not isfile(sam):
             cmd = get_alignment_cmd(fastx, cmd, sam)
+            print()
+            print(self.sam)
+            print(cmd)
+            print(key)
+            print(cmd)
             self.outputs['cmds'].append(cmd)
             io_update(self, i_f=fastx, o_d=db_out)
         self.outputs['dirs'].append(db_out)

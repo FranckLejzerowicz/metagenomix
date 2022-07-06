@@ -72,7 +72,7 @@ class Commands(object):
     def get_inputs(self):
         """Update the `inputs` attribute of the software object."""
         if not self.soft.prev or self.soft.name == 'map__drep':
-            if self.soft.params['scratch']:
+            if self.soft.params['scratch'] and self.config.jobs:
                 self.inputs = self.config.fastq_scratch
             else:
                 self.inputs = self.config.fastq

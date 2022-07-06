@@ -400,8 +400,8 @@ def per_coassembly_scratch(pool, soft, sam_cmds, cmds, commands):
             get_scratch_cmds((pool, group), soft, group_cmds, cmds)
 
 
-def scratching(soft, commands) -> dict:
-    if soft.params['scratch']:
+def scratching(self, soft, commands) -> dict:
+    if soft.params['scratch'] and self.config.jobs:
         cmds = {}
         # Use commands.pools to unpack the commands well
         for sam, sam_cmds in soft.cmds.items():

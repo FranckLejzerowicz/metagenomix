@@ -95,7 +95,7 @@ class CreateScripts(object):
                 continue
             print()
             self.get_modules(name)
-            self.cmds = scratching(soft, commands)
+            self.cmds = scratching(self, soft, commands)
             self.get_cmds_chunks(soft.params['chunks'])
             self.write_jobs(name, soft)
             self.write_main(name, soft)

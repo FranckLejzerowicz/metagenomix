@@ -54,12 +54,15 @@ def edit_fastq_cmd(fastq_fp: str, num: int) -> str:
     cmd = '%s %s | ' % (cat, fastq_fp)
     cmd += "bioawk -c fastx "
     cmd += "'{print \">\"$1\"/%s\\n\"$2\"\\n+\\n\"$3}' " % str(num)
-    cmd += " | gzip > %s_renamed\n" % fastq_fp
-    cmd += "mv %s_renamed %s" % (fastq_fp, fastq_fp)
     if fastq_fp.endswith('.fastq'):
-        cmd += ".gz\n"
+        cmd += " > %s_renamed\n" % fastq_fp
     else:
-        cmd += "\n"
+        cmd += " | gzip > %s_renamed\n" % fastq_fp
+    cmd += "mv %s_renamed %s" % (fastq_fp, fastq_fp)
+    # if fastq_fp.endswith('.fastq'):
+    #     cmd += ".gz\n"
+    # else:
+    #     cmd += "\n"
     return cmd
 
 
