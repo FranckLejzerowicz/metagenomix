@@ -61,14 +61,13 @@ def edit_fastq_cmd(fastq_fp: str, num: int) -> str:
     #     cmd += "{ gsub(/ .*/,\"/%s\",$0); print } " % num
     # cmd += "else if (NR%s2 == 1) { print \"+\" } " % '%'
     # cmd += "else { print } }'"
-    if fastq_fp.endswith('.gz'):
-        cmd += " | gzip"
-    cmd += " > %s_renamed\n" % fastq_fp
+    # if fastq_fp.endswith('.gz'):
+    cmd += " | gzip > %s_renamed\n" % fastq_fp
     cmd += "mv %s_renamed %s" % (fastq_fp, fastq_fp)
     if fastq_fp.endswith('.fastq'):
-        cmd += "\n"
-    else:
         cmd += ".gz\n"
+    else:
+        cmd += "\n"
     return cmd
 
 

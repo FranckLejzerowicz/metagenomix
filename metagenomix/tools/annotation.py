@@ -406,7 +406,7 @@ def prep_hmmer_custom(self):
 
 
 
-def diamond_annot_cmd(self, o_dir, fp, tmp_dir, group=None) -> tuple:
+def diamond_cmd(self, o_dir, fp, tmp_dir, group=None) -> tuple:
     cmd, outs = '', []
     io_update(self, i_f=fp, key=group)
     self.soft.dirs.add(o_dir)
@@ -426,7 +426,6 @@ def diamond_annot_cmd(self, o_dir, fp, tmp_dir, group=None) -> tuple:
             cmd += ' --id %s' % self.soft.params['identity']
             cmd += ' -t %s\n' % tmp_dir
             io_update(self, o_f=out, key=group)
-
     return cmd, outs
 
 
@@ -435,14 +434,14 @@ def diamond(self):
     if self.pool in self.pools:
         for group in self.pools[self.pool]:
             o_dir, fp = get_out_dir(self, self.pool, group)
-            cmd, outs = diamond_annot_cmd(self, o_dir, fp, tmp_dir, group)
+            cmd, outs = diamond_cmd(self, o_dir, fp, tmp_dir, group)
             self.outputs['outs'].setdefault(self.pool, []).extend(outs)
             if cmd:
                 self.outputs['cmds'].setdefault(group, []).append(cmd)
 
     else:
         o_dir, fp = get_out_dir(self, self.sam)
-        cmd, outs = diamond_annot_cmd(self, o_dir, fp, tmp_dir)
+        cmd, outs = diamond_cmd(self, o_dir, fp, tmp_dir)
         self.outputs['outs'].extend(outs)
         if cmd:
             self.outputs['cmds'].append(cmd)

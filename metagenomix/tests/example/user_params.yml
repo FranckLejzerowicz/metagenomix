@@ -43,13 +43,15 @@ flash:
 search:
   databases:
     - uniref
-    - tara_eukaryotes
+    - tara_smags
+    - tara_mags
+    - oceandna
   diamond:
     k: 10
     top: 2
     evalue: 0.001
     identity: 100
-    query_cover: 80
+    query_cov: 80
     mode: no
   hmmer:
     Z: 10
@@ -58,9 +60,9 @@ search:
     domE: 1
     max: yes
     nobias: yes
-#    terms:
-#      - metal
-#      - manganese
+    terms:
+      - metal
+      - antibiotic
   cpus: 4
 
 # --------------- ioncom -----------------

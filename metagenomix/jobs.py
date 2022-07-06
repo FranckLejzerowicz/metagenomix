@@ -88,7 +88,10 @@ class CreateScripts(object):
         for sdx, (name, soft) in enumerate(commands.softs.items()):
             print('[Writing commands] #%s: %s' % (sdx, soft.name), end=' ')
             if not len(soft.cmds):
-                print('-> Done (use --force to re-run)')
+                if soft.name == 'pooling':
+                    print('per sample (i.e. no actual pooling)')
+                else:
+                    print('-> Done (use --force to re-run)')
                 continue
             print()
             self.get_modules(name)
