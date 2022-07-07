@@ -714,8 +714,9 @@ def check_metawrap(self, params, soft):
 
 
 def check_flash(self, params, soft):
-    defaults = {'min_overlap': 30, 'max_overlap': 100, 'mismatch': 0}
-    check_nums(params, defaults, list(defaults.keys()), int, soft.name)
+    defaults = {'min_overlap': 10, 'max_overlap': 65, 'mismatch': 0.25}
+    check_nums(params, defaults, ['min_overlap', 'max_overlap'], int, soft.name)
+    check_nums(params, defaults, ['mismatch'], float, soft.name, 0, 1)
     mi, ma = params['min_overlap'], params['max_overlap']
     if mi > ma:
         sys.exit('[flash] "min_overlap" (%s) > "max_overlap" (%s)' % (mi, ma))
