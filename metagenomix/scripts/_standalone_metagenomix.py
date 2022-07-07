@@ -60,6 +60,9 @@ from metagenomix import __version__
     "--userscratch/--no-userscratch", default=False, show_default=True,
     help="Use the userscratch folder to move files and compute")
 @click.option(
+    "--move-back/--no-move-back", default=True, show_default=True,
+    help="Do not move back from scrach (makes sense only for --userscratch)")
+@click.option(
     "--show-params/--no-show-params", default=False, show_default=False,
     help="Show all possible parameters for all tools of your pipeline.")
 @click.option(
@@ -95,6 +98,7 @@ def standalone_metagenomix(
         localscratch,
         scratch,
         userscratch,
+        move_back,
         show_params,
         show_pfams,
         purge_pfams,
@@ -120,6 +124,7 @@ def standalone_metagenomix(
         localscratch=localscratch,
         scratch=scratch,
         userscratch=userscratch,
+        move_back=move_back,
         show_params=show_params,
         show_pfams=show_pfams,
         purge_pfams=purge_pfams,

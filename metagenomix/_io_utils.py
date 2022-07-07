@@ -380,24 +380,25 @@ def outputs_back(io) -> list:
     return sorted(outbound)
 
 
-def get_scratch_cmds(key, soft, cur_cmds, cmds):
+def get_scratch_cmds(self, key, soft, cur_cmds, cmds):
     if key in soft.io:
         roundtrip = get_roundtrip(soft.io[key])
-        scratched_cmds = ['# Move to SCRATCH_FOLDER'] + roundtrip['to']
-        scratched_cmds += ['\n# %s commands (%s)' % (soft.name, key)] + cur_cmds
-        scratched_cmds += ['\n# Move from SCRATCH_FOLDER'] + roundtrip['from']
-        cmds[key] = scratched_cmds
+        scratch_cmds = ['\n# Move to SCRATCH_FOLDER'] + roundtrip['to']
+        scratch_cmds += ['\n# %s commands (%s)' % (soft.name, key)] + cur_cmds
+        if self.config['move_back']:
+            scratch_cmds += ['\n# Move from SCRATCH_FOLDER'] + roundtrip['from']
+        cmds[key] = scratch_cmds
     else:
         cmds[key] = cur_cmds
 
 
-def per_coassembly_scratch(pool, soft, sam_cmds, cmds, commands):
+def per_group_scratch(self, pool, soft, sam_cmds, cmds, commands):
     if pool in sam_cmds:
-        get_scratch_cmds(pool, soft, sam_cmds, cmds)
+        get_scratch_cmds(self, pool, soft, sam_cmds, cmds)
     else:
         for group in commands.pools[pool]:
             group_cmds = sam_cmds[group]
-            get_scratch_cmds((pool, group), soft, group_cmds, cmds)
+            get_scratch_cmds(self, (pool, group), soft, group_cmds, cmds)
 
 
 def scratching(self, soft, commands) -> dict:
@@ -406,9 +407,9 @@ def scratching(self, soft, commands) -> dict:
         # Use commands.pools to unpack the commands well
         for sam, sam_cmds in soft.cmds.items():
             if isinstance(sam_cmds, list):
-                get_scratch_cmds(sam, soft, sam_cmds, cmds)
+                get_scratch_cmds(self, sam, soft, sam_cmds, cmds)
             elif isinstance(sam_cmds, dict):
-                per_coassembly_scratch(sam, soft, sam_cmds, cmds, commands)
+                per_group_scratch(self, sam, soft, sam_cmds, cmds, commands)
             else:
                 sys.exit('The collected commands are neither list of dict!')
         return cmds
