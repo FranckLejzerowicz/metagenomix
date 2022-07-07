@@ -61,7 +61,7 @@ setup(
         "pandas",
         "pyyaml",
         "seaborn",
-        "Xhpc==2.2.1"
+        "Xhpc==2.3"
     ],
     classifiers=classifiers,
     entry_points={'console_scripts': standalone},
