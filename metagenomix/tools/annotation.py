@@ -503,7 +503,7 @@ def get_prokka_cmd(self, contigs, out_dir, prefix, config, cols):
     cmd = 'prokka'
     cmd += ' --mincontiglen %s' % self.soft.params['mincontiglen']
     cmd += ' --cpus %s' % self.soft.params['cpus']
-    for boolean in ['metagenome', 'notrna', 'norrna', 'annotation']:
+    for boolean in ['metagenome', 'notrna', 'norrna']:
         if self.soft.params[boolean]:
             cmd += ' --%s' % boolean.replace('_', '-')
     cmd += ' --force'
