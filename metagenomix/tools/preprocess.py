@@ -6,7 +6,6 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-import sys
 import gzip
 from os.path import basename, isfile
 from metagenomix._io_utils import io_update

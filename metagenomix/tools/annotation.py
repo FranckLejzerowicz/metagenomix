@@ -544,7 +544,7 @@ def prokka(self):
             cmd = ''
             for config in configs:
                 prefix = '_'.join([config[x] for x in cols if config[x]])
-                if config['proteins']:
+                if config.get('proteins'):
                     prefix += '_%s' % splitext(basename(config['proteins']))[0]
                 file_out = '%s/%s.out' % (out, prefix)
                 if self.config.force or not isfile(file_out):
