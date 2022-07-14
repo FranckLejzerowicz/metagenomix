@@ -221,9 +221,7 @@ class Workflow(object):
             self.skip[soft.name.split('_')[0]] = True
 
     def show_params(self, soft):
-        params_show = dict(
-            x for x in soft.params.items())
-            # x for x in soft.params.items() if x[0] not in self.config.params)
+        params_show = dict(x for x in soft.params.items())
         if params_show:
             print('[Parameters] %s' % soft.name)
             print('=' * 30)
@@ -245,14 +243,8 @@ class Workflow(object):
         params passed by the user for each of the software.
         """
         for _, soft in self.softs.items():
-            # print()
-            # print()
-            # print('-----------------')
-            # print(soft.name)
             self.set_scratch(soft)
             self.set_user_params(soft)
-            # print('soft.params:', soft.params)
-            # print('-----------------')
         if self.config.show_params:
             for _, soft in self.softs.items():
                 self.show_params(soft)

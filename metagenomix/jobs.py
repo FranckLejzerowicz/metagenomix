@@ -99,7 +99,7 @@ class CreateScripts(object):
             scratch_cmds += roundtrip['to']
             scratch_cmds += ['\n# %s commands (%s)' % (soft.name, key)]
             scratch_cmds += cmds
-            if self.config['move_back']:
+            if self.config.move_back:
                 scratch_cmds += ['\n# Move from SCRATCH_FOLDER']
                 scratch_cmds += roundtrip['from']
             self.cmds[key] = scratch_cmds
@@ -206,9 +206,6 @@ class CreateScripts(object):
                 sh.write('module purge\n')
             for module in self.modules:
                 sh.write('module load %s\n' % module)
-            print("chunk_keys", chunk_keys)
-            print("self.cmds")
-            print(self.cmds)
             for chunk_key in chunk_keys:
                 for cmd in self.cmds[chunk_key]:
                     sh.write('%s\n' % cmd)

@@ -166,22 +166,6 @@ class Commands(object):
             self.pools[pool] = {}
             self.soft.outputs[pool] = {}
             pooling(self, pool)
-        print()
-        print()
-        print("self.pools")
-        print(self.pools)
-        print()
-        print()
-        print("self.soft.io")
-        print(self.soft.io)
-        print()
-        print()
-        print("self.cmds")
-        print(self.cmds)
-        print()
-        print()
-        print("self.soft.outputs")
-        print(self.soft.outputs)
 
     # IN PROGRESS
     def mapping(self):
