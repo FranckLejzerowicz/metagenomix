@@ -539,7 +539,7 @@ def prokka(self):
                 configs = get_prokka_config(self, cols)
             else:
                 cols = ['']
-                configs = {'': 'no_config'}
+                configs = [{'': 'no_config'}]
 
             cmd = ''
             for config in configs:
