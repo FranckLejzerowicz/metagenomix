@@ -188,3 +188,5 @@ class AnalysesConfig(object):
         """
         if isfile('%s/run_params.yml' % RESOURCES):
             self.params = read_yaml('%s/run_params.yml' % RESOURCES)['default']
+        if self.chunks:
+            self.params['chunks'] = self.chunks

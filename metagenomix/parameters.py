@@ -97,7 +97,7 @@ def check_databases(name, params, databases):
     return dbs_existing
 
 
-def check_default(params, defaults, name, let_go: list = []):
+def check_default(params, defaults, name, let_go: list = [], multi: list = []):
     """Verifies that the parameters given by the used for the current tool
     and that are to be checked (i.e., not in the `let_go` list) are valid.
     This mean that they must be one (or sevreral) of the values matching the
@@ -121,6 +121,11 @@ def check_default(params, defaults, name, let_go: list = []):
                     show_valid_params(param, values, name)
             elif params[param] not in values:
                 show_valid_params(param, values, name)
+        if param in multi:
+            if not isinstance(params[param], list):
+                sys.exit('[%s] Param "%s" must be a list' % (name, param))
+        elif isinstance(params[param], (list, dict)):
+            sys.exit('[%s] Param "%s" must not be a list/dict' % (name, param))
 
 
 class Parameters(object):
@@ -507,7 +512,8 @@ def search_hmmer(params, soft) -> dict:
 
 
 def check_metaxa2(self, params, soft) -> dict:
-    defaults = {'align': ['none', 'all', 'uncertain'],
+    defaults = {'databases': ['default'],
+                'align': ['none', 'all', 'uncertain'],
                 'mode': ['metagenome', 'genome'],
                 'megablast': [True, False],
                 'graphical': [True, False],
@@ -520,11 +526,13 @@ def check_metaxa2(self, params, soft) -> dict:
         params['T'] = defaults['T']
     elif len([x for x in str(params['T']).split(',') if x.isdigit()]) != 7:
         sys.exit('[metaxa2] Param "T" must be 7 tab-separated integers [0-100]')
+    check_databases('metaxa2', params, self.databases)
     check_nums(params, defaults, ['r', 'd', 'E'], float, soft.name, 0, 1)
     check_nums(params, defaults, ['R'], int, soft.name, 0, 100)
     check_nums(params, defaults, ['S', 'N', 'M', 'l'], int, soft.name)
-    check_default(params, defaults, soft.name, ['r', 'd', 'E', 'R',
+    check_default(params, defaults, soft.name, ['databases', 'r', 'd', 'E', 'R',
                                                 'S', 'N', 'M', 'l', 'T'])
+    defaults['databases'].append('<list of databases>')
     return defaults
 
 
@@ -545,7 +553,7 @@ def check_kraken2(self, params, soft):
 
 def check_shogun(self, params, soft):
     defaults = {'aligners': ['bowtie2', 'burst', 'utree']}
-    check_default(params, defaults, soft.name)
+    check_default(params, defaults, soft.name, [], ['aligners'])
     if 1:
         valid_dbs = {}
         dbs_existing = check_databases('shogun', params, self.databases)
@@ -709,17 +717,84 @@ def check_metawrap(self, params, soft):
     check_nums(params, defaults, mins, int, 'metawrap:binning', 0, 100)
     check_nums(params, defaults, ['min_contig_length'], int, 'metawrap:binning')
     mins.append('min_contig_length')
-    check_default(params, defaults, soft.name, mins)
+    check_default(params, defaults, soft.name, mins,
+                  ['binners', 'reassembly', 'blobology'])
     return defaults
 
 
-def check_flash(self, params, soft):
-    defaults = {'min_overlap': 10, 'max_overlap': 65, 'mismatch': 0.25}
-    check_nums(params, defaults, ['min_overlap', 'max_overlap'], int, soft.name)
-    check_nums(params, defaults, ['mismatch'], float, soft.name, 0, 1)
-    mi, ma = params['min_overlap'], params['max_overlap']
-    if mi > ma:
-        sys.exit('[flash] "min_overlap" (%s) > "max_overlap" (%s)' % (mi, ma))
+def check_drep(self, params, soft):
+    defaults = {
+        'n_PRESET': ['normal', 'tight'],
+        'coverage_method': ['larger', 'total'],
+        'S_algorithm': ['fastANI', 'ANIn', 'ANImf', 'gANI', 'goANI'],
+        'clusterAlg': ['average', 'weighted', 'single', 'median',
+                       'ward', 'centroid', 'complete'],
+        'SkipMash': [False, True],
+        'SkipSecondary': [False, True],
+        'run_tertiary_clustering': [False, True],
+        'greedy_secondary_clustering': [False, True],
+        'multiround_primary_clustering': [False, True],
+        'primary_chunksize': 5000,
+        'MASH_sketch': 1000,
+        'P_ani': 0.9,
+        'S_ani': 0.95,
+        'cov_thresh': 0.1,
+        'warn_dist': 0.25,
+        'warn_sim': 0.98,
+        'warn_aln': 0.25
+    }
+    if 'anicalculator' not in params:
+        sys.exit('[checkm] Param "anicalculator" needed: path to binary folder')
+    if 'S_algorithm' not in params:
+        params['S_algorithm'] = ['fastANI', 'ANIn']
+    ints = ['MASH_sketch', 'primary_chunksize']
+    check_nums(params, defaults, ints, int, soft.name)
+    flts = ['P_ani', 'S_ani', 'cov_thresh', 'warn_dist', 'warn_sim', 'warn_aln']
+    check_nums(params, defaults, flts, float, soft.name, 0, 1)
+    check_default(params, defaults, soft.name, (ints + flts), ['S_algorithm'])
+    defaults['anicalculator'] = '<path to folder with "anicalculator" binary>'
+    return defaults
+
+
+def check_checkm(self, params, soft):
+    defaults = {
+        'min_seq_len': 1500,
+        'all_reads': [True, False],
+        'min_align': 0.98,
+        'max_edit_dist': 0.02,
+        'aai_strain': 0.9,
+        'length': 0.7,
+        'min_qc': 15,
+        'e_value': 1e-10,
+        'coverage': [False, True],
+        'reduced_tree': [False, True],
+        'ali': [False, True],
+        'nt': [False, True],
+        'genes': [False, True],
+        'tab_table': [True, False],
+        'individual_markers': [False, True],
+        'skip_adj_correction': [False, True],
+        'skip_pseudogene_correction': [False, True],
+        'ignore_thresholds': [False, True],
+    }
+    if 'data' not in params:
+        sys.exit('[checkm] Param "data" needed: path for "checkm data setRoot"')
+    ints = ['min_seq_len', 'min_qc']
+    check_nums(params, defaults, ints, int, soft.name)
+    floats = ['min_align', 'max_edit_dist', 'aai_strain', 'length']
+    check_nums(params, defaults, floats, float, soft.name, 0, 1)
+    floats_ = ['e_value']
+    check_nums(params, defaults, floats_, float, soft.name)
+    check_default(params, defaults, soft.name, (ints + floats + floats_))
+    defaults['data'] = '<path to the CheckM reference data>'
+    return defaults
+
+
+def check_gtdbtk(self, params, soft):
+    defaults = {}
+    check_nums(params, defaults, [''], int, soft.name)
+    check_nums(params, defaults, [''], float, soft.name)
+    check_default(params, defaults, soft.name)
     return defaults
 
 

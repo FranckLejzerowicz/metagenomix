@@ -23,7 +23,7 @@ from metagenomix.tools.assembly import (
 from metagenomix.tools.annotation import (
     prodigal, integron_finder, macsyfinder, ioncom, search, antismash, prokka)
 from metagenomix.tools.binning import metawrap
-from metagenomix.tools.drep import get_drep_bins, get_drep_inputs
+from metagenomix.tools.genomics import drep, checkm #, gtdbtk
 from metagenomix.tools.metamarker import metamarker
 
 
@@ -38,7 +38,6 @@ class Commands(object):
         self.args = {}
         self.pools = {}
         self.pool = None
-        self.pool_bool = False
         self.inputs = None
         self.method = None
         self.soft = None
@@ -87,11 +86,9 @@ class Commands(object):
             self.dir = '${SCRATCH_FOLDER}%s' % self.dir
 
     def is_pool(self):
-        self.pool_bool = False
         self.struc = list
         self.io = set
-        if set(self.inputs) == set(self.pools):
-            self.pool_bool = True
+        if set(self.inputs) == set(self.pools) or self.soft.name == 'pooling':
             self.struc = dict
             self.io = dict
 
@@ -149,11 +146,11 @@ class Commands(object):
             raise ValueError('No method for software %s' % self.soft.name)
 
     def extract_data(self):
-        if self.outputs.get('cmds', []):
+        if self.outputs.get('cmds'):
             self.cmds[self.sam] = self.outputs['cmds']
             self.fill_soft_io()
         if self.soft.name in self.holistics:
-            self.soft.outputs[self.soft.name] = self.outputs['outs']
+            self.soft.outputs = self.outputs['outs']
         else:
             self.soft.outputs[self.pool] = self.outputs['outs']
 
@@ -164,11 +161,27 @@ class Commands(object):
 
     def pooling(self):
         for pool in self.config.pooling_groups:
+            self.soft.io = {}
+            self.cmds[pool] = {}
             self.pools[pool] = {}
             self.soft.outputs[pool] = {}
-            self.soft.io[pool] = {('I', 'f'): dict(), ('I', 'd'): dict(),
-                                  ('O', 'f'): dict(), ('O', 'd'): dict()}
             pooling(self, pool)
+        print()
+        print()
+        print("self.pools")
+        print(self.pools)
+        print()
+        print()
+        print("self.soft.io")
+        print(self.soft.io)
+        print()
+        print()
+        print("self.cmds")
+        print(self.cmds)
+        print()
+        print()
+        print("self.soft.outputs")
+        print(self.soft.outputs)
 
     # IN PROGRESS
     def mapping(self):
@@ -246,44 +259,6 @@ class Commands(object):
                 self.outputs['outs'][group][sam] = out
                 io_update(self, i_f=[prot, bam, out])
 
-    def prep_drep(self):
-        self.outputs['outs'] = {}
-        genomes = get_drep_bins(self.soft.prev, self.pools, self.inputs)
-        for pool, group_paths in genomes.items():
-            self.outputs['outs'][pool] = {}
-            for stringency, sam_paths in group_paths.items():
-                drep_dir = '%s/%s' % (self.dir, pool)
-                if stringency:
-                    drep_dir += '/%s' % stringency
-                drep_in, paths = get_drep_inputs(drep_dir, sam_paths)
-                io_update(self, i_f=([drep_in] + list(paths)))
-                for algorithm in ['fastANI', 'ANIn']:
-                    drep_out = '%s/%s' % (drep_dir, algorithm)
-                    self.outputs['dirs'].append(drep_out)
-                    log = '%s/log' % drep_out
-                    figure = '%s/figure' % drep_out
-                    data_table = '%s/data_tables' % drep_out
-                    dereplicated_genomes = '%s/dereplicated_genomes' % drep_out
-                    outputs = [data_table, log, figure, dereplicated_genomes]
-                    self.outputs['outs'][pool][algorithm] = outputs
-                    if len(glob.glob('%s/*.fa' % dereplicated_genomes)):
-                        continue
-                    if isdir(drep_out):
-                        io_update(self, i_d=drep_out)
-                    cmd = 'dRep dereplicate'
-                    cmd += ' %s' % drep_out
-                    cmd += ' --S_algorithm %s' % algorithm
-                    cmd += ' --ignoreGenomeQuality'
-                    if len(list(paths)) > 5000 and algorithm == 'fastANI':
-                        cmd += ' --multiround_primary_clustering'
-                        cmd += ' --greedy_secondary_clustering'
-                        cmd += ' --run_tertiary_clustering'
-                    cmd += ' -pa 0.9 -sa 0.98 -nc 0.3 -cm larger'
-                    cmd += ' -p %s' % self.soft.params['cpus']
-                    cmd += ' -g %s' % drep_in
-                    self.outputs['cmds'].setdefault(pool, []).append(cmd)
-                    io_update(self, o_d=outputs)
-
     def prep_mocat(self):
         self.cmds = {}
 
@@ -323,22 +298,13 @@ class Commands(object):
     def prep_mycc(self):
         self.cmds = {}
 
-    def prep_gtdbtk(self):
-        self.cmds = {}
-
     def prep_graspx(self):
-        self.cmds = {}
-
-    def prep_checkm(self):
         self.cmds = {}
 
     def prep_deepvirfinder(self):
         self.cmds = {}
 
     def prep_deepvirfinder_extractVirs(self):
-        self.cmds = {}
-
-    def prep_metaxa2(self):
         self.cmds = {}
 
     def prep_closed_ref_qiime1(self):

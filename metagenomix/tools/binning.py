@@ -166,6 +166,7 @@ def reassembly_cmd(self, bins, group, sam, out):
     cmd = ''
     for mode in self.soft.params['reassembly']:
         mode_dir = '%s/reassembled_bins_%s' % (out, mode)
+        self.outputs['outs'].setdefault(group, []).append(mode_dir)
         io_update(self, i_d=mode_dir, key=group)
         if not self.config.force and isdir(mode_dir):
             continue
@@ -182,7 +183,6 @@ def reassemble(self):
         io_update(self, i_d=bins, key=group)
         for sam in self.pools[self.pool][group]:
             out = '%s/%s/%s/%s' % (self.dir, self.pool, group, sam)
-            self.outputs['outs'].setdefault(group, []).append(out)
             self.outputs['dirs'].append(out)
             io_update(self, i_f=self.config.fastq[sam], o_d=out, key=group)
             cmd = reassembly_cmd(self, bins, group, sam, out)

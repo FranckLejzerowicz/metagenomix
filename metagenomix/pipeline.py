@@ -8,7 +8,7 @@
 
 import os
 import yaml
-from collections import defaultdict
+from collections import defaultdict, Counter
 from metagenomix import parameters
 from metagenomix.parameters import *
 
@@ -68,6 +68,7 @@ class Workflow(object):
     """
     def __init__(self, config, databases) -> None:
         self.config = config
+        self.check_workflow()
         self.databases = databases
         self.graph = None
         self.names = ['fastq']
@@ -75,6 +76,16 @@ class Workflow(object):
         self.names_idx = {}
         self.names_idx_rev = {}
         self.skip = {}
+
+    def check_workflow(self):
+        counts = Counter([tuple(softs) for softs in self.config.pipeline])
+        workflow_issue = False
+        for softs, count in counts.items():
+            if count > 1:
+                workflow_issue = True
+                print('[pipeline] step "%s" duplicated' % ' '.join(softs))
+        if workflow_issue:
+            sys.exit('[pipeline] Please fix duplicates... Exiting')
 
     def run(self) -> None:
         """
@@ -86,14 +97,14 @@ class Workflow(object):
             self.collect_soft_name(softs)
             soft = Soft(self.config)
             soft.get_softs(softs)
-            self.check_workflow(softs)
+            self.validate_softs(softs)
             self.softs[softs[-1]] = soft
         self.get_names_idx()
         self.make_graph()
         self.get_paths()
         self.set_params()
 
-    def check_workflow(self, softs):
+    def validate_softs(self, softs):
         if softs[-1] in self.softs:
             already_used = self.softs[softs[-1]]
             prev, name = already_used.prev, already_used.name
@@ -211,7 +222,8 @@ class Workflow(object):
 
     def show_params(self, soft):
         params_show = dict(
-            x for x in soft.params.items() if x[0] not in self.config.params)
+            x for x in soft.params.items())
+            # x for x in soft.params.items() if x[0] not in self.config.params)
         if params_show:
             print('[Parameters] %s' % soft.name)
             print('=' * 30)

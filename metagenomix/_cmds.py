@@ -250,7 +250,7 @@ def caller(self, namespace):
     underscore.
     For example, software name "search_diamond" would call function`diamond()`.
     """
-    func = self.soft.name.rsplit('_', 1)[1]
+    func = self.soft.name.split('_', 1)[1]
     module = sys.modules[namespace]
     if hasattr(module, func) and callable(getattr(module, func)):
         module_call = getattr(module, func)

@@ -5,5 +5,5 @@ default:
   mem_num: 1
   mem_dim: gb
   env:
-  chunks: 6
+  chunks:
   scratch:

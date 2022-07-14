@@ -216,7 +216,7 @@ def get_merges(self) -> list:
     return merges
 
 
-def pool_cmd(self, pool: str, out_dir: str, paths: list,
+def pool_cmd(self, pool: str, paths: list,
              fasta: str, group: str) -> None:
     """Write the pooling command and collect the output and io for FLASh.
 
@@ -231,8 +231,6 @@ def pool_cmd(self, pool: str, out_dir: str, paths: list,
             Configurations
     pool : str
         Name of the pool
-    out_dir : str
-        Path to the output directory
     paths : list
         Path the input fasta files
     fasta : str
@@ -246,8 +244,7 @@ def pool_cmd(self, pool: str, out_dir: str, paths: list,
                 cmd = 'cat %s >> %s' % (path, fasta)
             else:
                 cmd = 'cat %s > %s' % (path, fasta)
-            self.cmds.setdefault(pool, []).append(cmd)
-        io_update(self, i_f=paths, o_f=fasta, o_d=out_dir, key=group)
+            self.cmds[pool].setdefault(group, []).append(cmd)
 
 
 def get_pools(self, pool: str, group: str, sams: list) -> list:
@@ -289,12 +286,15 @@ def get_pools(self, pool: str, group: str, sams: list) -> list:
         if len(sams) > 1:
             fasta = '%s/%s.%s.fasta' % (out_dir, group, merge)
             fasta = fasta.replace(' ', '_').replace('..', '.')
-            pool_cmd(self, pool, out_dir, paths, fasta, group)
+            self.soft.io[(pool, group)][('I', 'f')].update(paths)
+            pool_cmd(self, pool, paths, fasta, group)
         else:
             if len(paths) > 1:
-                raise ValueError('Error in pooling group...')
+                sys.exit('[pooling] Error in co-assembly %s:%s' % (pool, group))
             fasta = paths[0]
         fasta_fps.append(fasta)
+    self.soft.io[(pool, group)][('O', 'd')].add(out_dir)
+    self.soft.io[(pool, group)][('O', 'f')].update(fasta_fps)
     return fasta_fps
 
 
@@ -321,5 +321,7 @@ def pooling(self, pool):
         # get the full list of samples and the samples per pooling group
         sams = group_pd.index.tolist()
         self.pools[pool][group] = sams
+        self.soft.io[(pool, group)] = {('I', 'd'): set(), ('I', 'f'): set(),
+                                       ('O', 'd'): set(), ('O', 'f'): set()}
         # get the outputs for the current group and collect pooling commands
         self.soft.outputs[pool][group] = get_pools(self, pool, group, sams)

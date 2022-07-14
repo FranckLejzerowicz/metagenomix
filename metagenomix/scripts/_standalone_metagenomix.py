@@ -41,6 +41,9 @@ from metagenomix import __version__
     "-a", "--p-account", show_default=False, default=None,
     help="User account on HPC")
 @click.option(
+    "-x", "--p-chunks", type=int, show_default=False, default=None,
+    help="Number of jobs to split the commands into for each tool")
+@click.option(
     "--force/--no-force", default=False, show_default=True,
     help="Force the re-writing of scripts for all commands"
          "(default is to not re-run if output file exists).")
@@ -92,6 +95,7 @@ def standalone_metagenomix(
         p_strains,
         p_modules,
         p_account,
+        p_chunks,
         force,
         jobs,
         torque,
@@ -121,6 +125,7 @@ def standalone_metagenomix(
         jobs=jobs,
         torque=torque,
         account=p_account,
+        chunks=p_chunks,
         localscratch=localscratch,
         scratch=scratch,
         userscratch=userscratch,

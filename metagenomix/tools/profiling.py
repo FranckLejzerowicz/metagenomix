@@ -576,19 +576,23 @@ def woltka_aligments(self) -> dict:
 
     Returns
     -------
-    alis : dict
-        Alignments
+    pairing_alis : dict
+        Alignments per sample per pairing
     """
-    alis = {}
+    pairing_alis = {}
     for sample, sam_inputs in self.inputs.items():
-        for db_pairing, sam in sam_inputs.items():
-            if db_pairing[0] == 'wol':
-                alis[sample] = sam
-                io_update(self, i_f=sam)
-    return alis
+        for (db, pairing), sam in sam_inputs.items():
+            if db == 'wol':
+                if pairing not in pairing_alis:
+                    self.outputs['cmds'][pairing] = []
+                    self.outputs['outs'][pairing] = []
+                    pairing_alis[pairing] = {}
+                pairing_alis[pairing][sample] = sam
+                io_update(self, i_f=sam, key=pairing)
+    return pairing_alis
 
 
-def woltka_write_map(self, alis: dict) -> str:
+def woltka_write_map(self, pairing: str, alis: dict) -> str:
     """Write the mapping file that servers as input to Woltka.
 
     Parameters
@@ -598,25 +602,28 @@ def woltka_write_map(self, alis: dict) -> str:
             Path to the output folder
         .outputs: dict
             All outputs
+    pairing : str
+        Type of reads pairing during alignment
     alis : dict
         Alignments
 
     Returns
     -------
-    woltka_map : str
+    map_fp : str
         Path to the output woltka samples file.
     """
-    woltka_map = '%s/samples.map' % self.dir
+    map_fp = '%s/%s/samples.map' % (self.dir, pairing)
+    self.outputs['dirs'].append((self.dir + '/' + pairing))
     for idx, sam in enumerate(alis.keys()):
         echo = 'echo -e "%s\\t%s"' % (sam, alis[sam])
         if idx:
-            self.outputs['cmds'].append('%s >> %s' % (echo, woltka_map))
+            self.outputs['cmds'][pairing].append('%s >> %s' % (echo, map_fp))
         else:
-            self.outputs['cmds'].append('%s > %s' % (echo, woltka_map))
-    return woltka_map
+            self.outputs['cmds'][pairing].append('%s > %s' % (echo, map_fp))
+    return map_fp
 
 
-def woltka_gotus(self, woltka_map: str) -> str:
+def woltka_gotus(self, pairing, woltka_map: str) -> str:
     """Get the Woltka command for the gotu classification.
 
     Parameters
@@ -626,6 +633,8 @@ def woltka_gotus(self, woltka_map: str) -> str:
             Path to pipeline output folder for SHOGUN.
         .outputs: dict
             All outputs
+    pairing : str
+        Type of reads pairing during alignment
     woltka_map : str
         Path to the output woltka samples file.
 
@@ -634,18 +643,18 @@ def woltka_gotus(self, woltka_map: str) -> str:
     genomes_out : str
         Path to the output genomes per sample table.
     """
-    genomes_out = '%s/genomes.tsv' % self.dir
+    genomes_out = '%s/%s/genomes.tsv' % (self.dir, pairing)
     if not isfile(genomes_out):
         cmd = 'woltka gotu'
         cmd += ' -i %s' % woltka_map
         cmd += ' -o %s' % genomes_out
-        self.outputs['cmds'].append(cmd)
-        self.outputs['outs'].append(genomes_out)
-        io_update(self, o_f=genomes_out)
+        self.outputs['cmds'][pairing].append(cmd)
+        self.outputs['outs'][pairing].append(genomes_out)
+        io_update(self, o_f=genomes_out, key=pairing)
     return genomes_out
 
 
-def woltka_tax_cmd(self, woltka_map: str, database: str) -> str:
+def woltka_tax_cmd(self, pairing: str, woltka_map: str, database: str) -> str:
     """Get the taxonomic classification outputs and prepare the
     Woltka commands for this classification.
 
@@ -656,6 +665,8 @@ def woltka_tax_cmd(self, woltka_map: str, database: str) -> str:
             Path to pipeline output folder for SHOGUN.
         .outputs: dict
             All outputs
+    pairing : str
+        Type of reads pairing during alignment
     woltka_map : str
         Path to the Woltka input file.
     database : str
@@ -666,20 +677,21 @@ def woltka_tax_cmd(self, woltka_map: str, database: str) -> str:
     tax_outmap : str
         Path to the folder containing the taxonomic maps.
     """
-    tax_out, tax_outmap = '%s/taxa' % self.dir, '%s/taxmap' % self.dir
+    out = '%s/%s' % (self.dir, pairing)
+    tax_out, tax_outmap = '%s/taxa' % out, '%s/taxmap' % out
     tax_outputs = ['phylum', 'genus', 'species', 'none']
     tax_todo = []
     for tdx, tax_output in enumerate(tax_outputs):
         cur_tax_output = '%s/%s.tsv' % (tax_out, tax_output)
-        self.outputs['cmds'].append(cur_tax_output)
+        self.outputs['cmds'][pairing].append(cur_tax_output)
         if not isfile(cur_tax_output):
             tax_todo.append(tax_output)
-            io_update(self, o_f=cur_tax_output)
+            io_update(self, o_f=cur_tax_output, key=pairing)
 
     taxid = '%s/taxonomy/taxid.map' % database
     nodes = '%s/taxonomy/nodes.dmp' % database
     names = '%s/taxonomy/names.dmp' % database
-    io_update(self, i_f=[taxid, nodes, names])
+    io_update(self, i_f=[taxid, nodes, names], key=pairing)
     if len(tax_todo):
         cur_cmd = '\n# taxonomic\n'
         cur_cmd += 'woltka classify'
@@ -694,11 +706,12 @@ def woltka_tax_cmd(self, woltka_map: str, database: str) -> str:
         cur_cmd += ' --to-tsv'
         cur_cmd += ' --outmap %s' % tax_outmap
         cur_cmd += ' -o %s' % tax_out
-        self.outputs['cmds'].append(cur_cmd)
+        self.outputs['cmds'][pairing].append(cur_cmd)
     return tax_outmap
 
 
-def woltka_classif_go(self, woltka_map: str, tax_outmap: str, database: str):
+def woltka_classif_go(self, pairing: str, woltka_map: str,
+                      tax_outmap: str, database: str):
     """Get the taxonomic classification outputs and prepare the Woltka
     commands for this classification.
 
@@ -709,6 +722,8 @@ def woltka_classif_go(self, woltka_map: str, tax_outmap: str, database: str):
             Path to pipeline output folder for SHOGUN.
         .outputs: dict
             All outputs
+    pairing : str
+        Type of reads pairing during alignment
     woltka_map : str
         Path to the Woltka input file.
     tax_outmap : str
@@ -719,10 +734,10 @@ def woltka_classif_go(self, woltka_map: str, tax_outmap: str, database: str):
     coords = '%s/proteins/coords.txt.xz' % database
     uniref_map = '%s/function/uniref/uniref.map.xz' % database
     uniref_names = '%s/function/uniref/uniref.names.xz' % database
-    io_update(self, i_f=[coords, uniref_map, uniref_names])
+    io_update(self, i_f=[coords, uniref_map, uniref_names], key=pairing)
     go_rt = '%s/function/go' % database
     gos = ['process', 'function', 'component']
-    woltka_fun_out = '%s/go' % self.dir
+    woltka_fun_out = '%s/%s/go' % (self.dir, pairing)
     for go in gos:
         cmd = '\n# %s [no stratification]\n' % go
         cmd += 'woltka classify'
@@ -734,17 +749,17 @@ def woltka_classif_go(self, woltka_map: str, tax_outmap: str, database: str):
         cmd += ' --to-tsv'
         cur_map = '%s/%s.map.xz' % (go_rt, go)
         cmd += ' --map %s' % cur_map
-        io_update(self, i_f=cur_map)
+        io_update(self, i_f=cur_map, key=pairing)
         cur_out = '%s/%s.tsv' % (woltka_fun_out, go)
         cmd += ' -o %s' % cur_out
         if not isfile(cur_out):
-            self.outputs['cmds'].append(cmd)
-            io_update(self, o_f=cur_out)
-        self.outputs['outs'].append(cur_out)
+            self.outputs['cmds'][pairing].append(cmd)
+            io_update(self, o_f=cur_out, key=pairing)
+        self.outputs['outs'][pairing].append(cur_out)
 
     stratifications = ['phylum', 'family', 'genus', 'species']
     for stratification in stratifications:
-        woltka_fun_out = '%s/go_%s' % (self.dir, stratification)
+        woltka_fun_out = '%s/%s/go_%s' % (self.dir, pairing, stratification)
         for go in gos:
             cmd = '\n# %s [%s]\n' % (go, stratification)
             cmd += 'woltka classify'
@@ -760,12 +775,12 @@ def woltka_classif_go(self, woltka_map: str, tax_outmap: str, database: str):
             go_out = '%s/%s.tsv' % (woltka_fun_out, go)
             cmd += ' -o %s' % go_out
             if not isfile(go_out):
-                self.outputs['cmds'].append(cmd)
-                io_update(self, o_f=go_out)
-            self.outputs['outs'].append(go_out)
+                self.outputs['cmds'][pairing].append(cmd)
+                io_update(self, o_f=go_out, key=pairing)
+            self.outputs['outs'][pairing].append(go_out)
 
 
-def woltka_classif_genes(self, woltka_map: str, database: str):
+def woltka_classif_genes(self, pairing: str, woltka_map: str, database: str):
     """Get the Woltka commands for the gene-level classification.
 
     Parameters
@@ -775,6 +790,8 @@ def woltka_classif_genes(self, woltka_map: str, database: str):
             Path to pipeline output folder for SHOGUN.
         .outputs: dict
             All outputs
+    pairing : str
+        Type of reads pairing during alignment
     woltka_map : str
         Path to the Woltka input file.
     database : str
@@ -786,22 +803,22 @@ def woltka_classif_genes(self, woltka_map: str, database: str):
         Path to the genes classification output.
     """
     coords = '%s/proteins/coords.txt.xz' % database
-    genes = '%s/wol_genes.biom' % self.dir
+    genes = '%s/%s/wol_genes.biom' % (self.dir, pairing)
     if not isfile(genes):
         cmd = '\n# per gene\n'
         cmd += 'woltka classify'
         cmd += ' -i %s' % woltka_map
         cmd += ' --coords %s' % coords
         cmd += ' -o %s' % genes
-        self.outputs['cmds'].append(cmd)
-        io_update(self, o_f=genes)
+        self.outputs['cmds'][pairing].append(cmd)
+        io_update(self, o_f=genes, key=pairing)
     else:
-        io_update(self, i_f=genes)
-    self.outputs['outs'].append(genes)
+        io_update(self, i_f=genes, key=pairing)
+    self.outputs['outs'][pairing].append(genes)
     return genes
 
 
-def woltka_classif_uniref(self, genes: str, database: str):
+def woltka_classif_uniref(self, pairing: str, genes: str, database: str):
     """Get the Woltka commands for the uniref-level classification.
 
     Parameters
@@ -811,6 +828,8 @@ def woltka_classif_uniref(self, genes: str, database: str):
             Path to pipeline output folder for SHOGUN.
         .outputs: dict
             All outputs
+    pairing : str
+        Type of reads pairing during alignment
     genes : str
         Path to the genes classification output.
     database : str
@@ -823,22 +842,22 @@ def woltka_classif_uniref(self, genes: str, database: str):
     """
     uniref_map = '%s/function/uniref/uniref.map.xz' % database
     uniref_names = '%s/function/uniref/uniref.names.xz' % database
-    uniref = '%s/wol_uniref.biom' % self.dir
+    uniref = '%s/%s/wol_uniref.biom' % (self.dir, pairing)
     if not isfile(uniref):
         cmd = 'woltka tools collapse'
         cmd += ' --input %s' % genes
         cmd += ' --map %s' % uniref_map
         cmd += ' --names %s' % uniref_names
         cmd += ' --output %s' % uniref
-        self.outputs['cmds'].append(cmd)
-        io_update(self, o_f=uniref)
+        self.outputs['cmds'][pairing].append(cmd)
+        io_update(self, o_f=uniref, key=pairing)
     else:
-        io_update(self, i_f=uniref)
-    self.outputs['outs'].append(uniref)
+        io_update(self, i_f=uniref, key=pairing)
+    self.outputs['outs'][pairing].append(uniref)
     return uniref
 
 
-def woltka_classif_eggnog(self, uniref: str, database: str):
+def woltka_classif_eggnog(self, pairing: str, uniref: str, database: str):
     """Get the Woltka commands for the eggnog-level classification.
 
     Parameters
@@ -848,32 +867,34 @@ def woltka_classif_eggnog(self, uniref: str, database: str):
             Path to pipeline output folder for SHOGUN.
         .outputs: dict
             All outputs
+    pairing : str
+        Type of reads pairing during alignment
     uniref : str
         Path to the uniref classification.
     database : str
         WOL database path
     """
-    biom = '%s/eggnog/wol_eggnog.biom' % self.dir
+    biom = '%s/%s/eggnog/wol_eggnog.biom' % (self.dir, pairing)
     if not isfile(biom):
         cmd = 'woltka tools collapse'
         cmd += '--input %s' % uniref
         cmd += ' --map %s/function/eggnog/eggnog.map.xz' % database
         cmd += ' --output %s\n\n' % biom
-        self.outputs['cmds'].append(cmd)
-        io_update(self, o_f=biom)
+        self.outputs['cmds'][pairing].append(cmd)
+        io_update(self, o_f=biom, key=pairing)
     else:
-        io_update(self, i_f=biom)
+        io_update(self, i_f=biom, key=pairing)
     tsv = '%s.tsv' % splitext(biom)[0]
     if not isfile(tsv):
         cmd = 'biom convert -i %s -o %s.tmp --to-tsv\n' % (biom, tsv)
         cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
         cmd += 'rm %s.tmp\n' % tsv
-        self.outputs['cmds'].append(cmd)
-        io_update(self, o_f=tsv)
-    self.outputs['outs'].extend([tsv, biom])
+        self.outputs['cmds'][pairing].append(cmd)
+        io_update(self, o_f=tsv, key=pairing)
+    self.outputs['outs'][pairing].extend([tsv, biom])
 
 
-def woltka_classif_cazy(self, genes: str, database: str):
+def woltka_classif_cazy(self, pairing: str, genes: str, database: str):
     """Get the Woltka commands for the cazy-level classification.
 
     Parameters
@@ -885,33 +906,35 @@ def woltka_classif_cazy(self, genes: str, database: str):
             All databases class instance
         .outputs: dict
             All outputs
+    pairing : str
+        Type of reads pairing during alignment
     genes : str
         Path to the genes classification.
     database : str
         WOL database path
     """
     cazy_map = '%s/function/cazy/3tools.txt' % database
-    biom = '%s/cazy/wol_cazy.biom' % self.dir
+    biom = '%s/%s/cazy/wol_cazy.biom' % (self.dir, pairing)
     if not isfile(biom):
         cmd = 'woltka tools collapse'
         cmd += '--input %s' % genes
         cmd += ' --map %s' % cazy_map
         cmd += ' --output %s\n\n' % biom
-        self.outputs['cmds'].append(cmd)
-        io_update(self, o_f=biom)
+        self.outputs['cmds'][pairing].append(cmd)
+        io_update(self, o_f=biom, key=pairing)
     else:
-        io_update(self, i_f=biom)
+        io_update(self, i_f=biom, key=pairing)
     tsv = '%s.tsv' % splitext(biom)[0]
     if not isfile(tsv):
         cmd = 'biom convert -i %s -o %s.tmp --to-tsv\n' % (biom, tsv)
         cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
         cmd += 'rm %s.tmp\n' % tsv
-        self.outputs['cmds'].append(cmd)
-        io_update(self, o_f=tsv)
-    self.outputs['outs'].extend([biom, tsv])
+        self.outputs['cmds'][pairing].append(cmd)
+        io_update(self, o_f=tsv, key=pairing)
+    self.outputs['outs'][pairing].extend([biom, tsv])
 
 
-def woltka_classif_metacyc(self, genes: str, database: str):
+def woltka_classif_metacyc(self, pairing: str, genes: str, database: str):
     """Get the Woltka commands for the metacyc-level classification.
 
     Parameters
@@ -921,6 +944,8 @@ def woltka_classif_metacyc(self, genes: str, database: str):
             Path to pipeline output folder for SHOGUN.
         .outputs: dict
             All outputs
+    pairing : str
+        Type of reads pairing during alignment
     genes : str
         Path to the genes classification.
     database : str
@@ -936,7 +961,7 @@ def woltka_classif_metacyc(self, genes: str, database: str):
                ('regulator', '', 'regulation-to-regulator.txt'),
                ('ec', '', 'reaction-to-ec.txt')]
     files = [genes]
-    woltka_fun_out = '%s/metacyc' % self.dir
+    woltka_fun_out = '%s/%s/metacyc' % (self.dir, pairing)
     cmd = ''
     for idx, (level, names, maps) in enumerate(metacyc):
         input_fp = files[idx]
@@ -948,9 +973,9 @@ def woltka_classif_metacyc(self, genes: str, database: str):
                 cmd += ' -o %s' % input_biom
                 cmd += ' --to-hdf5'
                 cmd += ' --table-type="OTU table"\n'
-                io_update(self, o_f=input_biom)
+                io_update(self, o_f=input_biom, key=pairing)
             else:
-                io_update(self, i_f=input_biom)
+                io_update(self, i_f=input_biom, key=pairing)
         else:
             input_biom = input_fp
         cmd += '\n# %s [no stratification]\n' % level
@@ -973,9 +998,9 @@ def woltka_classif_metacyc(self, genes: str, database: str):
                     cmd += ' --input %s' % files[4]
             cmd += ' --map %s/%s' % (metacyc_dir, maps)
             cmd += ' --output %s\n' % biom
-            io_update(self, o_f=biom)
+            io_update(self, o_f=biom, key=pairing)
         else:
-            io_update(self, i_f=biom)
+            io_update(self, i_f=biom, key=pairing)
         tsv = '%s/metacyc-%s_pre.tsv' % (woltka_fun_out, level)
         if not isfile(tsv):
             cmd += 'biom convert'
@@ -984,16 +1009,16 @@ def woltka_classif_metacyc(self, genes: str, database: str):
             cmd += ' --to-tsv\n'
             cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
             cmd += 'rm %s.tmp\n' % tsv
-            io_update(self, o_f=tsv)
+            io_update(self, o_f=tsv, key=pairing)
         else:
-            io_update(self, i_f=tsv)
+            io_update(self, i_f=tsv, key=pairing)
         files.extend([biom, tsv])
     if cmd:
-        self.outputs['cmds'].append(cmd)
-    self.outputs['outs'].extend(files)
+        self.outputs['cmds'][pairing].append(cmd)
+    self.outputs['outs'][pairing].extend(files)
 
 
-def woltka_classif_kegg(self, uniref: str, database: str):
+def woltka_classif_kegg(self, pairing: str, uniref: str, database: str):
     """Get the Woltka commands for the kegg-level classification.
 
     Parameters
@@ -1003,6 +1028,8 @@ def woltka_classif_kegg(self, uniref: str, database: str):
             Path to pipeline output folder for SHOGUN.
         .outputs: dict
             All outputs
+    pairing : str
+        Type of reads pairing during alignment
     uniref : str
         Path to the uniref classification.
     database : str
@@ -1050,11 +1077,11 @@ def woltka_classif_kegg(self, uniref: str, database: str):
          'reaction-to-right_compound.txt', 'ko-reaction')]
     cmd = ''
     files = []
-    kegg_maps = '%s/kegg_queried' % self.dir
+    kegg_maps = '%s/%s/kegg_queried' % (self.dir, pairing)
     for (level, name, maps, prev) in ko_names_maps:
         if maps:
-            biom = '%s/kegg/kegg-%s_pre.biom' % (self.dir, level)
-            tsv = '%s/kegg/kegg-%s_pre.tsv' % (self.dir, level)
+            biom = '%s/%s/kegg/kegg-%s_pre.biom' % (self.dir, pairing, level)
+            tsv = '%s/%s/kegg/kegg-%s_pre.tsv' % (self.dir, pairing, level)
             if not prev:
                 if not isfile(tsv):
                     cmd += 'woltka tools collapse'
@@ -1068,11 +1095,12 @@ def woltka_classif_kegg(self, uniref: str, database: str):
                     cmd += ' tail -n +2 %s.tmp\n' % tsv
                     cmd += ' > %s\n' % tsv
                     cmd += ' rm %s.tmp\n' % tsv
-                    io_update(self, o_f=[biom, tsv])
+                    io_update(self, o_f=[biom, tsv], key=pairing)
                 else:
-                    io_update(self, i_f=biom)
+                    io_update(self, i_f=biom, key=pairing)
             else:
-                input_fp = '%s/kegg/kegg-%s.biom' % (self.dir, level)
+                input_fp = '%s/%s/kegg/kegg-%s.biom' % (
+                    self.dir, pairing, level)
                 if not isfile(tsv):
                     cmd += 'woltka tools collapse'
                     cmd += ' --input %s' % input_fp
@@ -1084,21 +1112,21 @@ def woltka_classif_kegg(self, uniref: str, database: str):
                     cmd += ' -o %s.tmp --to-tsv\n' % tsv
                     cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
                     cmd += 'rm %s.tmp\n\n' % tsv
-                    io_update(self, o_f=[biom, tsv])
+                    io_update(self, o_f=[biom, tsv], key=pairing)
                 else:
-                    io_update(self, i_f=biom)
+                    io_update(self, i_f=biom, key=pairing)
         else:
             if not isfile('%s/kegg_info.txt' % kegg_maps):
                 cmd += 'cd %s\n' % kegg_maps
                 cmd += 'cp %s %s/%s\n' % (tsv, kegg_maps, basename(tsv))
                 kegg_query = '%s/wol/kegg_query.py' % RESOURCES
                 cmd += 'python3 %s %s\n' % (kegg_query, basename(tsv))
-                io_update(self, o_d=kegg_maps)
+                io_update(self, o_d=kegg_maps, key=pairing)
             else:
-                io_update(self, i_d=kegg_maps)
+                io_update(self, i_d=kegg_maps, key=pairing)
     if cmd:
-        self.outputs['cmds'].append(cmd)
-    self.outputs['outs'].extend(files)
+        self.outputs['cmds'][pairing].append(cmd)
+    self.outputs['outs'][pairing].extend(files)
 
 
 def woltka(self) -> None:
@@ -1116,18 +1144,23 @@ def woltka(self) -> None:
         .databases
             All databases class instance
     """
+    self.outputs['cmds'] = {}
+    self.outputs['outs'] = {}
+    self.outputs['io'] = {('I', 'd'): {}, ('I', 'f'): {},
+                          ('O', 'd'): {}, ('O', 'f'): {}}
     database = self.databases.paths['wol']
-    alis = woltka_aligments(self)
-    woltka_map = woltka_write_map(self, alis)
-    woltka_gotus(self, woltka_map)
-    tax_outmap = woltka_tax_cmd(self, woltka_map, database)
-    woltka_classif_go(self, woltka_map, tax_outmap, database)
-    genes = woltka_classif_genes(self, woltka_map, database)
-    uniref = woltka_classif_uniref(self, genes, database)
-    woltka_classif_eggnog(self, uniref, database)
-    woltka_classif_cazy(self, genes, database)
-    woltka_classif_metacyc(self, genes, database)
-    woltka_classif_kegg(self, uniref, database)
+    pairing_alis = woltka_aligments(self)
+    for pairing, alis in pairing_alis.items():
+        woltka_map = woltka_write_map(self, pairing, alis)
+        woltka_gotus(self, pairing, woltka_map)
+        tax_outmap = woltka_tax_cmd(self, pairing, woltka_map, database)
+        woltka_classif_go(self, pairing, woltka_map, tax_outmap, database)
+        genes = woltka_classif_genes(self, pairing, woltka_map, database)
+        uniref = woltka_classif_uniref(self, pairing, genes, database)
+        woltka_classif_eggnog(self, pairing, uniref, database)
+        woltka_classif_cazy(self, pairing, genes, database)
+        woltka_classif_metacyc(self, pairing, genes, database)
+        woltka_classif_kegg(self, pairing, uniref, database)
 
 
 def get_midas_cmd(
@@ -1342,9 +1375,10 @@ def kraken2(self) -> None:
 
 def metaxa2(self) -> None:
     if self.soft.prev == 'kneaddata':
-        fas = basename(self.inputs[self.sam][0]).split('_1.fastq')[0]
+        split_term = '_1.fastq'
     else:
-        fas = basename(self.inputs[self.sam][0]).split('_R1.fastq')[0]
+        split_term = '_R1.fastq'
+    fas = basename(self.inputs[self.sam][0]).split(split_term)[0]
 
     databases = {'greengenes': '/home/flejzerowicz/databases/metaxa2/gg',
                  'wol_ssu': '/home/flejzerowicz/databases/metaxa2/wl',
@@ -1396,18 +1430,17 @@ def metaxa2(self) -> None:
             io_update(self, o_f=[summary, taxonomy, reltax])
         else:
             io_update(self, i_f=taxonomy)
-        self.outputs['outs'].extend([summary, taxonomy, reltax])
 
         redist_rad = '%s.redist' % rad
-        redist_taxonomy = '%s.taxonomy.summary.txt' % redist_rad
-        if self.config.force or not isfile(redist_taxonomy):
+        redist_tax = '%s.taxonomy.summary.txt' % redist_rad
+        if self.config.force or not isfile(redist_tax):
             cmd += '\nmetaxa2_ttt'
             cmd += ' -i %s' % taxonomy
             cmd += ' -o %s' % redist_rad
             cmd += ' -r 0.8'
             cmd += ' -d 0.7'
-            io_update(self, o_f=redist_taxonomy)
+            io_update(self, o_f=redist_tax)
 
         if cmd:
             self.outputs['cmds'].append(cmd)
-        self.outputs['outs'].append(redist_taxonomy)
+        self.outputs['outs'].extend([summary, taxonomy, reltax, redist_tax])

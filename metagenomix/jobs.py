@@ -7,11 +7,12 @@
 # ----------------------------------------------------------------------------
 
 import os
+import sys
 import subprocess
 import numpy as np
 from os.path import dirname, splitext
 
-from metagenomix._io_utils import mkdr, scratching
+from metagenomix._io_utils import mkdr, get_roundtrip
 
 
 class CreateScripts(object):
@@ -20,7 +21,7 @@ class CreateScripts(object):
         self.config = config
         self.cmd = []
         self.cmds = {}
-        self.cmds_chunks = []
+        self.chunks = {}
         self.soft = ''
         self.sh = ''
         self.run = {'database': {}, 'software': {}}
@@ -46,12 +47,19 @@ class CreateScripts(object):
         else:
             return self.config.project
 
-    def get_cmds_chunks(self, n_chunks):
-        if len(self.cmds) > int(n_chunks):
-            cmds_split = np.array_split(list(self.cmds), n_chunks)
-            self.cmds_chunks = [list(x) for x in cmds_split if len(x)]
+    def get_chunks(self, n_chunks):
+        self.chunks = {}
+        if n_chunks and len(self.cmds) > n_chunks:
+            chunks = np.array_split(list(self.cmds), n_chunks)
+            for cdx, chunk in enumerate(chunks):
+                if len(chunk):
+                    self.chunks[str(cdx)] = list(chunk)
         else:
-            self.cmds_chunks = [[x] for x in self.cmds]
+            for key in self.cmds:
+                if isinstance(key, str):
+                    self.chunks[key] = [key]
+                else:
+                    self.chunks['_'.join([k for k in key if k])] = [key]
 
     def get_main_sh(self, name, soft=None) -> str:
         main = '%s/run_%s' % (self.sh.rsplit('/', 2)[0], name)
@@ -77,49 +85,72 @@ class CreateScripts(object):
     def database_cmds(self, databases):
         for db, cmds in databases.commands.items():
             self.cmds = cmds
-            self.get_cmds_chunks(self.config.params['chunks'])
+            self.get_chunks(self.config.params['chunks'])
             self.write_jobs(db)
             self.write_main(db)
 
     def get_modules(self, name: str):
         self.modules = self.config.modules.get(name, [])
 
+    def scratch(self, soft, key, cmds):
+        if soft.params['scratch'] and self.config.jobs and key in soft.io:
+            roundtrip = get_roundtrip(soft.io[key])
+            scratch_cmds = ['\n# Move to SCRATCH_FOLDER']
+            scratch_cmds += roundtrip['to']
+            scratch_cmds += ['\n# %s commands (%s)' % (soft.name, key)]
+            scratch_cmds += cmds
+            if self.config['move_back']:
+                scratch_cmds += ['\n# Move from SCRATCH_FOLDER']
+                scratch_cmds += roundtrip['from']
+            self.cmds[key] = scratch_cmds
+        else:
+            self.cmds[key] = cmds
+
+    def get_cmds(self, soft, commands):
+        self.cmds = {}
+        for sam_or_pool, cmds in soft.cmds.items():
+            if isinstance(cmds, list):
+                self.scratch(soft, sam_or_pool, cmds)
+            elif isinstance(cmds, dict):
+                if sam_or_pool in commands.pools:
+                    # for group in commands.pools[sam_or_pool]:
+                    for group, group_cmds in cmds.items():
+                        self.scratch(soft, (sam_or_pool, group), group_cmds)
+                else:
+                    self.scratch(soft, sam_or_pool, cmds)
+            else:
+                sys.exit('The collected commands are neither list of dict!')
+
     def software_cmds(self, commands):
         for sdx, (name, soft) in enumerate(commands.softs.items()):
-            print('[Writing commands] #%s: %s' % (sdx, soft.name), end=' ')
+            print('[Writing commands] #%s: %s' % (sdx, name), end=' ')
             if not len(soft.cmds):
-                if soft.name == 'pooling':
-                    print('per sample (i.e. no actual pooling)')
-                else:
-                    print('-> Done (use --force to re-run)')
+                print('-> Done (--force to re-run)')
                 continue
             print()
             self.get_modules(name)
-            self.cmds = scratching(self, soft, commands)
-            self.get_cmds_chunks(soft.params['chunks'])
+            self.get_cmds(soft, commands)
+            self.get_chunks(soft.params['chunks'])
             self.write_jobs(name, soft)
             self.write_main(name, soft)
 
-    def get_sh(self, name: str, cdx: int, soft=None) -> None:
+    def get_sh(self, name: str, chunk_name: str, soft=None) -> None:
         """
 
         Parameters
         ----------
         name : str
             Name of the current software of the pipeline workflow
-        cdx
+        chunk_name : str
+            Name of the current chunk of commands
         soft
-
-        Returns
-        -------
-
         """
         if soft:
             self.sh = '%s/%s/jobs/run_%s_after_%s_%s.sh' % (
-                self.config.dir, name, name, soft.prev, cdx)
+                self.config.dir, name, name, soft.prev, chunk_name)
         else:
             self.sh = '%s/databases/jobs/build_%s_%s.sh' % (
-                self.config.dir, name, cdx)
+                self.config.dir, name, chunk_name)
         mkdr(dirname(self.sh))
 
     def prep_script(self, params: dict) -> None:
@@ -169,18 +200,21 @@ class CreateScripts(object):
         subprocess.call(cmd.split())
         os.remove(self.sh)
 
-    def write_chunks(self, chunks: list):
+    def write_chunks(self, chunk_keys: list):
         with open(self.sh, 'w') as sh:
             if self.modules:
                 sh.write('module purge\n')
             for module in self.modules:
                 sh.write('module load %s\n' % module)
-            for chunk in chunks:
-                for cmd in self.cmds[chunk]:
+            print("chunk_keys", chunk_keys)
+            print("self.cmds")
+            print(self.cmds)
+            for chunk_key in chunk_keys:
+                for cmd in self.cmds[chunk_key]:
                     sh.write('%s\n' % cmd)
 
-    def get_job_name(self, name: str, adx: int):
-        self.job_name = name + '.' + self.pjct + '.' + str(adx)
+    def get_job_name(self, name: str, chunk_name: str):
+        self.job_name = name + '.' + self.pjct + '.' + chunk_name
 
     def write_script(self, soft=None):
         if self.config.jobs:
@@ -193,10 +227,10 @@ class CreateScripts(object):
             self.job_fps.append('%s.sh' % splitext(self.sh)[0])
 
     def write_jobs(self, name: str, soft=None):
-        for cdx, chunks in enumerate(self.cmds_chunks):
-            self.get_sh(name, cdx, soft)
-            self.write_chunks(chunks)
-            self.get_job_name(name, cdx)
+        for chunk_name, chunk_keys in self.chunks.items():
+            self.get_sh(name, chunk_name, soft)
+            self.write_chunks(chunk_keys)
+            self.get_job_name(name, chunk_name)
             self.write_script(soft)
 
     def display(self):
