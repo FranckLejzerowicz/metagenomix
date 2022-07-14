@@ -49,7 +49,7 @@ class CreateScripts(object):
 
     def get_chunks(self, n_chunks):
         self.chunks = {}
-        if n_chunks and len(self.cmds) > n_chunks:
+        if n_chunks and len(self.cmds) >= n_chunks:
             chunks = np.array_split(list(self.cmds), n_chunks)
             for cdx, chunk in enumerate(chunks):
                 if len(chunk):
