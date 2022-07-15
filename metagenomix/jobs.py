@@ -50,10 +50,11 @@ class CreateScripts(object):
     def get_chunks(self, n_chunks):
         self.chunks = {}
         if n_chunks and len(self.cmds) >= n_chunks:
-            chunks = np.array_split(list(self.cmds), n_chunks)
+            cmds_d = dict(enumerate(self.cmds))
+            chunks = [list(x) for x in np.array_split(list(cmds_d), n_chunks)]
             for cdx, chunk in enumerate(chunks):
                 if len(chunk):
-                    self.chunks[str(cdx)] = list(chunk)
+                    self.chunks[str(cdx)] = [cmds_d[x] for x in chunk]
         else:
             for key in self.cmds:
                 if isinstance(key, str):
@@ -206,6 +207,7 @@ class CreateScripts(object):
                 sh.write('module purge\n')
             for module in self.modules:
                 sh.write('module load %s\n' % module)
+            print(chunk_keys)
             for chunk_key in chunk_keys:
                 for cmd in self.cmds[chunk_key]:
                     sh.write('%s\n' % cmd)
