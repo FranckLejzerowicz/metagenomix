@@ -147,7 +147,7 @@ class Commands(object):
 
     def extract_data(self):
         if self.outputs.get('cmds'):
-            if self.soft.name in self.holistics:
+            if self.soft.name in ['drep']:
                 self.cmds = self.outputs['cmds']
             else:
                 self.cmds[self.sam] = self.outputs['cmds']
@@ -313,6 +313,7 @@ class Commands(object):
         self.cmds = {}
 
     def register_command(self):
+        print(self.cmds)
         self.softs[self.soft.name].cmds = dict(self.cmds)
         self.cmds = {}
 
