@@ -37,8 +37,7 @@ def metagenomix(**kwargs):
     # Collect the command line and  the workflow of tools to run as a pipeline
     commands = Commands(config, databases, workflow)
     commands.run()
-
-    workflow.make_dirs()
+    commands.make_dirs()
 
     # Make .sh and scheduler (.slm or .pbs) scripts to
     scripting = CreateScripts(config)

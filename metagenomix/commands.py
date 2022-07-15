@@ -6,6 +6,7 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
+import os
 import glob
 import inspect
 import itertools
@@ -68,6 +69,12 @@ class Commands(object):
             self.generic_command()
             self.update_dirs()
 
+    def make_dirs(self):
+        for name, soft in self.softs.items():
+            for directory in sorted(soft.dirs):
+                if not isdir(directory):
+                    os.makedirs(directory)
+
     def get_inputs(self):
         """Update the `inputs` attribute of the software object."""
         if not self.soft.prev or self.soft.name == 'map__drep':
@@ -121,10 +128,12 @@ class Commands(object):
                     self.soft.io[(self.sam, k)][(i, j)] = v
 
     def update_dirs(self):
-        self.soft.dirs = set([
-            # x.replace('${SCRATCH_FOLDER}%s' % self.dir, self.dir)
-            x.replace('${SCRATCH_FOLDER}/', '/')
-            for x in self.soft.dirs])
+        # self.soft.dirs = set(
+        #     [x.replace('${SCRATCH_FOLDER}/', '/') for x in self.soft.dirs]
+        # )
+        self.soft.dirs = set(
+            [x.replace('${SCRATCH_FOLDER}/', '/') for x in self.outputs['dirs']]
+        )
 
     def init_outputs(self):
         self.outputs = {'cmds': self.struc(), 'outs': self.struc(), 'dirs': [],

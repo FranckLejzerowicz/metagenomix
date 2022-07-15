@@ -6,7 +6,6 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-import os
 import yaml
 from collections import defaultdict, Counter
 from metagenomix import parameters
@@ -162,12 +161,6 @@ class Workflow(object):
         self.graph.paths = {self.names_idx_rev[idx]: [
             [self.names_idx_rev[p] for p in path] for path in paths]
             for idx, paths in self.graph.paths.items()}
-
-    def make_dirs(self):
-        for name, soft in self.softs.items():
-            for directory in sorted(soft.dirs):
-                if not isdir(directory):
-                    os.makedirs(directory)
 
     def check_basic_params(self, user_params, soft):
         ints = ['time', 'procs', 'mem_num', 'chunks']
