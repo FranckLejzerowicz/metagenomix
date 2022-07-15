@@ -555,8 +555,11 @@ def prokka(self):
             self.outputs['outs'].setdefault(group, []).append(out)
             if cmd:
                 self.outputs['cmds'].setdefault(group, []).append(cmd)
-            print(self.outputs['io'])
+            print(configs)
+            print(out)
+            print(group)
             io_update(self, i_f=configs, o_d=out, key=group)
+            print(self.outputs['io'])
 
 
 def get_barrnap_cmd(self, out, fasta):
