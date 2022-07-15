@@ -27,6 +27,7 @@ class Soft(object):
         self.cmds = {}
         self.dirs = set()
         self.defaults = {}
+        self.status = set()
 
     def get_softs(self, softs):
         if len(softs) == 1:

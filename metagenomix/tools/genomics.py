@@ -54,46 +54,60 @@ def get_drep_inputs(drep_dir: str, sam_paths: list):
     Parameters
     ----------
     drep_dir :
-        Path to the drep output folder.
+        Path to the drep output folder
     sam_paths : list
-        List containing for each (group, bins_folder).
+        List containing for each (group, bins_folder)
 
     Returns
     -------
+    cmd : str
+        Command to create the input
     drep_in : str
-        File containing the paths corresponding to each bin.
+        File containing the paths corresponding to each bin
     paths : list
-        List of paths corresponding to each bin.
+        List of paths corresponding to each bin
     """
+    cmd = ''
     paths = []
-    mkdr(drep_dir)
     drep_in = '%s/input_genomes.txt' % drep_dir
-    with open(drep_in, 'w') as o:
-        for group, bins_folder in sam_paths:
-            for path in glob.glob('%s/*fa' % bins_folder):
-                paths.append(path)
-                o.write('%s\n' % path)
-    return drep_in, paths
+    for group, bins_folder in sam_paths:
+        for path in glob.glob('%s/*fa' % bins_folder):
+            paths.append(path)
+            if cmd:
+                cmd += 'echo "%s" >> %s\n' % (path, drep_in)
+            else:
+                cmd += 'echo "%s" > %s\n' % (path, drep_in)
+    return cmd, drep_in, paths
 
 
 def drep(self):
+    prev = self.soft.prev
     genomes = get_drep_bins(self)
     for group, group_paths in genomes.items():
         for stringency, sam_paths in group_paths.items():
-            drep_dir = '%s/%s' % (self.dir, group)
-            if stringency:
-                drep_dir += '/%s' % stringency
-            drep_in, paths = get_drep_inputs(drep_dir, sam_paths)
             for algorithm in self.soft.params['S_algorithm']:
-                key = (group, stringency, algorithm)
+                if stringency:
+                    key = (group, stringency, algorithm)
+                else:
+                    key = (group, algorithm)
+
+                drep_out = '%s/%s' % (self.dir, group)
+                if stringency:
+                    drep_out += '/%s' % stringency
+                drep_out += '/%s' % algorithm
+
+                cmd, drep_in, paths = get_drep_inputs(drep_out, sam_paths)
                 io_update(self, i_f=([drep_in] + paths), key=key)
-                drep_out = '%s/%s' % (drep_dir, algorithm)
                 dereps = '%s/dereplicated_genomes' % drep_out
+                if not paths:
+                    self.soft.status.add('Must run %s (%s)' % (prev, self.pool))
+                    continue
                 if not self.config.force and len(glob.glob('%s/*.fa' % dereps)):
+                    self.soft.status.add('Done')
                     continue
                 if isdir(drep_out):
                     io_update(self, i_d=drep_out, key=key)
-                cmd = 'dRep dereplicate'
+                cmd += '\ndRep dereplicate'
                 cmd += ' %s' % drep_out
                 cmd += ' --S_algorithm %s' % algorithm
                 cmd += ' --ignoreGenomeQuality'
@@ -115,17 +129,17 @@ def drep(self):
                 if self.soft.params['SkipSecondary']:
                     cmd += ' --SkipSecondary'
                 coverage_method = self.soft.params['coverage_method']
-                cmd += ' --MASH_sketch %s' % self.soft.params['MASH_sketch']
-                cmd += ' --n_PRESET %s' % self.soft.params['n_PRESET']
                 cmd += ' --coverage_method %s' % coverage_method
-                cmd += ' --cov_thresh %s' % self.soft.params['cov_thresh']
                 cmd += ' --S_ani %s' % self.soft.params['S_ani']
                 cmd += ' --P_ani %s' % self.soft.params['P_ani']
-                cmd += ' --warn_dist %s' % self.soft.params['warn_dist']
+                cmd += ' --processors %s' % self.soft.params['cpus']
                 cmd += ' --warn_sim %s' % self.soft.params['warn_sim']
                 cmd += ' --warn_aln %s' % self.soft.params['warn_aln']
-                cmd += ' --processors %s' % self.soft.params['cpus']
+                cmd += ' --n_PRESET %s' % self.soft.params['n_PRESET']
+                cmd += ' --warn_dist %s' % self.soft.params['warn_dist']
+                cmd += ' --cov_thresh %s' % self.soft.params['cov_thresh']
                 cmd += ' --clusterAlg %s' % self.soft.params['clusterAlg']
+                cmd += ' --MASH_sketch %s' % self.soft.params['MASH_sketch']
                 cmd += ' --genomes %s' % drep_in
 
                 log = '%s/log' % drep_out
@@ -176,9 +190,9 @@ def checkm(self):
     self.outputs['outs'] = {}
     for group in groups:
         genome_dirs, ext = get_genome_dirs(self, group)
+        print(group)
+        print(genome_dirs)
         if len(genome_dirs) > 1:
-            print(group)
-            print(genome_dirs)
             print(genome_dirsfdsa)
         # print()
         # print("self.pool:", self.pool)

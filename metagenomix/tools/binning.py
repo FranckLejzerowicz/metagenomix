@@ -169,6 +169,7 @@ def reassembly_cmd(self, bins, group, sam, out):
         self.outputs['outs'].setdefault(group, []).append(mode_dir)
         io_update(self, i_d=mode_dir, key=group)
         if not self.config.force and isdir(mode_dir):
+            self.soft.status.add('Done')
             continue
         cmd += 'mkdir %s\n' % mode_dir
         cmd += 'mv %s/reassembled_bins/*%s.fa %s/.\n' % (out, mode, mode_dir)
@@ -180,6 +181,8 @@ def reassembly_cmd(self, bins, group, sam, out):
 def reassemble(self):
     for group in self.pools[self.pool]:
         bins = self.inputs[self.pool][group][-1]
+        if not isdir(bins):
+            self.soft.status.add('Must run %s (%s)' % (self.soft.prev, group))
         io_update(self, i_d=bins, key=group)
         for sam in self.pools[self.pool][group]:
             out = '%s/%s/%s/%s' % (self.dir, self.pool, group, sam)
@@ -208,6 +211,8 @@ def refine(self):
     for group in self.pools[self.pool]:
         out_dir = '%s/%s/%s' % (self.dir, self.pool, group)
         bin_folders = self.inputs[self.pool][group][:-1]
+        if not [x for x in bin_folders if isdir(x)]:
+            self.soft.status.add('Must run %s (%s)' % (self.soft.prev, group))
 
         cmd, n_bins = refine_cmd(self, out_dir, bin_folders)
         if n_bins == len(bin_folders):
@@ -216,8 +221,11 @@ def refine(self):
                                      self.soft.params['min_completion'],
                                      self.soft.params['min_contamination'])
         stats, bins = '%s.stats' % out, '%s_bins' % out
-        self.outputs['dirs'].append(out_dir)
         self.outputs['outs'][group] = [stats, bins]
+        if not self.config.force and isdir(bins):
+            self.soft.status.add('Done')
+            continue
+        self.outputs['dirs'].append(out_dir)
         io_update(self, i_d=bin_folders, o_d=[stats, bins], key=group)
 
 

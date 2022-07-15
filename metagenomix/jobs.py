@@ -122,13 +122,24 @@ class CreateScripts(object):
             else:
                 sys.exit('The collected commands are neither list of dict!')
 
+    @staticmethod
+    def print_status(soft):
+        if soft.status == {'Done'}:
+            print('-> Done')
+        elif len(soft.status):
+            print()
+            for stat in soft.status:
+                if stat != 'Done':
+                    print('\t-> %s' % stat)
+        else:
+            print()
+
     def software_cmds(self, commands):
         for sdx, (name, soft) in enumerate(commands.softs.items()):
             print('[Writing commands] #%s: %s' % (sdx, name), end=' ')
+            self.print_status(soft)
             if not len(soft.cmds):
-                print('-> Done (--force to re-run)')
                 continue
-            print()
             self.get_modules(name)
             self.get_cmds(soft, commands)
             self.get_chunks(soft.params['chunks'])

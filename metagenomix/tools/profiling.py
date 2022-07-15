@@ -1120,7 +1120,8 @@ def woltka_classif_kegg(self, pairing: str, uniref: str, database: str):
                 cmd += 'cd %s\n' % kegg_maps
                 cmd += 'cp %s %s/%s\n' % (tsv, kegg_maps, basename(tsv))
                 kegg_query = '%s/wol/kegg_query.py' % RESOURCES
-                cmd += 'python3 %s %s\n' % (kegg_query, basename(tsv))
+                cmd += 'python3 %s %s/%s\n' % (kegg_query, kegg_maps, basename(
+                    tsv))
                 io_update(self, o_d=kegg_maps, key=pairing)
             else:
                 io_update(self, i_d=kegg_maps, key=pairing)

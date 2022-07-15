@@ -147,7 +147,10 @@ class Commands(object):
 
     def extract_data(self):
         if self.outputs.get('cmds'):
-            self.cmds[self.sam] = self.outputs['cmds']
+            if self.soft.name in self.holistics:
+                self.cmds = self.outputs['cmds']
+            else:
+                self.cmds[self.sam] = self.outputs['cmds']
             self.fill_soft_io()
         if self.soft.name in self.holistics:
             self.soft.outputs = self.outputs['outs']
