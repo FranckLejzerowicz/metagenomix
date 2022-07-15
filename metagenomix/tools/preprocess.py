@@ -237,7 +237,7 @@ def fastp(self) -> None:
         if fastq.endswith('.gz'):
             out += '.gz'
         outs.append(isfile(out))
-        cmd += '  -%s %s -%s %s' % (i, out, o, out)
+        cmd += '  -%s %s -%s %s' % (i, fastq, o, out)
     cmd += ' --verbose'
     if self.soft.params['trim_poly_g']:
         cmd += ' --trim_poly_g'
