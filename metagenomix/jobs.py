@@ -181,8 +181,6 @@ class CreateScripts(object):
         if not self.modules and params['env']:
             self.cmd.extend(['-e', params['env']])
         # setup the scratch location to be used for the current software
-        # print(params)
-        # print(paramsfds)
         if isinstance(params['scratch'], int):
             self.cmd.extend(['--localscratch', str(params['scratch'])])
         elif params['scratch'] == 'scratch':
@@ -207,7 +205,6 @@ class CreateScripts(object):
                 sh.write('module purge\n')
             for module in self.modules:
                 sh.write('module load %s\n' % module)
-            print(chunk_keys)
             for chunk_key in chunk_keys:
                 for cmd in self.cmds[chunk_key]:
                     sh.write('%s\n' % cmd)
