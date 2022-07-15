@@ -313,7 +313,6 @@ class Commands(object):
         self.cmds = {}
 
     def register_command(self):
-        print(self.cmds)
         self.softs[self.soft.name].cmds = dict(self.cmds)
         self.cmds = {}
 
