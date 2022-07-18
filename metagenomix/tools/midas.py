@@ -68,7 +68,7 @@ def midas_species(self, focus_dir, db) -> None:
         self.outputs['dirs'].append(species_out)
 
 
-def midas_genus(self, focus_dir, genes_out, db, select):
+def midas_genes(self, focus_dir, genes_out, db, select):
     if self.config.force or todo('%s/readme.txt' % genes_out):
         self.outputs['cmds'].append(
             get_cmd(self, focus_dir, db, 'genes', select))
@@ -148,7 +148,7 @@ def midas(self) -> None:
         select = set(get_species_select(self, db, species_list))
 
         genes_out = '%s/genes' % focus_dir
-        midas_genus(self, focus_dir, genes_out, db, select)
+        midas_genes(self, focus_dir, genes_out, db, select)
 
         snps_out = '%s/snps' % focus_dir
         midas_snps(self, focus_dir, snps_out, db, select)
