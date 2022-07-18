@@ -52,7 +52,7 @@ def edit_fastq_cmd(fastq_fp: str, num: int) -> str:
     cat = get_cat_zcat(fastq_fp)
     cmd = '%s %s | ' % (cat, fastq_fp)
     cmd += "bioawk -c fastx "
-    cmd += "'{print \">\"$1\"/%s\\n\"$2\"\\n+\\n\"$3}' " % str(num)
+    cmd += "'{print \"@\"$1\"/%s\\n\"$2\"\\n+\\n\"$3}' " % str(num)
     if fastq_fp.endswith('.fastq'):
         cmd += " > %s_renamed\n" % fastq_fp
     else:
