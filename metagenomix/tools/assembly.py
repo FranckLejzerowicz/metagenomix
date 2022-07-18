@@ -133,7 +133,7 @@ def spades(self) -> None:
 def viralverify(self):
     if self.soft.prev != 'spades':
         sys.exit('[viralVerify] can only be run on assembly output')
-    pfam = '%s/Pfam-A.hmm' % self.databases.pfams.get('dir')
+    pfam = '%s/Pfam-A.hmm' % self.databases.paths.get('pfam')
     if not self.config.dev and not isfile(pfam):
         sys.exit('[viralVerify] Needs the Pfam .hmm database in database yaml')
     for group, spades_outs in self.inputs[self.pool].items():
