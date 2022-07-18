@@ -371,7 +371,7 @@ def outputs_back(io) -> list:
             folder = folder_.rstrip('/')
             src = folder_.rstrip('/').replace('${SCRATCH_FOLDER}', '')
             cmd = 'mkdir -p %s; rsync -aqruv %s/ %s' % (src, folder, src)
-            cmd = 'if [ -d %s ]; then %s' % (folder, cmd)
+            cmd = 'if [ -d %s ]; then %s; fi' % (folder, cmd)
             outbound.add(cmd)
     if ('O', 'f') in io:
         # files
@@ -379,7 +379,7 @@ def outputs_back(io) -> list:
             src = file.replace('${SCRATCH_FOLDER}', '')
             folder = dirname(src)
             cmd = 'mkdir -p %s; rsync -aqruv %s %s' % (folder, file, src)
-            cmd = 'if [ -f %s ]; then %s' % (file, cmd)
+            cmd = 'if [ -f %s ]; then %s; fi' % (file, cmd)
             outbound.add(cmd)
     return sorted(outbound)
 
