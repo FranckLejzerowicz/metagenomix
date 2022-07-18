@@ -207,7 +207,7 @@ def fastqc(self) -> None:
     ins = self.inputs[self.sam]
     outs = ['%s_fastqc.html' % x.rsplit('.fastq', 1)[0] for x in ins]
     self.outputs['outs'].append(out_dir)
-    if self.config.force or sum([todo(x) for x in outs]):
+    if self.config.force or not sum([todo(x) for x in outs]):
         cmd = 'fastqc %s -o %s' % (' '.join(ins), out_dir)
         self.outputs['dirs'].append(out_dir)
         self.outputs['cmds'].append(cmd)
