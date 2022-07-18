@@ -92,6 +92,7 @@ class ReferenceDatabases(object):
                 self.set_database()
 
     def set_database(self):
+        print("  + %s: %s" % (self.db, self.path))
         if hasattr(self, "set_%s" % self.db):
             # specific treatment for some databases
             getattr(self, "set_%s" % self.db)()
