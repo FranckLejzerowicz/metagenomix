@@ -7,10 +7,8 @@
 # ----------------------------------------------------------------------------
 
 import glob
-import sys
-
 import numpy as np
-from os.path import dirname, isdir
+from os.path import dirname, isdir, isfile
 
 from metagenomix._io_utils import read_yaml
 from metagenomix.tools.alignment import *
@@ -938,11 +936,13 @@ def check_midas(self, params, soft):
 
 
 def check_macsyfinder(self, params, soft):
-    defaults = {'db_type': (['unordered', 'ordered_replicon', 'gembase'], str),
-                'replicon_topology': (['linear', 'circular'], str),
-                'models': (['TXSS', 'TFF-SF', 'CAS'], list),
-                'evalue': (0.1, float),
-                'coverage': (0.5, float)}
+    defaults = {
+        'db_type': (['unordered', 'ordered_replicon', 'gembase'], str),
+        'replicon_topology': (['linear', 'circular'], str),
+        'models': (['TXSS', 'TFF-SF', 'CAS'], list),
+        'evalue': (0.1, float),
+        'coverage': (0.5, float)
+    }
     check_nums(params, defaults, ['evalue', 'coverage'], float, soft.name, 0, 1)
     let_go = ['evalue', 'coverage']
     check_default(params, defaults, soft.name, let_go)
