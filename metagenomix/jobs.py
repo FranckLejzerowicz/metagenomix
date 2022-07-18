@@ -219,9 +219,9 @@ class CreateScripts(object):
             for chunk_key in chunk_keys:
                 for cmd in self.cmds[chunk_key]:
                     if soft.params['scratch'] and self.config.jobs:
-                        sh.write('%s\n' % cmd.replace('${SCRATCH_FOLDER}', ''))
-                    else:
                         sh.write('%s\n' % cmd)
+                    else:
+                        sh.write('%s\n' % cmd.replace('${SCRATCH_FOLDER}', ''))
 
     def get_job_name(self, name: str, chunk_name: str):
         self.job_name = name + '.' + self.pjct + '.' + chunk_name
