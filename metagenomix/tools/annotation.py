@@ -435,12 +435,14 @@ def search(self) -> None:
         for group in self.pools[self.pool]:
             o_dir, fp = get_out_dir(self, self.pool, group)
             outs = search_cmd(self, o_dir, fp, tmp_dir, group)
-            self.outputs['outs'].setdefault(group, []).extend(outs)
+            if outs:
+                self.outputs['outs'].setdefault(group, []).extend(outs)
 
     else:
         o_dir, fp = get_out_dir(self, self.sam)
         outs = search_cmd(self, o_dir, fp, tmp_dir)
-        self.outputs['outs'].extend(outs)
+        if outs:
+            self.outputs['outs'].extend(outs)
 
 
 def get_antismash_cmd(self, fa, base, out):
