@@ -366,7 +366,7 @@ def search_cmd(self, o_dir, fp, tmp_dir, group=None) -> list:
                 out_dir = '%s/%s' % (o_dir, self.sam)
             self.outputs['dirs'].append(out_dir)
             out = '%s/%s.tsv' % (out_dir, splitext(basename(db_path))[0])
-            outs.append(out)
+            outs.append(out_dir)
             if self.config.force or not isfile(out):
                 cmd = module_call(self, fp, db_path, out, tmp_dir)
                 if group:
