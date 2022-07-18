@@ -1369,7 +1369,7 @@ def kraken2(self) -> None:
             cmd = get_kraken2_cmd(self, out, db_path, report, result)
             self.outputs['outs'].append(result)
             self.outputs['cmds'].append(cmd)
-            io_update(self, i_f=self.inputs[self.sam], o_f=[report, result])
+            io_update(self, i_f=self.inputs[self.sam], o_d=out)
 
 
 def metaxa2(self) -> None:
@@ -1425,7 +1425,7 @@ def metaxa2(self) -> None:
             else:
                 cmd += ' --taxlevel 7'
             cmd += '\n'
-            io_update(self, o_f=[summary, taxonomy, reltax])
+            io_update(self, o_d=dir_db)
         else:
             io_update(self, i_f=taxonomy)
 
