@@ -71,7 +71,6 @@ class Commands(object):
     def make_dirs(self):
         for name, soft in self.softs.items():
             for directory in sorted(soft.dirs):
-                print('\t', directory)
                 if not isdir(directory):
                     os.makedirs(directory)
 
