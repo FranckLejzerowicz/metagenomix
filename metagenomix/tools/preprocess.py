@@ -7,8 +7,8 @@
 # ----------------------------------------------------------------------------
 
 import gzip
-from os.path import basename, isfile
-from metagenomix._io_utils import io_update
+from os.path import basename
+from metagenomix._io_utils import io_update, todo
 
 
 def get_cat_zcat(fastq_fp: str) -> str:
@@ -30,7 +30,6 @@ def get_cat_zcat(fastq_fp: str) -> str:
     return cat
 
 
-# def edit_fastq_cmd(fastq_fp: str, num: int, source: str) -> str:
 def edit_fastq_cmd(fastq_fp: str, num: int) -> str:
     """Get the unix command to run on each fastq file that
     needs editing, depending on the source of fastq file.
@@ -58,10 +57,6 @@ def edit_fastq_cmd(fastq_fp: str, num: int) -> str:
     else:
         cmd += " | gzip > %s_renamed\n" % fastq_fp
     cmd += "mv %s_renamed %s" % (fastq_fp, fastq_fp)
-    # if fastq_fp.endswith('.fastq'):
-    #     cmd += ".gz\n"
-    # else:
-    #     cmd += "\n"
     return cmd
 
 
@@ -199,7 +194,7 @@ def count(self) -> None:
     """
     out = '%s/%s_read_count.tsv' % (self.dir, self.sam)
     self.outputs['outs'].append(out)
-    if self.config.force or not isfile(out):
+    if self.config.force or todo(out):
         inputs = self.inputs[self.sam]
         for idx, input_path in enumerate(inputs):
             cmd = count_cmd(self, idx, input_path, out)
@@ -212,7 +207,7 @@ def fastqc(self) -> None:
     ins = self.inputs[self.sam]
     outs = ['%s_fastqc.html' % x.rsplit('.fastq', 1)[0] for x in ins]
     self.outputs['outs'].append(out_dir)
-    if self.config.force or [not isfile(x) for x in outs]:
+    if self.config.force or sum([todo(x) for x in outs]):
         cmd = 'fastqc %s -o %s' % (' '.join(ins), out_dir)
         self.outputs['dirs'].append(out_dir)
         self.outputs['cmds'].append(cmd)
@@ -225,7 +220,6 @@ def fastp(self) -> None:
     out_json = '%s/%s.json' % (out_dir, self.sam)
     out_html = '%s/%s.html' % (out_dir, self.sam)
     outs = []
-    self.outputs['outs'].append(out_dir)
     cmd = 'fastp'
     for fdx, fastq in enumerate(fastqs):
         if fdx:
@@ -236,7 +230,7 @@ def fastp(self) -> None:
             out = '%s/%s_1.fastq' % (out_dir, self.sam)
         if fastq.endswith('.gz'):
             out += '.gz'
-        outs.append(isfile(out))
+        outs.append(out)
         cmd += '  -%s %s -%s %s' % (i, fastq, o, out)
     cmd += ' --verbose'
     if self.soft.params['trim_poly_g']:
@@ -244,9 +238,10 @@ def fastp(self) -> None:
     cmd += ' --json=%s' % out_json
     cmd += ' --html=%s' % out_html
     cmd += ' -w %s' % self.soft.params['cpus']
-    cmd += ' --report_title="fastp report %s"' % self.sam
+    cmd += ' --report_title="%s"' % self.sam
     cmd += ' --average_qual=%s' % self.soft.params['average_qual']
-    if self.config.force or not sum(outs):
+    self.outputs['outs'].extend(outs)
+    if self.config.force or not sum([todo(x) for x in outs]):
         self.outputs['dirs'].append(out_dir)
         self.outputs['cmds'].append(cmd)
         io_update(self, i_f=fastqs, o_d=out_dir)
@@ -264,7 +259,7 @@ def cutadapt(self) -> None:
     cmd += ' '.join(self.inputs[self.sam])
     outs = [r1_o, r2_o]
     self.outputs['outs'].extend(outs)
-    if self.config.force or not isfile(r1_o) or not isfile(r2_o):
+    if self.config.force or todo(r1_o) or todo(r2_o):
         self.outputs['cmds'] = list([cmd])
         io_update(self, i_f=self.inputs[self.sam], o_f=outs)
 
@@ -305,7 +300,7 @@ def atropos(self):
         cmd += ' -pe2 %s' % inputs[1]
         cmd += ' -o %s' % out_1
         cmd += ' -p %s' % out_2
-    if self.config.force or not isfile(out_1) or not isfile(out_2):
+    if self.config.force or todo(out_1) or todo(out_2):
         self.outputs['cmds'].append(cmd)
         io_update(self, i_f=inputs, o_f=[out_1, out_2])
     self.outputs['outs'].extend([out_1, out_2])
@@ -393,7 +388,7 @@ def filtering(self):
             outputs.append(out_2.replace('fastq.gz', 'fastq'))
         if ddx:
             cmd += '\nrm %s\n' % ' '.join(inputs)
-        if self.config.force or not isfile(out_1):
+        if self.config.force or todo(out_1):
             cmds += cmd
     if outputs[0].endswith('.fastq'):
         for output in outputs:

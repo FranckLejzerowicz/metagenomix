@@ -7,8 +7,8 @@
 # ----------------------------------------------------------------------------
 
 import sys
-from os.path import basename, isfile, splitext
-from metagenomix._io_utils import io_update
+from os.path import basename, splitext
+from metagenomix._io_utils import io_update, todo
 
 
 def get_quast_contigs_labels(self, pool, group_samples):
@@ -124,7 +124,7 @@ def spades(self) -> None:
         scaffolds = '%s/scaffolds.fasta' % out
         log = '%s/spades.log' % out
         outs = [before_rr, contigs, first_pe, scaffolds, log]
-        if self.config.force or not isfile(contigs):
+        if self.config.force or todo(contigs):
             self.outputs['cmds'].setdefault(group, []).append(cmd)
             io_update(self, i_f=fastas, i_d=tmp, o_f=outs, o_d=out, key=group)
         self.outputs['outs'][group] = outs
@@ -134,7 +134,7 @@ def viralverify(self):
     if self.soft.prev != 'spades':
         sys.exit('[viralVerify] can only be run on assembly output')
     pfam = '%s/Pfam-A.hmm' % self.databases.paths.get('pfam')
-    if not self.config.dev and not isfile(pfam):
+    if not self.config.dev and todo(pfam):
         sys.exit('[viralVerify] Needs the Pfam .hmm database in database yaml')
     for group, spades_outs in self.inputs[self.pool].items():
         out = '%s/%s/%s' % (self.dir, self.pool, group)
@@ -150,7 +150,7 @@ def viralverify(self):
         cmd += ' -thr %s' % self.soft.params['thr']
         cmd += ' --hmm %s' % pfam
         out_fp = '%s_result_table.csv' % splitext(spades_outs[1])[0]
-        if self.config.force or not isfile(out_fp):
+        if self.config.force or todo(out_fp):
             self.outputs['cmds'].setdefault(group, []).append(cmd)
             io_update(self, i_f=spades_outs[1], o_d=out, key=group)
         self.outputs['outs'][group] = out_fp
@@ -190,7 +190,7 @@ def plass(self):
     cmd += ' %s' % ' '.join(sorted(inputs))
     cmd += ' %s' % out_fp
     cmd += ' %s' % tmp_dir
-    if self.config.force or not isfile(out_fp):
+    if self.config.force or todo(out_fp):
         cmd = 'mkdir -p %s\n%s\nrm -rf %s' % (tmp_dir, cmd, tmp_dir)
         self.outputs['cmds'].append(cmd)
         io_update(self, i_f=inputs, i_d=tmp_dir, o_f=out_fp)
@@ -238,7 +238,7 @@ def pool_cmd(self, pool: str, paths: list,
     group : str
         Name of the sample group within the pool
     """
-    if self.config.force or not isfile(fasta):
+    if self.config.force or todo(fasta):
         for pdx, path in enumerate(paths):
             if pdx:
                 cmd = 'cat %s >> %s' % (path, fasta)

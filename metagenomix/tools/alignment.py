@@ -8,8 +8,8 @@
 
 import sys
 import pkg_resources
-from os.path import isfile, splitext
-from metagenomix._io_utils import io_update
+from os.path import splitext
+from metagenomix._io_utils import io_update, todo
 
 # Keep line because read mapping alignments will be python scripts
 # scripts = pkg_resources.resource_filename('metagenomix', 'resources/scripts')
@@ -165,7 +165,7 @@ def get_alignment_cmd(fastx: list, cmd: str, ali: str) -> str:
     cmd : str
         Alignment command potentially decorated with unix check to rerun
     """
-    if not isfile(ali):
+    if todo(ali):
         return cmd
     else:
         return condition_ali_command(fastx, cmd, ali)
@@ -198,7 +198,7 @@ def bowtie2(self) -> None:
         cmd, sam = get_bowtie2_cmd(self, fastx, db_path, db_out)
         key = (db, self.soft.params['pairing'])
         self.outputs['outs'][key] = sam
-        if self.config.force or not isfile(sam):
+        if self.config.force or todo(sam):
             cmd = get_alignment_cmd(fastx, cmd, sam)
             self.outputs['cmds'].append(cmd)
             io_update(self, i_f=fastx, i_d=db_out, o_d=db_out)
@@ -274,7 +274,7 @@ def flash(self):
     out_fps = [ext, nc1, nc2]
     self.outputs['dirs'].append(out)
     self.outputs['outs'].extend(out_fps)
-    if self.config.force or len([not isfile(x) for x in out_fps]):
+    if self.config.force or len([todo(x) for x in out_fps]):
         cmd = 'flash %s' % ' '.join(self.inputs[self.sam])
         cmd += ' -m %s' % min_overlap
         cmd += ' -M %s' % max_overlap

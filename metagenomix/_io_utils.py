@@ -11,7 +11,7 @@ import re
 import sys
 import yaml
 import pandas as pd
-from os.path import abspath, basename, dirname, isfile
+from os.path import abspath, basename, dirname, isdir, isfile
 
 
 def read_yaml(
@@ -227,7 +227,7 @@ def check_min_lines_count(input_fp: str) -> bool:
         Whether the file contains at least one sequence.
     """
     ret = False
-    with open(input_fp) as f:
+    with open(input_fp.replace('${SCRATCH_FOLDER}', '')) as f:
         for ldx, line in enumerate(f):
             if ldx > 1:
                 ret = True
@@ -442,3 +442,24 @@ def io_update(self, i_f=None, i_d=None, o_f=None, o_d=None, key=None):
             else:
                 self.outputs['io'][IO_fd].add(val)
 
+
+def todo(file: str = None, folder: str = None) -> bool:
+    if file and isfile(file.replace('${SCRATCH_FOLDER}', '')):
+        return False
+    if folder and isdir(folder.replace('${SCRATCH_FOLDER}', '')):
+        return False
+    return True
+
+
+def caller(self, namespace):
+    """Calls as function the part of the software name that follows the first
+    underscore.
+    For example, software name "search_diamond" would call function`diamond()`.
+    """
+    func = self.soft.name.split('_', 1)[1]
+    module = sys.modules[namespace]
+    if hasattr(module, func) and callable(getattr(module, func)):
+        module_call = getattr(module, func)
+        return module_call
+    else:
+        print('No function "%s" in module "%s"' % (func, namespace))

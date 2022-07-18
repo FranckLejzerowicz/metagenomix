@@ -8,8 +8,8 @@
 
 import glob
 import sys
-from os.path import dirname, isdir, isfile
-from metagenomix._io_utils import mkdr, io_update
+from os.path import dirname
+from metagenomix._io_utils import io_update, todo
 
 
 def get_drep_bins(self) -> dict:
@@ -70,8 +70,8 @@ def get_drep_inputs(drep_dir: str, sam_paths: list):
     cmd = ''
     paths = []
     drep_in = '%s/input_genomes.txt' % drep_dir
-    for group, bins_folder in sam_paths:
-        for path in glob.glob('%s/*fa' % bins_folder):
+    for group, bins in sam_paths:
+        for path in glob.glob('%s/*fa' % bins.replace('${SCRATCH_FOLDER}', '')):
             paths.append(path)
             if cmd:
                 cmd += 'echo "%s" >> %s\n' % (path, drep_in)
@@ -102,10 +102,11 @@ def drep(self):
                 if not paths:
                     self.soft.status.add('Must run %s (%s)' % (prev, self.pool))
                     continue
-                if not self.config.force and len(glob.glob('%s/*.fa' % dereps)):
+                out_dereps = '%s/*.fa' % dereps.replace('${SCRATCH_FOLDER}', '')
+                if not self.config.force and len(glob.glob(out_dereps)):
                     self.soft.status.add('Done')
                     continue
-                if isdir(drep_out):
+                if not todo(folder=drep_out):
                     io_update(self, i_d=drep_out, key=key)
                 cmd += '\ndRep dereplicate'
                 cmd += ' %s' % drep_out
@@ -209,7 +210,8 @@ def checkm(self):
                     out += '/' + genome_dir.split('/')[-1]
                 out += '/%s/%s' % (self.pool, group)
             self.outputs['outs'].setdefault(group, []).append(out)
-            if not self.config.force and not glob.glob('%s/*' % genome_dir):
+            out_dirs = '%s/*' % genome_dir.replace('${SCRATCH_FOLDER}', '')
+            if not self.config.force and not glob.glob(out_dirs):
                 continue
             self.outputs['dirs'].append(out)
             io_update(self, i_d=genome_dir, key=group)
@@ -234,7 +236,7 @@ def checkm_coverage(self, out_dir, key, ext, genome_dir, cmd):
     cov = ''
     if self.soft.params['coverage'] and self.soft.prev != 'drep':
         cov = '%s/coverage.txt' % out_dir
-        if self.config.force or not isfile(cov):
+        if self.config.force or todo(cov):
             io_update(self, i_f=bams[sam][pool][sam][''],
                       o_f=coverage, key=key)
             cmd += '\ncheckm coverage'
@@ -258,7 +260,8 @@ def checkm_tree(self, out_dir, key, ext, genome_dir, cmd):
     cmd_tree += ' --pplacer_threads %s' % self.soft.params['cpus']
     cmd_tree += ' %s' % genome_dir
     cmd_tree += ' %s\n' % tree
-    if self.config.force or not len(glob.glob('%s/*' % tree)):
+    trees = glob.glob('%s/*' % tree.replace('${SCRATCH_FOLDER}', ''))
+    if self.config.force or not len(trees):
         io_update(self, o_d=tree, key=key)
         cmd += cmd_tree
         return tree, ''
@@ -273,7 +276,7 @@ def checkm_tree_qa(self, out, key, tree, cmd_tree, cmd):
     self.outputs['dirs'].append(tree_qa)
     for (ext, out_format) in [('txt', '2'), ('nwk', '4')]:
         tree_fpo = '%s/tree_qa.%s' % (tree_qa, ext)
-        if self.config.force or not isfile(tree_fpo):
+        if self.config.force or todo(tree_fpo):
             if cmd_tree:
                 cmd += cmd_tree
                 cmd_tree = ''
@@ -293,7 +296,7 @@ def checkm_tree_qa(self, out, key, tree, cmd_tree, cmd):
 def checkm_lineage_set(self, out, key, tree, tree_qa, cmd):
     lineage = '%s/lineage/lineage.ms' % out
     self.outputs['dirs'].append(dirname(tree_qa))
-    if self.config.force or not isfile(lineage):
+    if self.config.force or todo(lineage):
         cmd += '\ncheckm lineage_set'
         cmd += ' %s' % tree
         cmd += ' %s\n' % lineage
@@ -314,7 +317,7 @@ def checkm_analyze(self, out, key, ext, lineage, genome_dir, cmd):
     cmd_analyze += ' %s' % lineage
     cmd_analyze += ' %s' % genome_dir
     cmd_analyze += ' %s\n' % analyze
-    if not len(glob.glob('%s/*' % analyze)):
+    if not len(glob.glob('%s/*' % analyze.replace('${SCRATCH_FOLDER}', ''))):
         io_update(self, o_d=analyze, key=key)
         self.outputs['dirs'].append(analyze)
         cmd += cmd_analyze
@@ -334,7 +337,7 @@ def checkm_qa(self, out, key, cov, lineage, analyze, cmd_analyze, cmd):
         ('marker_genes.pos', 8)
     ]:
         qa_fp = '%s/qa_%s' % (dir_qa, qa)
-        if self.config.force or not isfile(qa_fp):
+        if self.config.force or todo(qa_fp):
             if cmd_analyze:
                 cmd += cmd_analyze
                 cmd_analyze = ''
@@ -370,7 +373,7 @@ def checkm_unbinned(self, out_dir, key, ext, genome_dir, cmd):
         unbinned_stats = '%s/unbinned_stats.tsv' % unbinned
         self.outputs['dirs'].append(unbinned)
         io_update(self, i_f=contigs, o_d=unbinned, key=key)
-        if self.config.force or not isfile(unbinned_fa):
+        if self.config.force or todo(unbinned_fa):
             cmd += '\ncheckm unbinned'
             cmd += ' --extension %s' % ext
             cmd += ' --min_seq_len %s' % self.soft.params['min_seq_len']
@@ -384,13 +387,11 @@ def checkm_tetra(self, out_dir, key):
     cmd = ''
     if self.soft.prev not in ['drep']:
         contigs = self.softs['spades'].outputs[self.pool][key]
-        print(contigs)
-        print(contigsdsa)
         tetra = '%s/tetra' % out_dir
         tetra_fpo = '%s/tetra.txt' % tetra
         self.outputs['dirs'].append(tetra)
         io_update(self, o_d=tetra, key=key)
-        if self.config.force or not isfile(tetra_fpo):
+        if self.config.force or todo(tetra_fpo):
             cmd += '\nif [ ! -f "%s" ]; then\n' % tetra_fpo
             cmd += 'checkm tetra'
             cmd += ' --threads %s' % self.soft.params['cpus']

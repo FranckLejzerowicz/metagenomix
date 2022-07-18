@@ -8,8 +8,8 @@
 
 import glob
 import pkg_resources
-from os.path import isdir, isfile
-from metagenomix._io_utils import mkdr, io_update
+from os.path import isdir
+from metagenomix._io_utils import mkdr, io_update, todo
 
 RESOURCES = pkg_resources.resource_filename("metagenomix", "resources/scripts")
 
@@ -74,9 +74,9 @@ def simka_cmd(self, smin: bool, sim_in: str, out_dir: str,
         cmd = 'rm -rf %s/simkamin\n' % out_dir
     if smin:
         if not self.config.force:
-            if isfile('%s/mat_abundance_braycurtis.csv' % out_dir):
+            if not todo('%s/mat_abundance_braycurtis.csv' % out_dir):
                 return ''
-            elif isfile('%s/mat_abundance_braycurtis.csv.gz' % out_dir):
+            elif not todo('%s/mat_abundance_braycurtis.csv.gz' % out_dir):
                 return ''
         cmd += simka_min_cmd(self.soft.params, sim_in, out_dir, k, str(n))
     else:
@@ -184,32 +184,32 @@ def simka_pcoa_cmd(mat: str, config) -> str:
         return cmd
     if mat.endswith('gz'):
         mat_fp = mat.replace('.csv.gz', '.csv')
-        if not isfile(mat_fp):
+        if todo(mat_fp):
             cmd += 'gunzip %s\n' % mat
     else:
         mat_fp = mat
 
     mat_o = mat_fp.replace('.csv', '_sym.tsv')
-    if config.force or isfile(mat_o):
+    if config.force or todo(mat_o):
         cmd += 'python %s/symmetrize_simka_matrix.py' % RESOURCES
         cmd += ' -i %s\n' % mat_fp
 
     mat_dm = mat_o.replace('.tsv', '_dm.qza')
-    if config.force or not isfile(mat_dm):
+    if config.force or todo(mat_dm):
         cmd += 'qiime tools import'
         cmd += ' --input-path %s' % mat_o
         cmd += ' --output-path %s' % mat_dm
         cmd += ' --type DistanceMatrix\n'
 
     mat_pcoa = mat_dm.replace('.qza', '_pcoa.qza')
-    if config.force or not isfile(mat_pcoa):
+    if config.force or todo(mat_pcoa):
         cmd += 'qiime diversity pcoa'
         cmd += ' --i-distance-matrix %s' % mat_dm
         cmd += ' --o-pcoa %s\n' % mat_pcoa
 
     mat_pcoa_dir = mat_pcoa.replace('.qza', '')
     mat_pcoa_txt = mat_pcoa.replace('.qza', '.txt')
-    if config.force or not isfile(mat_pcoa_txt):
+    if config.force or todo(mat_pcoa_txt):
         cmd += 'qiime tools export'
         cmd += ' --input-path %s' % mat_pcoa
         cmd += ' --output-path %s\n' % mat_pcoa_dir
@@ -217,7 +217,7 @@ def simka_pcoa_cmd(mat: str, config) -> str:
         cmd += 'rm -rf %s\n' % mat_pcoa_dir
 
     mat_emp = mat_pcoa.replace('.qza', '_emp.qzv')
-    if config.force or not isfile(mat_emp):
+    if config.force or todo(mat_emp):
         cmd += 'qiime emperor plot'
         cmd += ' --i-pcoa %s' % mat_pcoa
         cmd += ' --m-metadata-file %s' % config.meta_fp

@@ -8,10 +8,8 @@
 
 import sys
 import glob
-from os.path import isdir, isfile
 
-from metagenomix._cmds import caller
-from metagenomix._io_utils import io_update
+from metagenomix._io_utils import caller, io_update, todo
 
 
 def get_sams_fastqs(mode: str, fastqs: dict):
@@ -100,12 +98,13 @@ def classify_or_annotate(self, command):
                 io_update(self, i_d=bin, o_d=out, key=group)
 
                 if command == 'annotate_bins':
-                    tab = glob.glob('%s/bin_funct_annotations/*.tab' % out)
-                    if self.config.force or not tab:
+                    tab = '%s/bin_funct_annotations/*.tab' % out.replace(
+                        '${SCRATCH_FOLDER}', '')
+                    if self.config.force or not glob.glob(tab):
                         self.outputs['cmds'].setdefault(group, []).append(cmd)
                 elif command == 'classify_bins':
                     tab = '%s/bin_taxonomy.tab' % out
-                    if self.config.force or not isfile(tab):
+                    if self.config.force or todo(tab):
                         self.outputs['cmds'].setdefault(group, []).append(cmd)
 
 
@@ -135,7 +134,7 @@ def blobology(self):
                 self.outputs['dirs'].append(out)
                 io_update(self, i_f=fastq, o_d=out, key=group)
                 plot = '%s/contigs.binned.blobplot' % out
-                if self.config.force or not isfile(plot):
+                if self.config.force or todo(plot):
                     cmd = 'metawrap blobology'
                     cmd += ' -o %s' % out
                     cmd += ' -a %s' % contigs
@@ -168,7 +167,7 @@ def reassembly_cmd(self, bins, group, sam, out):
         mode_dir = '%s/reassembled_bins_%s' % (out, mode)
         self.outputs['outs'].setdefault(group, []).append(mode_dir)
         io_update(self, i_d=mode_dir, key=group)
-        if not self.config.force and isdir(mode_dir):
+        if not self.config.force and not todo(folder=mode_dir):
             self.soft.status.add('Done')
             continue
         cmd += 'mkdir %s\n' % mode_dir
@@ -181,7 +180,7 @@ def reassembly_cmd(self, bins, group, sam, out):
 def reassemble(self):
     for group in self.pools[self.pool]:
         bins = self.inputs[self.pool][group][-1]
-        if not isdir(bins):
+        if todo(folder=bins):
             self.soft.status.add('Must run %s (%s)' % (self.soft.prev, group))
         io_update(self, i_d=bins, key=group)
         for sam in self.pools[self.pool][group]:
@@ -198,7 +197,8 @@ def refine_cmd(self, out_dir, bin_folders) -> tuple:
     cmd = 'metawrap bin_refinement'
     cmd += ' -o %s' % out_dir
     for fdx, folder in enumerate(bin_folders):
-        if len(glob.glob('%s/bin.*.fa' % folder)) or self.config.force:
+        folders = '%s/bin.*.fa' % folder.replace('${SCRATCH_FOLDER}', '')
+        if len(glob.glob(folders)) or self.config.force:
             n_bins += 1
         cmd += ' -%s %s' % (['A', 'B', 'C'][fdx], folder)
     cmd += ' -t %s' % self.soft.params['cpus']
@@ -211,7 +211,7 @@ def refine(self):
     for group in self.pools[self.pool]:
         out_dir = '%s/%s/%s' % (self.dir, self.pool, group)
         bin_folders = self.inputs[self.pool][group][:-1]
-        if not [x for x in bin_folders if isdir(x)]:
+        if sum([todo(folder=x) for x in bin_folders]):
             self.soft.status.add('Must run %s (%s)' % (self.soft.prev, group))
 
         cmd, n_bins = refine_cmd(self, out_dir, bin_folders)
@@ -222,7 +222,7 @@ def refine(self):
                                      self.soft.params['min_contamination'])
         stats, bins = '%s.stats' % out, '%s_bins' % out
         self.outputs['outs'][group] = [stats, bins]
-        if not self.config.force and isdir(bins):
+        if not self.config.force and not todo(folder=bins):
             self.soft.status.add('Done')
             continue
         self.outputs['dirs'].append(out_dir)
@@ -233,7 +233,7 @@ def get_binners(self, out, binned):
     binners = []
     work_files = '%s/work_files' % out
     for binner, bins in binned.items():
-        if self.config.force or not isdir(bins) or not isdir(work_files):
+        if self.config.force or todo(folder=bins) or todo(folder=work_files):
             binners.append(binner)
     return binners
 

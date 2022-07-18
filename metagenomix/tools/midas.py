@@ -6,8 +6,7 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-from os.path import isfile
-from metagenomix._io_utils import io_update
+from metagenomix._io_utils import io_update, todo
 
 
 def get_cmd(
@@ -60,7 +59,7 @@ def midas_species(self, focus_dir, db) -> None:
     if db == self.databases.paths['midas']:
         species_out = '%s/species' % focus_dir
         species_profile = '%s/species_profile.txt' % species_out
-        if not self.config.force and isfile(species_profile):
+        if not self.config.force and not todo(species_profile):
             io_update(self, i_d=species_out)
         else:
             self.outputs['cmds'].append(get_cmd(self, focus_dir, db, 'species'))
@@ -70,7 +69,7 @@ def midas_species(self, focus_dir, db) -> None:
 
 
 def midas_genus(self, focus_dir, genes_out, db, select):
-    if self.config.force or not isfile('%s/readme.txt' % genes_out):
+    if self.config.force or todo('%s/readme.txt' % genes_out):
         self.outputs['cmds'].append(
             get_cmd(self, focus_dir, db, 'genes', select))
         io_update(self, o_d=genes_out)
@@ -79,7 +78,7 @@ def midas_genus(self, focus_dir, genes_out, db, select):
 
 
 def midas_snps(self, focus_dir, snps_out, db, select):
-    if self.config.force or not isfile('%s/readme.txt' % snps_out):
+    if self.config.force or todo('%s/readme.txt' % snps_out):
         self.outputs['cmds'].append(
             get_cmd(self, focus_dir, db, 'snps', select))
         io_update(self, o_d=snps_out)
@@ -107,7 +106,7 @@ def get_species_select(self, db: str, species_list: str) -> set:
     """
     select = set()
     if species_list:
-        if self.config.dev and not isfile(species_list):
+        if self.config.dev and todo(species_list):
             select.add('Escherichia')
             return select
         else:
