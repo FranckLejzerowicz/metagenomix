@@ -210,7 +210,7 @@ class CreateScripts(object):
         subprocess.call(cmd.split())
         os.remove(self.sh)
 
-    def write_chunks(self, chunk_keys: list):
+    def write_chunks(self, chunk_keys: list, soft):
         with open(self.sh, 'w') as sh:
             if self.modules:
                 sh.write('module purge\n')
@@ -218,7 +218,10 @@ class CreateScripts(object):
                 sh.write('module load %s\n' % module)
             for chunk_key in chunk_keys:
                 for cmd in self.cmds[chunk_key]:
-                    sh.write('%s\n' % cmd)
+                    if soft.params['scratch'] and self.config.jobs:
+                        sh.write('%s\n' % cmd.replace('${SCRATCH_FOLDER}', ''))
+                    else:
+                        sh.write('%s\n' % cmd)
 
     def get_job_name(self, name: str, chunk_name: str):
         self.job_name = name + '.' + self.pjct + '.' + chunk_name
@@ -236,7 +239,7 @@ class CreateScripts(object):
     def write_jobs(self, name: str, soft=None):
         for chunk_name, chunk_keys in self.chunks.items():
             self.get_sh(name, chunk_name, soft)
-            self.write_chunks(chunk_keys)
+            self.write_chunks(chunk_keys, soft)
             self.get_job_name(name, chunk_name)
             self.write_script(soft)
 
