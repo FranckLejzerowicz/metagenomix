@@ -254,6 +254,6 @@ def caller(self, namespace):
     module = sys.modules[namespace]
     if hasattr(module, func) and callable(getattr(module, func)):
         module_call = getattr(module, func)
-        module_call(self)
+        return module_call
     else:
         print('No function "%s" in module "%s"' % (func, namespace))
