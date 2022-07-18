@@ -241,7 +241,7 @@ def fastp(self) -> None:
     cmd += ' --report_title="%s"' % self.sam
     cmd += ' --average_qual=%s' % self.soft.params['average_qual']
     self.outputs['outs'].extend(outs)
-    if self.config.force or not sum([todo(x) for x in outs]):
+    if self.config.force or sum([todo(x) for x in outs]):
         self.outputs['dirs'].append(out_dir)
         self.outputs['cmds'].append(cmd)
         io_update(self, i_f=fastqs, o_d=out_dir)
