@@ -221,8 +221,6 @@ def ioncom(self) -> None:
             output = '%s/output' % ion_com
             cmd = 'for i in %s/*rehtml\n' % output
             cmd += 'do\n'
-            # cmd += '    mkdir -p "%s/$(basename $(dirname "$i"))\n' % (
-            #     output, out_dir)
             cmd += '    mv %s/*rehtml %s/.\n' % (output, o_dir)
             cmd += 'done\n'
             cmd += 'for i in %s/*/*/prob_*.txt\n' % output

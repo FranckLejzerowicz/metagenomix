@@ -23,9 +23,9 @@ class Soft(object):
         self.io = {}
         self.inputs = {}
         self.outputs = {}
+        self.defaults = {}
         self.cmds = {}
         self.dirs = set()
-        self.defaults = {}
         self.status = set()
 
     def get_softs(self, softs):

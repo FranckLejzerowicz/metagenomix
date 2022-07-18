@@ -67,11 +67,11 @@ class Commands(object):
             self.get_inputs()
             self.get_dir()
             self.generic_command()
-            self.update_dirs()
 
     def make_dirs(self):
         for name, soft in self.softs.items():
             for directory in sorted(soft.dirs):
+                print('\t', directory)
                 if not isdir(directory):
                     os.makedirs(directory)
 
@@ -128,12 +128,8 @@ class Commands(object):
                     self.soft.io[(self.sam, k)][(i, j)] = v
 
     def update_dirs(self):
-        # self.soft.dirs = set(
-        #     [x.replace('${SCRATCH_FOLDER}/', '/') for x in self.soft.dirs]
-        # )
-        self.soft.dirs = set(
-            [x.replace('${SCRATCH_FOLDER}/', '/') for x in self.outputs['dirs']]
-        )
+        self.soft.dirs.update(set([x.replace('${SCRATCH_FOLDER}/', '/')
+                                   for x in self.outputs['dirs']]))
 
     def init_outputs(self):
         self.outputs = {'cmds': self.struc(), 'outs': self.struc(), 'dirs': [],
@@ -170,6 +166,7 @@ class Commands(object):
         self.init_outputs()     # initialize data structure collection
         self.call_method()      # collect commands, outputs, io, dirs
         self.extract_data()     # fill the useful self.soft attributes
+        self.update_dirs()
 
     def pooling(self):
         for pool in self.config.pooling_groups:
