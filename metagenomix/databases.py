@@ -8,12 +8,14 @@
 
 import os
 import glob
+import sys
+
 import yaml
 import pkg_resources
 
 import pandas as pd
 from skbio.tree import TreeNode
-from os.path import basename, isdir, isfile, splitext
+from os.path import basename, exists, isdir, isfile, splitext
 
 from metagenomix._io_utils import (mkdr, get_pfam_wget_cmd, get_hmm_dat,
                                    get_hmms_dias_cmd)
@@ -29,7 +31,9 @@ class ReferenceDatabases(object):
         self.cmds = {}
         self.paths = {}
         self.builds = {}
-        self.database = ''
+        self.db = ''
+        self.path = ''
+        self.length = 0
         self.pfams = {'terms': {}}
         self.hmms_dias = {}
         self.hmms_pd = pd.DataFrame()
@@ -40,84 +44,91 @@ class ReferenceDatabases(object):
         self.formats = [
             'bbmap', 'blastn', 'bowtie2', 'burst', 'centrifuge', 'diamond',
             'hmmer', 'kraken2', 'minimap2', 'qiime2', 'utree']
-        self.valid_databases = set()
 
     def run(self) -> None:
         self.get_formats()
-        self.validate_databases()
-        self.set_databases()
+        if len(self.config.databases):
+            x = '%s\n' % ('#' * (11 + len(self.config.databases_yml)))
+            print('\n%sDatabases: %s\n%s' % (x, self.config.databases_yml, x))
+            self.get_length()
+            self.set_databases()
+        else:
+            print('No database passed to option `-d`')
+
+    def get_length(self):
+        for db, path in sorted(self.config.databases.items()):
+            db_length = len(db) + len(path) + 5
+            if db_length > self.length:
+                self.length = db_length
+        print('%s\t%s' % ((' ' * self.length), '\t'.join(self.formats)))
 
     def get_formats(self):
         """Override init (default) database formats with those from yaml file"""
         if 'formats' in self.config.databases:
             self.formats = self.config.databases['formats']
 
-    def validate_databases(self) -> None:
-        """Show and validate the presence of databases.
-        Whether there are valid databases in the user-defined paths.
-        """
-        if len(self.config.databases):
-            x = '%s\n' % ('#' * (11 + len(self.config.databases_yml)))
-            print('\n%sDatabases: %s\n%s' % (x, self.config.databases_yml, x))
-            for db, path in sorted(self.config.databases.items()):
-                if db == 'formats':  # "formats" is not a database
-                    continue
-                if not path or not isinstance(path, str):  # must have a "path"
-                    print('  - %s: path (char. string) missing (ignored)' % db)
-                    continue
-                if not self.config.dev:
-                    if not isdir(path):  # not-found database will be ignored
-                        print("  - %s: can't find %s (ignored)" % (db, path))
-                    else:  # print database input if it found to exist
-                        self.valid_databases.add(db)
-                        print('  + %s' % yaml.dump({db: path}), end='')
-                else:  # print database input if it found to exist in dev mode
-                    self.valid_databases.add(db)
-                    print('  + %s' % yaml.dump({db: path}), end='')
-        else:
-            print('No database passed to option `-d`')
-
     def set_databases(self) -> None:
-        for database in sorted(self.valid_databases):
-            self.database = database
-            if hasattr(self, "set_%s" % database):
-                # this is true for the following databases:
-                #  - wol
-                #  - mar
-                #  - pfam
-                #  - dbcan
-                #  - ioncom
-                #  - shogun
-                getattr(self, "set_%s" % database)()
+        for db, path in sorted(self.config.databases.items()):
+            if db == 'formats':  # "formats" is not a database
+                continue
+            if not path or not isinstance(path, str):  # must have a "path"
+                print('  - %s: path (char. string) missing (ignored)' % db)
+                continue
+            self.db, self.path = db, path
+            self.set_paths()
+
+    def print_db(self):
+        gaps = self.length - (len(self.db) + len(self.path) + 5)
+        print('  + %s: %s%s' % (self.db, self.path, (' ' * gaps)), end='')
+
+    def set_paths(self):
+        if self.config.dev:
+            self.print_db()
+            self.set_database()
+        else:
+            if not exists(self.path):  # not-found database will be ignored
+                print("  - %s: can't find %s (ignored)" % (self.db, self.path))
             else:
-                self.set_path()
+                self.set_database()
+
+    def set_database(self):
+        if hasattr(self, "set_%s" % self.db):
+            # specific treatment for some databases
+            getattr(self, "set_%s" % self.db)()
+            print()
+        else:
+            self.set_path()
+            self.set_format()
 
     def set_path(self) -> None:
-        self.paths[self.database] = self.config.databases[self.database]
-        self.builds[self.database] = self.get_db_formats()
+        self.paths[self.db] = self.path
 
-    def register_command(self) -> None:
-        self.commands.setdefault(self.database, {}).update(dict(self.cmds))
-        self.cmds = {}
-
-    # Below are the database-specific functions, potentially to make builds
-
-    def get_db_formats(self):
-        path = self.paths[self.database]
+    def set_format(self) -> None:
         formats = {}
         for db_format in self.formats:
             for subfolder in ['', 'databases/']:
-                db_format_dir = path + '/%s' % subfolder + db_format
-                if not self.config.dev and not isdir(db_format_dir):
-                    continue
-                formats[db_format] = db_format_dir
-                break
-        return formats
+                db_format_dir = self.path + '/%s' % subfolder + db_format
+                if self.config.dev or isdir(db_format_dir):
+                    formats[db_format] = db_format_dir
+                    print('\tFound', end='')
+                    break
+            else:
+                print('\t', end='')
+        print()
+        self.builds[self.db] = formats
+
+    def register_command(self) -> None:
+        self.commands.setdefault(self.db, {}).update(dict(self.cmds))
+        self.cmds = {}
+
+    # =====================================================================
+    # Below are the database-specific functions, potentially to make builds
+    # =====================================================================
 
     def set_wol(self) -> None:
-        wol_dir = self.config.databases[self.database]
-        self.paths[self.database] = wol_dir
-        self.builds[self.database] = self.get_db_formats()
+        wol_dir = self.config.databases[self.db]
+        self.set_path()
+        self.set_format()
         # WOL is a fasta file used to build indices
         fna_dir = '%s/genomes' % wol_dir
         genomes = glob.glob('%s/fna/*' % fna_dir)
@@ -151,14 +162,12 @@ class ReferenceDatabases(object):
         self.register_command()
 
     def set_pfam(self) -> None:
-        pfams_dir = self.config.databases[self.database]
-        self.paths[self.database] = pfams_dir
-        self.pfams['dir'] = pfams_dir
-        cmd = get_pfam_wget_cmd(pfams_dir)
+        self.set_path()
+        cmd = get_pfam_wget_cmd(self.path)
         if cmd:
             self.cmds[''] = [cmd]
         else:
-            self.hmms_pd = get_hmm_dat(pfams_dir)
+            self.hmms_pd = get_hmm_dat(self.path)
         self.register_command()
         self.pfam_models()
 
@@ -186,9 +195,8 @@ class ReferenceDatabases(object):
                     print(' > No Pfam models previously extracted')
 
     def get_pfam_terms(self, params):
-        self.database = 'pfam'
         terms_hmms_dias = {}
-        hmm = '%s/Pfam-A.hmm' % self.pfams['dir']
+        hmm = '%s/Pfam-A.hmm' % self.paths['pfam']
         for term in params['terms']:
             term_pd = self.hmms_pd.loc[
                 self.hmms_pd['DE'].str.lower().str.contains(term.lower())
@@ -225,16 +233,3 @@ class ReferenceDatabases(object):
         m = '%s/dbCAN-seq/metadata.txt' % self.config.databases['dbcan']
         if isfile(m):
             self.dbcan_meta = pd.read_csv(m, header=0, index_col=0, sep='\t')
-
-    def set_shogun(self) -> None:
-        shogun_config = self.config.databases['shogun']
-        self.paths[self.database] = shogun_config
-        for k, v in shogun_config.items():
-            if k == 'rep82':
-                if not isdir(v) or not glob.glob('%s/*' % v):
-                    cmd = 'mkdir -p %s\ncd %s\n' % (v, v)
-                    cmd += 'wget -i https://raw.githubusercontent.com/knights' \
-                           '-lab/SHOGUN/master/docs/shogun_db_links.txt\n'
-                    self.cmds['download_shogun'] = [cmd]
-
-

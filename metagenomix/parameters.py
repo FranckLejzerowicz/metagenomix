@@ -226,41 +226,54 @@ class Parameters(object):
 # ============================================= #
 
 
+def get_diamond_hmmer_databases(self, tool, params):
+    """Collect the paths of the passed databases that have .dmnd files within
+    a diamond folder. This function replaces that value of the 'databases'
+    key, from a list of database names to a dict with as keys those names
+    that are valid, i.e., for which the value can be the list of .dmnd files."""
+    if tool == 'diamond':
+        ext = '.dmnd'
+    elif tool == 'hmmer':
+        ext = '.hmm'
+    else:
+        sys.exit('Searching only possibly using diamond or hmmsearch')
+    valid_dbs = {}
+    dbs_existing = check_databases(tool, params, self.databases)
+    for db in dbs_existing:
+        if self.databases.builds[db].get(tool):
+            files = '%s/*%s' % (self.databases.builds[db][tool], ext)
+            if self.config.dev:
+                valid_dbs[db] = [files]
+            else:
+                file_paths = glob.glob(files)
+                if file_paths:
+                    valid_dbs[db] = file_paths
+    params['databases'] = valid_dbs
+
+
+def get_hmmer_databases(self, params):
+    if 'terms' in params:
+        terms = params['terms']
+        if not self.databases.hmms_pd.shape[0]:
+            print('[search] Empty Pfam data file (hmmer step ignored)')
+        else:
+            terms_hmms_dias = self.databases.get_pfam_terms(params)
+            not_found_terms = set(terms).difference(set(terms_hmms_dias))
+            if not_found_terms:
+                print('[search] No HMM for hmmer "terms"')
+                for term in not_found_terms:
+                    print('[search]    - %s' % term)
+                if len(not_found_terms) == len(set(terms)):
+                    print('[search]    (i.e. all terms, hmmer step ignored)')
+    else:
+        print('[search] Params "hmmer:terms" missing (ignored)')
+
+
 def check_search(self, params, soft):
     tool = soft.name.rsplit('_')[1]
     defaults = {}
-    if tool == 'diamond':
-        defaults.update(search_diamond(params, soft))
-        dbs_existing = check_databases(tool, params, self.databases)
-        valid_dbs = {}
-        for db in dbs_existing:
-            path = self.databases.paths[db]
-            dmnds = '%s/diamond/*.dmnd' % path
-            if not self.config.dev:
-                dmnd_paths = glob.glob(dmnds)
-                if dmnd_paths:
-                    valid_dbs[db] = dmnd_paths
-            else:
-                valid_dbs[db] = [dmnds]
-        params['databases'] = valid_dbs
-
-    if tool == 'hmmer':
-        defaults.update(search_hmmer(params, soft))
-        if 'terms' not in params:
-            print('[search] Params "%s:terms" missing (ignored)' % tool)
-        else:
-            terms = params['terms']
-            if not self.databases.hmms_pd.shape[0]:
-                print('[search:%s] Pfam database not found (ignored)' % tool)
-            else:
-                terms_hmms_dias = self.databases.get_pfam_terms(params)
-                not_found_terms = set(terms).difference(set(terms_hmms_dias))
-                if not_found_terms:
-                    print('[search] No HMM for "%s:terms":' % tool)
-                    for term in not_found_terms:
-                        print('[search]    - %s' % term)
-                    if len(not_found_terms) == len(set(terms)):
-                        print('[search]    (i.e. all terms, %s ignored)' % tool)
+    defaults.update(search_tool(params, soft, tool))
+    get_diamond_hmmer_databases(self, tool, params)
     defaults['databases'] = '<list of databases>'
     return defaults
 
@@ -487,27 +500,63 @@ def expand_search_params(params, defaults, name):
 
 
 def search_diamond(params, soft) -> dict:
-    defaults = {'mode': [False, 'fast', 'mid-sensitive', 'sensitive',
-                         'more-sensitive', 'very-sensitive', 'ultra-sensitive'],
-                'k': 1, 'top': 2, 'evalue': 0.001,
-                'identity': 80, 'query_cov': 80}
+    defaults = {
+        'mode': [False, 'fast', 'mid-sensitive', 'sensitive', 'more-sensitive',
+                 'very-sensitive', 'ultra-sensitive'],
+        'strand': ['both', 'minus', 'plus'],
+        'masking': ['tantan', 'none', 'seg'],
+        'evalue': 0.001,
+        'top': 0,
+        'max_hsps': 1,
+        'max_target_seqs': 1,
+        'id': 80,
+        'query_cover': 80,
+        'subject_cover': 0
+    }
     expand_search_params(params, defaults, 'diamond')
-    ints, evals, ktop = ['identity', 'query_cov'], ['evalue'], ['k', 'top']
+    floats, ints_ = ['evalue'], ['max_target_seqs', 'top', 'max_hsps']
+    ints = ['id', 'query_cover', 'subject_cover']
+    check_nums(params, defaults, ints_, int, soft.name)
     check_nums(params, defaults, ints, int, soft.name, 0, 100)
-    check_nums(params, defaults, evals, float, soft.name, 0, 1)
-    check_nums(params, defaults, ktop, int, soft.name)
-    check_default(params, defaults, soft.name, (ints + evals + ktop))
+    check_nums(params, defaults, floats, float, soft.name, 0, 1)
+    check_default(params, defaults, soft.name, (ints_ + ints + floats))
     return defaults
 
 
 def search_hmmer(params, soft) -> dict:
-    defaults = {'max': [True, False], 'nobias': [True, False],
-                'Z': 10, 'E': 1, 'domZ': 10, 'domE': 1}
+    defaults = {
+        'cut_ga': [False, True],
+        'cut_nc': [False, True],
+        'cut_tc': [False, True],
+        'noali': [True, False],
+        'nobias': [False, True],
+        'max': [False, True],
+        'textw': 120,
+        'domZ': 10,
+        'domE': 1,
+        'Z': 10,
+        'E': 1,
+        'F1': 0.02,
+        'F2': 1e-3,
+        'F3': 1e-5,
+    }
     expand_search_params(params, defaults, 'hmmer')
-    e_vals, z_vals = ['E', 'domE'], ['Z', 'domZ']
+    e_vals, z_vals = ['E', 'domE'], ['Z', 'domZ', 'textw']
+    floats = ['F1', 'F2', 'F3']
+    check_nums(params, defaults, floats, float, soft.name, 0, 1)
     check_nums(params, defaults, e_vals, float, soft.name, 0, 100)
     check_nums(params, defaults, z_vals, int, soft.name, 0, 1000)
-    check_default(params, defaults, soft.name, (e_vals + z_vals + ['terms']))
+    check_default(params, defaults, soft.name,
+                  (e_vals + z_vals + floats + ['terms']))
+    defaults['terms'] = '<List of strings to search in Pfam data (for hmmer)>'
+    return defaults
+
+
+def search_tool(params, soft, tool) -> dict:
+    if tool == 'diamond':
+        defaults = search_diamond(params, soft)
+    else:
+        defaults = search_hmmer(params, soft)
     return defaults
 
 
@@ -559,6 +608,7 @@ def check_shogun(self, params, soft):
         dbs_existing = check_databases('shogun', params, self.databases)
         for db in dbs_existing:
             path = self.databases.paths[db]
+
             yamls = []
             for folder in ['', 'databases/']:
                 yaml = '%s/%sshogun/metadata.yaml' % (path, folder)

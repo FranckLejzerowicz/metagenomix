@@ -311,13 +311,6 @@ def integron_finder(self):
 
 
 
-
-
-
-
-
-
-
 def custom_cmd(self, input_file, out_dir, dia_hmm):
     outs = {}
     for target, gene_hmm_dia in self.databases.hmms_dias.items():
@@ -362,87 +355,68 @@ def custom_cmd(self, input_file, out_dir, dia_hmm):
     return outs
 
 
-def prep_custom(self, dia_hmm):
-    self.outputs['outs'] = {}
-    if self.pool in self.pools:
-        for group in self.pools[self.pool]:
-            self.sam = group
-            o_dir, fp = get_out_dir(self, self.pool, group)
-            outs = self.custom_cmd(fp, o_dir, dia_hmm)
-            io_update(self, i_f=fp, key=group)
-            self.outputs['outs'][group] = outs
-    else:
-        o_dir, fp = get_out_dir(self, self.sam)
-        outs = self.custom_cmd(fp, o_dir, dia_hmm)
-        io_update(self, i_f=fp)
-        self.outputs['outs'] = outs
-
-
-def prep_diamond_custom(self):
-    self.prep_custom('dia')
-
-
-def prep_hmmer_custom(self):
-    self.prep_custom('hmm')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def diamond_cmd(self, o_dir, fp, tmp_dir, group=None) -> tuple:
-    cmd, outs = '', []
-    io_update(self, i_f=fp, key=group)
-    self.soft.dirs.add(o_dir)
-    k = self.soft.params['k']
-    for db, dmnds in self.soft.params['databases'].items():
-        for dmnd in dmnds:
-            base_db = basename(dmnd).rstrip('.dmnd')
-            out = '%s/%s_k%s_%s.tsv' % (o_dir, self.sam, k, base_db)
+def search_cmd(self, o_dir, fp, tmp_dir, group=None) -> list:
+    outs = []
+    module_call = caller(self, __name__)
+    for db, db_paths in self.soft.params['databases'].items():
+        for db_path in db_paths:
+            if group:
+                out_dir = '%s/%s' % (o_dir, group)
+            else:
+                out_dir = '%s/%s' % (o_dir, self.sam)
+            self.outputs['dirs'].append(out_dir)
+            out = '%s/%s.tsv' % (out_dir, splitext(basename(db_path))[0])
             outs.append(out)
-            cmd += 'mkdir -p %s\n' % tmp_dir
-            cmd += 'diamond blastp'
-            cmd += ' -d %s' % dmnd
-            cmd += ' -q %s' % fp
-            cmd += ' -o %s' % out
-            cmd += ' -k %s' % k
-            cmd += ' -p %s' % self.soft.params['cpus']
-            cmd += ' --id %s' % self.soft.params['identity']
-            cmd += ' -t %s\n' % tmp_dir
-            io_update(self, o_f=out, key=group)
-    return cmd, outs
+            if self.config.force or not isfile(out):
+                cmd = module_call(self, fp, db_path, out, tmp_dir)
+                if group:
+                    io_update(self, i_f=fp, o_d=out_dir, key=group)
+                    self.outputs['cmds'].setdefault(group, []).append(cmd)
+                else:
+                    io_update(self, i_f=fp, o_d=out_dir)
+                    self.outputs['cmds'].append(cmd)
+    return outs
 
 
-def diamond(self):
-    tmp_dir = '$TMPDIR/diamond_annot_%s' % self.sam
-    if self.pool in self.pools:
-        for group in self.pools[self.pool]:
-            o_dir, fp = get_out_dir(self, self.pool, group)
-            cmd, outs = diamond_cmd(self, o_dir, fp, tmp_dir, group)
-            self.outputs['outs'].setdefault(self.pool, []).extend(outs)
-            if cmd:
-                self.outputs['cmds'].setdefault(group, []).append(cmd)
-
+def diamond(self, fp, db_path, out, tmp_dir) -> str:
+    cmd = 'mkdir -p %s\n' % tmp_dir
+    cmd += 'diamond blastp'
+    cmd += ' --db %s' % db_path
+    cmd += ' --query %s' % fp
+    cmd += ' --out %s' % out
+    if self.soft.params['mode']:
+        cmd += ' --%s' % self.soft.params['mode']
+    if self.soft.params['top']:
+        cmd += ' --top %s' % self.soft.params['top']
     else:
-        o_dir, fp = get_out_dir(self, self.sam)
-        cmd, outs = diamond_cmd(self, o_dir, fp, tmp_dir)
-        self.outputs['outs'].extend(outs)
-        if cmd:
-            self.outputs['cmds'].append(cmd)
+        cmd += ' -k %s' % self.soft.params['max_target_seqs']
+    cmd += ' --threads %s' % self.soft.params['cpus']
+    for param in ['id', 'strand', 'masking', 'evalue',
+                  'query_cover', 'subject_cover']:
+        cmd += ' --%s %s' % (param.replace('_', '-'), self.soft.params[param])
+    cmd += ' --tmpdir %s\n' % tmp_dir
+    return cmd
+
+
+def hmmer(self, fp, db_path, out, _) -> str:
+    stdout = '%s_per-sequence.out' % splitext(out)[0]
+    domout = '%s_per-domain.out' % splitext(out)[0]
+    cmd = 'hmmsearch'
+    cmd += ' -o %s' % stdout
+    cmd += ' --tblout %s' % out
+    cmd += ' --domtblout %s' % domout
+    for boolean in ['nobias', 'noali', 'max']:
+        if self.soft.params[boolean]:
+            cmd += ' --%s' % boolean
+    for cut in ['cut_ga', 'cut_nc', 'cut_tc']:
+        if self.soft.params[cut]:
+            cmd += ' --%s' % cut
+            break
+    for param in ['E', 'Z', 'domE', 'domZ', 'textw']:
+        cmd += ' --%s %s' % (param, self.soft.params[param])
+    cmd += ' --cpu %s' % self.soft.params['cpus']
+    cmd += ' %s %s' % (db_path, fp)
+    return cmd
 
 
 def search(self) -> None:
@@ -456,7 +430,17 @@ def search(self) -> None:
     # This function splits the name of the software and calls as function (
     # from this module) the part of the software name that follows the first
     # underscore, e.g. software "search_diamond" would call `diamond()`
-    caller(self, __name__)
+    tmp_dir = '$TMPDIR/%s_%s' % (self.soft.name, self.sam)
+    if self.pool in self.pools:
+        for group in self.pools[self.pool]:
+            o_dir, fp = get_out_dir(self, self.pool, group)
+            outs = search_cmd(self, o_dir, fp, tmp_dir, group)
+            self.outputs['outs'].setdefault(group, []).extend(outs)
+
+    else:
+        o_dir, fp = get_out_dir(self, self.sam)
+        outs = search_cmd(self, o_dir, fp, tmp_dir)
+        self.outputs['outs'].extend(outs)
 
 
 def get_antismash_cmd(self, fa, base, out):
