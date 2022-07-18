@@ -437,7 +437,6 @@ def search(self) -> None:
             outs = search_cmd(self, o_dir, fp, tmp_dir, group)
             if outs:
                 self.outputs['outs'].setdefault(group, []).extend(outs)
-
     else:
         o_dir, fp = get_out_dir(self, self.sam)
         outs = search_cmd(self, o_dir, fp, tmp_dir)

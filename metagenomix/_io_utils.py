@@ -349,6 +349,10 @@ def inputs_to_scratch(io) -> list:
             src = folder_.rstrip('/').replace('${SCRATCH_FOLDER}', '')
             mkdirs.add('mkdir -p %s' % folder)
             rsyncs.add('rsync -aqruv %s/ %s' % (src, folder))
+    # folders
+    if ('O', 'd') in io:
+        for folder in io[('O', 'd')]:
+            mkdirs.add('mkdir -p %s' % folder.rstrip('/'))
     # files
     if ('I', 'f') in io:
         for file in io[('I', 'f')]:
