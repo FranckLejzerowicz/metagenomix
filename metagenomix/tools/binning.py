@@ -284,4 +284,5 @@ def metawrap(self) -> None:
     """
     # This function splits the name of the software and calls as function
     # the last underscore-separated field (which is in this module)
-    caller(self, __name__)
+    module_call = caller(self, __name__)
+    module_call(self)
