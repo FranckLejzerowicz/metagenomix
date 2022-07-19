@@ -274,9 +274,6 @@ def flash(self):
     out_fps = [ext, nc1, nc2]
     self.outputs['dirs'].append(out)
     self.outputs['outs'].extend(out_fps)
-    print(self.soft.name)
-    print(out_fps)
-    print([todo(x) for x in out_fps])
     if self.config.force or not sum([todo(x) for x in out_fps]):
         cmd = 'flash %s' % ' '.join(self.inputs[self.sam])
         cmd += ' -m %s' % min_overlap
