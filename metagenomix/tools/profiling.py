@@ -1293,7 +1293,7 @@ def midas(self) -> None:
         select = set(get_species_select(self, species_list))
 
         genes_out = '%s/genes' % focus_dir
-        midas_genus(self, focus_dir, genes_out, 'genus', select)
+        midas_genus(self, focus_dir, genes_out, 'genes', select)
 
         snps_out = '%s/snps' % focus_dir
         midas_snps(self, focus_dir, snps_out, 'snps', select)
