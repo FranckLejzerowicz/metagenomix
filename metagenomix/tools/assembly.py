@@ -244,6 +244,8 @@ def pool_cmd(self, pool: str, paths: list,
                 cmd = 'cat %s >> %s' % (path, fasta)
             else:
                 cmd = 'cat %s > %s' % (path, fasta)
+            if pool not in self.cmds:
+                self.cmds[pool] = {}
             self.cmds[pool].setdefault(group, []).append(cmd)
 
 
