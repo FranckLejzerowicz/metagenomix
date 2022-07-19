@@ -60,7 +60,7 @@ class ReferenceDatabases(object):
             db_length = len(db) + len(path) + 5
             if db_length > self.length:
                 self.length = db_length
-        print('%s\t%s' % ((' ' * self.length), '\t'.join(self.formats)))
+        print('%s\t%s' % ((' ' * self.length), ' '.join(self.formats)))
 
     def get_formats(self):
         """Override init (default) database formats with those from yaml file"""
@@ -79,11 +79,10 @@ class ReferenceDatabases(object):
 
     def print_db(self):
         gaps = self.length - (len(self.db) + len(self.path) + 5)
-        print('  + %s: %s%s' % (self.db, self.path, (' ' * gaps)), end='')
+        print('  + %s: %s%s' % (self.db, self.path, (' ' * gaps)), end='\t')
 
     def set_paths(self):
         if self.config.dev:
-            self.print_db()
             self.set_database()
         else:
             if not exists(self.path):  # not-found database will be ignored
@@ -92,7 +91,7 @@ class ReferenceDatabases(object):
                 self.set_database()
 
     def set_database(self):
-        print("  + %s: %s" % (self.db, self.path))
+        self.print_db()
         if hasattr(self, "set_%s" % self.db):
             # specific treatment for some databases
             getattr(self, "set_%s" % self.db)()
@@ -111,10 +110,10 @@ class ReferenceDatabases(object):
                 db_format_dir = self.path + '/%s' % subfolder + db_format
                 if self.config.dev or isdir(db_format_dir):
                     formats[db_format] = db_format_dir
-                    print('\tFound', end='')
+                    print('+%s' % (' ' * len(db_format)), end='')
                     break
             else:
-                print('\t', end='')
+                print('-%s' % (' ' * len(db_format)), end='')
         print()
         self.builds[self.db] = formats
 
