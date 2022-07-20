@@ -702,10 +702,10 @@ def woltka_classif_go(self, pairing: str, woltka_map: str,
     coords = '%s/proteins/coords.txt.xz' % database
     uniref_map = '%s/function/uniref/uniref.map.xz' % database
     uniref_names = '%s/function/uniref/uniref.name.xz' % database
-    io_update(self, i_f=[coords, uniref_map, uniref_names])
     go_rt = '%s/function/go' % database
     gos = ['process', 'function', 'component']
     woltka_fun_out = '%s/%s/go' % (self.dir, pairing)
+    io_update(self, i_f=[coords, uniref_map, uniref_names], o_d=woltka_fun_out)
     for go in gos:
         cmd = '\n# %s [no stratification]\n' % go
         cmd += 'woltka classify'
@@ -930,6 +930,7 @@ def woltka_classif_metacyc(self, pairing: str, genes: str, database: str):
                ('ec', '', 'reaction-to-ec.txt')]
     files = {}
     woltka_fun_out = '%s/%s/metacyc' % (self.dir, pairing)
+    io_update(self, o_d=woltka_fun_out)
     cmd = ''
     for idx, (level, names, maps) in enumerate(metacyc):
         if '-to-' in maps:
