@@ -622,37 +622,6 @@ def woltka_write_map(self, pairing: str, alis: dict) -> str:
     return map_fp
 
 
-def woltka_gotus(self, pairing: str, woltka_map: str) -> str:
-    """Get the Woltka command for the gotu classification.
-
-    Parameters
-    ----------
-    self : Commands class instance
-        .dir : str
-            Path to pipeline output folder for SHOGUN.
-        .outputs: dict
-            All outputs
-    pairing : str
-        Type of reads pairing during alignment
-    woltka_map : str
-        Path to the output woltka samples file.
-
-    Returns
-    -------
-    genomes_out : str
-        Path to the output genomes per sample table.
-    """
-    genomes_out = '%s/%s/genomes.tsv' % (self.dir, pairing)
-    if todo(genomes_out):
-        cmd = 'woltka gotu'
-        cmd += ' -i %s' % woltka_map
-        cmd += ' -o %s' % genomes_out
-        self.outputs['cmds'].append(cmd)
-        self.outputs['outs'].append(genomes_out)
-        io_update(self, o_f=genomes_out)
-    return genomes_out
-
-
 def woltka_tax_cmd(self, pairing: str, woltka_map: str, database: str) -> str:
     """Get the taxonomic classification outputs and prepare the
     Woltka commands for this classification.
@@ -1129,7 +1098,6 @@ def woltka(self) -> None:
         pairing = self.softs['bowtie2'].params['pairing']
     alis = woltka_aligments(self)
     woltka_map = woltka_write_map(self, pairing, alis)
-    woltka_gotus(self, pairing, woltka_map)
     tax_outmap = woltka_tax_cmd(self, pairing, woltka_map, database)
     woltka_classif_go(self, pairing, woltka_map, tax_outmap, database)
     genes = woltka_classif_genes(self, pairing, woltka_map, database)
