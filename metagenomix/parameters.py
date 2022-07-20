@@ -1060,8 +1060,9 @@ def check_tiara(self, params, soft):
     return defaults
 
 
-# def check_TOOL(self, params, soft):
+# def check_woltka(self, params, soft):
 #     defaults = {}
+#     return defaults
 
 
 # def check_TOOL(self, params, soft):
