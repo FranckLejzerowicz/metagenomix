@@ -682,7 +682,7 @@ def woltka_tax_cmd(self, pairing: str, woltka_map: str, database: str) -> str:
     tax_todo = []
     for tdx, tax_output in enumerate(tax_outputs):
         cur_tax_output = '%s/%s.tsv' % (tax_out, tax_output)
-        self.outputs['cmds'].append(cur_tax_output)
+        self.outputs['outs'].append(cur_tax_output)
         if todo(cur_tax_output):
             tax_todo.append(tax_output)
             io_update(self, o_f=cur_tax_output)
