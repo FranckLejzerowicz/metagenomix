@@ -1345,7 +1345,7 @@ def kraken2(self) -> None:
         if self.config.force or todo(result):
             db_path = get_kraken2_db(self, db)
             cmd = get_kraken2_cmd(self, out, db_path, report, result)
-            self.outputs['outs'].append((result, db_path))
+            self.outputs['outs'].append((report, db))
             self.outputs['cmds'].append(cmd)
             io_update(self, i_f=self.inputs[self.sam], o_d=out)
 
@@ -1369,18 +1369,31 @@ def bracken(self) -> None:
         .config
             Configurations
     """
-    for db in self.soft.params['databases']:
-        out = '%s/%s/%s' % (self.dir, self.sam, db)
-        self.outputs['dirs'].append(out)
-        report = '%s/report.tsv' % out
-        result = '%s/result.tsv' % out
-        if self.config.force or todo(result):
-            db_path = get_kraken2_db(self, db)
-            cmd = get_kraken2_cmd(self, out, db_path, report, result)
-            self.outputs['outs'].extend([report, result])
+    for (kraken2_report, db) in self.inputs[self.sam]:
+        if db == 'default':
+            db_path = self.databases.paths['kraken2']
+        elif 'bracken' in self.databases.builds[db]:
+            db_path = self.databases.builds[db]['bracken']
+        else:
+            continue
+        out_dir = '%s/%s/%s' % (self.dir, self.sam, db)
+        self.outputs['dirs'].append(out_dir)
+        bracken_result = '%s/results.tsv' % out_dir
+        bracken_report = '%s/report.tsv' % out_dir
+        if self.config.force or todo(bracken_result):
+            cmd = 'bracken'
+            cmd += ' -d %s/database%smers.kmer_distrib' % (
+                db_path, self.soft.params['read_len'])
+            cmd += ' -i %s' % kraken2_report
+            cmd += ' -o %s' % bracken_result
+            cmd += ' -w %s' % bracken_report
+            cmd += ' -r %s' % self.soft.params['read_len']
+            cmd += ' -l %s' % self.soft.params['level']
+            cmd += ' -t %s' % self.soft.params['threshold']
+            self.outputs['outs'].extend([bracken_result, bracken_report])
             self.outputs['cmds'].append(cmd)
             io_update(
-                self, i_f=self.inputs[self.sam], o_f=[report, result])
+                self, i_f=kraken2_report, o_f=[bracken_result, bracken_report])
 
 
 def metaxa2(self) -> None:
