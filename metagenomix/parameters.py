@@ -418,15 +418,14 @@ def check_quast(self, params, soft):
 
 
 def check_filtering(self, params, soft):
-    defaults = {'databases': None}
-    if 'databases' not in params or not isinstance(params['databases'], list):
-        sys.exit('[filtering] Param "databases" must a list of bowtie2 dbs')
+    db = 'databases'
+    if db not in params or not isinstance(params[db], dict):
+        sys.exit('[filtering] Param "%s" not a name:path bowtie2 db dict' % db)
     else:
-        for d in params['databases']:
-            if not self.config.dev and not glob.glob('%s/*' % d):
-                sys.exit('[filtering] Param "databases" no "%s" bowtie2 db' % d)
-    defaults['databases'] = '<list of databases>'
-    return defaults
+        for (d, index) in params[db].items():
+            if not self.config.dev and not glob.glob('%s.*' % index):
+                sys.exit('[filtering] Param "%s" no bowtie2 fils %s*' % (db, d))
+    return {'databases': '<list of databases>'}
 
 
 def check_atropos(self, params, soft):
