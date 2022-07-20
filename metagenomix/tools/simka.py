@@ -106,23 +106,26 @@ def simka_min_cmd(params: dict, sim_in: str, out_dir: str,
     cmd : str
         Simka command line.
     """
-    cmd = 'python %s/simkaMin/simkaMin.py' % params['path']
+    cmd = 'envsubst < %s > %s.tmp\n' % (sim_in, sim_in)
+    cmd += 'python %s/simkaMin/simkaMin.py' % params['path']
     cmd += ' -bin %s/bin/simkaMinCore' % params['path']
-    cmd += ' -in %s -out %s' % (sim_in, out_dir)
-    cmd += ' -kmer-size %s' % str(k)
+    cmd += ' -in %s.tmp' % sim_in
+    cmd += ' -out %s' % out_dir
     cmd += ' -max-reads %s' % n
-    cmd += ' -nb-kmers 50000'
+    cmd += ' -kmer-size %s' % str(k)
+    cmd += ' -nb-kmers %s' % params['nb_kmers']
+    cmd += ' -min-read-size %s\n' % params['min_read_size']
     if int(params['mem_num']) == 1:
         mem = '1'
     else:
         mem = str((params['mem_num'] - 1))
     if params['mem_dim'].lower()[0] == 'g':
         mem += '000'
-    cmd += ' -max-memory %s' % mem
-    cmd += ' -min-read-size 100'
     cmd += ' -filter'
+    cmd += ' -max-memory %s' % mem
     cmd += ' -nb-cores %s\n' % params['cpus']
-    cmd += 'rm -rf %s/simkamin' % out_dir
+    cmd += 'rm -rf %s/simkamin\n' % out_dir
+    cmd += 'rm %s.tmp\n' % sim_in
     return cmd
 
 
@@ -148,8 +151,9 @@ def simka_base_cmd(
     cmd : str
         Simka command line.
     """
-    cmd = '%s/bin/simka' % params['path']
-    cmd += ' -in %s' % sim_in
+    cmd = 'envsubst < %s > %s.tmp\n' % (sim_in, sim_in)
+    cmd += '%s/bin/simka' % params['path']
+    cmd += ' -in %s.tmp' % sim_in
     cmd += ' -out %s' % out_dir
     cmd += ' -out-tmp %s_tmp' % out_dir
     cmd += ' -abundance-min 5'
@@ -160,7 +164,8 @@ def simka_base_cmd(
     cmd += ' -nb-cores %s' % params['cpus']
     cmd += ' -max-count %s' % params['cpus']
     cmd += ' -max-memory %s\n' % str((int(params['mem_num'][0])*1000)-1000)
-    cmd += 'rm -rf %s_tmp' % out_dir
+    cmd += 'rm -rf %s_tmp\n' % out_dir
+    cmd += 'rm %s.tmp\n' % sim_in
     return cmd
 
 

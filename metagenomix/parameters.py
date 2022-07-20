@@ -714,9 +714,13 @@ def simka_error(key: str, kmer_reads: dict) -> None:
 
 
 def check_simka(self, params, soft):
-    defaults = {'simkaMin': [True, False],
-                'kmer': np.linspace(15, 80, 6),
-                'log_reads': np.logspace(3, 7, 3)}
+    defaults = {
+        'simkaMin': [True, False],
+        'kmer': np.linspace(15, 80, 6),
+        'log_reads': np.logspace(3, 7, 3),
+        'nb_kmers': 50000,
+        'min_read_size': 100,
+    }
     if 'kmer' not in params:
         params['kmer'] = defaults['kmer']
     else:
@@ -729,7 +733,9 @@ def check_simka(self, params, soft):
         n = params['log_reads']
         simka_error('log_reads', n)
         params['log_reads'] = np.logspace(n['start'], n['end'], n['size'])
-    check_default(params, defaults, soft.name, ['kmer', 'log_reads'])
+    check_nums(params, defaults, ['nb_kmers', 'min_read_size'], int, soft.name)
+    check_default(params, defaults, soft.name,
+                  ['kmer', 'log_reads', 'nb_kmers', 'min_read_size'])
     params['kmer'] = [int(x) for x in params['kmer']]
     params['log_reads'] = [int(x) for x in params['log_reads']]
     defaults['path'] = '<Path to the SimKa program folder>'
