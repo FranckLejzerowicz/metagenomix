@@ -39,6 +39,7 @@ def get_simka_input(self) -> str:
             if 'after_None' not in out_dir:
                 fs = ['%sq' % x[:-1] if 'notCombined_' in x else x for x in fs]
             o.write('%s: %s\n' % (sam, '; '.join(fs)))
+            io_update(self, i_f=fs)
     return sim_out
 
 
