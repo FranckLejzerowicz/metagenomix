@@ -90,18 +90,18 @@ def drep(self):
                     key = (group, stringency, algorithm)
                 else:
                     key = (group, algorithm)
-
                 drep_out = '%s/%s' % (self.dir, group)
                 if stringency:
                     drep_out += '/%s' % stringency
                 drep_out += '/%s' % algorithm
-
                 cmd, drep_in, paths = get_drep_inputs(drep_out, sam_paths)
                 io_update(self, i_f=([drep_in] + paths), key=key)
                 dereps = '%s/dereplicated_genomes' % drep_out
                 if not paths:
                     self.soft.status.add('Must run %s (%s)' % (prev, self.pool))
-                    continue
+                    if not self.config.dev:
+                        paths = ['dev.fa']
+                        continue
                 out_dereps = '%s/*.fa' % dereps.replace('${SCRATCH_FOLDER}', '')
                 if not self.config.force and len(glob.glob(out_dereps)):
                     self.soft.status.add('Done')
@@ -112,6 +112,7 @@ def drep(self):
                 cmd += ' %s' % drep_out
                 cmd += ' --S_algorithm %s' % algorithm
                 cmd += ' --ignoreGenomeQuality'
+                cmd += ' --processors %s' % self.soft.params['cpus']
                 chunk_size = self.soft.params['primary_chunksize']
                 if len(paths) > chunk_size:
                     cmd += ' --multiround_primary_clustering'
@@ -119,28 +120,21 @@ def drep(self):
                     if algorithm == 'fastANI':
                         cmd += ' --greedy_secondary_clustering'
                 else:
-                    if self.soft.params['multiround_primary_clustering']:
-                        cmd += ' --multiround_primary_clustering'
-                    if self.soft.params['greedy_secondary_clustering']:
-                        cmd += ' --greedy_secondary_clustering'
-                    if self.soft.params['run_tertiary_clustering']:
-                        cmd += ' --run_tertiary_clustering'
-                if self.soft.params['SkipMash']:
-                    cmd += ' --SkipMash'
-                if self.soft.params['SkipSecondary']:
-                    cmd += ' --SkipSecondary'
+                    for boolean in ['multiround_primary_clustering',
+                                    'greedy_secondary_clustering',
+                                    'run_tertiary_clustering']:
+                        if self.soft.params[boolean]:
+                            cmd += ' --%s' % boolean
+                for boolean in ['SkipMash', 'SkipSecondary']:
+                    if self.soft.params[boolean]:
+                        cmd += ' --%s' % boolean
                 coverage_method = self.soft.params['coverage_method']
                 cmd += ' --coverage_method %s' % coverage_method
-                cmd += ' --S_ani %s' % self.soft.params['S_ani']
-                cmd += ' --P_ani %s' % self.soft.params['P_ani']
-                cmd += ' --processors %s' % self.soft.params['cpus']
-                cmd += ' --warn_sim %s' % self.soft.params['warn_sim']
-                cmd += ' --warn_aln %s' % self.soft.params['warn_aln']
-                cmd += ' --n_PRESET %s' % self.soft.params['n_PRESET']
-                cmd += ' --warn_dist %s' % self.soft.params['warn_dist']
-                cmd += ' --cov_thresh %s' % self.soft.params['cov_thresh']
-                cmd += ' --clusterAlg %s' % self.soft.params['clusterAlg']
-                cmd += ' --MASH_sketch %s' % self.soft.params['MASH_sketch']
+                for param in [
+                    'S_ani', 'P_ani', 'warn_sim', 'warn_aln', 'n_PRESET',
+                    'warn_dist', 'cov_thresh', 'clusterAlg','MASH_sketch'
+                ]:
+                    cmd += ' --%s %s' % (param, self.soft.params[param])
                 cmd += ' --genomes %s' % drep_in
 
                 log = '%s/log' % drep_out
@@ -156,6 +150,8 @@ def get_genome_dirs(self, group):
     ext = 'fa'
     if self.soft.prev == 'drep':
         dirs = [self.inputs[group][-1]]
+    elif self.soft.prev == 'spades':
+        dirs = [self.inputs[group][1]]
     elif self.soft.prev == 'metawrap_refine':
         dirs = [self.inputs[self.pool][group][-1]]
     elif self.soft.prev == 'metawrap_reassemble':
@@ -164,7 +160,8 @@ def get_genome_dirs(self, group):
         ext = 'fna'
         dirs = glob.glob('%s/bins-yamb-pp-*' % self.inputs[self.pool][group])
     else:
-        sys.exit('[checkm] Not possible after "%s"' % self.soft.prev)
+        sys.exit('[%s] Not possible after "%s"' % (self.soft.name,
+                                                   self.soft.prev))
     return dirs, ext
 
 
@@ -176,17 +173,22 @@ def get_groups(self):
     return groups
 
 
+def get_genomes_out(self, group, genome_dir):
+    out = self.dir
+    if self.soft.prev == 'drep':
+        out += '/%s' % '/'.join(group)
+    else:
+        if self.soft.prev == 'yamb':
+            out += '/' + genome_dir.split('/')[-1]
+        out += '/%s/%s' % (self.pool, group)
+    return out
+
+
 def checkm(self):
     if self.soft.params['coverage']:
         if 'mapping_spades' not in self.softs:
             sys.exit('Run "spades mapping_spades" before checkm coverage')
         bams = self.softs['mapping_spades'].outputs
-    # print()
-    # print("spades")
-    # print(spades)
-    # print()
-    # print("self.inputs")
-    # print(self.inputs)
     groups = get_groups(self)
     self.outputs['outs'] = {}
     for group in groups:
@@ -202,13 +204,7 @@ def checkm(self):
         # print("ext:", ext)
         cmd = checkm_tetra(self, self.dir, group)
         for genome_dir in genome_dirs:
-            out = self.dir
-            if self.soft.prev == 'drep':
-                out += '/%s' % '/'.join(group)
-            else:
-                if self.soft.prev == 'yamb':
-                    out += '/' + genome_dir.split('/')[-1]
-                out += '/%s/%s' % (self.pool, group)
+            out = get_genomes_out(self, group, genome_dir)
             self.outputs['outs'].setdefault(group, []).append(out)
             out_dirs = '%s/*' % genome_dir.replace('${SCRATCH_FOLDER}', '')
             if not self.config.force and not glob.glob(out_dirs):
@@ -217,14 +213,12 @@ def checkm(self):
             io_update(self, i_d=genome_dir, key=group)
 
             cov = checkm_coverage(self, out, group, ext, genome_dir, cmd)
-            # tree - lineage_wf (workflow)
             tree, cmd_tree = checkm_tree(self, out, group, ext, genome_dir, cmd)
             tree_qa = checkm_tree_qa(self, out, group, tree, cmd_tree, cmd)
             lineage = checkm_lineage_set(self, out, group, tree, tree_qa, cmd)
             analyze, cmd_analyze = checkm_analyze(self, out, group, ext,
                                                   lineage, genome_dir, cmd)
             checkm_qa(self, out, group, cov, lineage, analyze, cmd_analyze, cmd)
-            # other controls
             checkm_unbinned(self, out, group, ext, genome_dir, cmd)
             if cmd:
                 cmd_set = 'checkm data setRoot %s\n' % self.soft.params['data']
@@ -399,3 +393,69 @@ def checkm_tetra(self, out_dir, key):
             cmd += ' %s\n' % tetra_fpo
             cmd += 'fi\n ' % tetra_fpo
     return cmd
+
+
+def coconet(self):
+    if self.soft.prev != 'spades':
+        sys.exit('[coconet] can only be run on assembly output')
+    bams = {}
+    if 'mapping_spades' in self.softs:
+        bams = self.softs['mapping_spades'].outputs
+    for group, spades_outs in self.inputs[self.pool].items():
+        out_dir = '%s/%s/%s' % (self.dir, self.pool, group)
+        cmd = '\ncoconet run'
+        cmd += ' --fasta %s' % spades_outs[1]
+        cmd += ' --output %s' % out_dir
+        cmd += ' --threads %s' % self.soft.params['cpus']
+        for boolean in ['quiet', 'no_rc', 'silent', 'continue',
+                        'patience', 'recruit_small_contigs']:
+            if self.soft.params[boolean]:
+                cmd += ' --%s' % boolean
+        for p in [
+            'debug', 'flag', 'min_ctg_len', 'min_prevalence', 'min_dtr_size',
+            'min_mapping_quality', 'min_aln_coverage', 'fragment_step',
+            'n_train', 'n_test', 'batch_size', 'test_batch', 'load_batch',
+            'cover_filters', 'cover_kernel', 'cover_stride', 'merge_neurons',
+            'kmer', 'wsize', 'wstep', 'n_frags', 'max_neighbors', 'n_clusters',
+            'vote_threshold', 'gamma1', 'gamma2', 'fragment_length', 'theta',
+            'test_ratio', 'learning_rate'
+        ]:
+            cmd += ' --%s %s' % (p.replace('_', '-'), self.soft.params[p])
+        for p in ['tlen_range', 'compo_neurons', 'cover_neurons']:
+            cmd += ' --%s %s' % (p.replace('_', '-'),
+                                 ' '.join(map(str, self.soft.params[p])))
+        if bams:
+            for bam in bams:
+                print(bam)
+                print(kjsrbf)
+            cmd += ' --bam %s\n' % ' '.join(bams)
+        log_fp = '%s/coconet.log' % out_dir
+        if self.config.force or todo(log_fp):
+            self.outputs['cmds'].setdefault(group, []).append(cmd)
+            io_update(self, i_f=spades_outs[1], o_d=out_dir, key=group)
+        self.outputs['outs'][group] = out_dir
+
+
+def tiara(self):
+    if self.soft.prev != 'spades':
+        sys.exit('[tiara] can only be run on assembly output')
+    for group, spades_outs in self.inputs[self.pool].items():
+        out_dir = '%s/%s/%s' % (self.dir, self.pool, group)
+        self.outputs['dirs'].append(out_dir)
+        self.outputs['outs'][group] = out_dir
+        out_fp = '%s/classifications.txt' % out_dir
+        if self.config.force or todo(out_fp):
+            cmd = 'cd %s\n' % out_dir
+            cmd += 'tiara'
+            cmd += ' --input %s' % spades_outs[1]
+            cmd += ' --output %s' % out_fp
+            cmd += ' --threads %s' % self.soft.params['cpus']
+            for boolean in ['probabilities', 'verbose', 'gzip']:
+                if self.soft.params[boolean]:
+                    cmd += ' --%s' % boolean
+            for param in ['min_len', 'first_stage_kmer', 'second_stage_kmer']:
+                cmd += ' --%s %s' % (param, self.soft.params[param])
+            for param in ['prob_cutoff', 'to_fasta']:
+                cmd += ' --%s %s' % (param, ' '.join(self.soft.params[param]))
+            self.outputs['cmds'].setdefault(group, []).append(cmd)
+            io_update(self, i_f=spades_outs[1], o_d=out_dir, key=group)
