@@ -1059,9 +1059,15 @@ def check_tiara(self, params, soft):
     return defaults
 
 
-# def check_woltka(self, params, soft):
-#     defaults = {}
-#     return defaults
+def check_bracken(self, params, soft):
+    defaults = {
+        'read_len': 100,
+        'level': ['S', 'D', 'P', 'C', 'O', 'F', 'G', 'S1'],
+        'threshold': 0
+    }
+    check_nums(params, defaults, ['read_len', 'threshold'], int, soft.name)
+    check_default(params, defaults, soft.name, ['read_len', 'threshold'])
+    return defaults
 
 
 # def check_TOOL(self, params, soft):
