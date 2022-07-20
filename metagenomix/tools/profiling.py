@@ -732,7 +732,7 @@ def woltka_classif_go(self, pairing: str, woltka_map: str,
     """
     coords = '%s/proteins/coords.txt.xz' % database
     uniref_map = '%s/function/uniref/uniref.map.xz' % database
-    uniref_names = '%s/function/uniref/uniref.names.xz' % database
+    uniref_names = '%s/function/uniref/uniref.name.xz' % database
     io_update(self, i_f=[coords, uniref_map, uniref_names])
     go_rt = '%s/function/go' % database
     gos = ['process', 'function', 'component']
@@ -840,7 +840,7 @@ def woltka_classif_uniref(self, pairing: str, genes: str, database: str):
         Path to the uniref classification.
     """
     uniref_map = '%s/function/uniref/uniref.map.xz' % database
-    uniref_names = '%s/function/uniref/uniref.names.xz' % database
+    uniref_names = '%s/function/uniref/uniref.name.xz' % database
     uniref = '%s/%s/wol_uniref.biom' % (self.dir, pairing)
     if todo(uniref):
         cmd = 'woltka tools collapse'
