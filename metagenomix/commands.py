@@ -24,7 +24,7 @@ from metagenomix.tools.assembly import (
 from metagenomix.tools.annotation import (
     prodigal, integron_finder, macsyfinder, ioncom, search, antismash, prokka)
 from metagenomix.tools.binning import metawrap
-from metagenomix.tools.genomics import drep, checkm #, gtdbtk
+from metagenomix.tools.genomics import drep, checkm, coconet, tiara #, gtdbtk
 from metagenomix.tools.metamarker import metamarker
 
 
