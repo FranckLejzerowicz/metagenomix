@@ -198,6 +198,8 @@ class CreateScripts(object):
             self.cmd.append('--scratch')
         elif params['scratch'] == 'userscratch':
             self.cmd.append('--userscratch')
+        if params['machine']:
+            self.cmd.append('--%s' % params['machine'])
         # quiet Xhpc if metagenomix is not supposed to be verbose
         if not self.config.verbose:
             self.cmd.append('--quiet')
