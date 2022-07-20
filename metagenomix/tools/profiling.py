@@ -1293,7 +1293,7 @@ def get_kraken2_cmd(self, out: str, db_path: str, report: str, result: str):
     cmd = 'kraken2 '
     cmd += ' -db %s' % db_path
     cmd += ' --threads %s' % self.soft.params['cpus']
-    cmd += ' --report %s/report.tsv' % report
+    cmd += ' --report %s' % report
     cmd += ' --confidence %s' % self.soft.params['confidence']
     if len(self.inputs[self.sam]) > 1:
         unclass = ['%s/unclassified_%s.fastq' % (out, r) for r in [1, 2]]
@@ -1308,8 +1308,8 @@ def get_kraken2_cmd(self, out: str, db_path: str, report: str, result: str):
         cmd += ' --classified-out %s/classified.fastq' % out
     if self.inputs[self.sam][0].endswith('.gz'):
         cmd += ' --gzip-compressed'
-        io_update(self, o_f=([
-            '%s.gz' % x for x in unclass] + ['%s.gz' % x for x in classif]))
+        io_update(self, o_f=(
+            ['%s.gz' % x for x in unclass] + ['%s.gz' % x for x in classif]))
     else:
         io_update(self, o_f=(unclass + classif))
     cmd += ' %s > %s' % (' '.join(self.inputs[self.sam]), result)
@@ -1323,7 +1323,7 @@ def kraken2(self) -> None:
     ----------
     self : Commands class instance
         .dir : str
-            Path to pipeline output folder for MIDAS
+            Path to pipeline output folder for kraken2
         .sam : str
             Sample name
         .inputs : dict
@@ -1345,9 +1345,42 @@ def kraken2(self) -> None:
         if self.config.force or todo(result):
             db_path = get_kraken2_db(self, db)
             cmd = get_kraken2_cmd(self, out, db_path, report, result)
-            self.outputs['outs'].append(result)
+            self.outputs['outs'].append((result, db_path))
             self.outputs['cmds'].append(cmd)
             io_update(self, i_f=self.inputs[self.sam], o_d=out)
+
+
+def bracken(self) -> None:
+    """Create command lines for bracken.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for bracken
+        .sam : str
+            Sample name
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    """
+    for db in self.soft.params['databases']:
+        out = '%s/%s/%s' % (self.dir, self.sam, db)
+        self.outputs['dirs'].append(out)
+        report = '%s/report.tsv' % out
+        result = '%s/result.tsv' % out
+        if self.config.force or todo(result):
+            db_path = get_kraken2_db(self, db)
+            cmd = get_kraken2_cmd(self, out, db_path, report, result)
+            self.outputs['outs'].extend([report, result])
+            self.outputs['cmds'].append(cmd)
+            io_update(
+                self, i_f=self.inputs[self.sam], o_f=[report, result])
 
 
 def metaxa2(self) -> None:
