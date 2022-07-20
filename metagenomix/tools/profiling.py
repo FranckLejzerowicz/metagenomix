@@ -675,6 +675,9 @@ def woltka_tax_cmd(self, pairing: str, woltka_map: str, database: str) -> str:
         cur_cmd += ' --outmap %s' % tax_outmap
         cur_cmd += ' -o %s' % tax_out
         self.outputs['cmds'].append(cur_cmd)
+        io_update(self, o_d=tax_outmap)
+    else:
+        io_update(self, i_d=tax_outmap)
     return tax_outmap
 
 
