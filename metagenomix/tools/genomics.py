@@ -77,6 +77,9 @@ def get_drep_inputs(drep_dir: str, sam_paths: list):
                 cmd += 'echo "%s" >> %s\n' % (path, drep_in)
             else:
                 cmd += 'echo "%s" > %s\n' % (path, drep_in)
+    if cmd:
+        cmd += 'envsubst < %s > %s.tmp\n' % (drep_in, drep_in)
+        cmd += 'mv %s.tmp %s\n' % (drep_in, drep_in)
     return cmd, drep_in, paths
 
 
