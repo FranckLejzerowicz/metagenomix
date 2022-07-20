@@ -1181,11 +1181,6 @@ def get_midas_cmd(
             cmd += ' -%s %s' % (param, self.soft.params[param])
         else:
             cmd += ' --%s %s' % (param, self.soft.params[param])
-        cmd += ' --%s %s' % (param, self.soft.params[param])
-    if self.soft.params['mapid']:
-        cmd += ' --mapid %s' % self.soft.params['mapid']
-    if self.soft.params['aln_cov']:
-        cmd += ' --aln_cov %s' % self.soft.params['aln_cov']
     if analysis != 'species':
         for param in ['m', 's', 'species_cov', 'species_topn', 'readq', 'trim']:
             if self.soft.params[param]:

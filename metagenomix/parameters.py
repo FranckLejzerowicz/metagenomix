@@ -913,15 +913,15 @@ def check_humann(self, params, soft):
 def check_midas(self, params, soft):
     defaults = {
         'focus': {'all': ''},
+        's': ['very-sensitive', 'sensitive', 'very-fast', 'fast'],
+        'm': ['local', 'global'],
         'species_cov': 3.0,
         'species_topn': 10,
         'word_size': 28,
-        'readq': 20,
-        'mapid': 94.0,
         'aln_cov': 0.75,
+        'mapid': 94.0,
+        'readq': 20,
         'trim': 0,
-        's': ['very-sensitive', 'sensitive', 'very-fast', 'fast'],
-        'm': ['local', 'global'],
         'n': 0
     }
     if 'tracking' not in params:
@@ -955,8 +955,8 @@ def check_midas(self, params, soft):
     check_nums(params, defaults, floats_, float, soft.name)
     check_default(params, defaults, soft.name,
                   (ints + floats + floats_ + ['tracking', 'focus']))
-    defaults = {'focus': '<dict of key:value pair some_name: /path/to/spc.txt',
-                'tracking': '<list of metadata columns>'}
+    defaults['focus'] = '<dict of key:value pair some_name: /path/to/spc.txt'
+    defaults['tracking'] = '<list of metadata columns>'
     return defaults
 
 
