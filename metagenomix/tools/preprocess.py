@@ -355,10 +355,9 @@ def filtering(self):
     io_update(self, i_f=self.inputs[self.sam])
     cmds = ''
     databases = self.soft.params['databases']
-    for ddx, db_path in enumerate(databases):
+    for ddx, (db, db_path) in enumerate(databases.items()):
         inputs = list(outputs)
         outputs = []
-        db = db_path.split('/')[-1]
         if len(inputs) == 1:
             out_1 = '%s/%s_%s/%s.fastq' % (self.dir, ddx, db, self.sam)
         else:
