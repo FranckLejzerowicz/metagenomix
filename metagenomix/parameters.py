@@ -949,5 +949,118 @@ def check_macsyfinder(self, params, soft):
     return defaults
 
 
-# def check_TOOL(params, soft, databases, config):
+def check_coconet(self, params, soft):
+    defaults = {
+        'quiet': [False, True],
+        'no_rc': [False, True],
+        'silent': [False, True],
+        'continue': [False, True],
+        'patience': [False, True],
+        'recruit_small_contigs': [False, True],
+        'algorithm': ['leiden', 'spectral'],
+        'features': ['coverage' 'composition'],
+        'tlen_range': [],
+        'debug': 20,
+        'flag': 3596,
+        'min_ctg_len': 2048,
+        'min_prevalence': 2,
+        'min_mapping_quality': 30,
+        'min_aln_coverage': 50,
+        'min_dtr_size': 10,
+        'fragment_step': 128,
+        'test_ratio': 0.1,
+        'n_train': 4000000,
+        'n_test': 10000,
+        'learning_rate': 0.001,
+        'batch_size': 256,
+        'test_batch': 400,
+        'load_batch': 100,
+        'compo_neurons': [64, 32],
+        'cover_neurons': [64, 32],
+        'cover_filters': 16,
+        'cover_kernel': 4,
+        'cover_stride': 2,
+        'merge_neurons': 32,
+        'kmer': 4,
+        'wsize': 64,
+        'wstep': 32,
+        'n_frags': 30,
+        'max_neighbors': 250,
+        'vote_threshold': 0,
+        'theta': 0.8,
+        'gamma1': 0.3,
+        'gamma2': 0.4,
+        'n_clusters': 0,
+        'fragment_length': -1,
+    }
+    for p in ['tlen_range', 'compo_neurons', 'cover_neurons']:
+        if p not in params:
+            params[p] = defaults[p]
+        else:
+            ints = [int(x) for x in params[p] if x.isdigit()]
+            if not isinstance(params[p], list) or len(ints) != 2:
+                sys.exit('[coconet] Param "%s" must be a 2-integers list' % p)
+            if ints[0] > ints[1]:
+                sys.exit('[coconet] Param "%s": integers must be sorted' % p)
+    ints = ['debug', 'flag', 'min_ctg_len', 'min_prevalence',
+            'min_mapping_quality', 'min_aln_coverage', 'min_dtr_size',
+            'fragment_step', 'n_train', 'n_test', 'batch_size', 'test_batch',
+            'load_batch', 'cover_filters', 'cover_kernel', 'cover_stride',
+            'merge_neurons', 'kmer', 'wsize', 'wstep', 'n_frags',
+            'max_neighbors', 'vote_threshold', 'n_clusters', 'fragment_length']
+    check_nums(params, defaults, ints, int, soft.name)
+    floats = ['test_ratio', 'learning_rate', 'theta', 'gamma1', 'gamma2']
+    check_nums(params, defaults, floats, float, soft.name, 0, 1)
+    let_go = ['tlen_range', 'compo_neurons', 'cover_neurons']
+    check_default(params, defaults, soft.name, (ints + floats + let_go))
+    return defaults
+
+
+def check_tiara(self, params, soft):
+    defaults = {
+        'min_len': 3000, 'first_stage_kmer': 6, 'second_stage_kmer': 7,
+        'to_fasta': ['all', 'mit', 'pla', 'bac', 'arc', 'euk', 'unk', 'pro'],
+        'prob_cutoff': [0.65, 0.65],
+        'probabilities': [True, False],
+        'verbose': [True, False],
+        'gzip': [False, True]
+    }
+    fas = 'to_fasta'
+    if fas not in params:
+        params[fas] = ['all']
+    else:
+        if not isinstance(params[fas], list):
+            sys.exit('[tiara] Param "%s" not of %s' % (fas, defaults[fas]))
+        to_fasta = [x for x in params[fas] if x in defaults[fas]]
+        if not to_fasta:
+            sys.exit('[tiara] Param "%s" not in %s' % (fas, defaults[fas]))
+        if 'all' in to_fasta:
+            params['to_fasta'] = ['all']
+    prob = 'prob_cutoff'
+    if prob not in params:
+        params[prob] = defaults[prob]
+    else:
+        if not isinstance(params[prob], list) or len(params[prob]) > 2:
+            sys.exit('[tiara] Param "%s" not a max 2-floats [0-1] list' % prob)
+        for c in params[prob]:
+            try:
+                float(c)
+            except ValueError:
+                sys.exit('[tiara] Param "%s": %s not [0-1] float' % (prob, c))
+    params[prob] = map(str, params[prob])
+    ints = ['min_len', 'first_stage_kmer', 'second_stage_kmer']
+    check_nums(params, defaults, ints, int, soft.name)
+    check_default(params, defaults, soft.name, (ints + [fas, prob]))
+    return defaults
+
+
+# def check_TOOL(self, params, soft):
+#     defaults = {}
+
+
+# def check_TOOL(self, params, soft):
+#     defaults = {}
+
+
+# def check_TOOL(self, params, soft):
 #     defaults = {}
