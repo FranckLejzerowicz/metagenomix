@@ -8,3 +8,4 @@ default:
   chunks:
   scratch:
   machine:
+  partition:

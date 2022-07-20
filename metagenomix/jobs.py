@@ -188,6 +188,11 @@ class CreateScripts(object):
             job_script = '%s.pbs' % splitext(self.sh)[0]
         self.job_fps.append(job_script)
         self.cmd.extend(['-o', job_script])
+        # machine-specific setup: env activating and slurm partition
+        if params['machine']:
+            self.cmd.append('--%s' % params['machine'])
+        if params['partition']:
+            self.cmd.append('--p-partition %s' % params['partition'])
         # whether an environment must be used for the current software
         if not self.modules and params['env']:
             self.cmd.extend(['-e', params['env']])
@@ -198,9 +203,6 @@ class CreateScripts(object):
             self.cmd.append('--scratch')
         elif params['scratch'] == 'userscratch':
             self.cmd.append('--userscratch')
-        if params['machine']:
-            self.cmd.append('--%s' % params['machine'])
-        # quiet Xhpc if metagenomix is not supposed to be verbose
         if not self.config.verbose:
             self.cmd.append('--quiet')
         # print(' '.join(self.cmd))
