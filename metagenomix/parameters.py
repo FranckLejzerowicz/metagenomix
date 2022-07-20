@@ -953,7 +953,8 @@ def check_midas(self, params, soft):
     check_nums(params, defaults, floats, float, soft.name, 0, 1)
     floats_ = ['species_cov']
     check_nums(params, defaults, floats_, float, soft.name)
-    check_default(params, defaults, soft.name, (ints + floats + floats_))
+    check_default(params, defaults, soft.name,
+                  (ints + floats + floats_ + ['tracking', 'focus']))
     defaults = {'focus': '<dict of key:value pair some_name: /path/to/spc.txt',
                 'tracking': '<list of metadata columns>'}
     return defaults
