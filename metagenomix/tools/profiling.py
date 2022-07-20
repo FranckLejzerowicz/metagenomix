@@ -546,7 +546,7 @@ def shogun(self) -> None:
     io_update(self, o_d=out)
 
     if self.soft.prev == 'bowtie2':
-        for (db, pairing), sam_ in self.inputs[self.sam].items():
+        for db, sam_ in self.inputs[self.sam].items():
             ali = format_sam(sam_, ali_cmds, self.sam)
             shogun_taxonomy(self, out, '', ali, db)
     elif self.soft.params['databases']:
