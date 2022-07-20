@@ -107,7 +107,7 @@ def simka_min_cmd(params: dict, sim_in: str, out_dir: str,
         Simka command line.
     """
     cmd = 'python %s/simkaMin/simkaMin.py' % params['path']
-    cmd += ' -bin %s/build/bin/simkaMinCore' % params['path']
+    cmd += ' -bin %s/bin/simkaMinCore' % params['path']
     cmd += ' -in %s -out %s' % (sim_in, out_dir)
     cmd += ' -kmer-size %s' % str(k)
     cmd += ' -max-reads %s' % n
@@ -148,7 +148,7 @@ def simka_base_cmd(
     cmd : str
         Simka command line.
     """
-    cmd = '%s/build/bin/simka' % params['path']
+    cmd = '%s/bin/simka' % params['path']
     cmd += ' -in %s' % sim_in
     cmd += ' -out %s' % out_dir
     cmd += ' -out-tmp %s_tmp' % out_dir
