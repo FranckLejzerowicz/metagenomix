@@ -911,7 +911,19 @@ def check_humann(self, params, soft):
 
 
 def check_midas(self, params, soft):
-    defaults = {'focus': {'all': ''}}
+    defaults = {
+        'focus': {'all': ''},
+        'species_cov': 3.0,
+        'species_topn': 10,
+        'word_size': 28,
+        'readq': 20,
+        'mapid': 94.0,
+        'aln_cov': 0.75,
+        'trim': 0,
+        's': ['very-sensitive', 'sensitive', 'very-fast', 'fast'],
+        'm': ['local', 'global'],
+        'n': 0
+    }
     if 'tracking' not in params:
         params['tracking'] = []
     else:
@@ -935,6 +947,13 @@ def check_midas(self, params, soft):
                 sys.exit('[midas] Param "focus::%s" must be a char. string' % k)
             if not self.config.dev and not isfile(v):
                 sys.exit('[midas] Param "focus::%s::%s" not a file' % (k, v))
+    ints = ['species_topn', 'readq', 'trim', 'n', 'word_size']
+    check_nums(params, defaults, ints, int, soft.name)
+    floats = ['mapid', 'aln_cov']
+    check_nums(params, defaults, floats, float, soft.name, 0, 1)
+    floats_ = ['species_cov']
+    check_nums(params, defaults, floats_, float, soft.name)
+    check_default(params, defaults, soft.name, (ints + floats + floats_))
     defaults = {'focus': '<dict of key:value pair some_name: /path/to/spc.txt',
                 'tracking': '<list of metadata columns>'}
     return defaults

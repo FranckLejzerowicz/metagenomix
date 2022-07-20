@@ -1176,8 +1176,25 @@ def get_midas_cmd(
     cmd += ' -d %s' % self.databases.paths['midas']
     cmd += ' -t %s' % self.soft.params['cpus']
     cmd += ' --remove_temp'
+    for param in ['n', 'mapid', 'aln_cov']:
+        if len(param) == 1:
+            cmd += ' -%s %s' % (param, self.soft.params[param])
+        else:
+            cmd += ' --%s %s' % (param, self.soft.params[param])
+        cmd += ' --%s %s' % (param, self.soft.params[param])
+    if self.soft.params['mapid']:
+        cmd += ' --mapid %s' % self.soft.params['mapid']
+    if self.soft.params['aln_cov']:
+        cmd += ' --aln_cov %s' % self.soft.params['aln_cov']
     if analysis != 'species':
-        cmd += ' --species_cov 1'
+        for param in ['m', 's', 'species_cov', 'species_topn', 'readq', 'trim']:
+            if self.soft.params[param]:
+                if len(param) == 1:
+                    cmd += ' -%s %s' % (param, self.soft.params[param])
+                else:
+                    cmd += ' --%s %s' % (param, self.soft.params[param])
+    else:
+        cmd += ' --word_size %s' % self.soft.params['word_size']
     if select:
         cmd += ' --species_id %s' % ','.join(list(select))
     return cmd
