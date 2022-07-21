@@ -1090,6 +1090,72 @@ def check_bracken(self, params, soft):
     return defaults
 
 
+def check_plasmidfinder(self, params, soft):
+    defaults = {
+        'extented_output': [True, False],
+        'methodPath': ['kma', 'blastn'],
+        'threshold': 70,
+        'mincov': 75,
+    }
+    if not self.config.dev and 'kma' not in params:
+        sys.exit('[plasmidfinder] Param "kma" missing (kma binary)')
+    elif not self.config.dev and not isfile(params['kma']):
+        sys.exit('[plasmidfinder] "kma" binary not found: "%s"' % params['kma'])
+
+    if not self.config.dev and 'path' not in params:
+        sys.exit('[plasmidfinder] Param "path" missing (plasmidfinder.py path)')
+    elif not self.config.dev and not isfile(params['path']):
+        sys.exit('[plasmidfinder] "%s" not found' % params['path'])
+
+    if 'databasePath' not in params:
+        sys.exit('[plasmidfinder] Param "databasePath" missing (databases dir)')
+    elif not self.config.dev and not isdir(params['db_path']):
+        sys.exit('[plasmidfinder] no "databasePath": %s' % params['db_path'])
+
+    if 'databases' in params:
+        if not isinstance(params['databases'], str):
+            dbs = params['databases']
+            sys.exit('[plasmidfinder] Param "databases" not a string: %s' % dbs)
+
+    ints = ['threshold', 'mincov']
+    check_nums(params, defaults, ints, int, soft.name, 0, 100)
+    check_default(params, defaults, soft.name, ints)
+    defaults['kma'] = '<Path to the "kma" binary>'
+    defaults['path'] = '<Path to the "plasmidfinder.py" script>'
+    defaults['databasePath'] = '<Path databases folder (with a "config" file)>'
+    defaults['databases'] = "<Comma-separated databases (first field of the " \
+                            "databasePath's 'config' file)>"
+    return defaults
+
+
+def check_plasforest(self, params, soft):
+    defaults = {
+        'size_of_batch': 0,
+        'b': [True, False],
+        'f': [True, False],
+        'r': [False, True]
+    }
+    check_nums(params, defaults, ['size_of_batch'], int, soft.name)
+    check_default(params, defaults, soft.name, ['size_of_batch'])
+    return defaults
+
+
+# def check_TOOL(self, params, soft):
+#     defaults = {}
+
+
+# def check_TOOL(self, params, soft):
+#     defaults = {}
+
+
+# def check_TOOL(self, params, soft):
+#     defaults = {}
+
+
+# def check_TOOL(self, params, soft):
+#     defaults = {}
+
+
 # def check_TOOL(self, params, soft):
 #     defaults = {}
 
