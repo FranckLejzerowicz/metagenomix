@@ -8,7 +8,7 @@
 
 import glob
 import sys
-from os.path import basename, dirname, isdir, splitext
+from os.path import dirname
 from metagenomix._io_utils import io_update, todo
 
 
@@ -47,7 +47,7 @@ def get_drep_bins(self) -> dict:
     return genomes
 
 
-def get_drep_inputs(drep_dir: str, sam_paths: list):
+def get_drep_inputs(self, drep_dir: str, sam_paths: list):
     """Write the file containing the inputs bins to drep
     and the list of paths to these bins.
 
@@ -71,7 +71,11 @@ def get_drep_inputs(drep_dir: str, sam_paths: list):
     paths = []
     drep_in = '%s/input_genomes.txt' % drep_dir
     for group, bins in sam_paths:
-        for path in glob.glob('%s/*fa' % bins.replace('${SCRATCH_FOLDER}', '')):
+        bin_paths = glob.glob('%s/*fa' % bins.replace('${SCRATCH_FOLDER}', ''))
+        if self.config.dev:
+            bin_paths = ['%s/a.fa' % bins.replace('${SCRATCH_FOLDER}', ''),
+                         '%s/b.fa' % bins.replace('${SCRATCH_FOLDER}', '')]
+        for path in bin_paths:
             paths.append(path)
             if cmd:
                 cmd += 'echo "%s" >> %s\n' % (path, drep_in)
@@ -84,8 +88,8 @@ def get_drep_inputs(drep_dir: str, sam_paths: list):
 
 
 def drep_cmd(self, algorithm: str, drep_in: str, drep_out: str,
-             paths: list, cmd: str) -> None:
-    cmd += '\ndRep dereplicate'
+             paths: list, cmd: str) -> str:
+    cmd = '\ndRep dereplicate'
     cmd += ' %s' % drep_out
     cmd += ' --S_algorithm %s' % algorithm
     cmd += ' --ignoreGenomeQuality'
@@ -112,6 +116,23 @@ def drep_cmd(self, algorithm: str, drep_in: str, drep_out: str,
     ]:
         cmd += ' --%s %s' % (param, self.soft.params[param])
     cmd += ' --genomes %s' % drep_in
+    return cmd
+
+def get_key(stringency, algorithm):
+    if stringency:
+        key = (stringency, algorithm)
+    else:
+        key = (algorithm,)
+    return key
+
+
+def get_drep_out(self, pool, stringency, algorithm):
+    drep_out = '%s/%s' % (self.dir, pool)
+    if stringency:
+        drep_out += '/%s' % stringency
+    drep_out += '/%s' % algorithm
+    self.outputs['dirs'].append(drep_out)
+    return drep_out
 
 
 def drep(self):
@@ -120,35 +141,21 @@ def drep(self):
     for pool, pool_paths in genomes.items():
         for stringency, sam_paths in pool_paths.items():
             for algorithm in self.soft.params['S_algorithm']:
-
-                if stringency:
-                    key = (stringency, algorithm)
-                else:
-                    key = (algorithm, )
-
-                drep_out = '%s/%s' % (self.dir, pool)
-                if stringency:
-                    drep_out += '/%s' % stringency
-                drep_out += '/%s' % algorithm
-                self.outputs['dirs'].append(drep_out)
-
-                cmd, drep_in, paths = get_drep_inputs(drep_out, sam_paths)
-
+                key = get_key(stringency, algorithm)
+                drep_out = get_drep_out(self, pool, stringency, algorithm)
+                cmd, drep_in, paths = get_drep_inputs(self, drep_out, sam_paths)
                 dereps = '%s/dereplicated_genomes' % drep_out
                 if not paths:
                     self.soft.status.add('Must run %s (%s)' % (prev, self.pool))
                     if self.config.dev:
                         paths = ['a.fa', 'b.fa', 'c.fa']
-
                 out_dereps = '%s/*.fa' % dereps.replace('${SCRATCH_FOLDER}', '')
-                if not self.config.force and len(glob.glob(out_dereps)):
+                if not self.config.force and glob.glob(out_dereps):
                     self.soft.status.add('Done')
                     continue
                 io_update(self, i_f=([drep_in] + paths), o_d=drep_out, key=key)
-
-                drep_cmd(self, algorithm, drep_in, drep_out, paths, cmd)
+                cmd += drep_cmd(self, algorithm, drep_in, drep_out, paths, cmd)
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
-
                 if pool not in self.outputs['outs']:
                     self.outputs['outs'][pool] = {}
                 self.outputs['outs'][pool][key] = dereps
