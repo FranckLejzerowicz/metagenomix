@@ -7,7 +7,7 @@
 # ----------------------------------------------------------------------------
 
 import gzip
-from os.path import basename
+from os.path import basename, dirname
 from metagenomix._io_utils import io_update, todo
 
 
@@ -382,6 +382,7 @@ def filtering(self):
         cmd += ' | bedtools bamtofastq -i -'
         cmd += ' -fq %s' % out_1.replace('fastq.gz', 'fastq')
         outputs.append(out_1.replace('fastq.gz', 'fastq'))
+        self.outputs['dirs'].extend([dirname(x) for x in outputs])
         if len(inputs) > 1:
             cmd += ' -fq2 %s' % out_2.replace('fastq.gz', 'fastq')
             outputs.append(out_2.replace('fastq.gz', 'fastq'))
