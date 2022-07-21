@@ -731,6 +731,7 @@ def woltka_classif_go(self, pairing: str, woltka_map: str,
     stratifications = ['phylum', 'family', 'genus', 'species']
     for stratification in stratifications:
         woltka_fun_out = '%s/%s/go_%s' % (self.dir, pairing, stratification)
+        io_update(self, o_d=woltka_fun_out)
         for go in gos:
             cmd = '\n# %s [%s]\n' % (go, stratification)
             cmd += 'woltka classify'
