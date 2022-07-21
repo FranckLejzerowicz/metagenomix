@@ -424,7 +424,7 @@ def check_filtering(self, params, soft):
     else:
         for (d, index) in params[db].items():
             if not self.config.dev and not glob.glob('%s.*' % index):
-                sys.exit('[filtering] Param "%s" no bowtie2 fils %s*' % (db, d))
+                sys.exit('[filtering] Param "%s" no bowtie2 file %s*' % (db, d))
     return {'databases': '<list of databases>'}
 
 

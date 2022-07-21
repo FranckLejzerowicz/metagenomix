@@ -364,8 +364,8 @@ def filtering(self):
             out_1 = '%s/%s_%s/%s_R1.fastq' % (self.dir, ddx, db, self.sam)
         out_2 = '%s/%s_%s/%s_R2.fastq' % (self.dir, ddx, db, self.sam)
         if inputs[0].endswith('.gz'):
-            out_1 += '%s.gz'
-            out_2 += '%s.gz'
+            out_1 += '.gz'
+            out_2 += '.gz'
 
         cmd = '\nbowtie2'
         cmd += ' -p %s' % self.soft.params['cpus']
