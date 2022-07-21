@@ -1107,10 +1107,11 @@ def check_plasmidfinder(self, params, soft):
     elif not self.config.dev and not isfile(params['path']):
         sys.exit('[plasmidfinder] "%s" not found' % params['path'])
 
-    if 'databasePath' not in params:
+    db_path = 'databasePath'
+    if db_path not in params:
         sys.exit('[plasmidfinder] Param "databasePath" missing (databases dir)')
-    elif not self.config.dev and not isdir(params['db_path']):
-        sys.exit('[plasmidfinder] no "databasePath": %s' % params['db_path'])
+    elif not self.config.dev and not isdir(params[db_path]):
+        sys.exit('[plasmidfinder] no "databasePath" %s' % params[db_path])
 
     if 'databases' in params:
         if not isinstance(params['databases'], str):
