@@ -157,7 +157,8 @@ def reassembly_bins_cmd(self, sam, out, bins):
     cmd += ' -b %s' % bins
     cmd += ' --skip-checkm'
     if self.soft.params['cpus'] > 1:
-        cmd += ' --parallel\n'
+        cmd += ' --parallel'
+    cmd += '\n'
     return cmd
 
 
@@ -165,6 +166,7 @@ def reassembly_cmd(self, bins, group, sam, out):
     cmd = ''
     for mode in self.soft.params['reassembly']:
         mode_dir = '%s/reassembled_bins_%s' % (out, mode)
+        self.outputs['dirs'].append(mode_dir)
         self.outputs['outs'].setdefault(group, []).append(mode_dir)
         io_update(self, i_d=mode_dir, key=group)
         if not self.config.force and not todo(folder=mode_dir):
