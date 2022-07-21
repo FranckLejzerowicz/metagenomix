@@ -852,7 +852,14 @@ def check_gtdbtk(self, params, soft):
 
 
 def check_prodigal(self, params, soft):
-    defaults = {'procedure': ['meta', 'single']}
+    defaults = {
+        'f': ['gbk', 'gff', 'sco'],
+        'p': ['meta', 'single'],
+        'c': [False, True],
+        'm': [False, True],
+        'n': [False, True],
+        'q': [False, True],
+    }
     check_default(params, defaults, soft.name)
     return defaults
 

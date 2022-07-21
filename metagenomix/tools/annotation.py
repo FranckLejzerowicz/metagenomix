@@ -45,7 +45,11 @@ def prodigal_cmd(self, contigs_fp: str, out_dir: str) -> tuple:
     cmd += ' -o %s' % gbk
     cmd += ' -a %s' % proteins
     cmd += ' -s %s' % genes
-    cmd += ' -p %s' % self.soft.params['procedure']
+    for param in ['f', 'p']:
+        cmd += ' -%s %s' % (param, self.soft.params[param])
+    for boolean in ['c', 'm', 'n', 'q']:
+        if self.soft.params[boolean]:
+            cmd += ' -%s' % self.soft.params[boolean]
     outputs = [gbk, proteins, genes]
     return cmd, outputs
 
