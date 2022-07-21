@@ -25,7 +25,8 @@ from metagenomix.tools.assembly import (
 from metagenomix.tools.annotation import (
     prodigal, integron_finder, macsyfinder, ioncom, search, antismash, prokka)
 from metagenomix.tools.binning import metawrap
-from metagenomix.tools.genomics import drep, checkm, coconet, tiara #, gtdbtk
+from metagenomix.tools.genomics import (
+    drep, checkm, coconet, tiara, plasforest, plasmidfinder) #, gtdbtk
 from metagenomix.tools.metamarker import metamarker
 
 
@@ -96,6 +97,7 @@ class Commands(object):
         self.struc = list
         self.io = set
         if set(self.inputs) == set(self.pools) or self.soft.name == 'pooling':
+        # if self.pool in self.pools or self.soft.name in ['pooling', 'spades']:
             self.struc = dict
             self.io = dict
 
