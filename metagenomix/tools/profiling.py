@@ -303,7 +303,7 @@ def align_cmds(self, fasta: str, out: str, db: str, aligner: str,
 
 def format_sam(sam_: str, ali_cmds: list, sample: str) -> str:
     sam = '%s_formatted.sam' % splitext(sam_)[0]
-    cmd = '%s/scripts/sam4shogun.py -i %s -o %s -s %s' % (
+    cmd = 'python3 %s/scripts/sam4shogun.py -i %s -o %s -s %s' % (
         RESOURCES, sam_, sam, sample)
     ali_cmds.append(cmd)
     return sam
