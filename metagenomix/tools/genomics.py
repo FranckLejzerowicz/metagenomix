@@ -8,7 +8,7 @@
 
 import glob
 import sys
-from os.path import dirname
+from os.path import basename, dirname, isdir, splitext
 from metagenomix._io_utils import io_update, todo
 
 
@@ -29,13 +29,13 @@ def get_drep_bins(self) -> dict:
 
     Returns
     -------
-    bins : dict
-        Bins to dereplicate.
+    genomes : dict
+        Genomes bins to dereplicate.
     """
     genomes = {}
     for pool in self.pools:
         genomes[pool] = {}
-        for group, group_paths in self.inputs[pool].items():
+        for group, group_paths in self.inputs[self.pool].items():
             if self.soft.prev == 'metawrap_refine':
                 genomes[pool].setdefault('', []).append((group, group_paths[1]))
             elif self.soft.prev == 'metawrap_reassemble':
@@ -83,97 +83,75 @@ def get_drep_inputs(drep_dir: str, sam_paths: list):
     return cmd, drep_in, paths
 
 
+def drep_cmd(self, algorithm: str, drep_in: str, drep_out: str,
+             paths: list, cmd: str) -> None:
+    cmd += '\ndRep dereplicate'
+    cmd += ' %s' % drep_out
+    cmd += ' --S_algorithm %s' % algorithm
+    cmd += ' --ignoreGenomeQuality'
+    cmd += ' --processors %s' % self.soft.params['cpus']
+    chunk_size = self.soft.params['primary_chunksize']
+    if len(paths) > chunk_size:
+        cmd += ' --multiround_primary_clustering'
+        cmd += ' --run_tertiary_clustering'
+        if algorithm == 'fastANI':
+            cmd += ' --greedy_secondary_clustering'
+    else:
+        for boolean in ['multiround_primary_clustering',
+                        'greedy_secondary_clustering',
+                        'run_tertiary_clustering']:
+            if self.soft.params[boolean]:
+                cmd += ' --%s' % boolean
+    for boolean in ['SkipMash', 'SkipSecondary']:
+        if self.soft.params[boolean]:
+            cmd += ' --%s' % boolean
+    cmd += ' --coverage_method %s' % self.soft.params['coverage_method']
+    for param in [
+        'S_ani', 'P_ani', 'warn_sim', 'warn_aln', 'n_PRESET',
+        'warn_dist', 'cov_thresh', 'clusterAlg', 'MASH_sketch'
+    ]:
+        cmd += ' --%s %s' % (param, self.soft.params[param])
+    cmd += ' --genomes %s' % drep_in
+
+
 def drep(self):
     prev = self.soft.prev
     genomes = get_drep_bins(self)
-    for group, group_paths in genomes.items():
-        for stringency, sam_paths in group_paths.items():
+    for pool, pool_paths in genomes.items():
+        for stringency, sam_paths in pool_paths.items():
             for algorithm in self.soft.params['S_algorithm']:
+
                 if stringency:
-                    key = (group, stringency, algorithm)
+                    key = (stringency, algorithm)
                 else:
-                    key = (group, algorithm)
-                drep_out = '%s/%s' % (self.dir, group)
+                    key = (algorithm, )
+
+                drep_out = '%s/%s' % (self.dir, pool)
                 if stringency:
                     drep_out += '/%s' % stringency
                 drep_out += '/%s' % algorithm
+                self.outputs['dirs'].append(drep_out)
+
                 cmd, drep_in, paths = get_drep_inputs(drep_out, sam_paths)
-                io_update(self, i_f=([drep_in] + paths), key=key)
+
                 dereps = '%s/dereplicated_genomes' % drep_out
                 if not paths:
                     self.soft.status.add('Must run %s (%s)' % (prev, self.pool))
-                    if not self.config.dev:
-                        paths = ['dev.fa']
-                        continue
+                    if self.config.dev:
+                        paths = ['a.fa', 'b.fa', 'c.fa']
+
                 out_dereps = '%s/*.fa' % dereps.replace('${SCRATCH_FOLDER}', '')
                 if not self.config.force and len(glob.glob(out_dereps)):
                     self.soft.status.add('Done')
                     continue
-                if not todo(folder=drep_out):
-                    io_update(self, i_d=drep_out, key=key)
-                cmd += '\ndRep dereplicate'
-                cmd += ' %s' % drep_out
-                cmd += ' --S_algorithm %s' % algorithm
-                cmd += ' --ignoreGenomeQuality'
-                cmd += ' --processors %s' % self.soft.params['cpus']
-                chunk_size = self.soft.params['primary_chunksize']
-                if len(paths) > chunk_size:
-                    cmd += ' --multiround_primary_clustering'
-                    cmd += ' --run_tertiary_clustering'
-                    if algorithm == 'fastANI':
-                        cmd += ' --greedy_secondary_clustering'
-                else:
-                    for boolean in ['multiround_primary_clustering',
-                                    'greedy_secondary_clustering',
-                                    'run_tertiary_clustering']:
-                        if self.soft.params[boolean]:
-                            cmd += ' --%s' % boolean
-                for boolean in ['SkipMash', 'SkipSecondary']:
-                    if self.soft.params[boolean]:
-                        cmd += ' --%s' % boolean
-                coverage_method = self.soft.params['coverage_method']
-                cmd += ' --coverage_method %s' % coverage_method
-                for param in [
-                    'S_ani', 'P_ani', 'warn_sim', 'warn_aln', 'n_PRESET',
-                    'warn_dist', 'cov_thresh', 'clusterAlg','MASH_sketch'
-                ]:
-                    cmd += ' --%s %s' % (param, self.soft.params[param])
-                cmd += ' --genomes %s' % drep_in
+                io_update(self, i_f=([drep_in] + paths), o_d=drep_out, key=key)
 
-                log = '%s/log' % drep_out
-                figure = '%s/figure' % drep_out
-                tables = '%s/data_tables' % drep_out
-                self.outputs['dirs'].append(drep_out)
-                self.outputs['outs'][key] = [tables, log, figure, dereps]
+                drep_cmd(self, algorithm, drep_in, drep_out, paths, cmd)
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
-                io_update(self, o_d=[tables, log, figure, dereps], key=key)
 
-
-def get_genome_dirs(self, group):
-    ext = 'fa'
-    if self.soft.prev == 'drep':
-        dirs = [self.inputs[group][-1]]
-    elif self.soft.prev == 'spades':
-        dirs = [self.inputs[group][1]]
-    elif self.soft.prev == 'metawrap_refine':
-        dirs = [self.inputs[self.pool][group][-1]]
-    elif self.soft.prev == 'metawrap_reassemble':
-        dirs = [self.inputs[self.pool][group][0]]
-    elif self.soft.prev == 'yamb':
-        ext = 'fna'
-        dirs = glob.glob('%s/bins-yamb-pp-*' % self.inputs[self.pool][group])
-    else:
-        sys.exit('[%s] Not possible after "%s"' % (self.soft.name,
-                                                   self.soft.prev))
-    return dirs, ext
-
-
-def get_groups(self):
-    if self.soft.prev == 'drep':
-        groups = self.inputs.keys()
-    else:
-        groups = self.pools[self.pool].keys()
-    return groups
+                if pool not in self.outputs['outs']:
+                    self.outputs['outs'][pool] = {}
+                self.outputs['outs'][pool][key] = dereps
 
 
 def get_genomes_out(self, group, genome_dir):
@@ -462,3 +440,128 @@ def tiara(self):
                 cmd += ' --%s %s' % (param, ' '.join(self.soft.params[param]))
             self.outputs['cmds'].setdefault(group, []).append(cmd)
             io_update(self, i_f=spades_outs[1], o_d=out_dir, key=group)
+
+
+def plasforest_cmd(self, out_fp: str, in_fp: str):
+    cmd = 'python3 PlasForest.py'
+    cmd += ' -i %s' % in_fp
+    cmd += ' -o %s' % out_fp
+    if self.soft.params['size_of_batch']:
+        cmd += ' --size_of_batch %s' % self.soft.params['size_of_batch']
+    cmd += ' --threads %s' % self.soft.params['cpus']
+    for boolean in ['b', 'f', 'r']:
+        if self.soft.params[boolean]:
+            cmd += ' -%s' % boolean
+    return cmd
+
+
+def plasforest(self):
+    if self.soft.prev != 'spades':
+        sys.exit('[plasforest] can only be run on assembly output')
+    for group, spades_outs in self.inputs[self.pool].items():
+        out_dir = '%s/%s/%s' % (self.dir, self.pool, group)
+        self.outputs['dirs'].append(out_dir)
+        self.outputs['outs'][group] = out_dir
+        out_fp = '%s/plasmids.csv' % out_dir
+        if self.config.force or todo(out_fp):
+            cmd = plasforest_cmd(self, out_fp, spades_outs[1])
+            self.outputs['cmds'].setdefault(group, []).append(cmd)
+            io_update(self, i_f=spades_outs[1], o_d=out_dir, key=group)
+
+
+def get_genome_dirs(self, group):
+    ext = 'fa'
+    if not group:
+        dirs = [self.inputs[self.sam]]
+    elif self.soft.prev == 'spades':
+        dirs = [[self.inputs[self.pool][group][1]]]
+    elif self.soft.prev == 'drep':
+        dirs = [self.inputs[self.pool][group]]
+    elif self.soft.prev == 'metawrap_refine':
+        dirs = [self.inputs[self.pool][group][-1]]
+    elif self.soft.prev == 'metawrap_reassemble':
+        dirs = self.inputs[self.pool][group]
+    elif self.soft.prev == 'yamb':
+        ext = 'fna'
+        dirs = glob.glob('%s/bins-yamb-pp-*' % self.inputs[self.pool][group])
+    else:
+        sys.exit('[%s] Not possible after "%s"' % (self.soft.name,
+                                                   self.soft.prev))
+    return dirs, ext
+
+
+def get_groups(self):
+    if self.soft.prev == 'drep':
+        groups = self.inputs[self.pool].keys()
+    elif self.pool in self.pools:
+        groups = self.pools[self.pool].keys()
+    else:
+        groups = ['']
+    return groups
+
+
+def plasmidfinder_cmd(self, group: str, out_dir: str, inp):
+    tmp_dir = '$TMPDIR/plasmidfinder_%s_%s' % (self.pool, group)
+    cmd = 'plasmidfinder.py'
+    if isinstance(inp, list):
+        cmd += ' --infile %s' % ' '.join(inp)
+    else:
+        cmd += ' --infile %s' % inp
+    cmd += ' --outputPath %s' % out_dir
+    cmd += ' --tmp_dir %s' % tmp_dir
+    cmd += ' --methodPath %s' % self.soft.params['methodPath']
+    cmd += ' --databasePath %s' % self.soft.params['databasePath']
+    if 'databases' in self.soft.params:
+        cmd += ' --databases %s' % self.soft.params['databases']
+    cmd += ' --mincov %s' % self.soft.params['mincov']
+    cmd += ' --threshold %s' % self.soft.params['threshold']
+    if self.soft.params['extented_output']:
+        cmd += ' --extented_output'
+    cmd += '\nrm -rf %s\n' % tmp_dir
+    # cmd += ' --speciesinfo_json %s' % speciesinfo_json
+    return cmd
+
+
+def get_plasmidfinder_io(self, group, path, ext):
+    if not group or self.soft.prev == 'spades':
+        fps = path
+        out_dir = '%s/%s' % (self.dir, self.sam)
+    else:
+        if self.config.dev:
+            fps = ['%s/a.%s' % (path, ext), '%s/b.%s' % (path, ext)]
+        else:
+            fps = glob.glob('%s/*.%s' % (path, ext))
+        if isinstance(group, str):
+            out_dir = '%s/%s' % (self.dir, group)
+            if 'reassembled_bins' in path:
+                out_dir += '/' + path.split('/')[-1]
+        else:
+            out_dir = '%s/%s' % (self.dir, '/'.join(group))
+    return fps, out_dir
+
+
+def plasmidfinder(self):
+    groups = get_groups(self)
+    for group in groups:
+        paths, ext = get_genome_dirs(self, group)
+        for path in paths:
+            fps, out_dir = get_plasmidfinder_io(self, group, path, ext)
+            if group:
+                io_update(self, i_f=fps, o_d=out_dir, key=group)
+                self.outputs['outs'].setdefault(group, []).append(out_dir)
+            else:
+                io_update(self, i_f=fps, o_d=out_dir)
+                self.outputs['outs'].append(out_dir)
+            self.outputs['dirs'].append(out_dir)
+            if not group or self.soft.prev == 'spades':
+                if self.config.force or not glob.glob('%s/*' % out_dir):
+                    cmd = plasmidfinder_cmd(self, group, out_dir, fps)
+                    if group:
+                        self.outputs['cmds'].setdefault(group, []).append(cmd)
+                    else:
+                        self.outputs['cmds'].append(cmd)
+            else:
+                for fp in fps:
+                    if self.config.force or not glob.glob('%s/*' % out_dir):
+                        cmd = plasmidfinder_cmd(self, group, out_dir, fp)
+                        self.outputs['cmds'].setdefault(group, []).append(cmd)
