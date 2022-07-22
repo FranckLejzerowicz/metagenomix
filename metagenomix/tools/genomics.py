@@ -450,7 +450,7 @@ def tiara(self):
 
 
 def plasforest_cmd(self, out_fp: str, in_fp: str):
-    cmd = 'python3 PlasForest.py'
+    cmd = 'python3 %s' % self.soft.params['path']
     cmd += ' -i %s' % in_fp
     cmd += ' -o %s' % out_fp
     if self.soft.params['size_of_batch']:
