@@ -35,6 +35,18 @@ def get_sams_fastqs(mode: str, fastqs: dict):
     return sams_fastqs
 
 
+def get_fqs(fastq):
+    fqs = []
+    cmd = ''
+    for f in fastq:
+        if f.endswith('.gz'):
+            cmd = 'gunzip -c %s > %s\n' % (f, f.replace('.gz', ''))
+            fqs.append(f.replace('.gz', ''))
+        else:
+            fqs.append(f)
+    return fqs, cmd
+
+
 def quantify(self):
     for group in self.pools[self.pool]:
 
@@ -54,13 +66,15 @@ def quantify(self):
             for sam, fastq in sams_fastqs.items():
                 if sam:
                     out += '/%s' % sam
+                fqs, fqs_cmd = get_fqs(fastq)
                 cmd = 'metawrap quant_bins'
                 cmd += ' -b %s' % bins
                 cmd += ' -o %s' % out
                 cmd += ' -a %s' % contigs
                 cmd += ' -t %s' % self.soft.params['cpus']
-                cmd += ' %s' % ' '.join(fastq)
-
+                cmd += ' %s\n' % ' '.join(fqs)
+                if fqs_cmd:
+                    cmd = fqs_cmd + cmd + 'rm %s\n' % ' '.join(fqs)
                 self.outputs['dirs'].append(out)
                 self.outputs['outs'][group][mode][sam] = out
                 self.outputs['cmds'].setdefault(group, []).append(cmd)
@@ -116,6 +130,19 @@ def annotate(self):
     classify_or_annotate(self, 'annotate_bins')
 
 
+def get_blobology_cmd(self, fastq, out, contigs, bins):
+    fqs, fqs_cmd = get_fqs(fastq)
+    cmd = 'metawrap blobology'
+    cmd += ' -o %s' % out
+    cmd += ' -a %s' % contigs
+    cmd += ' -t %s' % self.soft.params['cpus']
+    cmd += ' --bins %s' % bins
+    cmd += ' %s\n' % ' '.join(fqs)
+    if fqs_cmd:
+        cmd = fqs_cmd + cmd + 'rm %s\n' % ' '.join(fqs)
+    return cmd
+
+
 def blobology(self):
     for group in self.pools[self.pool]:
         self.outputs['outs'][group] = {}
@@ -135,21 +162,17 @@ def blobology(self):
                 io_update(self, i_f=fastq, o_d=out, key=group)
                 plot = '%s/contigs.binned.blobplot' % out
                 if self.config.force or todo(plot):
-                    cmd = 'metawrap blobology'
-                    cmd += ' -o %s' % out
-                    cmd += ' -a %s' % contigs
-                    cmd += ' -t %s' % self.soft.params['cpus']
-                    cmd += ' --bins %s' % bins
-                    cmd += ' %s' % ' '.join(fastq)
+                    cmd = get_blobology_cmd(self, fastq, out, contigs, bins)
                     self.outputs['cmds'].setdefault(group, []).append(cmd)
                     self.outputs['outs'][group][mode][sam] = out
 
 
 def reassembly_bins_cmd(self, sam, out, bins):
+    fqs, fqs_cmd = get_fqs(self.config.fastq[sam])
     cmd = 'metawrap reassemble_bins'
     cmd += ' -o %s' % out
-    cmd += ' -1 %s' % self.config.fastq[sam][0]
-    cmd += ' -2 %s' % self.config.fastq[sam][1]
+    for idx, fq in enumerate(fqs):
+        cmd += ' -%s %s' % ((idx + 1), fq)
     cmd += ' -t %s' % self.soft.params['cpus']
     cmd += ' -m %s' % self.soft.params['mem_num']
     cmd += ' -c %s' % self.soft.params['min_completion_reassembly']
@@ -159,6 +182,8 @@ def reassembly_bins_cmd(self, sam, out, bins):
     if self.soft.params['cpus'] > 1:
         cmd += ' --parallel'
     cmd += '\n'
+    if fqs_cmd:
+        cmd = fqs_cmd + cmd + 'rm %s\n' % ' '.join(fqs)
     return cmd
 
 
@@ -240,9 +265,10 @@ def get_binners(self, out, binned):
     return binners
 
 
-def binning_cmd(self, fastqs, out, contigs, binned):
+def binning_cmd(self, fastq, out, contigs, binned):
     binners = get_binners(self, out, binned)
     if binners:
+        fqs, fqs_cmd = get_fqs(fastq)
         cmd = 'metawrap binning'
         cmd += ' -o %s' % out
         cmd += ' -a %s' % contigs
@@ -251,7 +277,9 @@ def binning_cmd(self, fastqs, out, contigs, binned):
         cmd += ' --universal'
         for binner in binners:
             cmd += ' --%s' % binner
-        cmd += ' %s' % ' '.join(fastqs)
+        cmd += ' %s\n' % ' '.join(fqs)
+        if fqs_cmd:
+            cmd = fqs_cmd + cmd + 'rm %s\n' % ' '.join(fqs)
         return cmd
 
 
@@ -262,10 +290,8 @@ def binning(self):
         self.outputs['dirs'].append(out)
         binned = {binner: '%s/%s_bins' % (out, binner)
                   for binner in self.soft.params['binners']}
-        # outputs
         bin_dirs = sorted(binned.values()) + ['work_files']
         self.outputs['outs'][group] = bin_dirs
-        # inputs
         contigs = self.inputs[self.pool][group][1]
         fastqs = [fastq for sam in self.pools[self.pool][group]
                   for fastq in self.config.fastq[sam]]
