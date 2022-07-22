@@ -1,11 +1,11 @@
 default:
-  time: 4
+  time: 24
   cpus: 1
   nodes: 1
-  mem_num: 1
+  mem_num: 10
   mem_dim: gb
   env:
-  chunks:
-  scratch:
+  chunks: 6
+  scratch: userscarch
   machine:
   partition:
