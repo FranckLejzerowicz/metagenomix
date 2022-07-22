@@ -40,7 +40,7 @@ def get_fqs(fastq):
     cmd = ''
     for f in fastq:
         if f.endswith('.gz'):
-            cmd = 'gunzip -c %s > %s\n' % (f, f.replace('.gz', ''))
+            cmd += 'gunzip -c %s > %s\n' % (f, f.replace('.gz', ''))
             fqs.append(f.replace('.gz', ''))
         else:
             fqs.append(f)
