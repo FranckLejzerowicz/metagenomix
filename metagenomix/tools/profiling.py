@@ -6,8 +6,9 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 import sys
+import glob
 import pkg_resources
-from os.path import basename, splitext
+from os.path import basename, dirname, isfile, splitext
 
 from metagenomix._io_utils import check_min_lines_count, io_update, todo
 from metagenomix.tools.alignment import get_alignment_cmd
@@ -1270,6 +1271,12 @@ def get_kraken2_db(self, db):
         db_path = '%s/kraken2' % self.databases.paths[db]
         if not self.config.dev and todo(folder=db_path):
             sys.exit('[kraken2] Not a database: %s' % db_path)
+        if not isfile('%s/hash.k2d' % db_path):
+            nested = glob.glob('%s/*/hash.k2d' % db_path)
+            if nested:
+                db_path = dirname(nested[0])
+            else:
+                sys.exit('[kraken2] Not a database: %s' % db_path)
     else:
         sys.exit('[kraken2] Database not found: %s' % db)
     return db_path
@@ -1336,6 +1343,15 @@ def kraken2(self) -> None:
             io_update(self, i_f=self.inputs[self.sam], o_d=out)
 
 
+def get_bracken_db_path(self, db):
+    if db == 'default':
+        return self.databases.paths['kraken2']
+    elif 'bracken' in self.databases.builds[db]:
+        return self.databases.builds[db]['bracken']
+    else:
+        return None
+
+
 def bracken(self) -> None:
     """Create command lines for bracken.
 
@@ -1356,11 +1372,12 @@ def bracken(self) -> None:
             Configurations
     """
     for (kraken2_report, db) in self.inputs[self.sam]:
-        if db == 'default':
-            db_path = self.databases.paths['kraken2']
-        elif 'bracken' in self.databases.builds[db]:
-            db_path = self.databases.builds[db]['bracken']
-        else:
+        db_path = get_bracken_db_path(self, db)
+        if not db_path:
+            continue
+        db_bracken = '%s/database%smers.kmer_distrib' % (
+            db_path, self.soft.params['read_len'])
+        if not isfile(db_bracken):
             continue
         out_dir = '%s/%s/%s' % (self.dir, self.sam, db)
         self.outputs['dirs'].append(out_dir)
@@ -1368,8 +1385,7 @@ def bracken(self) -> None:
         bracken_report = '%s/report.tsv' % out_dir
         if self.config.force or todo(bracken_result):
             cmd = 'bracken'
-            cmd += ' -d %s/database%smers.kmer_distrib' % (
-                db_path, self.soft.params['read_len'])
+            cmd += ' -d %s' % db_bracken
             cmd += ' -i %s' % kraken2_report
             cmd += ' -o %s' % bracken_result
             cmd += ' -w %s' % bracken_report
