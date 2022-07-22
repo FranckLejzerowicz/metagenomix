@@ -116,7 +116,7 @@ class TestIO(unittest.TestCase):
         with open(self.yaml2_yml, 'w') as o:
             o.write('x: 1\ny: 2')
 
-        self.params = {'time': 48, 'mem_num': 10, 'mem_dim': "gb", 'scratch': 0,
+        self.params = {'time': 48, 'mem': 10, 'mem_dim': "gb", 'scratch': 0,
                        'env': "mg", 'nodes': 1, 'cpus': 1, 'chunks': 6}
         self.user_params_yml = '%s/yamls/shogun.yml' % FOLDER
         with open(self.user_params_yml, 'w') as o:

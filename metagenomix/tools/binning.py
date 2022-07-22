@@ -174,7 +174,7 @@ def reassembly_bins_cmd(self, sam, out, bins):
     for idx, fq in enumerate(fqs):
         cmd += ' -%s %s' % ((idx + 1), fq)
     cmd += ' -t %s' % self.soft.params['cpus']
-    cmd += ' -m %s' % self.soft.params['mem_num']
+    cmd += ' -m %s' % self.soft.params['mem']
     cmd += ' -c %s' % self.soft.params['min_completion_reassembly']
     cmd += ' -x %s' % self.soft.params['min_contamination_reassembly']
     cmd += ' -b %s' % bins

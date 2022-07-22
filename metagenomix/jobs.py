@@ -172,7 +172,7 @@ class CreateScripts(object):
             '-j', self.job_name,
             '-t', str(params['time']),
             '-c', str(params['cpus']),
-            '-M', str(params['mem_num']), params['mem_dim'],
+            '-M', str(params['mem']), params['mem_dim'],
             '--no-stat',
             '-i', self.sh]
         # whether the cpus requests is per node

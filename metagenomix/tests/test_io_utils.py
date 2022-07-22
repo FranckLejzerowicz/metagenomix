@@ -66,7 +66,7 @@ class TestIOUtils(unittest.TestCase):
         self.assertEqual({}, read_yaml(''))
 
         res = {'default': {'time': "48", 'nodes': "1", 'cpus': "1",
-                           'mem_num': "5", 'mem_dim': "gb", 'env': "mg"}}
+                           'mem': "5", 'mem_dim': "gb", 'env': "mg"}}
         file_path = '%s/run_params.yml' % RESOURCES
         self.assertEqual(res, read_yaml(file_path))
 

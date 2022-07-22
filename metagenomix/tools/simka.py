@@ -116,10 +116,10 @@ def simka_min_cmd(params: dict, sim_in: str, out_dir: str,
     cmd += ' -kmer-size %s' % str(k)
     cmd += ' -nb-kmers %s' % params['nb_kmers']
     cmd += ' -min-read-size %s\n' % params['min_read_size']
-    if int(params['mem_num']) == 1:
+    if int(params['mem']) == 1:
         mem = '1'
     else:
-        mem = str((params['mem_num'] - 1))
+        mem = str((params['mem'] - 1))
     if params['mem_dim'].lower()[0] == 'g':
         mem += '000'
     cmd += ' -filter'
@@ -164,7 +164,7 @@ def simka_base_cmd(
     cmd += ' -simple-dist'
     cmd += ' -nb-cores %s' % params['cpus']
     cmd += ' -max-count %s' % params['cpus']
-    cmd += ' -max-memory %s\n' % str((int(params['mem_num'][0])*1000)-1000)
+    cmd += ' -max-memory %s\n' % str((int(params['mem'][0])*1000)-1000)
     cmd += 'rm -rf %s_tmp\n' % out_dir
     cmd += 'rm %s.tmp\n' % sim_in
     return cmd

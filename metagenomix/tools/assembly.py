@@ -71,7 +71,7 @@ def spades_cmd(fastas: list, params: dict, tmp: str, out: str):
         Output folder for Spades
     """
     cmd = 'spades.py'
-    cmd += ' -m %s' % params['mem_num']
+    cmd += ' -m %s' % params['mem']
     cmd += ' -k %s' % ','.join(map(str, params['k']))
     cmd += ' -t %s' % params['cpus']
     if params['bio']:

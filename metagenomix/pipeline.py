@@ -163,7 +163,7 @@ class Workflow(object):
             for idx, paths in self.graph.paths.items()}
 
     def check_basic_params(self, user_params, soft):
-        ints = ['time', 'procs', 'mem_num', 'chunks']
+        ints = ['time', 'procs', 'mem', 'chunks']
         for param, value in user_params.items():
             if param in ints:
                 check_int(param, value, soft.name)
@@ -205,7 +205,7 @@ class Workflow(object):
 
         self.check_basic_params(user_params, soft)
         if isinstance(soft.params['scratch'], int):
-            soft.params['mem_num'] = soft.params['scratch']
+            soft.params['mem'] = soft.params['scratch']
             soft.params['mem_dim'] = 'gb'
 
     def skip_params(self, soft) -> bool:

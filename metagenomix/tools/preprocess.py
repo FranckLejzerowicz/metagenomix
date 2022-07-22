@@ -319,7 +319,7 @@ def kneaddata(self):
     # cmd += ' --output-prefix %s' % self.sam
     cpus = self.soft.params['cpus']
     cmd += ' --processes %s' % cpus
-    cmd += ' --max-memory %s%s' % (self.soft.params['mem_num'],
+    cmd += ' --max-memory %s%s' % (self.soft.params['mem'],
                                    self.soft.params['mem_dim'][0])
     if self.soft.params['trimmomatic']:
         cmd += ' --trimmomatic %s' % self.soft.params['trimmomatic']
