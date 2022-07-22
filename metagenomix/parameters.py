@@ -1057,6 +1057,7 @@ def check_tiara(self, params, soft):
         'verbose': [True, False],
         'gzip': [False, True]
     }
+
     fas = 'to_fasta'
     if fas not in params:
         params[fas] = ['all']
@@ -1068,6 +1069,7 @@ def check_tiara(self, params, soft):
             sys.exit('[tiara] Param "%s" not in %s' % (fas, defaults[fas]))
         if 'all' in to_fasta:
             params['to_fasta'] = ['all']
+
     prob = 'prob_cutoff'
     if prob not in params:
         params[prob] = defaults[prob]
@@ -1079,7 +1081,7 @@ def check_tiara(self, params, soft):
                 float(c)
             except ValueError:
                 sys.exit('[tiara] Param "%s": %s not [0-1] float' % (prob, c))
-    params[prob] = map(str, params[prob])
+    params[prob] = [str(x) for x in params[prob]]
     ints = ['min_len', 'first_stage_kmer', 'second_stage_kmer']
     check_nums(params, defaults, ints, int, soft.name)
     check_default(params, defaults, soft.name, (ints + [fas, prob]))
@@ -1143,8 +1145,14 @@ def check_plasforest(self, params, soft):
         'f': [True, False],
         'r': [False, True]
     }
+    if 'path' not in params:
+        sys.exit('[plasforest] Param "path" missing (PlasForest.py path)')
+    elif not self.config.dev and not isfile(params['path']):
+        sys.exit('[plasforest] "%s" not found' % params['path'])
+
     check_nums(params, defaults, ['size_of_batch'], int, soft.name)
     check_default(params, defaults, soft.name, ['size_of_batch'])
+    defaults['path'] = '<Path to the "PlasForest.py" script>'
     return defaults
 
 
