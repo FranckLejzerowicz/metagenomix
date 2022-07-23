@@ -7,6 +7,8 @@
 # ----------------------------------------------------------------------------
 
 import glob
+import sys
+
 import numpy as np
 from os.path import dirname, isdir, isfile
 
@@ -590,7 +592,17 @@ def check_count(self, params, soft):
 
 def check_kraken2(self, params, soft):
     defaults = {'databases': ['default'], 'confidence': 0.5}
-    check_databases('bowtie2', params, self.databases)
+    print()
+    print()
+    print()
+    print()
+    print(params)
+    print(self.databases)
+    print()
+    print()
+    print()
+    print()
+    check_databases('kraken2', params, self.databases)
     check_nums(params, defaults, ['confidence'], float, soft.name, 0, 1)
     check_default(params, defaults, soft.name, ['confidence', 'databases'])
     defaults['databases'].append('<list of databases>')
@@ -1156,25 +1168,172 @@ def check_plasforest(self, params, soft):
     return defaults
 
 
-# def check_TOOL(self, params, soft):
-#     defaults = {}
+def check_flye(self, params, soft):
+    defaults = {
+        'iterations': 1,
+        'min_overlap': 0,
+        'asm_coverage': 0,
+        'read_error': 0.,
+        'polish_target': [False, True],
+        'meta': [True, False],
+        'keep_haplotypes': [False, True],
+        'scaffold': [True, False],
+        'long_reads': ['pacbio-raw', 'pacbio-corr', 'pacbio-hifi',
+                       'nano-raw', 'nano-corr', 'nano-hq'],
+    }
+    ints = ['iterations', 'asm_coverage', 'min_overlap']
+    check_nums(params, defaults, ints, int, soft.name)
+    floats = ['read_error']
+    check_nums(params, defaults, floats, float, soft.name, 0, 1)
+    check_default(params, defaults, soft.name, (ints + floats))
+    defaults['stop_after'] = '<Stage name that is completed and to stop after>'
+    defaults['genome_size'] = '<estimated genome size (e.g., 5m or 2.6g)>'
+    return defaults
 
 
-# def check_TOOL(self, params, soft):
-#     defaults = {}
+def check_canu(self, params, soft):
+    defaults = {
+        'processing': [None, 'corrected', 'trimmed'],
+        'technology': ['pacbio', 'nanopore', 'pacbio-hifi'],
+        'stage': [None, 'haplotype', 'correct', 'trim', 'assemble',
+                  'trim-assemble'],
+        'correctedErrorRate': 0.,
+        'minReadLength': 1000,
+        'minOverlapLength': 500,
+        'rawErrorRate': 0.,
+    }
+    if 'path' not in params:
+        print('[canu] No param "path" to binary (hope it is in the PATH!)')
+    elif not self.config.dev and not isfile(params['path']):
+        print('[canu] Param "path" to binary does not exist')
+    ints = ['minReadLength', 'minOverlapLength']
+    check_nums(params, defaults, ints, int, soft.name)
+    floats = ['correctedErrorRate', 'rawErrorRate']
+    check_nums(params, defaults, floats, float, soft.name, 0, 1)
+    check_default(params, defaults, soft.name, (ints + floats))
+    defaults['path'] = '<Path to the canu executable>'
+    defaults['genome_size'] = '<estimated genome size (e.g., 5m or 2.6g)>'
+    defaults['specifications'] = '<Path to assembly option specifications file>'
+    return defaults
 
 
-# def check_TOOL(self, params, soft):
-#     defaults = {}
+def check_unicycler(self, params, soft):
+    defaults = {
+        'min_bridge_qual': 25.0,
+        'start_gene_cov': 95.0,
+        'start_gene_id': 90.0,
+        'max_kmer_frac': 0.95,
+        'min_kmer_frac': 0.2,
+        'depth_filter': 0.25,
+        'min_component_size': 1000,
+        'min_dead_end_size': 1000,
+        'min_polish_size': 10000,
+        'min_anchor_seg_len': 0,
+        'min_fasta_length': 100,
+        'kmer_count': 10,
+        'linear_seqs': 0,
+        'low_score': 0,
+        'kmers': 0,
+        'vcf': [False, True],
+        'no_pilon': [False, True],
+        'no_rotate': [True, False],
+        'no_correct': [False, True],
+        'no_miniasm': [False, True],
+        'largest_component': [False, True],
+        'keep': ['2', '1', '3', '0'],
+        'verbosity': ['2', '3', '1', '0'],
+        'mode': ['conservative', 'normal', 'bold'],
+        'bowtie2_build_path': ['bowtie2-build'],
+        'bcftools_path': ['bcftools'],
+        'makeblastdb_path': ['makeblastdb'],
+        'samtools_path': ['samtools'],
+        'spades_path': ['spades.py'],
+        'tblastn_path': ['tblastn'],
+        'bowtie2_path': ['bowtie2'],
+        'racon_path': ['racon'],
+        'pilon_path': ['pilon'],
+        'java_path': ['java'],
+        'scores': '3,-6,-5,-2',
+    }
+    if 'kmers' not in params:
+        params['kmers'] = defaults['kmers']
+    else:
+        k_errors = [x for x in params['kmers'] if not str(x).isdigit()]
+        if len(k_errors):
+            sys.exit('[spades] "k" must be integers (%s)' % ','.join(k_errors))
+    sc = 'scores'
+    if sc not in params:
+        params[sc] = defaults[sc]
+    else:
+        if not isinstance(params[sc], str) or params[sc].count(',') != 3:
+            sys.exit('[unicycler] Param "scores" must be 4 ","-separated ints')
+    ints = ['min_component_size', 'min_dead_end_size', 'min_polish_size',
+            'min_anchor_seg_len', 'min_fasta_length', 'kmer_count',
+            'linear_seqs', 'low_score', 'kmers']
+    check_nums(params, defaults, ints, int, soft.name)
+    floats = ['min_bridge_qual']
+    check_nums(params, defaults, floats, float, soft.name)
+    floats_ = ['start_gene_cov', 'start_gene_id']
+    check_nums(params, defaults, floats_, float, soft.name, 0, 100)
+    floats__ = ['max_kmer_frac', 'min_kmer_frac', 'depth_filter']
+    check_nums(params, defaults, floats__, float, soft.name, 0, 1)
+    paths = [x for x in defaults if '_path' in x]
+    check_default(params, defaults, soft.name,
+                  (ints + floats + floats_ + floats__ + paths))
+    defaults['contamination'] = '<Path to fasta file of known contaminations>'
+    defaults['existing_long_read_assembly'] = '<GFA long-read assembly>'
+    defaults['bowtie2_build_path'] = '<Path to the bowtie2-build executable>'
+    defaults['bowtie2_path'] = '<Path to the bowtie2 executable>'
+    defaults['bcftools_path'] = '<Path to the bcftools executable>'
+    defaults['samtools_path'] = '<Path to the samtools executable>'
+    defaults['makeblastdb_path'] = '<Path to the makeblastdb_path executable>'
+    defaults['tblastn_path'] = '<Path to the tblastn_path executable>'
+    defaults['spades_path'] = '<Path to the spades.py executable>'
+    defaults['racon_path'] = '<Path to the racon executable>'
+    defaults['pilon_path'] = '<Path to the pilon executable>'
+    defaults['java_path'] = '<Path to the java executable>'
+    defaults['start_genes'] = '<Path to fasta file of genes for start point ' \
+                              'of rotated replicons>'
+    return defaults
 
 
-# def check_TOOL(self, params, soft):
-#     defaults = {}
+# def check_circlator(self, params, soft):
+#     defaults = {
+#         '': [],
+#         '':,
+#     }
+#     ints = []
+#     check_nums(params, defaults, ints, int, soft.name)
+#     floats = []
+#     check_nums(params, defaults, floats, float, soft.name)
+#     check_default(params, defaults, soft.name, (ints + floats))
+#     defaults['bwa_path'] = '<Path to the bwa executable>'
+#     return defaults
 
 
-# def check_TOOL(self, params, soft):
-#     defaults = {}
+# def check_circlator(self, params, soft):
+#     defaults = {
+#         '': [],
+#         '':,
+#     }
+#     ints = []
+#     check_nums(params, defaults, ints, int, soft.name)
+#     floats = []
+#     check_nums(params, defaults, floats, float, soft.name)
+#     check_default(params, defaults, soft.name, (ints + floats))
+#     defaults[''] = '<>'
+#     return defaults
 
 
-# def check_TOOL(self, params, soft):
-#     defaults = {}
+# def check_circlator(self, params, soft):
+#     defaults = {
+#         '': [],
+#         '':,
+#     }
+#     ints = []
+#     check_nums(params, defaults, ints, int, soft.name)
+#     floats = []
+#     check_nums(params, defaults, floats, float, soft.name)
+#     check_default(params, defaults, soft.name, (ints + floats))
+#     defaults[''] = '<>'
+#     return defaults
