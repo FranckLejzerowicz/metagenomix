@@ -10,7 +10,7 @@ import os
 import glob
 import subprocess
 import pkg_resources
-from os.path import exists, isdir, isfile, splitext
+from os.path import isdir, isfile, splitext
 from metagenomix._io_utils import read_yaml, fill_fastq
 from metagenomix._metadata import read_metadata
 import pandas as pd
@@ -30,6 +30,8 @@ class AnalysesConfig(object):
         self.soft_paths = []
         self.fastq_scratch = {}
         self.fastq = {}
+        self.long_scratch = {}
+        self.long = {}
         self.params = {}
         self.dir = ''
         self.r = {}
@@ -117,31 +119,40 @@ class AnalysesConfig(object):
         self.meta[name] = col.replace('', np.nan)
         self.pooling_groups.append(name)
 
-    def get_fastq_paths(self) -> list:
+    def get_fastq_paths(self, long: bool = False) -> list:
         fastqs = []
-        for fastq_dir in self.fastq_dirs:
+        if long:
+            fastq_dirs = self.long_dirs
+        else:
+            fastq_dirs = self.fastq_dirs
+        for fastq_dir in fastq_dirs:
             fastqs.extend(glob.glob(fastq_dir + '/*.fastq*'))
         return fastqs
 
-    def get_fastq_samples(self):
-        fastq_paths = self.get_fastq_paths()
+    def get_fastq_samples(self, long: bool = False):
+        fastq_paths = self.get_fastq_paths(long)
         fastq = fill_fastq(fastq_paths, set(self.meta.sample_name))
         # keep only the `.fastq.gz` files (if `.fastq` files are also present)
-        for sam, fastqs_ in fastq.items():
-            if len([x for x in fastqs_ if '.gz' in x]):
-                fqs = [x for x in fastqs_ if '.gz' in x]
+        for sam, f_ in fastq.items():
+            if len([x for x in f_ if '.gz' in x]):
+                f = [x for x in f_ if '.gz' in x]
             else:
-                fqs = fastqs_
-            self.fastq[sam] = fqs
-            self.fastq_scratch[sam] = ['${SCRATCH_FOLDER}%s' % x for x in fqs]
+                f = f_
+            if long:
+                self.long[sam] = f
+                self.long_scratch[sam] = ['${SCRATCH_FOLDER}%s' % x for x in f]
+            else:
+                self.fastq[sam] = f
+                self.fastq_scratch[sam] = ['${SCRATCH_FOLDER}%s' % x for x in f]
 
     def set_fastq(self):
         """
         Check that fastq folder exists and that it contains fastq files.
         """
-        if sum([not exists(x) for x in self.fastq_dirs]):
-            raise IOError('Fastq folder(s) do not exist')
-        self.get_fastq_samples()
+        self.get_fastq_samples(False)
+        self.get_fastq_samples(True)
+        if not self.fastq and not self.long:
+            raise IOError('Input fastq folder(s) do not exist')
 
     def get_r(self):
         self.r = {}
