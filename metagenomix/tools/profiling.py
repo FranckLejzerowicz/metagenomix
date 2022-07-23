@@ -1251,35 +1251,32 @@ def midas(self) -> None:
             Configurations
     """
     for focus, species_list in self.soft.params['focus'].items():
-
         focus_dir = '%s/%s/%s' % (self.dir, focus, self.sam)
         midas_species(self, focus_dir, 'species')
-
         select = set(get_species_select(self, species_list))
-
         genes_out = '%s/genes' % focus_dir
         midas_genus(self, focus_dir, genes_out, 'genes', select)
-
         snps_out = '%s/snps' % focus_dir
         midas_snps(self, focus_dir, snps_out, 'snps', select)
 
 
 def get_kraken2_db(self, db):
     if db == 'default':
-        db_path = self.databases.paths['kraken2']
+        return self.databases.paths['kraken2']
     elif db in self.databases.paths:
         db_path = '%s/kraken2' % self.databases.paths[db]
-        if not self.config.dev and todo(folder=db_path):
+        if self.config.dev:
+            return db_path
+        if todo(folder=db_path):
             sys.exit('[kraken2] Not a database: %s' % db_path)
         if not isfile('%s/hash.k2d' % db_path):
             nested = glob.glob('%s/*/hash.k2d' % db_path)
             if nested:
-                db_path = dirname(nested[0])
+                return dirname(nested[0])
             else:
                 sys.exit('[kraken2] Not a database: %s' % db_path)
     else:
         sys.exit('[kraken2] Database not found: %s' % db)
-    return db_path
 
 
 def get_kraken2_cmd(self, out: str, db_path: str, report: str, result: str):
@@ -1454,7 +1451,6 @@ def metaxa2(self) -> None:
             io_update(self, o_d=dir_db)
         else:
             io_update(self, i_f=taxonomy)
-
         redist_rad = '%s.redist' % rad
         redist_tax = '%s.taxonomy.summary.txt' % redist_rad
         if self.config.force or todo(redist_tax):
@@ -1464,7 +1460,6 @@ def metaxa2(self) -> None:
             cmd += ' -r 0.8'
             cmd += ' -d 0.7'
             io_update(self, o_f=redist_tax)
-
         if cmd:
             self.outputs['cmds'].append(cmd)
         self.outputs['outs'].extend([summary, taxonomy, reltax, redist_tax])
