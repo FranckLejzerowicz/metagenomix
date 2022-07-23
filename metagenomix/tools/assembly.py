@@ -62,7 +62,7 @@ def spades_cmd(fastas: list, params: dict, tmp: str, out: str):
     Parameters
     ----------
     fastas : list
-        Input fasta files
+        Input fasta/fastq.gz files
     params : dict
         Parameters for Spades
     tmp : str
@@ -83,7 +83,7 @@ def spades_cmd(fastas: list, params: dict, tmp: str, out: str):
     if params['only_assembler']:
         cmd += ' --only-assembler'
     cmd += ' --tmp-dir %s -o %s' % (tmp, out)
-    for fasta in fastas:
+    for fasta in fastas[:3]:
         if 'extendedFrags' in fasta:
             cmd += ' --merge %s' % fasta
         elif 'notCombined_1' in fasta:
@@ -126,7 +126,8 @@ def spades(self) -> None:
         outs = [before_rr, contigs, first_pe, scaffolds, log]
         if self.config.force or todo(contigs):
             self.outputs['cmds'].setdefault(group, []).append(cmd)
-            io_update(self, i_f=fastas, i_d=tmp, o_f=outs, o_d=out, key=group)
+            io_update(
+                self, i_f=fastas[:3], i_d=tmp, o_f=outs, o_d=out, key=group)
         self.outputs['outs'][group] = outs
 
 
@@ -282,8 +283,15 @@ def get_pools(self, pool: str, group: str, sams: list) -> list:
     out_dir = self.dir + '/' + pool
     self.soft.dirs.add(out_dir.replace('${SCRATCH_FOLDER}', ''))
     fasta_fps = []
+    print()
+    print(self.inputs)
+    print()
+    print(self.longs)
     for merge in get_merges(self):
         paths = [fp for sam in sams for fp in self.inputs[sam] if merge in fp]
+        print()
+        print(paths)
+        print(selfinputs)
         # only pool if there is min 2 samples being merged
         if len(sams) > 1:
             fasta = '%s/%s.%s.fasta' % (out_dir, group, merge)
@@ -327,3 +335,322 @@ def pooling(self, pool):
                                        ('O', 'd'): set(), ('O', 'f'): set()}
         # get the outputs for the current group and collect pooling commands
         self.soft.outputs[pool][group] = get_pools(self, pool, group, sams)
+
+
+def flye_cmd(fastx: list, params: dict, out: str):
+    """Create command lines for flye.
+
+    Parameters
+    ----------
+    fastx : list
+        Input read fasta/fastq.gz files
+    params : dict
+        Parameters for flye
+    out : str
+        Output folder for flye
+    """
+    cmd = 'flye'
+    cmd += ' --%s %s' % (params['long_reads'], ' '.join(fastx))
+    cmd += ' --out-dir %s' % out
+    cmd += ' --threads %s' % params['cpus']
+    if 'genome_size' in params:
+        cmd += ' --genome-size %s' % params['genome_size']
+    for boolean in ['meta', 'keep_haplotypes', 'scaffold']:
+        if params[boolean]:
+            cmd += ' --%s' % boolean.replace('_', '-')
+    for param in ['iterations', 'min_overlap', 'asm_coverage',
+                  'read_error', 'polish_target', 'resume']:
+        if params[param]:
+            cmd += ' --%s %s\n' % (param.replace('_', '-'), params[param])
+    return cmd
+
+
+def flye(self) -> None:
+    """Create command lines for flye.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for flye
+        .pool : str
+            Pool name.
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    """
+    for group, fastx in self.inputs[self.pool].items():
+        out = '%s/%s/%s' % (self.dir, self.pool, group)
+        cmd = flye_cmd(fastx, self.soft.params, out)
+        contigs = '%s/assembly.fasta' % out
+        gfa = '%s/assembly_graph.gfa' % out
+        gv = '%s/assembly_graph.gv' % out
+        info = '%s/assembly_info.txt' % out
+        self.outputs['outs'][group] = [info, contigs, gfa, gv]
+        if self.config.force or todo(contigs):
+            self.outputs['cmds'].setdefault(group, []).append(cmd)
+            io_update(self, i_f=fastx, i_d=out, o_d=out, key=group)
+
+
+def canu_cmd(fastx: list, params: dict, group: str, out: str):
+    """Create command lines for flye.
+
+    Parameters
+    ----------
+    fastx : list
+        Input read fastx files
+    params : dict
+        Parameters for flye
+    group : str
+        Name of the sample group within the pool
+    out : str
+        Output folder for flye
+    """
+    cmd = 'if [ -d %s]; then rm -rf %s; fi\n' % (out, out)
+    if 'path' in params:
+        cmd += 'export PATH=$PATH:%s\n' % params['path']
+    cmd += 'canu'
+    cmd += ' -%s %s' % (params['technology'], ' '.join(fastx))
+    cmd += ' -d %s' % out
+    cmd += ' -p %s' % group
+    if 'specifications' in params:
+        cmd += ' -s %s' % params['specifications']
+    if 'genome_size' in params:
+        cmd += ' genomeSize=%s' % params['genome_size']
+    if params['processing']:
+        cmd += ' -%s' % params['processing']
+    if params['stage']:
+        cmd += ' -%s' % params['stage']
+    if params['rawErrorRate']:
+        cmd += ' rawErrorRate=%s' % params['rawErrorRate']
+    else:
+        if 'pacbio' in params['technology']:
+            cmd += ' rawErrorRate=0.300'
+        else:
+            cmd += ' rawErrorRate=0.500'
+    if params['correctedErrorRate']:
+        cmd += ' correctedErrorRate=%s' % params['correctedErrorRate']
+    else:
+        if 'pacbio' in params['technology']:
+            cmd += ' correctedErrorRate=0.045'
+        else:
+            cmd += ' correctedErrorRate=0.144'
+    cmd += ' minReadLength=%s' % params['minReadLength']
+    cmd += ' minOverlapLength=%s' % params['minOverlapLength']
+    for threads in ['bat', 'cns', 'cormhap', 'cormmap', 'corovl', 'cor',
+                    'executive', 'hap', 'max', 'meryl', 'min', 'obtmhap',
+                    'obtmmap', 'obtovl', 'oea', 'ovb', 'ovs', 'red',
+                    'utgmhap', 'utgmmap', 'utgovl']:
+        cmd += ' %sThreads=%s' % (threads, params['cpus'])
+    return cmd
+
+
+def canu(self) -> None:
+    """Create command lines for flye.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for flye
+        .pool : str
+            Pool name.
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    """
+    for group, fastx in self.inputs[self.pool].items():
+        out = '%s/%s/%s' % (self.dir, self.pool, group)
+        report = '%s/%s.report' % (out, group)
+        contigs = '%s/%s.contigs.fasta' % (out, group)
+        self.outputs['outs'][group] = [report, contigs]
+        if self.config.force or todo(contigs):
+            cmd = canu_cmd(fastx, self.soft.params, group, out)
+            self.outputs['cmds'].setdefault(group, []).append(cmd)
+            io_update(self, i_f=fastx, o_d=out, key=group)
+
+
+def unicycler_cmd(fastqs: list, params: dict, tmp: str, out: str, long=[]):
+    """Create command lines for unicycler.
+
+    Parameters
+    ----------
+    fastqs : list
+        Input read fastqs files
+    params : dict
+        Parameters for flye
+    tmp : str
+        Path to a temporary directory
+    out : str
+        Output folder for unicycler
+    """
+    cmd = 'unicycler'
+    if len(fastqs) == 2:
+        cmd += ' --short1 %s --short2 %s' % tuple(fastqs)
+    # --unpaired
+    # --long
+    cmd += ' --out %s' % out
+    cmd += ' --spades_tmp_dir %s' % tmp
+    for param in [
+        'contamination', 'bcftools_path', 'java_path', 'bowtie2_path',
+        'bowtie2_build_path', 'samtools_path', 'pilon_path', 'scores',
+        'start_genes', 'existing_long_read_assembly', 'tblastn_path',
+        'makeblastdb_path', 'spades_path', 'racon_pth', 'min_bridge_qual',
+        'start_gene_cov', 'start_gene_id', 'max_kmer_frac', 'min_kmer_frac',
+        'depth_filter', 'mode', 'min_component_size', 'min_dead_end_size',
+        'min_polish_size', 'min_anchor_seg_len', 'min_fasta_length', 'keep',
+        'kmer_count', 'linear_seqs', 'low_score', 'kmers', 'verbosity'
+    ]:
+        if param in params:
+            cmd += ' --%s %s' % (param, params[param])
+    for boolean in ['vcf', 'no_correct', 'largest_component',
+                    'no_miniasm', 'no_rotate', 'no_pilon']:
+        if params[boolean]:
+            cmd += ' --%s' % params[param]
+    return cmd
+
+
+def get_fastqs(self):
+    if self.pool in self.pools:
+        fastqs = self.inputs[self.pool]
+    else:
+        fastqs = {self.sam: self.inputs[self.sam]}
+    return fastqs
+
+
+def get_longs(self):
+    if self.pool in self.pools:
+        groups = self.inputs[self.pool]
+        longs = {group: [self.longs[sam] for sams
+                         in self.pools[group] for sam in sams]
+                 for group in groups}
+    else:
+        longs = {self.sam: self.long[self.sam]}
+    return longs
+
+
+def unicycler(self) -> None:
+    """Create command lines for unicycler.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for unicycler
+        .pool : str
+            Pool name.
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    """
+    fastqs = get_fastqs(self)
+    longs = get_longs(self)
+    for sam_group, fqs in fastqs.items():
+        tmp = '$TMPDIR/unicycler_%s_%s' % (self.pool, sam_group)
+        out = '%s/%s/%s' % (self.dir, self.pool, sam_group)
+        report = '%s/%s.' % (out, sam_group)
+        contigs = '%s/%s.' % (out, sam_group)
+        if self.pool in self.pools:
+            self.outputs['outs'][sam_group] = [report, contigs]
+        else:
+            self.outputs['outs'] = [report, contigs]
+        if self.config.force or todo(contigs):
+            cmd = unicycler_cmd(fqs, self.soft.params, tmp, out, long)
+            if self.pool in self.pools:
+                self.outputs['cmds'].setdefault(sam_group, []).append(cmd)
+                io_update(self, i_f=fqs, i_d=tmp, o_d=out, key=sam_group)
+            else:
+                self.outputs['cmds'].setdefault(sam_group, []).append(cmd)
+                io_update(self, i_f=fqs, i_d=tmp, o_d=out)
+
+
+def miniasm_cmd(self):
+    cmd = '\nminimap2'
+    cmd += ' -x ava-pb'
+    cmd += ' -t8 pb-reads.fq pb-reads.fq'
+    cmd += ' | gzip -1 > reads.paf.gz'
+    cmd += ' > reads.paf.gz'
+    cmd += '\nminiasm'
+    cmd += ' -f reads.fq'
+    cmd += ' reads.paf.gz'
+    cmd += ' > reads.gfa'
+
+
+def miniasm(self):
+    cmd = miniasm_cmd(self)
+    pass
+
+# USE CALLER LIKE METAWRAP
+# def circlator_cmd(fastqs: list, params: dict, tmp: str, out: str):
+#     """Create command lines for circlator.
+#
+#     Parameters
+#     ----------
+#     fastqs : list
+#         Input read fastqs files
+#     params : dict
+#         Parameters for flye
+#     tmp : str
+#         Path to a temporary directory
+#     out : str
+#         Output folder for flye
+#     """
+#     cmd = 'circlater %s' % analysis
+#     return cmd
+#
+#
+# def circlator(self) -> None:
+#     """Create command lines for circlator.
+#
+#     Parameters
+#     ----------
+#     self : Commands class instance
+#         .dir : str
+#             Path to pipeline output folder for circlator
+#         .pool : str
+#             Pool name.
+#         .inputs : dict
+#             Input files
+#         .outputs : dict
+#             All outputs
+#         .soft.params
+#             Parameters
+#         .config
+#             Configurations
+#     """
+#     if self.pool in self.pools:
+#         fastqs_d = self.inputs[self.pool]
+#     else:
+#         fastqs_d = {self.sam: self.inputs[self.sam]}
+#     for sam_group, fastqs in fastqs_d.items():
+#         tmp = '$TMPDIR/spades_%s_%s' % (self.pool, sam_group)
+#         out = '%s/%s/%s' % (self.dir, self.pool, sam_group)
+#         report = '%s/%s.' % (out, sam_group)
+#         contigs = '%s/%s.' % (out, sam_group)
+#         if self.pool in self.pools:
+#             self.outputs['outs'][sam_group] = [report, contigs]
+#         else:
+#             self.outputs['outs'] = [report, contigs]
+#         if self.config.force or todo(contigs):
+#             cmd = circlator_cmd(fastqs, self.soft.params, tmp, out)
+#             if self.pool in self.pools:
+#                 self.outputs['cmds'].setdefault(sam_group, []).append(cmd)
+#                 io_update(self, i_f=fastqs, i_d=tmp, o_d=out, key=sam_group)
+#             else:
+#                 self.outputs['cmds'].setdefault(sam_group, []).append(cmd)
+#                 io_update(self, i_f=fastqs, i_d=tmp, o_d=out)
