@@ -648,7 +648,7 @@ def woltka_tax_cmd(self, pairing: str, woltka_map: str, database: str) -> str:
     """
     out = '%s/%s' % (self.dir, pairing)
     tax_out, tax_outmap = '%s/taxa' % out, '%s/taxmap' % out
-    tax_outputs = ['phylum', 'genus', 'species', 'none']
+    tax_outputs = ['phylum', 'family', 'genus', 'species', 'none']
     tax_todo = []
     for tdx, tax_output in enumerate(tax_outputs):
         cur_tax_output = '%s/%s.tsv' % (tax_out, tax_output)
@@ -682,8 +682,7 @@ def woltka_tax_cmd(self, pairing: str, woltka_map: str, database: str) -> str:
     return tax_outmap
 
 
-def woltka_classif_go(self, pairing: str, woltka_map: str,
-                      tax_outmap: str, database: str):
+def woltka_go(self, pairing: str, woltka_map: str, taxmap: str, database: str):
     """Get the taxonomic classification outputs and prepare the Woltka
     commands for this classification.
 
@@ -698,7 +697,7 @@ def woltka_classif_go(self, pairing: str, woltka_map: str,
         Type of reads pairing during alignment
     woltka_map : str
         Path to the Woltka input file.
-    tax_outmap : str
+    taxmap : str
         Path to the folder containing the taxonomic maps.
     database : str
         WOL database path
@@ -740,7 +739,7 @@ def woltka_classif_go(self, pairing: str, woltka_map: str,
             cmd += ' --coords %s' % coords
             cmd += ' --map-as-rank'
             cmd += ' --rank %s' % go
-            cmd += ' --stratify %s/%s' % (tax_outmap, stratification)
+            cmd += ' --stratify %s/%s' % (taxmap, stratification)
             cmd += ' --map %s' % uniref_map
             cmd += ' --to-tsv'
             cur_map = '%s/%s.map.xz' % (go_rt, go)
@@ -753,7 +752,8 @@ def woltka_classif_go(self, pairing: str, woltka_map: str,
             self.outputs['outs'].append(go_out)
 
 
-def woltka_classif_genes(self, pairing: str, woltka_map: str, database: str):
+def woltka_genes(self, pairing: str, woltka_map: str, taxmap: str,
+                 database: str) -> tuple:
     """Get the Woltka commands for the gene-level classification.
 
     Parameters
@@ -767,6 +767,8 @@ def woltka_classif_genes(self, pairing: str, woltka_map: str, database: str):
         Type of reads pairing during alignment
     woltka_map : str
         Path to the Woltka input file.
+    taxmap : str
+        Path to the folder containing the taxonomic maps.
     database : str
         WOL database path
 
@@ -774,9 +776,11 @@ def woltka_classif_genes(self, pairing: str, woltka_map: str, database: str):
     -------
     genes : str
         Path to the genes classification output.
+    genes_tax : dict
+        Path to the stratified genes classification output.
     """
     coords = '%s/proteins/coords.txt.xz' % database
-    genes = '%s/%s/wol_genes.biom' % (self.dir, pairing)
+    genes = '%s/%s/genes.biom' % (self.dir, pairing)
     if todo(genes):
         cmd = '\n# per gene\n'
         cmd += 'woltka classify'
@@ -788,10 +792,29 @@ def woltka_classif_genes(self, pairing: str, woltka_map: str, database: str):
     else:
         io_update(self, i_f=genes)
     self.outputs['outs'].append(genes)
-    return genes
+
+    genes_tax = {}
+    stratifications = ['phylum', 'family', 'genus', 'species']
+    for stratification in stratifications:
+        genes = '%s/%s/genes_%s.biom' % (self.dir, pairing, stratification)
+        genes_tax[stratification] = genes
+        if todo(genes):
+            cmd = '\n# per gene [%s]\n' % stratification
+            cmd += 'woltka classify'
+            cmd += ' -i %s' % woltka_map
+            cmd += ' --coords %s' % coords
+            cmd += ' --stratify %s/%s' % (taxmap, stratification)
+            cmd += ' -o %s' % genes
+            self.outputs['cmds'].append(cmd)
+            io_update(self, o_f=genes)
+        else:
+            io_update(self, i_f=genes)
+        self.outputs['outs'].append(genes)
+    return genes, genes_tax
 
 
-def woltka_classif_uniref(self, pairing: str, genes: str, database: str):
+def woltka_uniref(self, pairing: str, genes: str, genes_tax: dict,
+                  database: str):
     """Get the Woltka commands for the uniref-level classification.
 
     Parameters
@@ -805,6 +828,8 @@ def woltka_classif_uniref(self, pairing: str, genes: str, database: str):
         Type of reads pairing during alignment
     genes : str
         Path to the genes classification output.
+    genes_tax : dict
+        Path to the stratified genes classification output.
     database : str
         WOL database path
 
@@ -812,12 +837,15 @@ def woltka_classif_uniref(self, pairing: str, genes: str, database: str):
     -------
     uniref : str
         Path to the uniref classification.
+    uniref_tax : dict
+        Path to the stratified uniref classification.
     """
     uniref_map = '%s/function/uniref/uniref.map.xz' % database
     uniref_names = '%s/function/uniref/uniref.name.xz' % database
-    uniref = '%s/%s/wol_uniref.biom' % (self.dir, pairing)
+    uniref = '%s/%s/uniref.biom' % (self.dir, pairing)
     if todo(uniref):
-        cmd = 'woltka tools collapse'
+        cmd = '\n# uniref\n'
+        cmd += 'woltka tools collapse'
         cmd += ' --input %s' % genes
         cmd += ' --map %s' % uniref_map
         cmd += ' --names %s' % uniref_names
@@ -827,10 +855,31 @@ def woltka_classif_uniref(self, pairing: str, genes: str, database: str):
     else:
         io_update(self, i_f=uniref)
     self.outputs['outs'].append(uniref)
-    return uniref
+
+    uniref_tax = {}
+    stratifications = ['phylum', 'family', 'genus', 'species']
+    for stratification in stratifications:
+        uniref = '%s/%s/uniref_%s.biom' % (self.dir, pairing, stratification)
+        uniref_tax[stratification] = genes
+        if todo(uniref):
+            cmd = '\n# uniref [%s]\n' % stratification
+            cmd += 'woltka tools collapse'
+            cmd += ' --input %s' % genes_tax[stratification]
+            cmd += ' --map %s' % uniref_map
+            cmd += ' --names %s' % uniref_names
+            cmd += ' --field 2'
+            cmd += ' --output %s' % uniref
+            self.outputs['cmds'].append(cmd)
+            io_update(self, o_f=uniref)
+        else:
+            io_update(self, i_f=uniref)
+        self.outputs['outs'].append(uniref)
+
+    return uniref, uniref_tax
 
 
-def woltka_classif_eggnog(self, pairing: str, uniref: str, database: str):
+def woltka_eggnog(self, pairing: str, uniref: str, uniref_tax: dict,
+                  database: str):
     """Get the Woltka commands for the eggnog-level classification.
 
     Parameters
@@ -844,10 +893,12 @@ def woltka_classif_eggnog(self, pairing: str, uniref: str, database: str):
         Type of reads pairing during alignment
     uniref : str
         Path to the uniref classification.
+    uniref_tax : dict
+        Path to the stratified uniref classification output.
     database : str
         WOL database path
     """
-    biom = '%s/%s/eggnog/wol_eggnog.biom' % (self.dir, pairing)
+    biom = '%s/%s/eggnog/eggnog.biom' % (self.dir, pairing)
     if todo(biom):
         cmd = 'woltka tools collapse'
         cmd += '--input %s' % uniref
@@ -866,8 +917,30 @@ def woltka_classif_eggnog(self, pairing: str, uniref: str, database: str):
         io_update(self, o_f=tsv)
     self.outputs['outs'].extend([tsv, biom])
 
+    stratifs = ['phylum', 'family', 'genus', 'species']
+    for stratif in stratifs:
+        biom = '%s/%s/eggnog/eggnog_%s.biom' % (self.dir, pairing, stratif)
+        if todo(biom):
+            cmd = 'woltka tools collapse'
+            cmd += '--input %s' % uniref_tax[stratif]
+            cmd += ' --map %s/function/eggnog/eggnog.map.xz' % database
+            cmd += ' --field 2'
+            cmd += ' --output %s\n\n' % biom
+            self.outputs['cmds'].append(cmd)
+            io_update(self, o_f=biom)
+        else:
+            io_update(self, i_f=biom)
+        tsv = '%s.tsv' % splitext(biom)[0]
+        if todo(tsv):
+            cmd = 'biom convert -i %s -o %s.tmp --to-tsv\n' % (biom, tsv)
+            cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
+            cmd += 'rm %s.tmp\n' % tsv
+            self.outputs['cmds'].append(cmd)
+            io_update(self, o_f=tsv)
+        self.outputs['outs'].extend([tsv, biom])
 
-def woltka_classif_cazy(self, pairing: str, genes: str, database: str):
+
+def woltka_cazy(self, pairing: str, genes: str, genes_tax: dict, database: str):
     """Get the Woltka commands for the cazy-level classification.
 
     Parameters
@@ -883,11 +956,13 @@ def woltka_classif_cazy(self, pairing: str, genes: str, database: str):
         Type of reads pairing during alignment
     genes : str
         Path to the genes classification.
+    genes_tax : dict
+        Path to the stratified genes classification output.
     database : str
         WOL database path
     """
     cazy_map = '%s/function/cazy/3tools.txt' % database
-    biom = '%s/%s/cazy/wol_cazy.biom' % (self.dir, pairing)
+    biom = '%s/%s/cazy/cazy.biom' % (self.dir, pairing)
     if todo(biom):
         cmd = 'woltka tools collapse'
         cmd += '--input %s' % genes
@@ -906,8 +981,32 @@ def woltka_classif_cazy(self, pairing: str, genes: str, database: str):
         io_update(self, o_f=tsv)
     self.outputs['outs'].extend([biom, tsv])
 
+    stratifs = ['phylum', 'family', 'genus', 'species']
+    for stratif in stratifs:
+        cazy_map = '%s/function/cazy/3tools.txt' % database
+        biom = '%s/%s/cazy/cazy_%s.biom' % (self.dir, pairing, stratif)
+        if todo(biom):
+            cmd = 'woltka tools collapse'
+            cmd += '--input %s' % genes_tax[stratif]
+            cmd += ' --map %s' % cazy_map
+            cmd += ' --field 2'
+            cmd += ' --output %s\n\n' % biom
+            self.outputs['cmds'].append(cmd)
+            io_update(self, o_f=biom)
+        else:
+            io_update(self, i_f=biom)
+        tsv = '%s.tsv' % splitext(biom)[0]
+        if todo(tsv):
+            cmd = 'biom convert -i %s -o %s.tmp --to-tsv\n' % (biom, tsv)
+            cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
+            cmd += 'rm %s.tmp\n' % tsv
+            self.outputs['cmds'].append(cmd)
+            io_update(self, o_f=tsv)
+        self.outputs['outs'].extend([biom, tsv])
 
-def woltka_classif_metacyc(self, pairing: str, genes: str, database: str):
+
+def woltka_metacyc(self, pairing: str, genes: str, genes_tax: dict,
+                   database: str):
     """Get the Woltka commands for the metacyc-level classification.
 
     Parameters
@@ -921,6 +1020,8 @@ def woltka_classif_metacyc(self, pairing: str, genes: str, database: str):
         Type of reads pairing during alignment
     genes : str
         Path to the genes classification.
+    genes_tax : dict
+        Path to the stratified genes classification output.
     database : str
         WOL database path
     """
@@ -934,6 +1035,7 @@ def woltka_classif_metacyc(self, pairing: str, genes: str, database: str):
                ('regulator', '', 'regulation-to-regulator.txt'),
                ('ec', '', 'reaction-to-ec.txt')]
     files = {}
+    files_tax = {}
     woltka_fun_out = '%s/%s/metacyc' % (self.dir, pairing)
     io_update(self, o_d=woltka_fun_out)
     cmd = ''
@@ -942,10 +1044,10 @@ def woltka_classif_metacyc(self, pairing: str, genes: str, database: str):
             input_biom = files[maps.split('-to-')[0]]
         else:
             input_biom = genes
-        cmd += '\n# %s [no stratification]\n' % level
-        biom = '%s/metacyc-%s.biom' % (woltka_fun_out, level)
+        biom = '%s/%s.biom' % (woltka_fun_out, level)
         tsv = '%s.tsv' % splitext(biom)[0]
         if todo(biom):
+            cmd += '\n# %s [no stratification]\n' % level
             cmd += 'woltka tools collapse'
             cmd += ' --input %s' % input_biom
             if names:
@@ -966,12 +1068,48 @@ def woltka_classif_metacyc(self, pairing: str, genes: str, database: str):
         else:
             io_update(self, i_f=tsv)
         files[level] = biom
+
+        stratifs = ['phylum', 'family', 'genus', 'species']
+        for stratif in stratifs:
+            files_tax[stratif] = {}
+            if '-to-' in maps:
+                input_biom = files_tax[stratif][maps.split('-to-')[0]]
+            else:
+                input_biom = genes_tax[stratif]
+            cmd += '\n# %s [%s]\n' % (level, stratif)
+            biom = '%s/%s_%s.biom' % (woltka_fun_out, level, stratif)
+            tsv = '%s.tsv' % splitext(biom)[0]
+            if todo(biom):
+                cmd += '\n# %s [%s]\n' % (level, stratif)
+                cmd += 'woltka tools collapse'
+                cmd += ' --input %s' % input_biom
+                if names:
+                    cmd += ' --names %s/%s' % (metacyc_dir, names)
+                cmd += ' --field 2'
+                cmd += ' --map %s/%s' % (metacyc_dir, maps)
+                cmd += ' --output %s\n' % biom
+                io_update(self, o_f=biom)
+            else:
+                io_update(self, i_f=biom)
+            if todo(tsv):
+                cmd += 'biom convert'
+                cmd += ' -i %s' % biom
+                cmd += ' -o %s.tmp' % tsv
+                cmd += ' --to-tsv\n'
+                cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
+                cmd += 'rm %s.tmp\n' % tsv
+                io_update(self, o_f=tsv)
+            else:
+                io_update(self, i_f=tsv)
+            files_tax[stratif][level] = biom
+
     if cmd:
         self.outputs['cmds'].append(cmd)
     self.outputs['outs'].extend(files)
 
 
-def woltka_classif_kegg(self, pairing: str, uniref: str, database: str):
+def woltka_kegg(self, pairing: str, uniref: str, uniref_tax: dict,
+                database: str):
     """Get the Woltka commands for the kegg-level classification.
 
     Parameters
@@ -985,6 +1123,8 @@ def woltka_classif_kegg(self, pairing: str, uniref: str, database: str):
         Type of reads pairing during alignment
     uniref : str
         Path to the uniref classification.
+    uniref_tax : dict
+        Path to the stratified uniref classification output.
     database : str
         WOL database path
     """
@@ -1033,10 +1173,11 @@ def woltka_classif_kegg(self, pairing: str, uniref: str, database: str):
     kegg_maps = '%s/%s/kegg_queried' % (self.dir, pairing)
     for (level, name, maps, prev) in ko_names_maps:
         if maps:
-            biom = '%s/%s/kegg/kegg-%s_pre.biom' % (self.dir, pairing, level)
-            tsv = '%s/%s/kegg/kegg-%s_pre.tsv' % (self.dir, pairing, level)
+            biom = '%s/%s/kegg/%s.biom' % (self.dir, pairing, level)
+            tsv = '%s.tsv' % splitext(biom)[0]
             if not prev:
                 if todo(tsv):
+                    cmd += '\n# kegg [no stratification]\n'
                     cmd += 'woltka tools collapse'
                     cmd += ' --input %s' % uniref
                     cmd += ' --names %s/function/kegg/%s' % (database, name)
@@ -1052,8 +1193,7 @@ def woltka_classif_kegg(self, pairing: str, uniref: str, database: str):
                 else:
                     io_update(self, i_f=biom)
             else:
-                input_fp = '%s/%s/kegg/kegg-%s.biom' % (
-                    self.dir, pairing, level)
+                input_fp = '%s/%s/kegg/%s.biom' % (self.dir, pairing, level)
                 if todo(tsv):
                     cmd += 'woltka tools collapse'
                     cmd += ' --input %s' % input_fp
@@ -1068,6 +1208,48 @@ def woltka_classif_kegg(self, pairing: str, uniref: str, database: str):
                     io_update(self, o_f=[biom, tsv])
                 else:
                     io_update(self, i_f=biom)
+
+            stratifs = ['phylum', 'family', 'genus', 'species']
+            for stratif in stratifs:
+                biom = '%s/%s/kegg/%s_%s.biom' % (self.dir, pairing, level,
+                                                  stratif)
+                tsv = '%s.tsv' % splitext(biom)[0]
+                if not prev:
+                    if todo(tsv):
+                        cmd += '\n# kegg [%s]\n' % stratif
+                        cmd += 'woltka tools collapse'
+                        cmd += ' --input %s' % uniref_tax[stratif]
+                        cmd += ' --names %s/function/kegg/%s' % (database, name)
+                        cmd += ' --map %s/function/kegg/%s' % (database, maps)
+                        cmd += ' --field 2'
+                        cmd += ' --output %s\n' % biom
+
+                        cmd += ' biom convert -i %s' % biom
+                        cmd += ' -o %s.tmp --to-tsv\n' % tsv
+                        cmd += ' tail -n +2 %s.tmp\n' % tsv
+                        cmd += ' > %s\n' % tsv
+                        cmd += ' rm %s.tmp\n' % tsv
+                        io_update(self, o_f=[biom, tsv])
+                    else:
+                        io_update(self, i_f=biom)
+                else:
+                    input_fp = '%s/%s/kegg/%s_%s.biom' % (
+                        self.dir, pairing, level, stratif)
+                    if todo(tsv):
+                        cmd += 'woltka tools collapse'
+                        cmd += ' --input %s' % input_fp
+                        if name:
+                            cmd += ' --names %s/%s' % (kegg_maps, name)
+                        cmd += ' --map %s/%s' % (kegg_maps, maps)
+                        cmd += ' --field 2'
+                        cmd += ' --output %s\n' % biom
+                        cmd += 'biom convert -i %s\n' % biom
+                        cmd += ' -o %s.tmp --to-tsv\n' % tsv
+                        cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
+                        cmd += 'rm %s.tmp\n\n' % tsv
+                        io_update(self, o_f=[biom, tsv])
+                    else:
+                        io_update(self, i_f=biom)
         else:
             if todo('%s/kegg_info.txt' % kegg_maps):
                 cmd += 'cd %s\n' % kegg_maps
@@ -1098,20 +1280,20 @@ def woltka(self) -> None:
         .databases
             All databases class instance
     """
-    database = self.databases.paths['wol']
+    db = self.databases.paths['wol']
     pairing = ''
     if self.soft.prev == 'bowtie2':
         pairing = self.softs['bowtie2'].params['pairing']
     alis = woltka_aligments(self)
-    woltka_map = woltka_write_map(self, pairing, alis)
-    tax_outmap = woltka_tax_cmd(self, pairing, woltka_map, database)
-    woltka_classif_go(self, pairing, woltka_map, tax_outmap, database)
-    genes = woltka_classif_genes(self, pairing, woltka_map, database)
-    uniref = woltka_classif_uniref(self, pairing, genes, database)
-    woltka_classif_eggnog(self, pairing, uniref, database)
-    woltka_classif_cazy(self, pairing, genes, database)
-    woltka_classif_metacyc(self, pairing, genes, database)
-    woltka_classif_kegg(self, pairing, uniref, database)
+    maps = woltka_write_map(self, pairing, alis)
+    taxmap = woltka_tax_cmd(self, pairing, maps, db)
+    woltka_go(self, pairing, maps, taxmap, db)
+    genes, genes_tax = woltka_genes(self, pairing, maps, taxmap, db)
+    uniref, uniref_tax = woltka_uniref(self, pairing, genes, genes_tax, db)
+    woltka_eggnog(self, pairing, uniref, uniref_tax, db)
+    # woltka_cazy(self, pairing, genes, genes_tax, db)
+    woltka_metacyc(self, pairing, genes, genes_tax, db)
+    woltka_kegg(self, pairing, uniref, uniref_tax, db)
 
 
 def get_midas_cmd(
