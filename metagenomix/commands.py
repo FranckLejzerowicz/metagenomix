@@ -13,21 +13,16 @@ import itertools
 from os.path import abspath, basename, isdir, isfile, splitext
 
 from metagenomix._io_utils import get_out_dir
-from metagenomix.tools.preprocess import (
-    edit, count, fastqc, fastp, cutadapt, atropos, kneaddata, filtering)
-from metagenomix.tools.simka import simka
-from metagenomix.tools.alignment import bowtie2, flash
-from metagenomix.tools.profiling import (
-    shogun, woltka, kraken2, bracken, midas, metaxa2)
-from metagenomix.tools.phlans import metaphlan, humann, strainphlan
-from metagenomix.tools.assembly import (
-    pooling, spades, quast, plass, viralverify)
-from metagenomix.tools.annotation import (
-    prodigal, integron_finder, macsyfinder, ioncom, search, antismash, prokka)
-from metagenomix.tools.binning import metawrap
-from metagenomix.tools.genomics import (
-    drep, checkm, coconet, tiara, plasforest, plasmidfinder) #, gtdbtk
-from metagenomix.tools.metamarker import metamarker
+from metagenomix.tools.preprocess import *
+from metagenomix.tools.alignment import *
+from metagenomix.tools.simka import *
+from metagenomix.tools.profiling import *
+from metagenomix.tools.phlans import *
+from metagenomix.tools.assembly import *
+from metagenomix.tools.annotation import *
+from metagenomix.tools.binning import *
+from metagenomix.tools.genomics import *
+from metagenomix.tools.metamarker import *
 
 
 class Commands(object):
@@ -41,6 +36,7 @@ class Commands(object):
         self.args = {}
         self.pools = {}
         self.pool = None
+        self.longs = None
         self.inputs = None
         self.method = None
         self.soft = None
@@ -66,6 +62,7 @@ class Commands(object):
         for sdx, softs in enumerate(self.config.pipeline):
             self.soft = self.softs[softs[-1]]
             print('[Collecting commands] #%s: %s' % (sdx, self.soft.name))
+            self.get_longs()
             self.get_inputs()
             self.get_dir()
             self.generic_command()
@@ -85,6 +82,12 @@ class Commands(object):
                 self.inputs = self.config.fastq
         else:
             self.inputs = self.softs[self.soft.prev].outputs
+
+    def get_longs(self):
+        if self.soft.params['scratch'] and self.config.jobs:
+            self.longs = self.config.long_scratch
+        else:
+            self.longs = self.config.long
 
     def get_dir(self):
         self.dir = abspath('%s/%s/after_%s' % (
