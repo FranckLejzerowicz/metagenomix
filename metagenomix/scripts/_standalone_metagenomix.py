@@ -15,7 +15,10 @@ from metagenomix import __version__
 @click.command()
 @click.option(
     "-i", "--i-fastq-dir", required=True, multiple=True,
-    help="Path to fastq files folder.")
+    help="Path to short reads fastq files folder.")
+@click.option(
+    "-j", "--i-fastq2-dir", multiple=True,
+    help="Path to long reads fastq files folder.")
 @click.option(
     "-m", "--m-metadata", required=True, help="Path to the metadata file.")
 @click.option(
@@ -86,6 +89,7 @@ from metagenomix import __version__
 def standalone_metagenomix(
         m_metadata,
         i_fastq_dir,
+        i_fastq2_dir,
         o_out_dir,
         p_project_name,
         p_co_assembly,
@@ -113,6 +117,7 @@ def standalone_metagenomix(
     metagenomix(
         meta_fp=m_metadata,
         fastq_dirs=i_fastq_dir,
+        long_dirs=i_fastq2_dir,
         output_dir=o_out_dir,
         project=p_project_name,
         coassembly_yml=p_co_assembly,
