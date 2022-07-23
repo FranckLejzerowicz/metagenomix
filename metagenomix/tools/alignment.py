@@ -264,12 +264,9 @@ def flash(self):
     out = '%s/m%s_M%s_e%s/%s' % (
         self.dir, min_overlap, max_overlap, mismatch, self.sam)
     rad = out + '/' + self.sam
-    ext_fq = '%s.extendedFrags.fastq' % rad
-    ext = ext_fq.replace('.fastq', '.fasta')
-    nc1_fq = '%s.notCombined_1.fastq' % rad
-    nc1 = nc1_fq.replace('.fastq', '.fasta')
-    nc2_fq = '%s.notCombined_2.fastq' % rad
-    nc2 = nc2_fq.replace('.fastq', '.fasta')
+    ext = '%s.extendedFrags.fasta' % rad
+    nc1 = '%s.notCombined_1.fasta' % rad
+    nc2 = '%s.notCombined_2.fasta' % rad
     out_fps = [ext, nc1, nc2]
     self.outputs['dirs'].append(out)
     self.outputs['outs'].extend(out_fps)
@@ -281,8 +278,11 @@ def flash(self):
         cmd += ' -d %s' % out
         cmd += ' -o %s' % self.sam
         cmd += ' -t %s\n' % self.soft.params['cpus']
-        cmd += 'seqtk seq -A %s > %s\n' % (ext_fq, ext)
-        cmd += 'seqtk seq -A %s > %s\n' % (nc1_fq, nc1)
-        cmd += 'seqtk seq -A %s > %s\n' % (nc2_fq, nc2)
+        cmd += 'seqtk seq -A %s.fastq > %s\n' % (ext.rstrip('.fasta'), ext)
+        cmd += 'seqtk seq -A %s.fastq > %s\n' % (nc1.rstrip('.fasta'), nc1)
+        cmd += 'seqtk seq -A %s.fastq > %s\n' % (nc2.rstrip('.fasta'), nc2)
+        cmd += 'gzip %s.fastq\n' % ext.rstrip('.fasta')
+        cmd += 'gzip %s.fastq\n' % nc1.rstrip('.fasta')
+        cmd += 'gzip %s.fastq\n' % nc2.rstrip('.fasta')
         self.outputs['cmds'].append(cmd)
-        io_update(self, i_f=self.inputs[self.sam], o_f=out_fps)
+        io_update(self, i_f=self.inputs[self.sam], o_d=out)
