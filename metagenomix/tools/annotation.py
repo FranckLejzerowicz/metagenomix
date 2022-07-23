@@ -76,18 +76,21 @@ def prodigal(self):
             contigs = self.inputs[self.pool][group][1]
             out_dir = '%s/%s/%s' % (self.dir, self.pool, group)
             cmd, outputs = prodigal_cmd(self, contigs, out_dir)
+            self.outputs['dirs'].append(out_dir)
             self.outputs['outs'][group] = outputs
             if self.config.force or todo(outputs[0]):
                 self.outputs['cmds'].setdefault(group, []).append(cmd)
-                io_update(self, i_f=contigs, o_f=outputs, key=group)
+                io_update(self, i_f=contigs, o_f=outputs,
+                          o_d=out_dir, key=group)
     else:
         contigs = self.inputs[self.sam]
         out_dir = '%s/%s' % (self.dir, self.sam)
         cmd, outputs = prodigal_cmd(self, contigs, out_dir)
+        self.outputs['dirs'].append(out_dir)
         self.outputs['cmds'].append(cmd)
         if self.config.force or todo(outputs[0]):
             self.outputs['outs'].extend(outputs)
-        io_update(self, i_f=contigs, o_f=outputs)
+        io_update(self, i_f=contigs, o_f=outputs, o_d=out_dir)
 
 
 def macsyfinder_cmd(self, fp, o_dir, folder, group=None) -> tuple:
