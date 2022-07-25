@@ -239,6 +239,12 @@ def check_bowtie_score_min(soft, params, defaults, let_go):
     let_go.append('score-min')
 
 
+def no_merging(self):
+    nfiles = len(self.inputs[self.sam])
+    if nfiles != 2:
+        sys.exit('[flash] No reads merging on %s fastq input file' % nfiles)
+
+
 def flash(self):
     """Create command lines for FLASh
 
@@ -246,7 +252,7 @@ def flash(self):
     ----------
     self : Commands class instance
         .dir : str
-            Path to pipeline output folder for humann
+            Path to pipeline output folder for FLASh
         .sam : str
             Sample name
         .inputs : dict
@@ -254,15 +260,12 @@ def flash(self):
         .outputs : dict
             All outputs
         .soft.params
-            Parameters for humann
+            Parameters for FLASh
         .config
             Configurations
     """
-    min_overlap = self.soft.params['min_overlap']
-    max_overlap = self.soft.params['max_overlap']
-    mismatch = self.soft.params['mismatch']
-    out = '%s/m%s_M%s_e%s/%s' % (
-        self.dir, min_overlap, max_overlap, mismatch, self.sam)
+    no_merging(self)
+    out = '%s/%s' % (self.dir, self.sam)
     rad = out + '/' + self.sam
     ext = '%s.extendedFrags.fastq.gz' % rad
     nc1 = '%s.notCombined_1.fastq.gz' % rad
@@ -272,14 +275,206 @@ def flash(self):
     self.outputs['outs'].extend(out_fps)
     if self.config.force or sum([todo(x) for x in out_fps]):
         cmd = 'flash %s' % ' '.join(self.inputs[self.sam])
-        cmd += ' --min-overlap %s' % min_overlap
-        cmd += ' --max-overlap %s' % max_overlap
-        cmd += ' --max-mismatch-density %s' % mismatch
+        cmd += ' --min-overlap %s' % self.soft.params['min_overlap']
+        cmd += ' --max-overlap %s' % self.soft.params['max_overlap']
+        cmd += ' --max-mismatch-density %s' % self.soft.params['mismatch']
         cmd += ' --output-directory %s' % out
         cmd += ' --output-prefix %s' % self.sam
-        cmd += ' --threads %s\n' % self.soft.params['cpus']
-        cmd += 'gzip %s\n' % ext.rstrip('.gz')
-        cmd += 'gzip %s\n' % nc1.rstrip('.gz')
-        cmd += 'gzip %s\n' % nc2.rstrip('.gz')
+        cmd += ' --compress'
+        cmd += ' --threads %s' % self.soft.params['cpus']
         self.outputs['cmds'].append(cmd)
         io_update(self, i_f=self.inputs[self.sam], o_d=out)
+
+
+def ngmerge(self):
+    """Create command lines for NGmerge
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for NGmerge
+        .sam : str
+            Sample name
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters for NGmerge
+        .config
+            Configurations
+    """
+    no_merging(self)
+    nfiles = len(self.inputs[self.sam])
+    if nfiles != 2:
+        sys.exit('[flash] No reads merging on %s fastq input file' % nfiles)
+    out = '%s/%s' % (self.dir, self.sam)
+    rad = out + '/' + self.sam
+    if self.soft.params['a']:
+        ext = '%s.trim' % rad
+        log = '%s_trim' % rad
+    else:
+        ext = '%s.extendedFrags.fastq.gz' % rad
+        log = '%s_merging' % rad
+    fail = '%s.notCombined' % rad
+    nc1 = '%s.notCombined_1.fastq.gz' % rad
+    nc2 = '%s.notCombined_2.fastq.gz' % rad
+    out_fps = [ext, nc1, nc2]
+    self.outputs['dirs'].append(out)
+    self.outputs['outs'].extend(out_fps)
+    if self.config.force or sum([todo(x) for x in out_fps]):
+        cmd = 'NGmerge'
+        cmd += ' -1 %s' % self.inputs[self.sam][0]
+        cmd += ' -2 %s' % self.inputs[self.sam][1]
+        cmd += ' -o %s' % ext.replace('.gz', '')
+        if self.soft.params['a']:
+            cmd += ' -c %s.log' % log
+        else:
+            cmd += ' -j %s.log' % log
+            cmd += ' -f %s' % fail
+
+        for boolean in ['a', 'd', 's', 'i', 'g']:
+            if self.soft.params[boolean]:
+                cmd += ' -%s' % boolean
+        for param in ['p', 'm', 'e', 'q', 'u']:
+            cmd += ' -%s %s' % (param, self.soft.params[param])
+        cmd += ' -n %s' % self.soft.params['cpus']
+        cmd += ' -z'
+        self.outputs['cmds'].append(cmd)
+        io_update(self, i_f=self.inputs[self.sam], o_d=out)
+
+
+def pear(self):
+    """Create command lines for PEAR
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for PEAR
+        .sam : str
+            Sample name
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters for PEAR
+        .config
+            Configurations
+    """
+    no_merging(self)
+    out = '%s/%s' % (self.dir, self.sam)
+    rad = out + '/' + self.sam
+
+    ext_ = '%s.assembled.fastq.gz' % rad
+    ext = '%s.extendedFrags.fastq.gz' % rad
+    nc1_ = '%s.unassembled.forward.fastq.gz' % rad
+    nc1 = '%s.notCombined_1.fastq.gz' % rad
+    nc2_ = '%s.unassembled.reverse.fastq.gz' % rad
+    nc2 = '%s.notCombined_2.fastq.gz' % rad
+    na = '%s.discarded.fastq.gz' % rad
+
+    out_fps = [ext, nc1, nc2]
+    self.outputs['dirs'].append(out)
+    self.outputs['outs'].extend(out_fps)
+
+    if self.config.force or sum([todo(x) for x in out_fps]):
+        cmd = 'pear'
+        cmd += ' --forward-fastq %s' % self.inputs[self.sam][0]
+        cmd += ' --reverse-fastq %s' % self.inputs[self.sam][1]
+        cmd += ' --output %s' % rad
+        for param in [
+            'min_assembly_length', 'max_assembly_length', 'quality_threshold',
+            'min_trim_length', 'score_method', 'min_overlap', 'test_method',
+            'phred_base', 'cap', 'p_value', 'max_uncalled_base'
+        ]:
+            cmd += ' --%s %s' % (param.replace('_', '-'),
+                                 self.soft.params[param])
+        for boolean in ['empirical_freqs', 'keep_original', 'stitch', 'nbase']:
+            if self.soft.params[boolean]:
+                cmd += ' --%s' % boolean.replace('_', '-')
+        cmd += ' --threads %s\n' % self.soft.params['cpus']
+        cmd += 'gzip %s\nmv %s %s\n' % (ext_.replace('.gz', ''), ext_, ext)
+        cmd += 'gzip %s\nmv %s %s\n' % (nc1_.replace('.gz', ''), nc1_, nc1)
+        cmd += 'gzip %s\nmv %s %s\n' % (nc2_.replace('.gz', ''), nc2_, nc2)
+        cmd += 'gzip %s\n' % na.replace('.gz', '')
+        self.outputs['cmds'].append(cmd)
+        io_update(self, i_f=self.inputs[self.sam], o_d=out)
+
+
+def bbmerge(self):
+    """Create command lines for BBmerge
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for BBmerge
+        .sam : str
+            Sample name
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters for BBmerge
+        .config
+            Configurations
+    """
+    no_merging(self)
+    out = '%s/%s' % (self.dir, self.sam)
+    rad = out + '/' + self.sam
+    ext = '%s.extendedFrags.fastq.gz' % rad
+    nc1 = '%s.notCombined_1.fastq.gz' % rad
+    nc2 = '%s.notCombined_2.fastq.gz' % rad
+    ins = '%s.inserts.txt' % rad
+    kmer = '%s.kmer_cardinality.txt' % rad
+    ihist = '%s.insert_length.hist' % rad
+    out_fps = [ext, nc1, nc2]
+    self.outputs['dirs'].append(out)
+    self.outputs['outs'].extend(out_fps)
+
+    if self.config.force or sum([todo(x) for x in out_fps]):
+        cmd = 'bbmerge.sh'
+        cmd += ' in1=%s' % self.inputs[self.sam][0]
+        cmd += ' in2=%s' % self.inputs[self.sam][1]
+        cmd += ' out=%s' % ext
+        cmd += ' outu1=%s' % nc1
+        cmd += ' outu2=%s' % nc2
+        cmd += ' outinsert=%s' % ins
+        cmd += ' outc=%s' % kmer
+        cmd += ' ihist=%s' % ihist
+        if self.soft.params['strictness']:
+            cmd += ' %s=t' % self.soft.params['strictness']
+        else:
+            for param in [
+                'reads', 'ziplevel', 'trimq','minlength', 'maxlength',
+                'minavgquality', 'maxexpectederrors', 'forcetrimleft',
+                'forcetrimright', 'forcetrimright2', 'forcetrimmod',
+                'mininsert', 'mininsert0', 'minoverlap', 'minoverlap0', 'minq',
+                'maxq', 'efilter', 'pfilter', 'kfilter', 'maxratio',
+                'ratiomargin', 'ratiooffset', 'maxmismatches',
+                'ratiominoverlapreduction', 'minsecondratio', 'margin',
+                'mismatches', 'k', 'extend', 'extend2', 'iterations',
+                'mindepthseed', 'mindepthextend', 'branchmult1', 'branchmult2',
+                'branchlower', 'prealloc', 'prefilter', 'filtermem', 'minprob',
+                'minapproxoverlap'
+            ]:
+                cmd += ' %s=%s' % (param, self.soft.params[param])
+            for boolean in [
+                'interleaved', 'nzo', 'showhiststats', 'ordered', 'mix',
+                'qtrim', 'qtrim2', 'tbo', 'ooi', 'trimpolya', 'usejni', 'merge',
+                'ecco', 'trimnonoverlapping', 'useoverlap', 'entropy', 'ouq',
+                'owq', 'usequality', 'iupacton', 'ratiomode', 'forcemerge',
+                'flatmode', 'requireratiomatch', 'trimonfailure', 'rem', 'rsem',
+                'ecctadpole', 'reassemble', 'removedeadends', 'removebubbles',
+                'ibb', 'eccbloom', 'testmerge', 'eoom', 'da',
+            ]:
+                if self.soft.params[boolean]:
+                    cmd += ' %s=t' % boolean
+                else:
+                    cmd += ' %s=f' % boolean
+            self.outputs['cmds'].append(cmd)
+            io_update(self, i_f=self.inputs[self.sam], o_d=out)

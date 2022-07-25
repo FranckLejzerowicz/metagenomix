@@ -681,11 +681,18 @@ def check_bowtie2(self, params, soft):
 
 
 def check_spades(self, params, soft):
-    defaults = {'k': ['33', '55', '77', '99', '127'],
-                'bio': [False, True],
-                'meta': [True, False],
-                'plasmid': [False, True],
-                'only_assembler': [True, False]}
+    defaults = {
+        'k': ['33', '55', '77', '99', '127'],
+        'meta': [True, False],
+        'only_assembler': [True, False],
+        'only_error_correction': [False, True],
+        'careful': [False, True],
+        'checkpoints': ['all', 'last'],
+        'continue': [True, False],
+        'disable_gzip_output': [False, True],
+        'disable_rr': [False, True],
+        'cov_cutoff': ['off', 'auto']
+    }
     if 'k' not in params:
         params['k'] = defaults['k']
     else:
@@ -1243,6 +1250,7 @@ def check_unicycler(self, params, soft):
         'keep': ['2', '1', '3', '0'],
         'verbosity': ['2', '3', '1', '0'],
         'mode': ['conservative', 'normal', 'bold'],
+        'method': ['illumina', 'long-reads', 'hybrid'],
         'bowtie2_build_path': ['bowtie2-build'],
         'bcftools_path': ['bcftools'],
         'makeblastdb_path': ['makeblastdb'],
@@ -1282,47 +1290,177 @@ def check_unicycler(self, params, soft):
                   (ints + floats + floats_ + floats__ + paths))
     defaults['contamination'] = '<Path to fasta file of known contaminations>'
     defaults['existing_long_read_assembly'] = '<GFA long-read assembly>'
-    defaults['bowtie2_build_path'] = '<Path to the bowtie2-build executable>'
-    defaults['bowtie2_path'] = '<Path to the bowtie2 executable>'
-    defaults['bcftools_path'] = '<Path to the bcftools executable>'
-    defaults['samtools_path'] = '<Path to the samtools executable>'
-    defaults['makeblastdb_path'] = '<Path to the makeblastdb_path executable>'
-    defaults['tblastn_path'] = '<Path to the tblastn_path executable>'
-    defaults['spades_path'] = '<Path to the spades.py executable>'
-    defaults['racon_path'] = '<Path to the racon executable>'
-    defaults['pilon_path'] = '<Path to the pilon executable>'
-    defaults['java_path'] = '<Path to the java executable>'
+    for path in ['bowtie2_build_path', 'bowtie2_path', 'bcftools_path',
+                 'samtools_path', 'makeblastdb_path', 'tblastn_path',
+                 'spades_path', 'racon_path', 'pilon_path', 'java_path']:
+        defaults[path] = '<Path to the "%s" executable>' % path
     defaults['start_genes'] = '<Path to fasta file of genes for start point ' \
                               'of rotated replicons>'
     return defaults
 
 
-# def check_circlator(self, params, soft):
-#     defaults = {
-#         '': [],
-#         '':,
-#     }
-#     ints = []
-#     check_nums(params, defaults, ints, int, soft.name)
-#     floats = []
-#     check_nums(params, defaults, floats, float, soft.name)
-#     check_default(params, defaults, soft.name, (ints + floats))
-#     defaults['bwa_path'] = '<Path to the bwa executable>'
-#     return defaults
+def check_ngmerge(self, params, soft):
+    defaults = {
+        'p': 0.10,
+        'm': 20,
+        'e': 50,
+        'q': 33,
+        'u': 40,
+        'a': [False, True],
+        'd': [False, True],
+        's': [False, True],
+        'i': [False, True],
+        'g': [False, True]
+    }
+    ints = ['m', 'e', 'q', 'u']
+    check_nums(params, defaults, ints, int, soft.name)
+    floats = ['p']
+    check_nums(params, defaults, floats, float, soft.name)
+    check_default(params, defaults, soft.name, (ints + floats))
+    return defaults
 
 
-# def check_circlator(self, params, soft):
-#     defaults = {
-#         '': [],
-#         '':,
-#     }
-#     ints = []
-#     check_nums(params, defaults, ints, int, soft.name)
-#     floats = []
-#     check_nums(params, defaults, floats, float, soft.name)
-#     check_default(params, defaults, soft.name, (ints + floats))
-#     defaults[''] = '<>'
-#     return defaults
+def check_flash(self, params, soft):
+    defaults = {
+        'min_overlap': 10,
+        'max_overlap': 65,
+        'mismatch': 0.25
+    }
+    ints = ['min_overlap', 'max_overlap']
+    check_nums(params, defaults, ints, int, soft.name)
+    floats = ['mismatch']
+    check_nums(params, defaults, floats, float, soft.name, 0, 1)
+    check_default(params, defaults, soft.name, (ints + floats))
+    return defaults
+
+
+def check_pear(self, params, soft):
+    defaults = {
+        'max_uncalled_base': 1.,
+        'p_value': 0.01,
+        'min_assembly_length': 50,
+        'max_assembly_length': 0,
+        'quality_threshold': 0,
+        'min_trim_length': 1,
+        'score_method': 2,
+        'min_overlap': 10,
+        'test_method': 1,
+        'phred_base': 33,
+        'cap': 40,
+        'empirical_freqs': [True, False],
+        'keep_original': [False, True],
+        'stitch': [False, True],
+        'nbase': [False, True],
+    }
+    ints = ['min_assembly_length', 'max_assembly_length', 'quality_threshold',
+            'min_trim_length', 'score_method', 'min_overlap', 'test_method',
+            'phred_base', 'cap']
+    check_nums(params, defaults, ints, int, soft.name)
+    floats = ['p_value', 'max_uncalled_base']
+    check_nums(params, defaults, floats, float, soft.name, 0, 1)
+    check_default(params, defaults, soft.name, (ints + floats))
+    return defaults
+
+
+def check_bbmerge(self, params, soft):
+    defaults = {
+        'interleaved': [False, True],
+        'reads': -1,
+        'nzo': [True, False],
+        'showhiststats': [True, False],
+        'ziplevel': 2,
+        'ordered': [False, True],
+        'mix': [False, True],
+        'qtrim': [False, True],
+        'qtrim2': [False, True],
+        'trimq': 10,
+        'minlength': 1,
+        'maxlength': -1,
+        'tbo': [False, True],
+        'minavgquality': 0,
+        'maxexpectederrors': 0,
+        'forcetrimleft': 0,
+        'forcetrimright': 0,
+        'forcetrimright2': 0,
+        'forcetrimmod': 5,
+        'ooi': [False, True],
+        'trimpolya': [True, False],
+        'usejni': [False, True],
+        'merge': [True, False],
+        'ecco': [False, True],
+        'trimnonoverlapping': [False, True],
+        'useoverlap': [True, False],
+        'mininsert': 35,
+        'mininsert0': 35,
+        'minoverlap': 12,
+        'minoverlap0': 8,
+        'minq': 9,
+        'maxq': 41,
+        'entropy': [True, False],
+        'efilter': 6,
+        'pfilter': 0.00004,
+        'kfilter': 0,
+        'ouq': [False, True],
+        'owq': [True, False],
+        'usequality': [True, False],
+        'iupacton': [False, True],
+        'ratiomode': [True, False],
+        'maxratio': 0.09,
+        'ratiomargin': 5.5,
+        'ratiooffset': 0.55,
+        'maxmismatches': 20,
+        'ratiominoverlapreduction': 3,
+        'minsecondratio': 0.1,
+        'forcemerge': [False, True],
+        'flatmode': [False, True],
+        'margin': 2,
+        'mismatches': 3,
+        'requireratiomatch': [False, True],
+        'trimonfailure': [True, False],
+        'strictness': [None, 'strict', 'verystrict', 'ultrastrict', 'maxstrict',
+                       'loose', 'veryloose', 'ultraloose', 'maxloose', 'fast'],
+        'k': 31,
+        'extend': 0,
+        'extend2': 0,
+        'iterations': 1,
+        'rem': [False, True],
+        'rsem': [False, True],
+        'ecctadpole': [False, True],
+        'reassemble': [False, True],
+        'removedeadends': [False, True],
+        'removebubbles': [False, True],
+        'mindepthseed': 3,
+        'mindepthextend': 2,
+        'branchmult1': 20,
+        'branchmult2': 3,
+        'branchlower':3,
+        'ibb': [False, True],
+        'prealloc': 1.,
+        'prefilter': 0,
+        'filtermem': 0,
+        'minprob': 0.5,
+        'minapproxoverlap': 26,
+        'eccbloom': [False, True],
+        'testmerge': [False, True],
+        'eoom': [True, False],
+        'da': [False, True],
+    }
+    ints = ['reads', 'ziplevel', 'trimq', 'minlength', 'maxlength',
+            'minavgquality', 'maxexpectederrors', 'forcetrimleft',
+            'forcetrimright', 'forcetrimright2', 'forcetrimmod', 'mininsert',
+            'mininsert0', 'minoverlap', 'minoverlap0', 'minq', 'maxq',
+            'efilter', 'kfilter', 'maxmismatches', 'ratiominoverlapreduction',
+            'margin', 'mismatches', 'k', 'extend', 'extend2', 'iterations',
+            'mindepthseed', 'mindepthextend', 'branchmult1', 'branchmult2',
+            'branchlower', 'prefilter', 'filtermem', 'minapproxoverlap']
+    check_nums(params, defaults, ints, int, soft.name)
+    floats = [
+        'pfilter', 'maxratio', 'ratiomargin', 'ratiooffset', 'minsecondratio']
+    check_nums(params, defaults, floats, float, soft.name)
+    floats_ = ['prealloc', 'minprob']
+    check_nums(params, defaults, floats_, float, soft.name, 0, 1)
+    check_default(params, defaults, soft.name, (ints + floats + floats_))
+    return defaults
 
 
 # def check_circlator(self, params, soft):
