@@ -7,11 +7,12 @@
 # ----------------------------------------------------------------------------
 
 import os
-import glob
+import sys
 import subprocess
 import pkg_resources
 from os.path import isdir, isfile, splitext
-from metagenomix._io_utils import read_yaml, fill_fastq
+from metagenomix._io_utils import (
+    read_yaml, fill_fastq, get_fastq_files, get_fastq_paths)
 from metagenomix._metadata import read_metadata
 import pandas as pd
 import numpy as np
@@ -28,10 +29,9 @@ class AnalysesConfig(object):
         self.conda_envs = {}
         self.modules = {}
         self.soft_paths = []
-        self.fastq_scratch = {}
+        self.techs = ['illumina', 'pacbio', 'nanopore']
+        self.fastq_mv = {}
         self.fastq = {}
-        self.long_scratch = {}
-        self.long = {}
         self.params = {}
         self.dir = ''
         self.r = {}
@@ -42,7 +42,8 @@ class AnalysesConfig(object):
         self.check_xhpc_install()
         self.get_conda_envs()
         self.set_metadata()
-        self.set_fastq()
+        self.set_fastqs()
+        self.show_fastqs()
         self.get_r()
         self.set_output()
         self.parse_yamls()
@@ -119,44 +120,47 @@ class AnalysesConfig(object):
         self.meta[name] = col.replace('', np.nan)
         self.pooling_groups.append(name)
 
-    def get_fastq_paths(self, long: bool = False) -> list:
-        fastqs = []
-        if long:
-            fastq_dirs = self.long_dirs
-        else:
-            fastq_dirs = self.fastq_dirs
-        for fastq_dir in fastq_dirs:
-            fastqs.extend(glob.glob(fastq_dir + '/*.fastq*'))
-        return fastqs
+    def init_fastq(self, sam):
+        if sam not in self.fastq:
+            self.fastq[sam] = dict((x, []) for x in self.techs)
+            self.fastq_mv[sam] = dict((x, []) for x in self.techs)
 
-    def get_fastq_samples(self, long: bool = False):
-        fastq_paths = self.get_fastq_paths(long)
-        fastq = fill_fastq(fastq_paths, set(self.meta.sample_name))
+    def get_fastq_samples(self, tech_dir):
+        tech = tech_dir.split('_')[0]
+        fastq_paths = get_fastq_paths(self.__dict__[tech_dir])
+        fastqs_dict = fill_fastq(fastq_paths, set(self.meta.sample_name))
         # keep only the `.fastq.gz` files (if `.fastq` files are also present)
-        for sam, f_ in fastq.items():
-            if len([x for x in f_ if '.gz' in x]):
-                f = [x for x in f_ if '.gz' in x]
-            else:
-                f = f_
-            if long:
-                self.long[sam] = f
-                self.long_scratch[sam] = ['${SCRATCH_FOLDER}%s' % x for x in f]
-            else:
-                self.fastq[sam] = f
-                self.fastq_scratch[sam] = ['${SCRATCH_FOLDER}%s' % x for x in f]
+        for sam, fastqs in fastqs_dict.items():
+            self.init_fastq(sam)
+            fqs = get_fastq_files(fastqs)
+            self.fastq[sam][tech] = fqs
+            self.fastq_mv[sam][tech] = ['${SCRATCH_FOLDER}%s' % x for x in fqs]
 
-    def set_fastq(self):
+    def set_fastqs(self):
         """
         Check that fastq folder exists and that it contains fastq files.
         """
-        self.get_fastq_samples(False)
-        self.get_fastq_samples(True)
-        if not self.fastq and not self.long:
-            raise IOError('Input fastq folder(s) do not exist')
+        for tech_dir in [x for x in self.__dict__.keys() if x.endswith('dirs')]:
+            self.get_fastq_samples(tech_dir)
+        if not sum([len(y) for _, x in self.fastq.items() for y in x.values()]):
+            sys.exit('Input fastq folder(s) do not exist')
+
+    def show_fastqs(self):
+        if self.verbose:
+            max_sam_len = max([len(x) for x in self.fastq])
+            print('\n========\n Inputs\n========\n')
+            print('sample%s illumina pacbio nanopore' % (' '*(max_sam_len - 6)))
+            for sam in self.fastq:
+                print('%s%s' % (sam, ' '*(max_sam_len - len(sam))), end='')
+                for tech in self.techs:
+                    n = len(self.fastq[sam][tech])
+                    print(' %s%s' % (n, ' '*(len(tech) - len(str(n)))), end='')
+                print()
 
     def get_r(self):
         self.r = {}
-        for sam, r1_r2 in self.fastq.items():
+        for sam in self.fastq:
+            r1_r2 = self.fastq[sam]['illumina']
             self.r[sam] = []
             if len(r1_r2) == 2:
                 r1, r2 = r1_r2
@@ -169,7 +173,7 @@ class AnalysesConfig(object):
 
     def update_metadata(self):
         self.meta.set_index('sample_name', inplace=True)
-        self.meta = self.meta.loc[list(self.fastq.keys())]
+        self.meta = self.meta.loc[list(self.fastq)]
         self.meta.fillna('Unspecified', inplace=True)
         self.meta_fp = '%s_pipeline.tsv' % splitext(self.meta_fp)[0]
         self.meta.to_csv(self.meta_fp, sep='\t')

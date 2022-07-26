@@ -10,6 +10,7 @@ import os
 import re
 import sys
 import yaml
+import glob
 import pandas as pd
 from os.path import abspath, basename, dirname, isdir, isfile
 
@@ -75,6 +76,21 @@ def fill_fastq(fastq_paths: list, sams: set):
                     fastq[sam] = [abspath(fastq_path)]
                 break
     return fastq
+
+
+def get_fastq_files(fastqs):
+    fastq_gz = [fastq for fastq in fastqs if '.gz' in fastq]
+    if len(fastq_gz):
+        return fastq_gz
+    else:
+        return fastqs
+
+
+def get_fastq_paths(fastq_dirs) -> list:
+    fastqs = []
+    for fastq_dir in fastq_dirs:
+        fastqs.extend(glob.glob(fastq_dir + '/*.fastq*'))
+    return fastqs
 
 
 def mkdr(path: str, is_file: bool = False) -> None:
