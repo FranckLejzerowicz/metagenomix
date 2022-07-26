@@ -42,41 +42,6 @@ def read_yaml(
     return yaml_dict
 
 
-def fill_fastq(fastq_paths: list, sams: set):
-    """Populate a `fastq` dict with for each sample (keys) the list of
-    fastq file paths (values), which would be either of length 1 if there
-    is only one fastq file for the sample, or of length 2 if there are
-    two, paired fastq file paths.
-
-    Notes
-    -----
-    In fact, the values could have a length 4 since all *fastq* files are
-    considered and there could be both `.fastq` and `.fastq.gz` file in the
-    input folder. Only the `.fastq.gz` files would be used in a later stage.
-
-    Parameters
-    ----------
-    fastq_paths : list
-        All fastq files in the input folder
-    sams : set
-        All unique sample names that have a metadata
-
-    Returns
-    -------
-    fastq : dict
-        Fastq file path(s) per sample
-    """
-    fastq = {}
-    for fastq_path in sorted(fastq_paths):
-        for sam in sams:
-            if basename(fastq_path).startswith(sam):
-                if sam in fastq:
-                    fastq[sam].append(abspath(fastq_path))
-                else:
-                    fastq[sam] = [abspath(fastq_path)]
-                break
-    return fastq
-
 
 def get_fastq_files(fastqs):
     fastq_gz = [fastq for fastq in fastqs if '.gz' in fastq]

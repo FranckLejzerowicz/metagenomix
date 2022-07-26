@@ -10,9 +10,9 @@ import os
 import sys
 import subprocess
 import pkg_resources
-from os.path import isdir, isfile, splitext
+from os.path import abspath, basename, isdir, isfile, splitext
 from metagenomix._io_utils import (
-    read_yaml, fill_fastq, get_fastq_files, get_fastq_paths)
+    read_yaml, get_fastq_files, get_fastq_paths)
 from metagenomix._metadata import read_metadata
 import pandas as pd
 import numpy as np
@@ -125,12 +125,45 @@ class AnalysesConfig(object):
             self.fastq[sam] = dict((x, []) for x in self.techs)
             self.fastq_mv[sam] = dict((x, []) for x in self.techs)
 
+    def fill_fastq(self, fastq_paths: list):
+        """Populate a `fastq` dict with for each sample (keys) the list of
+        fastq file paths (values), which would be either of length 1 if there
+        is only one fastq file for the sample, or of length 2 if there are
+        two, paired fastq file paths.
+
+        Notes
+        -----
+        In fact, the values could have a length 4 since all *fastq* files are
+        considered and there could be both `.fastq` and `.fastq.gz` file in the
+        input folder. Only the `.fastq.gz` files would be used in a later stage.
+
+        Parameters
+        ----------
+        fastq_paths : list
+            All fastq files in the input folder
+
+        Returns
+        -------
+        fastq : dict
+            Fastq file path(s) per sample
+        """
+        fastq = {}
+        sams = set(self.meta.sample_name)
+        for fastq_path in sorted(fastq_paths):
+            for sam in sams:
+                if basename(fastq_path).startswith(sam):
+                    if sam in fastq:
+                        fastq[sam].append(abspath(fastq_path))
+                    else:
+                        fastq[sam] = [abspath(fastq_path)]
+                    break
+        return fastq
+
     def get_fastq_samples(self, tech_dir):
         tech = tech_dir.split('_')[0]
         fastq_paths = get_fastq_paths(self.__dict__[tech_dir])
-        fastqs_dict = fill_fastq(fastq_paths, set(self.meta.sample_name))
         # keep only the `.fastq.gz` files (if `.fastq` files are also present)
-        for sam, fastqs in fastqs_dict.items():
+        for sam, fastqs in self.fill_fastq(fastq_paths).items():
             self.init_fastq(sam)
             fqs = get_fastq_files(fastqs)
             self.fastq[sam][tech] = fqs
