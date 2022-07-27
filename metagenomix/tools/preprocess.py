@@ -327,6 +327,8 @@ def fastp_cmd(self, tech, fastqs, out_dir):
 
 def fastp(self) -> None:
     for tech, fastqs in self.inputs[self.sam].items():
+        if not fastqs:
+            continue
         out_dir = '%s/%s/%s' % (self.dir, tech, self.sam)
         self.outputs['dirs'].append(out_dir)
         cmd, outs = fastp_cmd(self, tech, fastqs, out_dir)
@@ -341,29 +343,38 @@ def fastp(self) -> None:
             io_update(self, i_f=fastqs, o_d=out_dir, key=tech)
 
 
-def cutadapt(self) -> None:
-    tech = 'illumina'
-    out_dir = '%s/%s/%s' % (self.dir, tech, self.sam)
-    self.outputs['dirs'].append(out_dir)
-    r1_o = '%s/%s.R1.fastq.gz' % (out_dir, self.sam)
-    r2_o = '%s/%s.R2.fastq.gz' % (out_dir, self.sam)
+def cutadapt_cmd(self, fastqs, outs):
     cmd = 'cutadapt'
     cmd += ' -a AGATCGGAAGAGCACACGTCTGAACTCCAGTCA'
     cmd += ' -A AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT'
     cmd += ' -m 10'
-    cmd += ' -o %s' % r1_o
-    cmd += ' -p %s ' % r2_o
-    cmd += ' '.join(self.inputs[self.sam][tech])
-    outs = [r1_o, r2_o]
-    self.outputs['outs'].setdefault(tech, []).extend(outs)
-    if self.config.force or to_do(r1_o) or to_do(r2_o):
-        # self.outputs['cmds']] = list([cmd])
-        if tech in self.outputs['cmds']:
-            print(self.outputs['cmds'][tech])
-            print(selfoutputscmdstech)
-        self.outputs['cmds'][tech] = [cmd]
-        # io_update(self, i_f=self.inputs[self.sam][tech], o_f=outs)
-        io_update(self, i_f=self.inputs[self.sam][tech], o_f=outs, key=tech)
+    cmd += ' -o %s' % outs[0]
+    cmd += ' -p %s ' % outs[1]
+    cmd += ' '.join(fastqs)
+    return cmd
+
+
+def cutadapt(self) -> None:
+    for tech, fastqs in self.inputs[self.sam].items():
+        if tech not in ['illumina'] or not fastqs:
+            continue
+        out_dir = '%s/%s/%s' % (self.dir, tech, self.sam)
+        self.outputs['dirs'].append(out_dir)
+
+        r1_o = '%s/%s.R1.fastq.gz' % (out_dir, self.sam)
+        r2_o = '%s/%s.R2.fastq.gz' % (out_dir, self.sam)
+        outs = [r1_o, r2_o]
+        self.outputs['outs'].setdefault(tech, []).extend(outs)
+
+        cmd = cutadapt_cmd(self, fastqs, outs)
+        if self.config.force or to_do(r1_o) or to_do(r2_o):
+            # self.outputs['cmds']] = list([cmd])
+            if tech in self.outputs['cmds']:
+                print(self.outputs['cmds'][tech])
+                print(selfoutputscmdstech)
+            self.outputs['cmds'][tech] = [cmd]
+            # io_update(self, i_f=self.inputs[self.sam][tech], o_f=outs)
+            io_update(self, i_f=fastqs, o_f=outs, key=tech)
 
 
 def atropos_outs(self, inputs, out_dir) -> list:
@@ -409,21 +420,22 @@ def atropos_cmd(self, tech, inputs, out_dir, outputs):
 
 
 def atropos(self):
-    tech = 'illumina'
-    out_dir = '%s/%s/%s' % (self.dir, tech, self.sam)
-    self.outputs['dirs'].append(out_dir)
-    inputs = self.inputs[self.sam][tech]
-    outputs = atropos_outs(self, inputs, out_dir)
-    cmd = atropos_cmd(self, tech, inputs, out_dir, outputs)
-    if self.config.force or sum([to_do(x) for x in outputs]):
-        # self.outputs['cmds'].append(cmd)
-        if tech in self.outputs['cmds']:
-            print(self.outputs['cmds'][tech])
-            print(selfoutputscmdstech)
-        self.outputs['cmds'][tech] = [cmd]
-        # io_update(self, i_f=inputs, o_f=outputs)
-        io_update(self, i_f=inputs, o_f=outputs, key=tech)
-    self.outputs['outs'].setdefault(tech, []).extend(outputs)
+    for tech, fastqs in self.inputs[self.sam].items():
+        if tech not in ['illumina'] or not fastqs:
+            continue
+        out_dir = '%s/%s/%s' % (self.dir, tech, self.sam)
+        self.outputs['dirs'].append(out_dir)
+        outputs = atropos_outs(self, fastqs, out_dir)
+        cmd = atropos_cmd(self, tech, fastqs, out_dir, outputs)
+        if self.config.force or sum([to_do(x) for x in outputs]):
+            # self.outputs['cmds'].append(cmd)
+            if tech in self.outputs['cmds']:
+                print(self.outputs['cmds'][tech])
+                print(selfoutputscmdstech)
+            self.outputs['cmds'][tech] = [cmd]
+            # io_update(self, i_f=inputs, o_f=outputs)
+            io_update(self, i_f=fastqs, o_f=outputs, key=tech)
+        self.outputs['outs'].setdefault(tech, []).extend(outputs)
 
 
 def kneaddata_cmd(self, tech, inputs, out_dir) -> tuple:
@@ -464,19 +476,20 @@ def kneaddata_cmd(self, tech, inputs, out_dir) -> tuple:
 
 
 def kneaddata(self):
-    tech = 'illumina'
-    out_dir = '%s/%s/%s' % (self.dir, tech, self.sam)
-    self.outputs['dirs'].append(out_dir)
-    inputs = self.inputs[self.sam][tech]
-    cmd, outputs = kneaddata_cmd(self, tech, inputs, out_dir)
-    if self.config.force or sum([to_do(x) for x in outputs]):
-        # self.outputs['cmds'].append(cmd)
-        if tech in self.outputs['cmds']:
-            print(self.outputs['cmds'][tech])
-            print(selfoutputscmdstech)
-        self.outputs['cmds'][tech] = [cmd]
-        # io_update(self, i_f=inputs, o_d=out_dir)
-        io_update(self, i_f=inputs, o_d=out_dir, key=tech)
+    for tech, fastqs in self.inputs[self.sam].items():
+        if tech not in ['illumina'] or not fastqs:
+            continue
+        out_dir = '%s/%s/%s' % (self.dir, tech, self.sam)
+        self.outputs['dirs'].append(out_dir)
+        cmd, outputs = kneaddata_cmd(self, tech, fastqs, out_dir)
+        if self.config.force or sum([to_do(x) for x in outputs]):
+            # self.outputs['cmds'].append(cmd)
+            if tech in self.outputs['cmds']:
+                print(self.outputs['cmds'][tech])
+                print(selfoutputscmdstech)
+            self.outputs['cmds'][tech] = [cmd]
+            # io_update(self, i_f=inputs, o_d=out_dir)
+            io_update(self, i_f=fastqs, o_d=out_dir, key=tech)
 
 
 def filtering_cmd(self, tech, db_path, inputs, out1, out2) -> tuple:
@@ -495,23 +508,23 @@ def filtering_cmd(self, tech, db_path, inputs, out1, out2) -> tuple:
     cmd += ' | samtools view -bS'
     cmd += ' | bedtools bamtofastq -i -'
     cmd += ' -fq %s' % out1.replace('fastq.gz', 'fastq')
-    outs = [out1.replace('fastq.gz', 'fastq')]
+    fastqs = [out1.replace('fastq.gz', 'fastq')]
     if len(inputs) > 1:
         cmd += ' -fq2 %s' % out2.replace('fastq.gz', 'fastq')
-        outs.append(out2.replace('fastq.gz', 'fastq'))
+        fastqs.append(out2.replace('fastq.gz', 'fastq'))
     cmd += '\n'
-    return cmd, outs
+    return cmd, fastqs
 
 
 def filtering(self):
-    for tech in self.inputs[self.sam]:
-        outs = self.inputs[self.sam][tech]
-        if not outs:
+    for tech, fastqs_ in self.inputs[self.sam].items():
+        if not fastqs_:
             continue
+        fastqs = fastqs_
         cmds = ''
         databases = self.soft.params['databases']
         for ddx, (db, db_path) in enumerate(databases.items()):
-            inputs = list(outs)
+            inputs = list(fastqs)
             out_dir = '%s/%s/%s_%s/%s' % (self.dir, tech, ddx, db, self.sam)
             self.outputs['dirs'].append(out_dir)
             if len(inputs) == 1:
@@ -522,22 +535,21 @@ def filtering(self):
             if inputs[0].endswith('.gz'):
                 out1 += '.gz'
                 out2 += '.gz'
-            cmd, outs = filtering_cmd(self, tech, db_path, inputs, out1, out2)
+            cmd, fastqs = filtering_cmd(self, tech, db_path, inputs, out1, out2)
             if self.config.force or to_do(out1):
                 cmds += cmd
                 if ddx:
                     cmds += '\nrm %s' % ' '.join(inputs)
-        if outs[0].endswith('.fastq'):
-            for output in outs:
-                cmds += '\ngzip %s' % output
-        outputs_gz = ['%s.gz' % x for x in outs]
-        self.outputs['outs'].setdefault(tech, []).extend(outputs_gz)
+        if fastqs[0].endswith('.fastq'):
+            for fastq in fastqs:
+                cmds += '\ngzip %s' % fastq
+        fastqs_gz = ['%s.gz' % x for x in fastqs]
+        self.outputs['outs'].setdefault(tech, []).extend(fastqs_gz)
         if cmds:
             # self.outputs['cmds'].append(cmds)
             if tech in self.outputs['cmds']:
                 print(self.outputs['cmds'][tech])
                 print(selfoutputscmdstech)
             self.outputs['cmds'][tech] = [cmds]
-            # io_update(self, o_f=outputs_gz)
-            io_update(
-                self, i_f=self.inputs[self.sam][tech], o_f=outputs_gz, key=tech)
+            # io_update(self, i_f=fastqs_, o_f=fastqs_gz)
+            io_update(self, i_f=fastqs_, o_f=fastqs_gz, key=tech)
