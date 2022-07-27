@@ -9,7 +9,7 @@
 import glob
 import sys
 from os.path import dirname
-from metagenomix._io_utils import io_update, todo
+from metagenomix._io_utils import io_update, to_do
 
 
 def get_drep_bins(self) -> dict:
@@ -218,7 +218,7 @@ def checkm_coverage(self, out_dir, key, ext, genome_dir, cmd):
     cov = ''
     if self.soft.params['coverage'] and self.soft.prev != 'drep':
         cov = '%s/coverage.txt' % out_dir
-        if self.config.force or todo(cov):
+        if self.config.force or to_do(cov):
             io_update(self, i_f=bams[sam][pool][sam][''],
                       o_f=coverage, key=key)
             cmd += '\ncheckm coverage'
@@ -258,7 +258,7 @@ def checkm_tree_qa(self, out, key, tree, cmd_tree, cmd):
     self.outputs['dirs'].append(tree_qa)
     for (ext, out_format) in [('txt', '2'), ('nwk', '4')]:
         tree_fpo = '%s/tree_qa.%s' % (tree_qa, ext)
-        if self.config.force or todo(tree_fpo):
+        if self.config.force or to_do(tree_fpo):
             if cmd_tree:
                 cmd += cmd_tree
                 cmd_tree = ''
@@ -278,7 +278,7 @@ def checkm_tree_qa(self, out, key, tree, cmd_tree, cmd):
 def checkm_lineage_set(self, out, key, tree, tree_qa, cmd):
     lineage = '%s/lineage/lineage.ms' % out
     self.outputs['dirs'].append(dirname(tree_qa))
-    if self.config.force or todo(lineage):
+    if self.config.force or to_do(lineage):
         cmd += '\ncheckm lineage_set'
         cmd += ' %s' % tree
         cmd += ' %s\n' % lineage
@@ -319,7 +319,7 @@ def checkm_qa(self, out, key, cov, lineage, analyze, cmd_analyze, cmd):
         ('marker_genes.pos', 8)
     ]:
         qa_fp = '%s/qa_%s' % (dir_qa, qa)
-        if self.config.force or todo(qa_fp):
+        if self.config.force or to_do(qa_fp):
             if cmd_analyze:
                 cmd += cmd_analyze
                 cmd_analyze = ''
@@ -355,7 +355,7 @@ def checkm_unbinned(self, out_dir, key, ext, genome_dir, cmd):
         unbinned_stats = '%s/unbinned_stats.tsv' % unbinned
         self.outputs['dirs'].append(unbinned)
         io_update(self, i_f=contigs, o_d=unbinned, key=key)
-        if self.config.force or todo(unbinned_fa):
+        if self.config.force or to_do(unbinned_fa):
             cmd += '\ncheckm unbinned'
             cmd += ' --extension %s' % ext
             cmd += ' --min_seq_len %s' % self.soft.params['min_seq_len']
@@ -373,7 +373,7 @@ def checkm_tetra(self, out_dir, key):
         tetra_fpo = '%s/tetra.txt' % tetra
         self.outputs['dirs'].append(tetra)
         io_update(self, o_d=tetra, key=key)
-        if self.config.force or todo(tetra_fpo):
+        if self.config.force or to_do(tetra_fpo):
             cmd += '\nif [ ! -f "%s" ]; then\n' % tetra_fpo
             cmd += 'checkm tetra'
             cmd += ' --threads %s' % self.soft.params['cpus']
@@ -418,7 +418,7 @@ def coconet(self):
                 print(kjsrbf)
             cmd += ' --bam %s\n' % ' '.join(bams)
         log_fp = '%s/coconet.log' % out_dir
-        if self.config.force or todo(log_fp):
+        if self.config.force or to_do(log_fp):
             self.outputs['cmds'].setdefault(group, []).append(cmd)
             io_update(self, i_f=spades_outs[1], o_d=out_dir, key=group)
         self.outputs['outs'][group] = out_dir
@@ -432,7 +432,7 @@ def tiara(self):
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'][group] = out_dir
         out_fp = '%s/classifications.txt' % out_dir
-        if self.config.force or todo(out_fp):
+        if self.config.force or to_do(out_fp):
             cmd = 'cd %s\n' % out_dir
             cmd += 'tiara'
             cmd += ' --input %s' % spades_outs[1]
@@ -447,6 +447,7 @@ def tiara(self):
                 cmd += ' --%s %s' % (param, ' '.join(self.soft.params[param]))
             self.outputs['cmds'].setdefault(group, []).append(cmd)
             io_update(self, i_f=spades_outs[1], o_d=out_dir, key=group)
+
 
 
 def plasforest_cmd(self, out_fp: str, in_fp: str):
@@ -470,7 +471,7 @@ def plasforest(self):
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'][group] = out_dir
         out_fp = '%s/plasmids.csv' % out_dir
-        if self.config.force or todo(out_fp):
+        if self.config.force or to_do(out_fp):
             cmd = plasforest_cmd(self, out_fp, spades_outs[1])
             self.outputs['cmds'].setdefault(group, []).append(cmd)
             io_update(self, i_f=spades_outs[1], o_d=out_dir, key=group)
