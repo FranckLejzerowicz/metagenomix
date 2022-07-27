@@ -13,7 +13,7 @@ from skbio.io import read
 
 from os.path import basename, dirname, splitext
 from metagenomix._io_utils import (caller, get_out_dir, write_hmms,
-                                   io_update, reads_lines, todo)
+                                   io_update, reads_lines, to_do)
 
 
 def prodigal_cmd(self, contigs_fp: str, out_dir: str) -> tuple:
@@ -78,7 +78,7 @@ def prodigal(self):
             cmd, outputs = prodigal_cmd(self, contigs, out_dir)
             self.outputs['dirs'].append(out_dir)
             self.outputs['outs'][group] = outputs
-            if self.config.force or todo(outputs[0]):
+            if self.config.force or to_do(outputs[0]):
                 self.outputs['cmds'].setdefault(group, []).append(cmd)
                 io_update(self, i_f=contigs, o_f=outputs,
                           o_d=out_dir, key=group)
@@ -88,7 +88,7 @@ def prodigal(self):
         cmd, outputs = prodigal_cmd(self, contigs, out_dir)
         self.outputs['dirs'].append(out_dir)
         self.outputs['cmds'].append(cmd)
-        if self.config.force or todo(outputs[0]):
+        if self.config.force or to_do(outputs[0]):
             self.outputs['outs'].extend(outputs)
         io_update(self, i_f=contigs, o_f=outputs, o_d=out_dir)
 
@@ -104,7 +104,7 @@ def macsyfinder_cmd(self, fp, o_dir, folder, group=None) -> tuple:
         self.outputs['dirs'].append(out_dir)
         io_update(self, o_d=out_dir, key=group)
         res = '%s/macsyfinder.log' % out_dir
-        if self.config.force or todo(res):
+        if self.config.force or to_do(res):
             cmd += 'macsyfinder'
             cmd += ' --db-type %s' % self.soft.params['db_type']
             cmd += ' --replicon-topology %s' % self.soft.params['topology']
@@ -308,7 +308,7 @@ def custom_cmd(self, input_file, out_dir, dia_hmm):
             sam_dir = '%s/%s' % (out_dir, gene)
             self.outputs['dirs'].append(sam_dir)
             out = '%s/%s.tsv' % (sam_dir, self.sam)
-            if todo(out):
+            if to_do(out):
                 if dia_hmm == 'hmm':
                     stdout = '%s_hmmer.out' % splitext(out)[0]
                     io_update(self, i_f=hmm, o_f=[out, stdout], key=target)
@@ -333,7 +333,7 @@ def custom_cmd(self, input_file, out_dir, dia_hmm):
             else:
                 io_update(self, i_f=out, key=target)
             out2 = out.replace('.tsv', '_contigs.tsv')
-            if todo(out2):
+            if to_do(out2):
                 io_update(self, o_f=out2, key=target)
                 cmd = 'extract_custom_searched_contigs.py'
                 cmd += ' -i %s' % out
@@ -355,7 +355,7 @@ def search_cmd(self, o_dir, fp, tmp_dir, group=None) -> list:
             self.outputs['dirs'].append(out_dir)
             out = '%s/%s.tsv' % (out_dir, splitext(basename(db_path))[0])
             outs.append(out_dir)
-            if self.config.force or todo(out):
+            if self.config.force or to_do(out):
                 cmd = module_call(self, fp, db_path, out, tmp_dir)
                 if group:
                     io_update(self, i_f=fp, o_d=out_dir, key=group)
@@ -519,7 +519,7 @@ def prokka(self):
                 if config.get('proteins'):
                     prefix += '_%s' % splitext(basename(config['proteins']))[0]
                 file_out = '%s/%s.out' % (out, prefix)
-                if self.config.force or todo(file_out):
+                if self.config.force or to_do(file_out):
                     cmd += get_prokka_cmd(self, contigs, out,
                                           prefix, config, cols)
 
@@ -580,9 +580,9 @@ def generic_on_fasta(self, tool):
                     self.outputs['dirs'].append(dirname(out))
                     io_update(self, i_f=fasta, o_d=out, key=group)
                     if tool == 'barrnap':
-                        condition = not todo(out)
+                        condition = not to_do(out)
                     elif tool == 'ccmap':
-                        condition = not todo(folder=dirname(out))
+                        condition = not to_do(folder=dirname(out))
                     if self.config.force or not condition:
                         cmd = globals()[func](self, out, fasta)
                         self.outputs['cmds'].setdefault(group, []).append(cmd)
@@ -594,9 +594,9 @@ def generic_on_fasta(self, tool):
             self.outputs['outs'].append(out)
             io_update(self, i_f=fasta, o_d=out)
             if tool == 'barrnap':
-                condition = not todo(out)
+                condition = not to_do(out)
             elif tool == 'ccmap':
-                condition = not todo(folder=dirname(out))
+                condition = not to_do(folder=dirname(out))
             if self.config.force or not condition:
                 cmd = globals()[func](self, out, fasta)
                 self.outputs['cmds'].append(cmd)
@@ -633,7 +633,7 @@ def write_dbcan_subset(self, taxa: list, folder: str, name: str) -> str:
     fas_fp = '%s/%s.fa' % (folder, name)
     dia_fp = '%s.dmnd' % splitext(fas_fp)[0]
     io_update(self, i_f=fas_fp, o_f=dia_fp)
-    if todo(dia_fp):
+    if to_do(dia_fp):
         with open(fas_fp, 'w') as o:
             taxon_found = False
             for taxon in taxa:
@@ -642,11 +642,11 @@ def write_dbcan_subset(self, taxa: list, folder: str, name: str) -> str:
                 if not meta_taxon_pd.shape[0]:
                     continue
                 gcf_dir = '%s/dbCAN-seq/CAZyme_seq_list' % path
-                if todo(folder=gcf_dir):
+                if to_do(folder=gcf_dir):
                     os.makedirs(gcf_dir)
                 for gcf in set(meta_taxon_pd.index):
                     gcf_fas = '%s/%s.fasta' % (gcf_dir, gcf)
-                    if not todo(gcf_fas):
+                    if not to_do(gcf_fas):
                         for e in read(gcf_fas, 'fasta'):
                             o.write('>%s\n%s\n' % (e.metadata['id'], e))
                         taxon_found = True
@@ -661,7 +661,7 @@ def set_dbcan_taxa(self) -> None:
         if not taxa:
             continue
         folder = '%s/subsets' % self.dir
-        if todo(folder=folder):
+        if to_do(folder=folder):
             os.makedirs(folder)
         self.databases.cazys[name] = folder
         write_dbcan_subset(self, taxa, folder, name)
