@@ -9,7 +9,7 @@
 import os
 from os.path import basename, splitext
 
-from metagenomix._io_utils import io_update, todo
+from metagenomix._io_utils import io_update, to_do
 
 
 def get_meta_groupings(self) -> dict:
