@@ -6,13 +6,9 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-import os
-import glob
-import inspect
 import itertools
-from os.path import abspath, basename, isdir, isfile, splitext
+from os.path import abspath
 
-from metagenomix._io_utils import get_out_dir
 from metagenomix.tools.preprocess import *
 from metagenomix.tools.alignment import *
 from metagenomix.tools.simka import *
@@ -62,7 +58,6 @@ class Commands(object):
         for sdx, softs in enumerate(self.config.pipeline):
             self.soft = self.softs[softs[-1]]
             print('[Collecting commands] #%s: %s' % (sdx, self.soft.name))
-            self.get_longs()
             self.get_inputs()
             self.get_dir()
             self.generic_command()
@@ -77,17 +72,37 @@ class Commands(object):
         """Update the `inputs` attribute of the software object."""
         if not self.soft.prev or self.soft.name == 'map__drep':
             if self.soft.params['scratch'] and self.config.jobs:
-                self.inputs = self.config.fastq_scratch
+                self.inputs = self.config.fastq_mv
             else:
                 self.inputs = self.config.fastq
         else:
             self.inputs = self.softs[self.soft.prev].outputs
+        self.show_inputs()
 
-    def get_longs(self):
-        if self.soft.params['scratch'] and self.config.jobs:
-            self.longs = self.config.long_scratch
-        else:
-            self.longs = self.config.long
+    def show_inputs(self):
+        if self.config.verbose:
+            mlen = max([len(x) for x in self.inputs])
+            print('\n%s\n[%s] inputs\n%s\n' % (
+                ('-' * 30), self.soft.name, ('-' * 30)))
+            print('sample%s %s' % (' '*(mlen - 6), ' '.join(self.config.techs)))
+            for sam in self.inputs:
+                show_sam = True
+                s = '%s%s' % (sam, ' ' * (mlen - len(sam)))
+                for tdx, tech in enumerate(self.config.techs[::-1]):
+                    techs = self.config.techs[:1+self.config.techs.index(tech)]
+                    sep = ''.join(
+                        ['│%s' % (' '*len(t)) if t in self.inputs[sam] and
+                                                 len(self.inputs[sam][t])
+                         else 'X%s' % (' '*len(t)) for t in techs])
+                    if sep.rstrip()[-1] != 'X':
+                        sep = '%s └─' % sep.rstrip()[:-2]
+                    for f in self.inputs[sam].get(tech, []):
+                        if show_sam:
+                            print('%s %s %s' % (s, sep.strip(), f))
+                            show_sam = False
+                        else:
+                            print('%s %s %s' % ((' ' * len(s)), sep.strip(), f))
+                print()
 
     def get_dir(self):
         self.dir = abspath('%s/%s/after_%s' % (
@@ -100,7 +115,6 @@ class Commands(object):
         self.struc = list
         self.io = set
         if set(self.inputs) == set(self.pools) or self.soft.name == 'pooling':
-        # if self.pool in self.pools or self.soft.name in ['pooling', 'spades']:
             self.struc = dict
             self.io = dict
 
@@ -119,27 +133,17 @@ class Commands(object):
                 self.prep_job()
         self.register_command()
 
-    def fill_soft_io(self):
-        for i, j in itertools.product(*[['I', 'O'], ['d', 'f']]):
-            if self.io == set:
-                if self.sam not in self.soft.io:
-                    self.soft.io[self.sam] = {}
-                self.soft.io[self.sam][(i, j)] = self.outputs[
-                    'io'].get((i, j), self.io())
-            else:
-                for k, v in self.outputs['io'].get((i, j), self.io()).items():
-                    if (self.sam, k) not in self.soft.io:
-                        self.soft.io[(self.sam, k)] = {}
-                    self.soft.io[(self.sam, k)][(i, j)] = v
-
     def update_dirs(self):
         self.soft.dirs.update(set([x.replace('${SCRATCH_FOLDER}/', '/')
                                    for x in self.outputs['dirs']]))
 
     def init_outputs(self):
-        self.outputs = {'cmds': self.struc(), 'outs': self.struc(), 'dirs': [],
-                        'io': {('I', 'd'): self.io(), ('I', 'f'): self.io(),
-                               ('O', 'd'): self.io(), ('O', 'f'): self.io()}}
+        # self.outputs = {'cmds': self.struc(), 'outs': {}, 'dirs': [],
+        #                 'io': {('I', 'd'): self.io(), ('I', 'f'): self.io(),
+        #                        ('O', 'd'): self.io(), ('O', 'f'): self.io()}}
+        self.outputs = {'cmds': {}, 'outs': {}, 'dirs': [],
+                        'io': {('I', 'd'): {}, ('I', 'f'): {},
+                               ('O', 'd'): {}, ('O', 'f'): {}}}
 
     def call_method(self):
         """Call the command-preparing method from this class (for the tools that
@@ -155,12 +159,66 @@ class Commands(object):
         else:
             raise ValueError('No method for software %s' % self.soft.name)
 
+    # def fill_soft_io(self):
+    #     for i, j in itertools.product(*[['I', 'O'], ['d', 'f']]):
+    #         if self.io == set:
+    #             if self.sam not in self.soft.io:
+    #                 self.soft.io[self.sam] = {}
+    #             self.soft.io[self.sam][(i, j)] = self.outputs[
+    #                 'io'].get((i, j), self.io())
+    #         else:
+    #             for k, v in self.outputs['io'].get((i, j), self.io()).items():
+    #                 if (self.sam, k) not in self.soft.io:
+    #                     self.soft.io[(self.sam, k)] = {}
+    #                 self.soft.io[(self.sam, k)][(i, j)] = v
+
+    def init_io(self, key):
+        if key not in self.soft.io:
+            self.soft.io[key] = {}
+
+    def fill_soft_io(self):
+        for i, j in itertools.product(*[['I', 'O'], ['d', 'f']]):
+            # print()
+            # print("self.outputs['io']")
+            # print(self.outputs['io'])
+            for tech, io in self.outputs['io'].get((i, j), {}).items():
+                if self.io == set:
+                    self.init_io((self.sam, tech))
+                    self.soft.io[(self.sam, tech)][(i, j)] = io
+                else:
+                    for k, v in io.items():
+                        self.init_io((self.sam, tech, k))
+                        self.soft.io[(self.sam, tech, k)][(i, j)] = v
+        # print()
+        # print("self.soft.io")
+        # print(self.soft.io)
+        # print(selfsoftio)
+
+    # def unpack_cmds(self):
+    #     if self.soft.name in ['drep']:
+    #         self.cmds = self.outputs['cmds']
+    #     else:
+    #         self.cmds[self.sam] = self.outputs['cmds']
+
+    def unpack_cmds(self):
+        for tech, cmds in self.outputs['cmds'].items():
+            if self.soft.name in ['drep']:
+                for k, v in cmds.items():
+                    self.cmds[(k, tech)] = v
+            else:
+                self.cmds[(self.sam, tech)] = cmds
+        # print()
+        # print("self.cmds")
+        # print(self.cmds)
+
     def extract_data(self):
         if self.outputs.get('cmds'):
-            if self.soft.name in ['drep']:
-                self.cmds = self.outputs['cmds']
-            else:
-                self.cmds[self.sam] = self.outputs['cmds']
+            # REPLACED BY "self.unpack_cmds()":
+            # if self.soft.name in ['drep']:
+            #     self.cmds = self.outputs['cmds']
+            # else:
+            #     self.cmds[self.sam] = self.outputs['cmds']
+            self.unpack_cmds()
             self.fill_soft_io()
         if self.soft.name in self.holistics:
             self.soft.outputs = self.outputs['outs']
@@ -325,8 +383,3 @@ class Commands(object):
     def register_command(self):
         self.softs[self.soft.name].cmds = dict(self.cmds)
         self.cmds = {}
-
-    # def add_transfer_localscratch(self):
-    #     pass
-    #     # if self.scratch:
-    #     #     self.add_transfer_localscratch()
