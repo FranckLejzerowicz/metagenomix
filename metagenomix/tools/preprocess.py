@@ -12,7 +12,9 @@ from metagenomix._io_utils import io_update, to_do
 from metagenomix.parameters import tech_params
 
 
-def get_cat_zcat(fastq_fp: str) -> str:
+def get_cat_zcat(
+        fastq_fp: str
+) -> str:
     """Get the command `cat` or `gzcat` to run for fastq editing.
 
     Parameters
@@ -31,7 +33,10 @@ def get_cat_zcat(fastq_fp: str) -> str:
     return cat
 
 
-def edit_fastq_cmd(fastq_fp: str, num: int) -> str:
+def edit_fastq_cmd(
+        fastq_fp: str,
+        num: int
+) -> str:
     """Get the unix command to run on each fastq file that
     needs editing, depending on the source of fastq file.
 
@@ -41,8 +46,6 @@ def edit_fastq_cmd(fastq_fp: str, num: int) -> str:
         Fastq file path.
     num : int
         Can be 1 or 2 for the forward and reverse read, respectively.
-    source : str
-        Source of the fastq that defines format and editing type.
 
     Returns
     -------
@@ -61,7 +64,9 @@ def edit_fastq_cmd(fastq_fp: str, num: int) -> str:
     return cmd
 
 
-def get_fastq_header(fastq_path: str) -> str:
+def get_fastq_header(
+        fastq_path: str
+) -> str:
     """Get the first line of the fastq file.
 
     Parameters
@@ -88,7 +93,11 @@ def get_fastq_header(fastq_path: str) -> str:
     return fastq_line
 
 
-def get_edit_cmd(self, num: int, tech: str) -> None:
+def get_edit_cmd(
+        self,
+        num: int,
+        tech: str
+) -> None:
     """Get the unix command to run on each fastq file that needs editing.
 
     Parameters
@@ -101,7 +110,7 @@ def get_edit_cmd(self, num: int, tech: str) -> None:
     num : int
         Can be 1 or 2 for the forward and reverse read, respectively.
     tech : str
-        Technology
+        Technology: 'illumina', 'pacbio', or 'nanopore'
     """
     fastqs_fps = self.inputs[self.sam][tech]
     fastq_fp = fastqs_fps[num - 1]
@@ -136,7 +145,12 @@ def edit(self) -> None:
         get_edit_cmd(self, r, tech)
 
 
-def count_cmd(self, idx: int, input_fp: str, out: str) -> str:
+def count_cmd(
+        self,
+        idx: int,
+        input_fp: str,
+        out: str
+) -> str:
     """Get the command to count the reads in a fasta, fastq or fastq.gz file.
 
     Parameters
@@ -207,14 +221,30 @@ def count(self) -> None:
         if self.config.force or to_do(out):
             for idx, input_path in enumerate(inputs):
                 cmd = count_cmd(self, idx, input_path, out)
-                # self.outputs['cmds'].append(cmd)
                 self.outputs['cmds'].setdefault(tech, []).append(cmd)
-            # io_update(self, i_f=inputs, o_f=out)
             io_update(self, i_f=inputs, o_f=out, key=tech)
     self.outputs['outs'] = outs
 
 
 def fastqc(self) -> None:
+    """Check quality based on the FastQC software.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for FastQC
+        .sam : str
+            Sample name
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    """
     outs = {}
     for tech, inputs in self.inputs[self.sam].items():
         out_dir = '%s/%s/%s' % (self.dir, tech, self.sam)
@@ -223,17 +253,40 @@ def fastqc(self) -> None:
         outs[tech] = out
         if self.config.force or not sum([to_do(x) for x in out]):
             cmd = 'fastqc %s -o %s' % (' '.join(inputs), out_dir)
-            # self.outputs['cmds'].append(cmd)
-            if tech in self.outputs['cmds']:
-                print(self.outputs['cmds'][tech])
-                print(selfoutputscmdstech)
             self.outputs['cmds'][tech] = [cmd]
-            # io_update(self, i_f=inputs, o_d=out_dir)
             io_update(self, i_f=inputs, o_d=out_dir, key=tech)
     self.outputs['outs'] = outs
 
 
-def fastp_cmd(self, tech, fastqs, out_dir):
+def fastp_cmd(
+        self,
+        tech: str,
+        fastqs: list,
+        out_dir: str
+) -> tuple:
+    """Collect the Fastp command.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .sam : str
+            Sample name
+        .soft.params
+            Parameters
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    fastqs : list
+        Path to the input files
+    out_dir : str
+        Path to the output folder
+
+    Returns
+    -------
+    cmd : str
+        Fastp command
+    outs : list
+        Path to the output files
+    """
     params = tech_params(self, tech)
     outs = []
     cmd = 'fastp'
@@ -326,6 +379,24 @@ def fastp_cmd(self, tech, fastqs, out_dir):
 
 
 def fastp(self) -> None:
+    """Filter the fastq files based on the Fastp software.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for Fastp
+        .sam : str
+            Sample name
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    """
     for tech, fastqs in self.inputs[self.sam].items():
         if not fastqs:
             continue
@@ -334,16 +405,32 @@ def fastp(self) -> None:
         cmd, outs = fastp_cmd(self, tech, fastqs, out_dir)
         self.outputs['outs'].setdefault(tech, []).extend(outs)
         if self.config.force or sum([to_do(x) for x in outs]):
-            # self.outputs['cmds'].append(cmd)
-            if tech in self.outputs['cmds']:
-                print(self.outputs['cmds'][tech])
-                print(selfoutputscmdstech)
             self.outputs['cmds'][tech] = [cmd]
-            # io_update(self, i_f=fastqs, o_d=out_dir)
             io_update(self, i_f=fastqs, o_d=out_dir, key=tech)
 
 
-def cutadapt_cmd(self, fastqs, outs):
+def cutadapt_cmd(
+        self,
+        fastqs: list,
+        outs: list
+) -> str:
+    """Collect the Cutadapt command.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .soft.params
+            Parameters
+    fastqs : list
+        Path to the input files
+    outs : list
+        Path to the output files
+
+    Returns
+    -------
+    cmd : str
+        Cutadapt command
+    """
     cmd = 'cutadapt'
     cmd += ' -a AGATCGGAAGAGCACACGTCTGAACTCCAGTCA'
     cmd += ' -A AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT'
@@ -355,6 +442,24 @@ def cutadapt_cmd(self, fastqs, outs):
 
 
 def cutadapt(self) -> None:
+    """Filter the fastq files based on the Cutadapt software.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for Cutadapt
+        .sam : str
+            Sample name
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    """
     for tech, fastqs in self.inputs[self.sam].items():
         if tech not in ['illumina'] or not fastqs:
             continue
@@ -368,28 +473,74 @@ def cutadapt(self) -> None:
 
         cmd = cutadapt_cmd(self, fastqs, outs)
         if self.config.force or to_do(r1_o) or to_do(r2_o):
-            # self.outputs['cmds']] = list([cmd])
-            if tech in self.outputs['cmds']:
-                print(self.outputs['cmds'][tech])
-                print(selfoutputscmdstech)
             self.outputs['cmds'][tech] = [cmd]
-            # io_update(self, i_f=self.inputs[self.sam][tech], o_f=outs)
             io_update(self, i_f=fastqs, o_f=outs, key=tech)
 
 
-def atropos_outs(self, inputs, out_dir) -> list:
-    if len(inputs) == 1:
+def atropos_outs(
+        self,
+        fastqs,
+        out_dir: str
+) -> list:
+    """Collect the output file paths for Atropos.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .sam : str
+            Sample name
+    fastqs : list
+        Path to the input files
+    out_dir : str
+        Path to the output folder
+
+    Returns
+    -------
+    outs : list
+        Path to the output files
+    """
+    if len(fastqs) == 1:
         out1 = '%s/%s.fastq' % (out_dir, self.sam)
     else:
         out1 = '%s/%s_R1.fastq' % (out_dir, self.sam)
     out2 = '%s/%s_R2.fastq' % (out_dir, self.sam)
-    if inputs[0].endswith('.gz'):
+    if fastqs[0].endswith('.gz'):
         out1 += '%s.gz'
         out2 += '%s.gz'
-    return [out1, out2]
+    outs = [out1, out2]
+    return outs
 
 
-def atropos_cmd(self, tech, inputs, out_dir, outputs):
+def atropos_cmd(
+        self,
+        tech: str,
+        inputs: list,
+        out_dir: str,
+        outputs: list
+) -> str:
+    """Collect the command line for Atropos filtering and trimming.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .sam : str
+            Sample name
+        .soft.params
+            Parameters
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    inputs : list
+        Path to the input files
+    out_dir : str
+        Path to the output folder
+    outputs : list
+        Path to the output files
+
+    Returns
+    -------
+    cmd : str
+        Atropos commands
+    """
     params = tech_params(self, tech)
     cmd = 'atropos trim'
     for a in params['a']:
@@ -419,7 +570,25 @@ def atropos_cmd(self, tech, inputs, out_dir, outputs):
     return cmd
 
 
-def atropos(self):
+def atropos(self) -> None:
+    """Filter the fastq files based on the Atropos software.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for Atropos
+        .sam : str
+            Sample name
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    """
     for tech, fastqs in self.inputs[self.sam].items():
         if tech not in ['illumina'] or not fastqs:
             continue
@@ -428,17 +597,42 @@ def atropos(self):
         outputs = atropos_outs(self, fastqs, out_dir)
         cmd = atropos_cmd(self, tech, fastqs, out_dir, outputs)
         if self.config.force or sum([to_do(x) for x in outputs]):
-            # self.outputs['cmds'].append(cmd)
-            if tech in self.outputs['cmds']:
-                print(self.outputs['cmds'][tech])
-                print(selfoutputscmdstech)
             self.outputs['cmds'][tech] = [cmd]
-            # io_update(self, i_f=inputs, o_f=outputs)
             io_update(self, i_f=fastqs, o_f=outputs, key=tech)
         self.outputs['outs'].setdefault(tech, []).extend(outputs)
 
 
-def kneaddata_cmd(self, tech, inputs, out_dir) -> tuple:
+def kneaddata_cmd(
+        self,
+        tech: str,
+        inputs: list,
+        out_dir:str
+) -> tuple:
+    """Collect the Kneaddata commands.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .sam : str
+            Sample name
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    inputs : list
+        Path to the input files
+    out_dir : str
+        Path to the output folder
+
+    Returns
+    -------
+    cmd : str
+        Kneaddata commands
+    outputs : list
+        Path to the output files
+    """
     params = tech_params(self, tech)
     cmd = 'kneaddata'
     for inp in inputs:
@@ -475,7 +669,25 @@ def kneaddata_cmd(self, tech, inputs, out_dir) -> tuple:
     return cmd, outputs
 
 
-def kneaddata(self):
+def kneaddata(self) -> None:
+    """Filter the fastq files based on the BioBakery Kneaddata software.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for Kneaddata
+        .sam : str
+            Sample name
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    """
     for tech, fastqs in self.inputs[self.sam].items():
         if tech not in ['illumina'] or not fastqs:
             continue
@@ -483,16 +695,43 @@ def kneaddata(self):
         self.outputs['dirs'].append(out_dir)
         cmd, outputs = kneaddata_cmd(self, tech, fastqs, out_dir)
         if self.config.force or sum([to_do(x) for x in outputs]):
-            # self.outputs['cmds'].append(cmd)
-            if tech in self.outputs['cmds']:
-                print(self.outputs['cmds'][tech])
-                print(selfoutputscmdstech)
             self.outputs['cmds'][tech] = [cmd]
-            # io_update(self, i_f=inputs, o_d=out_dir)
             io_update(self, i_f=fastqs, o_d=out_dir, key=tech)
 
 
-def filtering_cmd(self, tech, db_path, inputs, out1, out2) -> tuple:
+def filtering_cmd(
+        self,
+        tech: str,
+        db_path: str,
+        inputs: list,
+        out1: str,
+        out2: str
+) -> tuple:
+    """Collect the command line for filtering.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .soft.params
+            Parameters
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    db_path : str
+        Path to the reference bowtie2 database
+    inputs : list
+        Path to the input fastq files
+    out1 : str
+        Path to the output fastq.gz files
+    out2 : str
+        Path to the output fastq.gz files
+
+    Returns
+    -------
+    cmd : str
+        filtering commands
+    fastqs : list
+        Path to the output fastq files
+    """
     params = tech_params(self, tech)
     cmd = '\nbowtie2'
     cmd += ' -p %s' % params['cpus']
@@ -517,6 +756,25 @@ def filtering_cmd(self, tech, db_path, inputs, out1, out2) -> tuple:
 
 
 def filtering(self):
+    """Perform the filtering of fastq files so that every sequences that
+    aligns to any of the passed databases is discarded.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for filtering
+        .sam : str
+            Sample name
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    """
     for tech, fastqs_ in self.inputs[self.sam].items():
         if not fastqs_:
             continue
@@ -546,10 +804,5 @@ def filtering(self):
         fastqs_gz = ['%s.gz' % x for x in fastqs]
         self.outputs['outs'].setdefault(tech, []).extend(fastqs_gz)
         if cmds:
-            # self.outputs['cmds'].append(cmds)
-            if tech in self.outputs['cmds']:
-                print(self.outputs['cmds'][tech])
-                print(selfoutputscmdstech)
             self.outputs['cmds'][tech] = [cmds]
-            # io_update(self, i_f=fastqs_, o_f=fastqs_gz)
             io_update(self, i_f=fastqs_, o_f=fastqs_gz, key=tech)
