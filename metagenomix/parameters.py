@@ -6,12 +6,12 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
+import sys
 import glob
 import numpy as np
 from os.path import dirname, isdir, isfile
 
 from metagenomix._io_utils import read_yaml
-from metagenomix.tools.alignment import *
 
 
 def tech_params(self, tech: str):
@@ -189,6 +189,21 @@ def check_default(self, params, defaults, tool, let_go: list = [],
             else:
                 check_default_generic(param, vals, values, tool)
         check_default_type(self, params, param, multi, tool)
+
+
+def check_binary(self, tool, params, defaults, opt):
+    if opt == 'path':
+        message = 'Param "path" for path to binaries folder missing'
+        defaults['path'] = '<Path to folder containing the %s binary>' % tool
+        isfile_or_isdir = isdir
+    if opt in ['binary', 'trimmomatic', 'bowtie2']:
+        message = 'Param "binary" for path to binary/executable'
+        defaults['binary'] = '<Path to the %s binary>' % tool
+        isfile_or_isdir = isfile
+    if opt not in params:
+        sys.exit('[%s] %s' % (tool, message))
+    if not self.config.dev and not isfile_or_isdir(params[opt]):
+        sys.exit('[%s] Please provide valid path to param "%s"' % (opt, tool))
 
 
 class Parameters(object):
@@ -537,14 +552,12 @@ def check_kneaddata(self, params, soft):
     for tool in tools:
         if tool not in params:
             params[tool] = defaults[tool]
-        elif not self.config.dev and not glob.glob('%s*' % params[tool]):
-            print('[kneaddata] Param "%s": no path found (use $PATH)' % tool)
+        else:
+            check_binary(self, 'kneaddata', params, defaults, tool)
     if 'databases' not in params or not isinstance(params['databases'], list):
         sys.exit('[kneaddata] Params "databases" must a list of existing paths')
     check_default(self, params, defaults, soft.name, (tools + ['databases']))
     defaults['databases'] = '<list of databases>'
-    defaults['bowtie2'] = '<path to bowtie2 (default to $PATH)>'
-    defaults['trimmomatic'] = '<path to trimmomatic (default to $PATH)>'
     return defaults
 
 
@@ -725,17 +738,39 @@ def check_shogun(self, params, soft):
 
 def check_bowtie2(self, params, soft):
     defaults = {
-        # default: 'paired'
         'pairing': ['paired', 'concat', 'single'],
         'discordant': [True, False],
         'k': '16', 'np': '1',
         'mp': '1,1', 'rdg': '0,1', 'rfg': '0,1',
         'score-min': 'L,0,-0.05'
     }
-    let_go = []
-    check_bowtie_k_np(soft, params, defaults, let_go)
-    check_bowtie_mp_rdg_rfg(soft, params, defaults, let_go)
-    check_bowtie_score_min(soft, params, defaults, let_go)
+    for opt in ['k', 'np']:
+        if opt in params and not str(params[opt]).isdigit():
+            sys.exit('[bowtie2] "%s" option invalid' % opt)
+        else:
+            params[opt] = defaults[opt]
+
+    for opt in ['mp', 'rdg', 'rfg']:
+        if opt in params:
+            if len([x.isdigit() for x in str(params[opt]).split(',')]) != 2:
+                sys.exit('[bowtie2] "%s" option invalid' % opt)
+        else:
+            params[opt] = defaults[opt]
+
+    if 'score-min' in params:
+        s = params['score-min'].split(',')
+        if len(s) != 3 or s[0] not in 'CLSG':
+            sys.exit('[bowtie2] "score-min" option invalid')
+        else:
+            for r in [1, 2]:
+                try:
+                    float(s[r])
+                except ValueError:
+                    sys.exit('[bowtie2] "score-min" option invalid')
+    else:
+        params['score-min'] = defaults['score-min']
+
+    let_go = ['k', 'np', 'mp', 'rdg', 'rfg', 'score-min']
     check_default(self, params, defaults, soft.name, let_go)
     dbs_existing = check_databases('bowtie2', params, self.databases)
     valid_dbs = {}
@@ -777,14 +812,10 @@ def check_spades(self, params, soft):
 
 
 def check_viralverify(self, params, soft):
-    if 'path' not in params:
-        sys.exit("[viralverify] Please provide path to software's 'bin' folder")
-    if not self.config.dev and not isdir(params['path']):
-        sys.exit("[viralverify] Please provide path to software's 'bin' folder")
     defaults = {'thr': 7, 'p': [False, True], 'db': [False, True]}
     check_nums(self, params, defaults, ['thr'], int, 'viralverify')
     check_default(self, params, defaults, soft.name, ['thr'])
-    defaults['path'] = '<Path to the software "bin" folder>'
+    check_binary(self, soft.name, params, defaults, 'path')
     return defaults
 
 
@@ -830,9 +861,9 @@ def check_simka(self, params, soft):
                   ['kmer', 'log_reads', 'nb_kmers', 'min_read_size'])
     params['kmer'] = [int(x) for x in params['kmer']]
     params['log_reads'] = [int(x) for x in params['log_reads']]
-    defaults['path'] = '<Path to the SimKa program folder>'
     defaults['kmer'] = [str(x) for x in np.linspace(15, 80, 6)]
     defaults['log_reads'] = [str(x) for x in np.logspace(3, 7, 3)]
+    check_binary(self, 'kneaddata', params, defaults, 'path')
     return defaults
 
 
@@ -898,9 +929,9 @@ def check_drep(self, params, soft):
     check_nums(self, params, defaults, ints, int, soft.name)
     flts = ['P_ani', 'S_ani', 'cov_thresh', 'warn_dist', 'warn_sim', 'warn_aln']
     check_nums(self, params, defaults, flts, float, soft.name, 0, 1)
-    check_default(self, params, defaults, soft.name,
-                  (ints + flts), ['S_algorithm'])
-    defaults['anicalculator'] = '<path to folder with "anicalculator" binary>'
+    check_default(
+        self, params, defaults, soft.name, (ints + flts), ['S_algorithm'])
+    check_binary(self, soft.name, params, defaults, 'path')
     return defaults
 
 
@@ -1056,8 +1087,6 @@ def check_humann(self, params, soft):
         'prescreen_threshold': 0.001,
         'uniref': ['uniref90', 'uniref50'],
         'skip_translated': [False, True],
-        'nucleotide_db': '/path/to/full_chocophlan.v0.1.1/chocophlan',
-        'protein_db': '/path/to/uniref90',
     })
     let_go = ['profiles', 'nucleotide_db', 'protein_db']
     param_dtype = [('evalue', float), ('prescreen_threshold', float),
@@ -1288,11 +1317,6 @@ def check_plasmidfinder(self, params, soft):
     elif not self.config.dev and not isfile(params['kma']):
         sys.exit('[plasmidfinder] "kma" binary not found: "%s"' % params['kma'])
 
-    if 'path' not in params:
-        sys.exit('[plasmidfinder] Param "path" missing (plasmidfinder.py path)')
-    elif not self.config.dev and not isfile(params['path']):
-        sys.exit('[plasmidfinder] "%s" not found' % params['path'])
-
     db_path = 'databasePath'
     if db_path not in params:
         sys.exit('[plasmidfinder] Param "databasePath" missing (databases dir)')
@@ -1307,8 +1331,8 @@ def check_plasmidfinder(self, params, soft):
     ints = ['threshold', 'mincov']
     check_nums(self, params, defaults, ints, int, soft.name, 0, 100)
     check_default(self, params, defaults, soft.name, ints)
+    check_binary(self, soft.name, params, defaults, 'binary')
     defaults['kma'] = '<Path to the "kma" binary>'
-    defaults['path'] = '<Path to the "plasmidfinder.py" script>'
     defaults['databasePath'] = '<Path databases folder (with a "config" file)>'
     defaults['databases'] = "<Comma-separated databases (first field of the " \
                             "databasePath's 'config' file)>"
@@ -1322,14 +1346,9 @@ def check_plasforest(self, params, soft):
         'f': [True, False],
         'r': [False, True]
     }
-    if 'path' not in params:
-        sys.exit('[plasforest] Param "path" missing (PlasForest.py path)')
-    elif not self.config.dev and not isfile(params['path']):
-        sys.exit('[plasforest] "%s" not found' % params['path'])
-
     check_nums(self, params, defaults, ['size_of_batch'], int, soft.name)
     check_default(self, params, defaults, soft.name, ['size_of_batch'])
-    defaults['path'] = '<Path to the "PlasForest.py" script>'
+    check_binary(self, soft.name, params, defaults, 'binary')
     return defaults
 
 
@@ -1367,16 +1386,12 @@ def check_canu(self, params, soft):
         'minOverlapLength': 500,
         'rawErrorRate': 0.,
     }
-    if 'path' not in params:
-        print('[canu] No param "path" to binary (hope it is in the PATH!)')
-    elif not self.config.dev and not isfile(params['path']):
-        print('[canu] Param "path" to binary does not exist')
     ints = ['minReadLength', 'minOverlapLength']
     check_nums(self, params, defaults, ints, int, soft.name)
     floats = ['correctedErrorRate', 'rawErrorRate']
     check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
     check_default(self, params, defaults, soft.name, (ints + floats))
-    defaults['path'] = '<Path to the canu executable>'
+    check_binary(self, soft.name, params, defaults, 'path')
     defaults['genome_size'] = '<estimated genome size (e.g., 5m or 2.6g)>'
     defaults['specifications'] = '<Path to assembly option specifications file>'
     return defaults
@@ -1475,6 +1490,7 @@ def check_ngmerge(self, params, soft):
     floats = ['p']
     check_nums(self, params, defaults, floats, float, soft.name)
     check_default(self, params, defaults, soft.name, (ints + floats))
+    check_binary(self, soft.name, params, defaults, 'path')
     return defaults
 
 
@@ -1612,8 +1628,8 @@ def check_bbmerge(self, params, soft):
             'mindepthseed', 'mindepthextend', 'branchmult1', 'branchmult2',
             'branchlower', 'prefilter', 'filtermem', 'minapproxoverlap']
     check_nums(self, params, defaults, ints, int, soft.name)
-    floats = [
-        'pfilter', 'maxratio', 'ratiomargin', 'ratiooffset', 'minsecondratio']
+    floats = ['pfilter', 'maxratio', 'ratiomargin',
+              'ratiooffset', 'minsecondratio']
     check_nums(self, params, defaults, floats, float, soft.name)
     floats_ = ['prealloc', 'minprob']
     check_nums(self, params, defaults, floats_, float, soft.name, 0, 1)
@@ -1678,6 +1694,7 @@ def check_necat(self, params, soft):
     floats = [x for x in defaults if x[-2:] in ['_e', '_p']]
     check_nums(self, params, defaults, floats, float, soft.name)
     check_default(self, params, defaults, soft.name, (ints + floats))
+    check_binary(self, soft.name, params, defaults, 'path')
     defaults['genome_size'] = '<estimated genome size (in bases)>'
     return defaults
 
