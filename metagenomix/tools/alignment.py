@@ -9,7 +9,7 @@
 import sys
 import pkg_resources
 from os.path import splitext
-from metagenomix._io_utils import io_update, todo
+from metagenomix._io_utils import io_update, to_do
 
 # Keep line because read mapping alignments will be python scripts
 # scripts = pkg_resources.resource_filename('metagenomix', 'resources/scripts')
@@ -197,7 +197,7 @@ def bowtie2(self) -> None:
         db_out = '%s/%s/%s' % (out, db, self.soft.params['pairing'])
         cmd, sam = get_bowtie2_cmd(self, fastx, db_path, db_out)
         self.outputs['outs'][db] = sam
-        if self.config.force or todo(sam):
+        if self.config.force or to_do(sam):
             cmd = get_alignment_cmd(fastx, cmd, sam)
             self.outputs['cmds'].append(cmd)
             io_update(self, i_f=fastx, i_d=db_out, o_d=db_out)
@@ -273,7 +273,7 @@ def flash(self):
     out_fps = [ext, nc1, nc2]
     self.outputs['dirs'].append(out)
     self.outputs['outs'].extend(out_fps)
-    if self.config.force or sum([todo(x) for x in out_fps]):
+    if self.config.force or sum([to_do(x) for x in out_fps]):
         cmd = 'flash %s' % ' '.join(self.inputs[self.sam])
         cmd += ' --min-overlap %s' % self.soft.params['min_overlap']
         cmd += ' --max-overlap %s' % self.soft.params['max_overlap']
@@ -323,7 +323,7 @@ def ngmerge(self):
     out_fps = [ext, nc1, nc2]
     self.outputs['dirs'].append(out)
     self.outputs['outs'].extend(out_fps)
-    if self.config.force or sum([todo(x) for x in out_fps]):
+    if self.config.force or sum([to_do(x) for x in out_fps]):
         cmd = 'NGmerge'
         cmd += ' -1 %s' % self.inputs[self.sam][0]
         cmd += ' -2 %s' % self.inputs[self.sam][1]
@@ -380,7 +380,7 @@ def pear(self):
     self.outputs['dirs'].append(out)
     self.outputs['outs'].extend(out_fps)
 
-    if self.config.force or sum([todo(x) for x in out_fps]):
+    if self.config.force or sum([to_do(x) for x in out_fps]):
         cmd = 'pear'
         cmd += ' --forward-fastq %s' % self.inputs[self.sam][0]
         cmd += ' --reverse-fastq %s' % self.inputs[self.sam][1]
@@ -436,7 +436,7 @@ def bbmerge(self):
     self.outputs['dirs'].append(out)
     self.outputs['outs'].extend(out_fps)
 
-    if self.config.force or sum([todo(x) for x in out_fps]):
+    if self.config.force or sum([to_do(x) for x in out_fps]):
         cmd = 'bbmerge.sh'
         cmd += ' in1=%s' % self.inputs[self.sam][0]
         cmd += ' in2=%s' % self.inputs[self.sam][1]
