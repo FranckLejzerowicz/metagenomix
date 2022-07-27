@@ -17,8 +17,9 @@ from metagenomix._io_utils import mkdr, get_roundtrip
 
 class CreateScripts(object):
 
-    def __init__(self, config):
+    def __init__(self, config, workflow):
         self.config = config
+        self.graph = workflow.graph
         self.cmd = []
         self.cmds = {}
         self.chunks = {}
@@ -145,6 +146,8 @@ class CreateScripts(object):
             self.get_chunks(soft.params['chunks'])
             self.write_jobs(name, soft)
             self.write_main(name, soft)
+            paths = self.graph.paths[soft.name]
+            print('PATH:', paths)
 
     def get_sh(self, name: str, chunk_name: str, soft=None) -> None:
         """
@@ -169,12 +172,12 @@ class CreateScripts(object):
         # mandatory options
         self.cmd = [
             'Xhpc',
+            '-i', self.sh,
             '-j', self.job_name,
             '-t', str(params['time']),
             '-c', str(params['cpus']),
             '-M', str(params['mem']), params['mem_dim'],
-            '--no-stat',
-            '-i', self.sh]
+            '--no-stat']
         # whether the cpus requests is per node
         if params['nodes']:
             self.cmd.extend(['-n', str(params['nodes'])])
@@ -205,7 +208,6 @@ class CreateScripts(object):
             self.cmd.append('--userscratch')
         if not self.config.verbose:
             self.cmd.append('--quiet')
-        # print(' '.join(self.cmd))
 
     def call_cmd(self):
         cmd = ' '.join(self.cmd)
