@@ -242,11 +242,3 @@ class Workflow(object):
         if self.config.show_params:
             for _, soft in self.softs.items():
                 self.show_params(soft)
-
-    # def collect_paths(self):
-    #
-    #     if soft.soft_prev == 'qiita_wol':
-    #         soft.output_paths[(None, 'qiita_wol')] = qiita_wol
-    #         if soft == 'instrain':
-    #             instrain_refs, instrain_bams = get_instrain_refs_bams(soft,
-    #                                                                   soft_prev)
