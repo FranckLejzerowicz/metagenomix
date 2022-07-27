@@ -7,7 +7,7 @@
 # ----------------------------------------------------------------------------
 
 import gzip
-from os.path import basename, dirname
+from os.path import basename
 from metagenomix._io_utils import io_update, to_do
 from metagenomix.parameters import tech_params
 
@@ -111,7 +111,7 @@ def get_edit_cmd(self, num: int, tech: str) -> None:
         if len(line_split) > 1:
             cmd = edit_fastq_cmd(fastq_fp, num)
             # self.outputs['cmds'].append(cmd)
-            self.outputs['cmds'][tech].append(cmd)
+            self.outputs['cmds'].setdefault(tech, []).append(cmd)
     # io_update(self, i_f=fastqs_fps, o_f=fastqs_fps)
     io_update(self, i_f=fastqs_fps, o_f=fastqs_fps, key=tech)
 
@@ -130,7 +130,6 @@ def edit(self) -> None:
             Configurations
     """
     tech = 'illumina'
-    # self.outputs['cmds'][tech] = []
     for r in [1, 2]:
         if len(self.config.fastq[self.sam][tech]) < r:
             continue
@@ -201,7 +200,6 @@ def count(self) -> None:
     """
     outs = {}
     for tech, inputs in self.inputs[self.sam].items():
-        self.outputs['cmds'][tech] = []
         out_dir = '%s/%s' % (self.dir, tech)
         self.outputs['dirs'].append(out_dir)
         out = '%s/%s_read_count.tsv' % (out_dir, self.sam)
@@ -210,7 +208,7 @@ def count(self) -> None:
             for idx, input_path in enumerate(inputs):
                 cmd = count_cmd(self, idx, input_path, out)
                 # self.outputs['cmds'].append(cmd)
-                self.outputs['cmds'][tech].append(cmd)
+                self.outputs['cmds'].setdefault(tech, []).append(cmd)
             # io_update(self, i_f=inputs, o_f=out)
             io_update(self, i_f=inputs, o_f=out, key=tech)
     self.outputs['outs'] = outs
@@ -220,14 +218,16 @@ def fastqc(self) -> None:
     outs = {}
     for tech, inputs in self.inputs[self.sam].items():
         out_dir = '%s/%s/%s' % (self.dir, tech, self.sam)
-        self.outputs['cmds'][tech] = []
         self.outputs['dirs'].append(out_dir)
         out = ['%s_fastqc.html' % x.rsplit('.fastq', 1)[0] for x in inputs]
         outs[tech] = out
         if self.config.force or not sum([to_do(x) for x in out]):
             cmd = 'fastqc %s -o %s' % (' '.join(inputs), out_dir)
             # self.outputs['cmds'].append(cmd)
-            self.outputs['cmds'][tech].append(cmd)
+            if tech in self.outputs['cmds']:
+                print(self.outputs['cmds'][tech])
+                print(selfoutputscmdstech)
+            self.outputs['cmds'][tech] = [cmd]
             # io_update(self, i_f=inputs, o_d=out_dir)
             io_update(self, i_f=inputs, o_d=out_dir, key=tech)
     self.outputs['outs'] = outs
@@ -327,14 +327,16 @@ def fastp_cmd(self, tech, fastqs, out_dir):
 
 def fastp(self) -> None:
     for tech, fastqs in self.inputs[self.sam].items():
-        self.outputs['cmds'][tech] = []
         out_dir = '%s/%s/%s' % (self.dir, tech, self.sam)
         self.outputs['dirs'].append(out_dir)
         cmd, outs = fastp_cmd(self, tech, fastqs, out_dir)
         self.outputs['outs'].setdefault(tech, []).extend(outs)
         if self.config.force or sum([to_do(x) for x in outs]):
             # self.outputs['cmds'].append(cmd)
-            self.outputs['cmds'][tech].append(cmd)
+            if tech in self.outputs['cmds']:
+                print(self.outputs['cmds'][tech])
+                print(selfoutputscmdstech)
+            self.outputs['cmds'][tech] = [cmd]
             # io_update(self, i_f=fastqs, o_d=out_dir)
             io_update(self, i_f=fastqs, o_d=out_dir, key=tech)
 
@@ -356,7 +358,10 @@ def cutadapt(self) -> None:
     self.outputs['outs'].setdefault(tech, []).extend(outs)
     if self.config.force or to_do(r1_o) or to_do(r2_o):
         # self.outputs['cmds']] = list([cmd])
-        self.outputs['cmds'][tech] = list([cmd])
+        if tech in self.outputs['cmds']:
+            print(self.outputs['cmds'][tech])
+            print(selfoutputscmdstech)
+        self.outputs['cmds'][tech] = [cmd]
         # io_update(self, i_f=self.inputs[self.sam][tech], o_f=outs)
         io_update(self, i_f=self.inputs[self.sam][tech], o_f=outs, key=tech)
 
@@ -412,7 +417,10 @@ def atropos(self):
     cmd = atropos_cmd(self, tech, inputs, out_dir, outputs)
     if self.config.force or sum([to_do(x) for x in outputs]):
         # self.outputs['cmds'].append(cmd)
-        self.outputs['cmds'][tech].append(cmd)
+        if tech in self.outputs['cmds']:
+            print(self.outputs['cmds'][tech])
+            print(selfoutputscmdstech)
+        self.outputs['cmds'][tech] = [cmd]
         # io_update(self, i_f=inputs, o_f=outputs)
         io_update(self, i_f=inputs, o_f=outputs, key=tech)
     self.outputs['outs'].setdefault(tech, []).extend(outputs)
@@ -463,7 +471,10 @@ def kneaddata(self):
     cmd, outputs = kneaddata_cmd(self, tech, inputs, out_dir)
     if self.config.force or sum([to_do(x) for x in outputs]):
         # self.outputs['cmds'].append(cmd)
-        self.outputs['cmds'][tech].append(cmd)
+        if tech in self.outputs['cmds']:
+            print(self.outputs['cmds'][tech])
+            print(selfoutputscmdstech)
+        self.outputs['cmds'][tech] = [cmd]
         # io_update(self, i_f=inputs, o_d=out_dir)
         io_update(self, i_f=inputs, o_d=out_dir, key=tech)
 
@@ -523,7 +534,10 @@ def filtering(self):
         self.outputs['outs'].setdefault(tech, []).extend(outputs_gz)
         if cmds:
             # self.outputs['cmds'].append(cmds)
-            self.outputs['cmds'][tech].append(cmds)
+            if tech in self.outputs['cmds']:
+                print(self.outputs['cmds'][tech])
+                print(selfoutputscmdstech)
+            self.outputs['cmds'][tech] = [cmds]
             # io_update(self, o_f=outputs_gz)
             io_update(
                 self, i_f=self.inputs[self.sam][tech], o_f=outputs_gz, key=tech)
