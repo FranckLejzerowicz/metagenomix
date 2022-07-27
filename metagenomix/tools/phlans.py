@@ -8,7 +8,7 @@
 
 import glob
 from os.path import dirname
-from metagenomix._io_utils import io_update, todo
+from metagenomix._io_utils import io_update, to_do
 
 
 def metaphlan(self) -> None:
@@ -65,7 +65,7 @@ def get_read_count(self) -> str:
     """
     reads = ''
     reads_fps = self.softs['count'].outputs
-    if self.sam in reads_fps and not todo(reads_fps[self.sam][0]):
+    if self.sam in reads_fps and not to_do(reads_fps[self.sam][0]):
         with open(reads_fps[self.sam][0].replace('${SCRATCH_FOLDER}', '')) as f:
             for line in f:
                 reads = line[-1].strip().split(',')[-1]
@@ -120,13 +120,13 @@ def analyses(self, bowtie2out: str, reads: str) -> None:
                     strain_cmd += ' --clade %s' % strain.replace(' ', '_')
                     clade_out = '%s_%s.tsv' % (rad, strain.replace(' ', '_'))
                     strain_cmd += ' --output_file %s' % clade_out
-                    if self.config.force or todo(clade_out):
+                    if self.config.force or to_do(clade_out):
                         self.outputs['cmds'].append(strain_cmd)
                         io_update(self, o_f=clade_out)
             else:
                 ab_out = '%s.tsv' % rad
                 cmd += ' --output_file %s' % ab_out
-                if self.config.force or todo(ab_out):
+                if self.config.force or to_do(ab_out):
                     self.outputs['cmds'].append(cmd)
                     io_update(self, o_f=ab_out)
 
@@ -166,12 +166,12 @@ def profiling(self, bowtie2out: str, tmpdir: str) -> tuple:
     sam_out = '%s/sams/%s.sam.bz2' % (self.dir, self.sam)
     profile_out = '%s/profiles/%s.tsv' % (self.dir, self.sam)
 
-    if not todo(profile_out):
+    if not to_do(profile_out):
         io_update(self, i_f=bowtie2out)
     else:
         io_update(self, o_f=profile_out)
         cmd = 'metaphlan'
-        if not todo(bowtie2out):
+        if not to_do(bowtie2out):
             io_update(self, i_f=bowtie2out)
             cmd += ' %s' % bowtie2out
             cmd += ' --input_type bowtie2out'
@@ -297,7 +297,7 @@ def get_cmd(self, profile: str, db: str, out: str, base: str, ali: str):
         cmd += ' --taxonomic-profile %s' % profile
     if self.soft.params['skip_translated']:
         cmd += ' --bypass-translated-search'
-    if not todo(ali):
+    if not to_do(ali):
         cmd += ' -r'
     cmd += ' --nucleotide-database %s' % self.soft.params['nucleotide_db']
     cmd += ' --protein-database  %s\n' % self.soft.params['protein_db']
@@ -345,7 +345,7 @@ def get_ali(self, out: str):
         Path to the alignment .sam file
     """
     ali = '%s/%s_tmp/%s_bowtie2_aligned.sam' % (out, self.sam, self.sam)
-    if not self.config.force and not todo(ali):
+    if not self.config.force and not to_do(ali):
         io_update(self, i_f=ali)
     else:
         io_update(self, o_f=ali, o_d=out)
@@ -386,7 +386,7 @@ def get_outputs(self, profile: str, db: str, out: str, ali: str) -> tuple:
     gen = '%s/%s_genefamilies.tsv' % (out, self.sam)
     pwy = '%s/%s_pathabundance.tsv' % (out, self.sam)
     cov = '%s/%s_pathcoverage.tsv' % (out, self.sam)
-    if not self.config.force and not sum([todo(x) for x in [gen, pwy, cov]]):
+    if not self.config.force and not sum([to_do(x) for x in [gen, pwy, cov]]):
         io_update(self, i_f=[gen, pwy])
     else:
         self.outputs['cmds'].append(get_cmd(self, profile, db, out, base, ali))
@@ -420,7 +420,7 @@ def humann(self) -> None:
         gen, pwy, cov = get_outputs(self, ali, profile, db, out)
         gen_relab = '%s/%s_genefamilies_relab.tsv' % (out, self.sam)
         pwy_relab = '%s/%s_pathabundance_relab.tsv' % (out, self.sam)
-        if self.config.force or todo(gen_relab) or todo(pwy_relab):
+        if self.config.force or to_do(gen_relab) or to_do(pwy_relab):
             self.outputs['cmds'].append(renorm(gen, gen_relab))
             self.outputs['cmds'].append(renorm(pwy, pwy_relab))
             io_update(self, o_f=[gen_relab, pwy_relab])
@@ -440,7 +440,7 @@ def get_sample_to_marker(self, sam_dir, markers_dir):
 
 
 def extract_markers(self, st, strain_dir, db_dir):
-    if self.config.force or todo('%s/%s.fna' % (strain_dir, st)):
+    if self.config.force or to_do('%s/%s.fna' % (strain_dir, st)):
         cmd = 'extract_markers.py'
         cmd += ' -c %s' % st
         cmd += ' -o %s' % db_dir
@@ -495,7 +495,7 @@ def strainphlan(self) -> None:
             self.outputs['outs'][(strain_group, strain)] = odir
             io_update(self, o_d=odir)
             tree = '%s/RAxML_bestTree.%s.StrainPhlAn3.tre' % (odir, strain)
-            if self.config.force or todo(tree):
+            if self.config.force or to_do(tree):
                 cmd = 'strainphlan'
                 cmd += ' -s %s/*.pkl' % markers_dir
                 cmd += ' -m %s/%s.fna' % (db_dir, strain)
