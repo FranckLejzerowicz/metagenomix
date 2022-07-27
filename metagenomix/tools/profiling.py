@@ -10,7 +10,7 @@ import glob
 import pkg_resources
 from os.path import basename, dirname, isfile, splitext
 
-from metagenomix._io_utils import check_min_lines_count, io_update, todo
+from metagenomix._io_utils import check_min_lines_count, io_update, to_do
 from metagenomix.tools.alignment import get_alignment_cmd
 
 RESOURCES = pkg_resources.resource_filename('metagenomix', 'resources')
@@ -34,7 +34,7 @@ def shogun_append_cmd(self, cmds: list, tab: str):
     """
     if self.config.force:
         self.outputs['cmds'].extend(cmds)
-    elif todo(tab) or not check_min_lines_count(tab):
+    elif to_do(tab) or not check_min_lines_count(tab):
         cmd = 'file="%s"\n' % tab
         cmd += 'if [ -f "$file" ]\n'
         cmd += 'then\n'
@@ -217,7 +217,7 @@ def get_combine_cmd(self, out_dir: str, combine_cmds: list) -> list:
             # replace non-fasta by fasta extensions
             path = path_.replace('.fastq', '.fasta').replace('.gz', '')
             # Prepare the extraction command and collect it
-            if not todo(path_) and todo(path):
+            if not to_do(path_) and to_do(path):
                 to_fasta_cmd = 'seqtk seq -A %s > %s' % (path_, path)
                 combine_cmds.append(to_fasta_cmd)
 
@@ -359,9 +359,9 @@ def shogun_assign_normalize(self, tab: str, aligner: str, ali: str,
     """
     cmd = ''
     tab_norm = '%s_norm.tsv' % splitext(tab)[0]
-    if self.config.force or todo(tab):
+    if self.config.force or to_do(tab):
         cmd += shogun_assign_taxonomy(aligner, ali, tab, db_path, sub_db)
-    if self.config.force or todo(tab_norm):
+    if self.config.force or to_do(tab_norm):
         cmd += shogun_normalize(tab, tab_norm)
     if cmd:
         shogun_append_cmd(self, list([cmd]), tab_norm)
@@ -434,7 +434,7 @@ def shogun_coverage(self, out: str, aligner: str, ali: str, db: str) -> None:
     if aligner == 'burst':
         cov_tab = '%s/coverage.tsv' % out
         self.outputs['outs'].setdefault((db, aligner), []).append(cov_tab)
-        if self.config.force or todo(cov_tab):
+        if self.config.force or to_do(cov_tab):
             shogun_coverage_cmd(self, ali, db_path, 'strain', cov_tab)
             io_update(self, o_f=cov_tab)
 
@@ -649,19 +649,19 @@ def woltka_tax_cmd(self, pairing: str, woltka_map: str, database: str) -> str:
     out = '%s/%s' % (self.dir, pairing)
     tax_out, tax_outmap = '%s/taxa' % out, '%s/taxmap' % out
     tax_outputs = ['phylum', 'family', 'genus', 'species', 'none']
-    tax_todo = []
+    tax_to_do = []
     for tdx, tax_output in enumerate(tax_outputs):
         cur_tax_output = '%s/%s.tsv' % (tax_out, tax_output)
         self.outputs['outs'].append(cur_tax_output)
-        if todo(cur_tax_output):
-            tax_todo.append(tax_output)
+        if to_do(cur_tax_output):
+            tax_to_do.append(tax_output)
             io_update(self, o_f=cur_tax_output)
 
     taxid = '%s/taxonomy/taxid.map' % database
     nodes = '%s/taxonomy/nodes.dmp' % database
     names = '%s/taxonomy/names.dmp' % database
     io_update(self, i_f=[taxid, nodes, names])
-    if len(tax_todo):
+    if len(tax_to_do):
         cur_cmd = '\n# taxonomic\n'
         cur_cmd += 'woltka classify'
         cur_cmd += ' -i %s' % woltka_map
@@ -723,7 +723,7 @@ def woltka_go(self, pairing: str, woltka_map: str, taxmap: str, database: str):
         io_update(self, i_f=cur_map)
         cur_out = '%s/%s.tsv' % (woltka_fun_out, go)
         cmd += ' -o %s' % cur_out
-        if todo(cur_out):
+        if to_do(cur_out):
             self.outputs['cmds'].append(cmd)
             io_update(self, o_f=cur_out)
         self.outputs['outs'].append(cur_out)
@@ -746,7 +746,7 @@ def woltka_go(self, pairing: str, woltka_map: str, taxmap: str, database: str):
             cmd += ' --map %s' % cur_map
             go_out = '%s/%s.tsv' % (woltka_fun_out, go)
             cmd += ' -o %s' % go_out
-            if todo(go_out):
+            if to_do(go_out):
                 self.outputs['cmds'].append(cmd)
                 io_update(self, o_f=go_out)
             self.outputs['outs'].append(go_out)
@@ -781,7 +781,7 @@ def woltka_genes(self, pairing: str, woltka_map: str, taxmap: str,
     """
     coords = '%s/proteins/coords.txt.xz' % database
     genes = '%s/%s/genes.biom' % (self.dir, pairing)
-    if todo(genes):
+    if to_do(genes):
         cmd = '\n# per gene\n'
         cmd += 'woltka classify'
         cmd += ' -i %s' % woltka_map
@@ -798,7 +798,7 @@ def woltka_genes(self, pairing: str, woltka_map: str, taxmap: str,
     for stratification in stratifications:
         genes = '%s/%s/genes_%s.biom' % (self.dir, pairing, stratification)
         genes_tax[stratification] = genes
-        if todo(genes):
+        if to_do(genes):
             cmd = '\n# per gene [%s]\n' % stratification
             cmd += 'woltka classify'
             cmd += ' -i %s' % woltka_map
@@ -843,7 +843,7 @@ def woltka_uniref(self, pairing: str, genes: str, genes_tax: dict,
     uniref_map = '%s/function/uniref/uniref.map.xz' % database
     uniref_names = '%s/function/uniref/uniref.name.xz' % database
     uniref = '%s/%s/uniref.biom' % (self.dir, pairing)
-    if todo(uniref):
+    if to_do(uniref):
         cmd = '\n# uniref\n'
         cmd += 'woltka tools collapse'
         cmd += ' --input %s' % genes
@@ -861,7 +861,7 @@ def woltka_uniref(self, pairing: str, genes: str, genes_tax: dict,
     for stratification in stratifications:
         uniref = '%s/%s/uniref_%s.biom' % (self.dir, pairing, stratification)
         uniref_tax[stratification] = genes
-        if todo(uniref):
+        if to_do(uniref):
             cmd = '\n# uniref [%s]\n' % stratification
             cmd += 'woltka tools collapse'
             cmd += ' --input %s' % genes_tax[stratification]
@@ -899,7 +899,7 @@ def woltka_eggnog(self, pairing: str, uniref: str, uniref_tax: dict,
         WOL database path
     """
     biom = '%s/%s/eggnog/eggnog.biom' % (self.dir, pairing)
-    if todo(biom):
+    if to_do(biom):
         cmd = 'woltka tools collapse'
         cmd += '--input %s' % uniref
         cmd += ' --map %s/function/eggnog/eggnog.map.xz' % database
@@ -909,7 +909,7 @@ def woltka_eggnog(self, pairing: str, uniref: str, uniref_tax: dict,
     else:
         io_update(self, i_f=biom)
     tsv = '%s.tsv' % splitext(biom)[0]
-    if todo(tsv):
+    if to_do(tsv):
         cmd = 'biom convert -i %s -o %s.tmp --to-tsv\n' % (biom, tsv)
         cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
         cmd += 'rm %s.tmp\n' % tsv
@@ -920,7 +920,7 @@ def woltka_eggnog(self, pairing: str, uniref: str, uniref_tax: dict,
     stratifs = ['phylum', 'family', 'genus', 'species']
     for stratif in stratifs:
         biom = '%s/%s/eggnog/eggnog_%s.biom' % (self.dir, pairing, stratif)
-        if todo(biom):
+        if to_do(biom):
             cmd = 'woltka tools collapse'
             cmd += '--input %s' % uniref_tax[stratif]
             cmd += ' --map %s/function/eggnog/eggnog.map.xz' % database
@@ -931,7 +931,7 @@ def woltka_eggnog(self, pairing: str, uniref: str, uniref_tax: dict,
         else:
             io_update(self, i_f=biom)
         tsv = '%s.tsv' % splitext(biom)[0]
-        if todo(tsv):
+        if to_do(tsv):
             cmd = 'biom convert -i %s -o %s.tmp --to-tsv\n' % (biom, tsv)
             cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
             cmd += 'rm %s.tmp\n' % tsv
@@ -963,7 +963,7 @@ def woltka_cazy(self, pairing: str, genes: str, genes_tax: dict, database: str):
     """
     cazy_map = '%s/function/cazy/3tools.txt' % database
     biom = '%s/%s/cazy/cazy.biom' % (self.dir, pairing)
-    if todo(biom):
+    if to_do(biom):
         cmd = 'woltka tools collapse'
         cmd += '--input %s' % genes
         cmd += ' --map %s' % cazy_map
@@ -973,7 +973,7 @@ def woltka_cazy(self, pairing: str, genes: str, genes_tax: dict, database: str):
     else:
         io_update(self, i_f=biom)
     tsv = '%s.tsv' % splitext(biom)[0]
-    if todo(tsv):
+    if to_do(tsv):
         cmd = 'biom convert -i %s -o %s.tmp --to-tsv\n' % (biom, tsv)
         cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
         cmd += 'rm %s.tmp\n' % tsv
@@ -985,7 +985,7 @@ def woltka_cazy(self, pairing: str, genes: str, genes_tax: dict, database: str):
     for stratif in stratifs:
         cazy_map = '%s/function/cazy/3tools.txt' % database
         biom = '%s/%s/cazy/cazy_%s.biom' % (self.dir, pairing, stratif)
-        if todo(biom):
+        if to_do(biom):
             cmd = 'woltka tools collapse'
             cmd += '--input %s' % genes_tax[stratif]
             cmd += ' --map %s' % cazy_map
@@ -996,7 +996,7 @@ def woltka_cazy(self, pairing: str, genes: str, genes_tax: dict, database: str):
         else:
             io_update(self, i_f=biom)
         tsv = '%s.tsv' % splitext(biom)[0]
-        if todo(tsv):
+        if to_do(tsv):
             cmd = 'biom convert -i %s -o %s.tmp --to-tsv\n' % (biom, tsv)
             cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
             cmd += 'rm %s.tmp\n' % tsv
@@ -1046,7 +1046,7 @@ def woltka_metacyc(self, pairing: str, genes: str, genes_tax: dict,
             input_biom = genes
         biom = '%s/%s.biom' % (woltka_fun_out, level)
         tsv = '%s.tsv' % splitext(biom)[0]
-        if todo(biom):
+        if to_do(biom):
             cmd += '\n# %s [no stratification]\n' % level
             cmd += 'woltka tools collapse'
             cmd += ' --input %s' % input_biom
@@ -1057,7 +1057,7 @@ def woltka_metacyc(self, pairing: str, genes: str, genes_tax: dict,
             io_update(self, o_f=biom)
         else:
             io_update(self, i_f=biom)
-        if todo(tsv):
+        if to_do(tsv):
             cmd += 'biom convert'
             cmd += ' -i %s' % biom
             cmd += ' -o %s.tmp' % tsv
@@ -1071,7 +1071,8 @@ def woltka_metacyc(self, pairing: str, genes: str, genes_tax: dict,
 
         stratifs = ['phylum', 'family', 'genus', 'species']
         for stratif in stratifs:
-            files_tax[stratif] = {}
+            if stratif not in files_tax:
+                files_tax[stratif] = {}
             if '-to-' in maps:
                 input_biom = files_tax[stratif][maps.split('-to-')[0]]
             else:
@@ -1079,7 +1080,7 @@ def woltka_metacyc(self, pairing: str, genes: str, genes_tax: dict,
             cmd += '\n# %s [%s]\n' % (level, stratif)
             biom = '%s/%s_%s.biom' % (woltka_fun_out, level, stratif)
             tsv = '%s.tsv' % splitext(biom)[0]
-            if todo(biom):
+            if to_do(biom):
                 cmd += '\n# %s [%s]\n' % (level, stratif)
                 cmd += 'woltka tools collapse'
                 cmd += ' --input %s' % input_biom
@@ -1091,7 +1092,7 @@ def woltka_metacyc(self, pairing: str, genes: str, genes_tax: dict,
                 io_update(self, o_f=biom)
             else:
                 io_update(self, i_f=biom)
-            if todo(tsv):
+            if to_do(tsv):
                 cmd += 'biom convert'
                 cmd += ' -i %s' % biom
                 cmd += ' -o %s.tmp' % tsv
@@ -1176,7 +1177,7 @@ def woltka_kegg(self, pairing: str, uniref: str, uniref_tax: dict,
             biom = '%s/%s/kegg/%s.biom' % (self.dir, pairing, level)
             tsv = '%s.tsv' % splitext(biom)[0]
             if not prev:
-                if todo(tsv):
+                if to_do(tsv):
                     cmd += '\n# kegg [no stratification]\n'
                     cmd += 'woltka tools collapse'
                     cmd += ' --input %s' % uniref
@@ -1194,7 +1195,7 @@ def woltka_kegg(self, pairing: str, uniref: str, uniref_tax: dict,
                     io_update(self, i_f=biom)
             else:
                 input_fp = '%s/%s/kegg/%s.biom' % (self.dir, pairing, level)
-                if todo(tsv):
+                if to_do(tsv):
                     cmd += 'woltka tools collapse'
                     cmd += ' --input %s' % input_fp
                     if name:
@@ -1215,7 +1216,7 @@ def woltka_kegg(self, pairing: str, uniref: str, uniref_tax: dict,
                                                   stratif)
                 tsv = '%s.tsv' % splitext(biom)[0]
                 if not prev:
-                    if todo(tsv):
+                    if to_do(tsv):
                         cmd += '\n# kegg [%s]\n' % stratif
                         cmd += 'woltka tools collapse'
                         cmd += ' --input %s' % uniref_tax[stratif]
@@ -1235,7 +1236,7 @@ def woltka_kegg(self, pairing: str, uniref: str, uniref_tax: dict,
                 else:
                     input_fp = '%s/%s/kegg/%s_%s.biom' % (
                         self.dir, pairing, level, stratif)
-                    if todo(tsv):
+                    if to_do(tsv):
                         cmd += 'woltka tools collapse'
                         cmd += ' --input %s' % input_fp
                         if name:
@@ -1251,7 +1252,7 @@ def woltka_kegg(self, pairing: str, uniref: str, uniref_tax: dict,
                     else:
                         io_update(self, i_f=biom)
         else:
-            if todo('%s/kegg_info.txt' % kegg_maps):
+            if to_do('%s/kegg_info.txt' % kegg_maps):
                 cmd += 'cd %s\n' % kegg_maps
                 cmd += 'cp %s %s/%s\n' % (tsv, kegg_maps, basename(tsv))
                 kegg_query = '%s/wol/kegg_query.py' % RESOURCES
@@ -1355,7 +1356,7 @@ def get_midas_cmd(
 def midas_species(self, focus_dir, tax) -> None:
     species_out = '%s/species' % focus_dir
     species_profile = '%s/species_profile.txt' % species_out
-    if not self.config.force and not todo(species_profile):
+    if not self.config.force and not to_do(species_profile):
         io_update(self, i_d=species_out)
     else:
         self.outputs['cmds'].append(get_midas_cmd(self, focus_dir, tax))
@@ -1365,7 +1366,7 @@ def midas_species(self, focus_dir, tax) -> None:
 
 
 def midas_genus(self, focus_dir, genes_out, tax, select):
-    if self.config.force or todo('%s/readme.txt' % genes_out):
+    if self.config.force or to_do('%s/readme.txt' % genes_out):
         self.outputs['cmds'].append(get_midas_cmd(self, focus_dir, tax, select))
         io_update(self, o_d=genes_out)
     self.outputs['outs'].append(genes_out)
@@ -1373,7 +1374,7 @@ def midas_genus(self, focus_dir, genes_out, tax, select):
 
 
 def midas_snps(self, focus_dir, snps_out, tax, select):
-    if self.config.force or todo('%s/readme.txt' % snps_out):
+    if self.config.force or to_do('%s/readme.txt' % snps_out):
         self.outputs['cmds'].append(get_midas_cmd(self, focus_dir, tax, select))
         io_update(self, o_d=snps_out)
     self.outputs['outs'].append(snps_out)
@@ -1398,7 +1399,7 @@ def get_species_select(self, species_list: str) -> set:
     """
     select = set()
     if species_list:
-        if self.config.dev and todo(species_list):
+        if self.config.dev and to_do(species_list):
             select.add('Escherichia')
             return select
         else:
@@ -1449,7 +1450,7 @@ def get_kraken2_db(self, db):
         db_path = '%s/kraken2' % self.databases.paths[db]
         if self.config.dev:
             return db_path
-        if todo(folder=db_path):
+        if to_do(folder=db_path):
             sys.exit('[kraken2] Not a database: %s' % db_path)
         if not isfile('%s/hash.k2d' % db_path):
             nested = glob.glob('%s/*/hash.k2d' % db_path)
@@ -1514,7 +1515,7 @@ def kraken2(self) -> None:
         self.outputs['dirs'].append(out)
         report = '%s/report.tsv' % out
         result = '%s/result.tsv' % out
-        if self.config.force or todo(result):
+        if self.config.force or to_do(result):
             db_path = get_kraken2_db(self, db)
             cmd = get_kraken2_cmd(self, out, db_path, report, result)
             self.outputs['outs'].append((report, db))
@@ -1562,7 +1563,7 @@ def bracken(self) -> None:
         self.outputs['dirs'].append(out_dir)
         bracken_result = '%s/results.tsv' % out_dir
         bracken_report = '%s/report.tsv' % out_dir
-        if self.config.force or todo(bracken_result):
+        if self.config.force or to_do(bracken_result):
             cmd = 'bracken'
             cmd += ' -d %s' % db_bracken
             cmd += ' -i %s' % kraken2_report
@@ -1596,7 +1597,7 @@ def metaxa2(self) -> None:
         taxonomy = '%s.taxonomy.txt' % rad
         reltax = '%s.reltax.txt' % rad
         cmd = ''
-        if self.config.force or todo(summary):
+        if self.config.force or to_do(summary):
             cmd += 'metaxa2'
             for idx, fastq in enumerate(self.inputs[self.sam]):
                 cmd += ' -%s %s' % ((idx + 1), fastq)
@@ -1635,7 +1636,7 @@ def metaxa2(self) -> None:
             io_update(self, i_f=taxonomy)
         redist_rad = '%s.redist' % rad
         redist_tax = '%s.taxonomy.summary.txt' % redist_rad
-        if self.config.force or todo(redist_tax):
+        if self.config.force or to_do(redist_tax):
             cmd += '\nmetaxa2_ttt'
             cmd += ' -i %s' % taxonomy
             cmd += ' -o %s' % redist_rad
