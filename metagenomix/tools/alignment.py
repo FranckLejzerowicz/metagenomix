@@ -9,7 +9,7 @@
 import sys
 import pkg_resources
 from os.path import splitext
-from metagenomix._io_utils import io_update, to_do
+from metagenomix._io_utils import io_update, to_do, tech_specificity
 from metagenomix.parameters import tech_params
 
 # Keep line because read mapping alignments will be python scripts
@@ -63,7 +63,7 @@ def grep_sam_tail_cmd(
 
 
 def condition_ali_command(
-        fastx: list,
+        fastxs: list,
         cmd: str,
         sam: str
 ) -> str:
@@ -73,7 +73,7 @@ def condition_ali_command(
 
     Parameters
     ----------
-    fastx : list
+    fastxs : list
         Path to the input fasta/fastq/fastq.gz files
     cmd : str
         Alignment command
@@ -85,12 +85,12 @@ def condition_ali_command(
     cmd : str
         Alignment command potentially decorated with unix check to rerun
     """
-    if fastx[-1].endswith('fastq.gz'):
-        reads = 'zcat %s | tail -n 80 | grep "^@"' % fastx[-1]
-    elif fastx[-1].endswith('fastq'):
-        reads = 'tail -n 80 %s | grep "^@"' % fastx[-1]
-    elif fastx[-1].endswith('fasta'):
-        reads = 'tail -n 40 %s | grep "^>"' % fastx[-1]
+    if fastxs[-1].endswith('fastq.gz'):
+        reads = 'zcat %s | tail -n 80 | grep "^@"' % fastxs[-1]
+    elif fastxs[-1].endswith('fastq'):
+        reads = 'tail -n 80 %s | grep "^@"' % fastxs[-1]
+    elif fastxs[-1].endswith('fasta'):
+        reads = 'tail -n 40 %s | grep "^>"' % fastxs[-1]
     else:
         return cmd
 
@@ -190,7 +190,7 @@ def get_bowtie2_cmd(
 
 
 def get_alignment_cmd(
-        fastx: list,
+        fastxs: list,
         cmd: str,
         ali: str
 ) -> str:
@@ -200,7 +200,7 @@ def get_alignment_cmd(
 
     Parameters
     ----------
-    fastx : list
+    fastxs : list
         Path to the input fasta/fastq/fastq.gz files
     cmd : str
         Alignment command
@@ -215,7 +215,7 @@ def get_alignment_cmd(
     if to_do(ali):
         return cmd
     else:
-        return condition_ali_command(fastx, cmd, ali)
+        return condition_ali_command(fastxs, cmd, ali)
 
 
 def bowtie2(self) -> None:
@@ -237,21 +237,19 @@ def bowtie2(self) -> None:
         .soft.params
             Parameters for humann
     """
-    for tech, fastx in self.inputs[self.sam].items():
-        if not fastx:
+    for tech, fastxs in self.inputs[self.sam].items():
+        if tech_specificity(self, fastxs, tech):
             continue
         out = self.dir + '/' + self.sam
         self.outputs['outs'][tech] = dict()
         for db, db_path in self.soft.params['databases'].items():
             db_out = '%s/%s/%s' % (out, db, self.soft.params['pairing'])
-            cmd, sam = get_bowtie2_cmd(self, tech, fastx, db_path, db_out)
+            cmd, sam = get_bowtie2_cmd(self, tech, fastxs, db_path, db_out)
             self.outputs['outs'][tech][db] = sam
             if self.config.force or to_do(sam):
-                cmd = get_alignment_cmd(fastx, cmd, sam)
-                # self.outputs['cmds'].append(cmd)
+                cmd = get_alignment_cmd(fastxs, cmd, sam)
                 self.outputs['cmds'].setdefault(tech, []).append(cmd)
-                # io_update(self, i_f=fastx, i_d=db_out, o_d=db_out)
-                io_update(self, i_f=fastx, i_d=db_out, o_d=db_out, key=tech)
+                io_update(self, i_f=fastxs, i_d=db_out, o_d=db_out, key=tech)
             self.outputs['dirs'].append(db_out)
 
 
@@ -331,7 +329,7 @@ def flash(self) -> None:
             Configurations
     """
     for tech, fastqs in self.inputs[self.sam].items():
-        if tech not in ['illumina'] or not fastqs:
+        if tech_specificity(self, fastqs, tech, ['illumina']):
             continue
         no_merging(fastqs, 'flash')
 
@@ -422,7 +420,7 @@ def ngmerge(self) -> None:
             Configurations
     """
     for tech, fastqs in self.inputs[self.sam].items():
-        if tech not in ['illumina'] or not fastqs:
+        if tech_specificity(self, fastqs, tech, ['illumina']):
             continue
         no_merging(fastqs, 'ngmerge')
 
@@ -524,7 +522,7 @@ def pear(self) -> None:
             Configurations
     """
     for tech, fastqs in self.inputs[self.sam].items():
-        if tech not in ['illumina'] or not fastqs:
+        if tech_specificity(self, fastqs, tech, ['illumina']):
             continue
         no_merging(fastqs, 'pear')
 
@@ -637,7 +635,7 @@ def bbmerge(self) -> None:
             Configurations
     """
     for tech, fastqs in self.inputs[self.sam].items():
-        if tech not in ['illumina'] or not fastqs:
+        if tech_specificity(self, fastqs, tech, ['illumina']):
             continue
         no_merging(fastqs, 'bbmerge')
 
