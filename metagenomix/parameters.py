@@ -135,11 +135,19 @@ def check_default_generic(param, vals, values, tool, tech=None):
         show_valid_params(param, values, tool, tech)
 
 
+def check_type(vals, param, multi, tool, tech=None):
+    if param in multi:
+        if not isinstance(vals, list):
+            check_type_sys_exit(tool, param, False, tech)
+    elif isinstance(vals, (list, dict)):
+        check_type_sys_exit(tool, param, True, tech)
+
+
 def check_default_type(self, params, param, multi, tool):
     vals = params[param]
     if isinstance(vals, dict) and set(vals).issubset(self.config.techs):
         for tech, v in vals.items():
-            check_type(vals, param, multi, tool, tech)
+            check_type(v, param, multi, tool, tech)
     else:
         check_type(vals, param, multi, tool)
 
@@ -152,14 +160,6 @@ def check_type_sys_exit(tool, param, no_dict, tech=None):
     if tech:
         m += ' (%s)' % tech
     sys.exit(m)
-
-
-def check_type(vals, param, multi, tool, tech=None):
-    if param in multi:
-        if not isinstance(vals, list):
-            check_type_sys_exit(tool, param, False, tech)
-    elif isinstance(vals, (list, dict)):
-        check_type_sys_exit(tool, param, True, tech)
 
 
 def check_default(self, params, defaults, tool, let_go: list = [],
@@ -529,8 +529,10 @@ def check_atropos(self, params, soft):
 
 
 def check_kneaddata(self, params, soft):
-    defaults = {'trimmomatic': None, 'bowtie2': None, 'databases': [],
-                'purge': [True, False]}
+    defaults = {
+        'trimmomatic': None,
+        'bowtie2': None,
+        'purge': [True, False]}
     tools = ['trimmomatic', 'bowtie2']
     for tool in tools:
         if tool not in params:
