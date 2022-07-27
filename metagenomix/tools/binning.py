@@ -9,7 +9,7 @@
 import sys
 import glob
 
-from metagenomix._io_utils import caller, io_update, todo
+from metagenomix._io_utils import caller, io_update, to_do
 
 
 def get_sams_fastqs(mode: str, fastqs: dict):
@@ -118,7 +118,7 @@ def classify_or_annotate(self, command):
                         self.outputs['cmds'].setdefault(group, []).append(cmd)
                 elif command == 'classify_bins':
                     tab = '%s/bin_taxonomy.tab' % out
-                    if self.config.force or todo(tab):
+                    if self.config.force or to_do(tab):
                         self.outputs['cmds'].setdefault(group, []).append(cmd)
 
 
@@ -161,7 +161,7 @@ def blobology(self):
                 self.outputs['dirs'].append(out)
                 io_update(self, i_f=fastq, o_d=out, key=group)
                 plot = '%s/contigs.binned.blobplot' % out
-                if self.config.force or todo(plot):
+                if self.config.force or to_do(plot):
                     cmd = get_blobology_cmd(self, fastq, out, contigs, bins)
                     self.outputs['cmds'].setdefault(group, []).append(cmd)
                     self.outputs['outs'][group][mode][sam] = out
@@ -194,7 +194,7 @@ def reassembly_cmd(self, bins, group, sam, out):
         self.outputs['dirs'].append(mode_dir)
         self.outputs['outs'].setdefault(group, []).append(mode_dir)
         io_update(self, i_d=mode_dir, key=group)
-        if not self.config.force and not todo(folder=mode_dir):
+        if not self.config.force and not to_do(folder=mode_dir):
             self.soft.status.add('Done')
             continue
         cmd += 'mkdir %s\n' % mode_dir
@@ -207,7 +207,7 @@ def reassembly_cmd(self, bins, group, sam, out):
 def reassemble(self):
     for group in self.pools[self.pool]:
         bins = self.inputs[self.pool][group][-1]
-        if todo(folder=bins):
+        if to_do(folder=bins):
             self.soft.status.add('Must run %s (%s)' % (self.soft.prev, group))
         io_update(self, i_d=bins, key=group)
         for sam in self.pools[self.pool][group]:
@@ -238,7 +238,7 @@ def refine(self):
     for group in self.pools[self.pool]:
         out_dir = '%s/%s/%s' % (self.dir, self.pool, group)
         bin_folders = self.inputs[self.pool][group][:-1]
-        if sum([todo(folder=x) for x in bin_folders]):
+        if sum([to_do(folder=x) for x in bin_folders]):
             self.soft.status.add('Must run %s (%s)' % (self.soft.prev, group))
 
         cmd, n_bins = refine_cmd(self, out_dir, bin_folders)
@@ -249,7 +249,7 @@ def refine(self):
                                      self.soft.params['min_contamination'])
         stats, bins = '%s.stats' % out, '%s_bins' % out
         self.outputs['outs'][group] = [stats, bins]
-        if not self.config.force and not todo(folder=bins):
+        if not self.config.force and not to_do(folder=bins):
             self.soft.status.add('Done')
             continue
         self.outputs['dirs'].append(out_dir)
@@ -260,7 +260,7 @@ def get_binners(self, out, binned):
     binners = []
     work_files = '%s/work_files' % out
     for binner, bins in binned.items():
-        if self.config.force or todo(folder=bins) or todo(folder=work_files):
+        if self.config.force or to_do(folder=bins) or to_do(folder=work_files):
             binners.append(binner)
     return binners
 
