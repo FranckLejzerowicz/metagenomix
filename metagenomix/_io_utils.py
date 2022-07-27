@@ -12,7 +12,7 @@ import sys
 import yaml
 import glob
 import pandas as pd
-from os.path import abspath, basename, dirname, isdir, isfile
+from os.path import dirname, isdir, isfile
 
 
 def read_yaml(
@@ -40,7 +40,6 @@ def read_yaml(
             except AttributeError:
                 yaml_dict = yaml.load(yaml_handle)
     return yaml_dict
-
 
 
 def get_fastq_files(fastqs):
@@ -424,7 +423,7 @@ def io_update(self, i_f=None, i_d=None, o_f=None, o_d=None, key=None):
                 self.outputs['io'][IO_fd].add(val)
 
 
-def todo(file: str = None, folder: str = None) -> bool:
+def to_do(file: str = None, folder: str = None) -> bool:
     if file and isfile(file.replace('${SCRATCH_FOLDER}', '')):
         return False
     if folder and isdir(folder.replace('${SCRATCH_FOLDER}', '')):
