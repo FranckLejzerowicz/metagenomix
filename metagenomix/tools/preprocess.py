@@ -7,8 +7,9 @@
 # ----------------------------------------------------------------------------
 
 import gzip
-from os.path import basename
-from metagenomix._io_utils import io_update, todo
+from os.path import basename, dirname
+from metagenomix._io_utils import io_update, to_do
+from metagenomix.parameters import tech_params
 
 
 def get_cat_zcat(fastq_fp: str) -> str:
@@ -109,8 +110,10 @@ def get_edit_cmd(self, num: int, tech: str) -> None:
     if not line_split[0].endswith('/%s' % num):
         if len(line_split) > 1:
             cmd = edit_fastq_cmd(fastq_fp, num)
-            self.outputs['cmds'].append(cmd)
-    io_update(self, i_f=fastqs_fps, o_f=fastqs_fps)
+            # self.outputs['cmds'].append(cmd)
+            self.outputs['cmds'][tech].append(cmd)
+    # io_update(self, i_f=fastqs_fps, o_f=fastqs_fps)
+    io_update(self, i_f=fastqs_fps, o_f=fastqs_fps, key=tech)
 
 
 def edit(self) -> None:
@@ -127,6 +130,7 @@ def edit(self) -> None:
             Configurations
     """
     tech = 'illumina'
+    # self.outputs['cmds'][tech] = []
     for r in [1, 2]:
         if len(self.config.fastq[self.sam][tech]) < r:
             continue
@@ -156,7 +160,7 @@ def count_cmd(self, idx: int, input_fp: str, out: str) -> str:
         Command to count reads and output the counts.
     """
     if input_fp.endswith('fastq.gz'):
-        cmd = "n%s=`%s %s | wc -l | " % (idx, self.soft.params['cat'], input_fp)
+        cmd = "n%s=`zcat %s | wc -l | " % (idx, input_fp)
         cmd += "sed 's/ //g' | awk '{x=$1/4; print x}'`\n"
         # cmd += "cut -d ' ' -f 1 | awk '{x=$1/4; print x}'`"
     elif input_fp.endswith('fasta'):
@@ -197,15 +201,18 @@ def count(self) -> None:
     """
     outs = {}
     for tech, inputs in self.inputs[self.sam].items():
+        self.outputs['cmds'][tech] = []
         out_dir = '%s/%s' % (self.dir, tech)
         self.outputs['dirs'].append(out_dir)
         out = '%s/%s_read_count.tsv' % (out_dir, self.sam)
         outs[tech] = out
-        if self.config.force or todo(out):
+        if self.config.force or to_do(out):
             for idx, input_path in enumerate(inputs):
                 cmd = count_cmd(self, idx, input_path, out)
-                self.outputs['cmds'].append(cmd)
-            io_update(self, i_f=inputs, o_f=out)
+                # self.outputs['cmds'].append(cmd)
+                self.outputs['cmds'][tech].append(cmd)
+            # io_update(self, i_f=inputs, o_f=out)
+            io_update(self, i_f=inputs, o_f=out, key=tech)
     self.outputs['outs'] = outs
 
 
@@ -213,76 +220,123 @@ def fastqc(self) -> None:
     outs = {}
     for tech, inputs in self.inputs[self.sam].items():
         out_dir = '%s/%s/%s' % (self.dir, tech, self.sam)
+        self.outputs['cmds'][tech] = []
         self.outputs['dirs'].append(out_dir)
         out = ['%s_fastqc.html' % x.rsplit('.fastq', 1)[0] for x in inputs]
         outs[tech] = out
-        if self.config.force or not sum([todo(x) for x in out]):
+        if self.config.force or not sum([to_do(x) for x in out]):
             cmd = 'fastqc %s -o %s' % (' '.join(inputs), out_dir)
-            self.outputs['cmds'].append(cmd)
-            io_update(self, i_f=inputs, o_d=out_dir)
+            # self.outputs['cmds'].append(cmd)
+            self.outputs['cmds'][tech].append(cmd)
+            # io_update(self, i_f=inputs, o_d=out_dir)
+            io_update(self, i_f=inputs, o_d=out_dir, key=tech)
     self.outputs['outs'] = outs
+
+
+def fastp_cmd(self, tech, fastqs, out_dir):
+    params = tech_params(self, tech)
+    outs = []
+    cmd = 'fastp'
+    for fdx, fastq in enumerate(fastqs):
+        if fdx:
+            i, o = 'I', 'O'
+            out = '%s/%s_2.fastq' % (out_dir, self.sam)
+        else:
+            i, o = 'i', 'o'
+            out = '%s/%s_1.fastq' % (out_dir, self.sam)
+        if fastq.endswith('.gz'):
+            out += '.gz'
+        outs.append(out)
+        cmd += '  -%s %s -%s %s' % (i, fastq, o, out)
+    cmd += ' --thread %s' % params['cpus']
+    cmd += ' --report_title="%s"' % self.sam
+    cmd += ' --json=%s/%s.json' % (out_dir, self.sam)
+    cmd += ' --html=%s/%s.html' % (out_dir, self.sam)
+
+    if params['split_by_lines']:
+        cmd += ' --split_by_lines'
+        cmd += ' --split_prefix_digits %s' % params[
+            'split_prefix_digits']
+    elif params['split']:
+        cmd += ' --split'
+        cmd += ' --split_prefix_digits %s' % params[
+            'split_prefix_digits']
+
+    if params['overrepresentation_analysis']:
+        cmd += ' --overrepresentation_analysis'
+        cmd += ' --overrepresentation_sampling %s' % params[
+            'overrepresentation_sampling']
+
+    if params['correction']:
+        cmd += ' --correction'
+        cmd += ' --overlap_len_require %s' % params[
+            'overlap_len_require']
+        cmd += ' --overlap_diff_limit %s' % params[
+            'overlap_diff_limit']
+
+    if params['disable_length_filtering']:
+        cmd += ' --disable_length_filtering'
+    else:
+        cmd += ' --length_required %s' % params['length_required']
+        cmd += ' --length_limit %s' % params['length_limit']
+
+    if params['disable_adapter_trimming']:
+        cmd += ' --disable_adapter_trimming'
+    else:
+        if params['detect_adapter_for_pe']:
+            cmd += ' --detect_adapter_for_pe'
+        if params['adapter_fasta']:
+            cmd += ' --adapter_fasta %s' % params['adapter_fasta']
+        else:
+            for adapter in ['adapter_sequence', 'adapter_sequence_r2']:
+                if params[adapter]:
+                    cmd += ' --%s %s' % (adapter, params[adapter])
+
+    if params['disable_quality_filtering']:
+        cmd += ' --disable_quality_filtering'
+    else:
+        for param in ['qualified_quality_phred', 'unqualified_percent_limit',
+                      'n_base_limit', 'average_qual']:
+            cmd += ' --%s %s' % (param, params[param])
+
+    for param in ['compression', 'trim_front1', 'trim_tail1', 'max_len1',
+                  'trim_front2', 'trim_tail2', 'max_len2',
+                  'dup_calc_accuracy', 'cut_window_size', 'cut_mean_quality']:
+        if params[param]:
+            cmd += ' --%s %s' % (param, params[param])
+
+    for boolean in ['dont_overwrite', 'phred64', 'verbose', 'dedup',
+                    'dont_eval_duplication', 'trim_poly_g', 'trim_poly_x',
+                    'average_qual', 'cut_front', 'cut_tail', 'cut_right']:
+        if params[boolean]:
+            if boolean == 'trim_poly_g' and not params['disable_trim_poly_g']:
+                cmd += ' --%s' % boolean
+                cmd += ' --poly_g_min_len %s' % params['poly_g_min_len']
+            else:
+                cmd += ' --%s' % boolean
+                if boolean == 'trim_poly_x':
+                    cmd += ' --poly_x_min_len %s' % params['poly_x_min_len']
+                elif boolean.startswith('cut_'):
+                    window_size = '%s_window_size' % boolean
+                    mean_quality = '%s_mean_quality' % boolean
+                    cmd += ' --%s %s' % (window_size, params[window_size])
+                    cmd += ' --%s %s' % (mean_quality, params[mean_quality])
+
+    return cmd, outs
 
 
 def fastp(self) -> None:
     for tech, fastqs in self.inputs[self.sam].items():
+        self.outputs['cmds'][tech] = []
         out_dir = '%s/%s/%s' % (self.dir, tech, self.sam)
         self.outputs['dirs'].append(out_dir)
-        out_json = '%s/%s.json' % (out_dir, self.sam)
-        out_html = '%s/%s.html' % (out_dir, self.sam)
-        outs = []
-        cmd = 'fastp'
-        for fdx, fastq in enumerate(fastqs):
-            if fdx:
-                i, o = 'I', 'O'
-                out = '%s/%s_2.fastq' % (out_dir, self.sam)
-            else:
-                i, o = 'i', 'o'
-                out = '%s/%s_1.fastq' % (out_dir, self.sam)
-            if fastq.endswith('.gz'):
-                out += '.gz'
-            outs.append(out)
-            cmd += '  -%s %s -%s %s' % (i, fastq, o, out)
-        cmd += ' --verbose'
-        if self.soft.params['trim_poly_g']:
-            cmd += ' --trim_poly_g'
-        cmd += ' --json=%s' % out_json
-        cmd += ' --html=%s' % out_html
-        cmd += ' --thread %s' % self.soft.params['cpus']
-        cmd += ' --report_title="%s"' % self.sam
-        cmd += ' --average_qual=%s' % self.soft.params['average_qual']
-
-        if self.soft.params['split_by_lines']:
-            cmd += ' --split_by_lines'
-            cmd += ' --split_prefix_digits %s' % self.soft.params[
-                'split_prefix_digits']
-        elif self.soft.params['split']:
-            cmd += ' --split'
-            cmd += ' --split_prefix_digits %s' % self.soft.params[
-                'split_prefix_digits']
-
-        if self.soft.params['overrepresentation_analysis']:
-            cmd += ' --overrepresentation_analysis'
-            cmd += ' --overrepresentation_sampling %s' % self.soft.params[
-                'overrepresentation_sampling']
-
-        if self.soft.params['correction']:
-            cmd += ' --correction'
-            cmd += ' --overlap_len_require %s' % self.soft.params[
-                'overlap_len_require']
-            cmd += ' --overlap_diff_limit %s' % self.soft.params[
-                'overlap_diff_limit']
-
-        if self.soft.params['disable_length_filtering']:
-            cmd += ' --disable_length_filtering'
-        else:
-            cmd += ' --length_required %s' % self.soft.params['length_required']
-            cmd += ' --length_limit %s' % self.soft.params['length_limit']
-
-
+        cmd, outs = fastp_cmd(self, tech, fastqs, out_dir)
         self.outputs['outs'].setdefault(tech, []).extend(outs)
-        if self.config.force or sum([todo(x) for x in outs]):
-            self.outputs['cmds'].append(cmd)
-            io_update(self, i_f=fastqs, o_d=out_dir)
+        if self.config.force or sum([to_do(x) for x in outs]):
+            # self.outputs['cmds'].append(cmd)
+            self.outputs['cmds'][tech].append(cmd)
+            # io_update(self, i_f=fastqs, o_d=out_dir)
+            io_update(self, i_f=fastqs, o_d=out_dir, key=tech)
 
 
 def cutadapt(self) -> None:
@@ -300,83 +354,90 @@ def cutadapt(self) -> None:
     cmd += ' '.join(self.inputs[self.sam][tech])
     outs = [r1_o, r2_o]
     self.outputs['outs'].setdefault(tech, []).extend(outs)
-    if self.config.force or todo(r1_o) or todo(r2_o):
-        self.outputs['cmds'] = list([cmd])
-        io_update(self, i_f=self.inputs[self.sam][tech], o_f=outs)
+    if self.config.force or to_do(r1_o) or to_do(r2_o):
+        # self.outputs['cmds']] = list([cmd])
+        self.outputs['cmds'][tech] = list([cmd])
+        # io_update(self, i_f=self.inputs[self.sam][tech], o_f=outs)
+        io_update(self, i_f=self.inputs[self.sam][tech], o_f=outs, key=tech)
+
+
+def atropos_outs(self, inputs, out_dir) -> list:
+    if len(inputs) == 1:
+        out1 = '%s/%s.fastq' % (out_dir, self.sam)
+    else:
+        out1 = '%s/%s_R1.fastq' % (out_dir, self.sam)
+    out2 = '%s/%s_R2.fastq' % (out_dir, self.sam)
+    if inputs[0].endswith('.gz'):
+        out1 += '%s.gz'
+        out2 += '%s.gz'
+    return [out1, out2]
+
+
+def atropos_cmd(self, tech, inputs, out_dir, outputs):
+    params = tech_params(self, tech)
+    cmd = 'atropos trim'
+    for a in params['a']:
+        cmd += ' -a %s' % a
+    for A in params['A']:
+        cmd += ' -A %s' % A
+    cmd += ' -q %s' % params['q']
+    cmd += ' --minimum-length %s' % params['minimum_length']
+    cmd += ' --nextseq-trim %s' % params['nextseq_trim']
+    cmd += ' --pair-filter %s' % params['pair_filter']
+    cmd += ' --overlap %s' % params['overlap']
+    cmd += ' --max-reads %s' % params['max_reads']
+    cmd += ' --indel-cost %s' % params['indel_cost']
+    cmd += ' --error-rate %s' % params['error_rate']
+    cmd += ' --quality-cutoff %s' % params['quality_cutoff']
+    cmd += ' --threads %s' % params['cpus']
+    cmd += ' --report-file %s/%s.log' % (out_dir, self.sam)
+    cmd += ' --report-formats %s' % params['report_formats']
+    if len(inputs) == 1:
+        cmd += ' -se %s' % inputs[0]
+        cmd += ' -o %s' % outputs[0]
+    else:
+        cmd += ' -pe1 %s' % inputs[0]
+        cmd += ' -pe2 %s' % inputs[1]
+        cmd += ' -o %s' % outputs[0]
+        cmd += ' -p %s' % outputs[1]
+    return cmd
 
 
 def atropos(self):
     tech = 'illumina'
-    inputs = self.inputs[self.sam][tech]
     out_dir = '%s/%s/%s' % (self.dir, tech, self.sam)
     self.outputs['dirs'].append(out_dir)
-    if len(inputs) == 1:
-        out_1 = '%s/%s.fastq' % (out_dir, self.sam)
-    else:
-        out_1 = '%s/%s_R1.fastq' % (out_dir, self.sam)
-    out_2 = '%s/%s_R2.fastq' % (out_dir, self.sam)
-    log = '%s/%s.log' % (out_dir, self.sam)
-    if inputs[0].endswith('.gz'):
-        out_1 += '%s.gz'
-        out_2 += '%s.gz'
-    cmd = 'atropos trim'
-    for a in self.soft.params['a']:
-        cmd += ' -a %s' % a
-    for A in self.soft.params['A']:
-        cmd += ' -A %s' % A
-    cmd += ' -q %s' % self.soft.params['q']
-    cmd += ' --minimum-length %s' % self.soft.params['minimum_length']
-    cmd += ' --nextseq-trim %s' % self.soft.params['nextseq_trim']
-    cmd += ' --pair-filter %s' % self.soft.params['pair_filter']
-    cmd += ' --overlap %s' % self.soft.params['overlap']
-    cmd += ' --max-reads %s' % self.soft.params['max_reads']
-    cmd += ' --indel-cost %s' % self.soft.params['indel_cost']
-    cmd += ' --error-rate %s' % self.soft.params['error_rate']
-    cmd += ' --quality-cutoff %s' % self.soft.params['quality_cutoff']
-    cmd += ' --threads %s' % self.soft.params['cpus']
-    cmd += ' --report-file %s' % log
-    cmd += ' --report-formats %s' % self.soft.params['report_formats']
-    if len(inputs) == 1:
-        cmd += ' -se %s' % inputs[0]
-        cmd += ' -o %s' % out_1
-    else:
-        cmd += ' -pe1 %s' % inputs[0]
-        cmd += ' -pe2 %s' % inputs[1]
-        cmd += ' -o %s' % out_1
-        cmd += ' -p %s' % out_2
-    if self.config.force or todo(out_1) or todo(out_2):
-        self.outputs['cmds'].append(cmd)
-        io_update(self, i_f=inputs, o_f=[out_1, out_2])
-    self.outputs['outs'].setdefault(tech, []).extend([out_1, out_2])
-
-
-def kneaddata(self):
-    tech = 'illumina'
     inputs = self.inputs[self.sam][tech]
-    out_dir = '%s/%s/%s' % (self.dir, tech, self.sam)
-    self.outputs['dirs'].append(out_dir)
+    outputs = atropos_outs(self, inputs, out_dir)
+    cmd = atropos_cmd(self, tech, inputs, out_dir, outputs)
+    if self.config.force or sum([to_do(x) for x in outputs]):
+        # self.outputs['cmds'].append(cmd)
+        self.outputs['cmds'][tech].append(cmd)
+        # io_update(self, i_f=inputs, o_f=outputs)
+        io_update(self, i_f=inputs, o_f=outputs, key=tech)
+    self.outputs['outs'].setdefault(tech, []).extend(outputs)
 
+
+def kneaddata_cmd(self, tech, inputs, out_dir) -> tuple:
+    params = tech_params(self, tech)
     cmd = 'kneaddata'
     for inp in inputs:
         cmd += ' --input %s' % inp
-    for database in self.soft.params['databases']:
+    for database in params['databases']:
         cmd += ' --reference-db %s' % database
     cmd += ' --output %s' % out_dir
-    # cmd += ' --output-prefix %s' % self.sam
-    cpus = self.soft.params['cpus']
-    cmd += ' --processes %s' % cpus
-    cmd += ' --max-memory %s%s' % (self.soft.params['mem'],
-                                   self.soft.params['mem_dim'][0])
-    if self.soft.params['trimmomatic']:
-        cmd += ' --trimmomatic %s' % self.soft.params['trimmomatic']
-    if self.soft.params['bowtie2']:
-        cmd += ' --bowtie2 %s' % self.soft.params['bowtie2']
-    cmd += ' --bowtie2-options="--very-sensitive-local -p %s"' % cpus
+    cmd += ' --processes %s' % params['cpus']
+    cmd += ' --max-memory %s%s' % (params['mem'], params['mem_dim'][0])
+    if params['trimmomatic']:
+        cmd += ' --trimmomatic %s' % params['trimmomatic']
+    if params['bowtie2']:
+        cmd += ' --bowtie2 %s' % params['bowtie2']
+    cmd += ' --bowtie2-options="--very-sensitive-local -p %s"' % params['cpus']
     cmd += ' --remove-intermediate-output'
-    cmd += ' --log %s/%s.log' % (out_dir, self.sam)
-    self.outputs['cmds'].append(cmd)
+    cmd += ' --log %s/%s.log\n' % (out_dir, self.sam)
     # write these additional output files manipulations commands
     rad = basename(inputs[0]).replace('.fastq.gz', '')
+    outputs = []
     for typ in ['paired', 'unmatched']:
         for r in ['1', '2']:
             out = '%s/%s_kneaddata_%s_%s.fastq' % (out_dir, rad, typ, r)
@@ -384,67 +445,85 @@ def kneaddata(self):
             self.outputs['outs'].setdefault(tech, []).append(renamed)
             if out == renamed:
                 continue
-            self.outputs['cmds'].append('mv %s %s' % (out, renamed))
-
-    if self.soft.params['purge']:
-        tar_cmd = 'rm %s/%s*' % (out_dir, rad)
+            outputs.append(renamed)
+            cmd += 'mv %s %s\n' % (out, renamed)
+    if params['purge']:
+        cmd += 'rm %s/%s*\n' % (out_dir, rad)
     else:
-        tar_cmd = 'tar cpfz %s/%s_kneadfiles.tar.gz %s/%s* --remove-files' % (
+        cmd += 'tar cpfz %s/%s_kneadfiles.tar.gz %s/%s* --remove-files\n' % (
             out_dir, self.sam, out_dir, rad)
+    return cmd, outputs
 
-    self.outputs['cmds'].append(tar_cmd)
-    io_update(self, i_f=inputs, o_d=out_dir)
+
+def kneaddata(self):
+    tech = 'illumina'
+    out_dir = '%s/%s/%s' % (self.dir, tech, self.sam)
+    self.outputs['dirs'].append(out_dir)
+    inputs = self.inputs[self.sam][tech]
+    cmd, outputs = kneaddata_cmd(self, tech, inputs, out_dir)
+    if self.config.force or sum([to_do(x) for x in outputs]):
+        # self.outputs['cmds'].append(cmd)
+        self.outputs['cmds'][tech].append(cmd)
+        # io_update(self, i_f=inputs, o_d=out_dir)
+        io_update(self, i_f=inputs, o_d=out_dir, key=tech)
+
+
+def filtering_cmd(self, tech, db_path, inputs, out1, out2) -> tuple:
+    params = tech_params(self, tech)
+    cmd = '\nbowtie2'
+    cmd += ' -p %s' % params['cpus']
+    cmd += ' -x %s' % db_path
+    cmd += ' --very-sensitive'
+    if len(inputs) == 1:
+        cmd += ' -U %s' % inputs[0]
+    else:
+        cmd += ' -1 %s' % inputs[0]
+        cmd += ' -2 %s' % inputs[1]
+    cmd += ' | samtools view -f 12 -F 256'
+    cmd += ' | samtools sort -@ %s -n' % params['cpus']
+    cmd += ' | samtools view -bS'
+    cmd += ' | bedtools bamtofastq -i -'
+    cmd += ' -fq %s' % out1.replace('fastq.gz', 'fastq')
+    outs = [out1.replace('fastq.gz', 'fastq')]
+    if len(inputs) > 1:
+        cmd += ' -fq2 %s' % out2.replace('fastq.gz', 'fastq')
+        outs.append(out2.replace('fastq.gz', 'fastq'))
+    cmd += '\n'
+    return cmd, outs
 
 
 def filtering(self):
     for tech in self.inputs[self.sam]:
-        outputs = self.inputs[self.sam][tech]
-        if not outputs:
+        outs = self.inputs[self.sam][tech]
+        if not outs:
             continue
-        io_update(self, i_f=self.inputs[self.sam][tech])
         cmds = ''
         databases = self.soft.params['databases']
         for ddx, (db, db_path) in enumerate(databases.items()):
-            inputs = list(outputs)
-            outputs = []
+            inputs = list(outs)
             out_dir = '%s/%s/%s_%s/%s' % (self.dir, tech, ddx, db, self.sam)
             self.outputs['dirs'].append(out_dir)
             if len(inputs) == 1:
-                out_1 = '%s/%s.fastq' % (out_dir, self.sam)
+                out1 = '%s/%s.fastq' % (out_dir, self.sam)
             else:
-                out_1 = '%s/%s_R1.fastq' % (out_dir, self.sam)
-            out_2 = '%s/%s_R2.fastq' % (out_dir, self.sam)
+                out1 = '%s/%s_R1.fastq' % (out_dir, self.sam)
+            out2 = '%s/%s_R2.fastq' % (out_dir, self.sam)
             if inputs[0].endswith('.gz'):
-                out_1 += '.gz'
-                out_2 += '.gz'
-
-            cmd = '\nbowtie2'
-            cmd += ' -p %s' % self.soft.params['cpus']
-            cmd += ' -x %s' % db_path
-            cmd += ' --very-sensitive'
-            if len(inputs) == 1:
-                cmd += ' -U %s' % inputs[0]
-            else:
-                cmd += ' -1 %s' % inputs[0]
-                cmd += ' -2 %s' % inputs[1]
-            cmd += ' | samtools view -f 12 -F 256'
-            cmd += ' | samtools sort -@ %s -n' % self.soft.params['cpus']
-            cmd += ' | samtools view -bS'
-            cmd += ' | bedtools bamtofastq -i -'
-            cmd += ' -fq %s' % out_1.replace('fastq.gz', 'fastq')
-            outputs.append(out_1.replace('fastq.gz', 'fastq'))
-            if len(inputs) > 1:
-                cmd += ' -fq2 %s' % out_2.replace('fastq.gz', 'fastq')
-                outputs.append(out_2.replace('fastq.gz', 'fastq'))
-            if ddx:
-                cmd += '\nrm %s\n' % ' '.join(inputs)
-            if self.config.force or todo(out_1):
+                out1 += '.gz'
+                out2 += '.gz'
+            cmd, outs = filtering_cmd(self, tech, db_path, inputs, out1, out2)
+            if self.config.force or to_do(out1):
                 cmds += cmd
-        if outputs[0].endswith('.fastq'):
-            for output in outputs:
+                if ddx:
+                    cmds += '\nrm %s' % ' '.join(inputs)
+        if outs[0].endswith('.fastq'):
+            for output in outs:
                 cmds += '\ngzip %s' % output
-        if cmds:
-            self.outputs['cmds'].append(cmds)
-        outputs_gz = ['%s.gz' % x for x in outputs]
+        outputs_gz = ['%s.gz' % x for x in outs]
         self.outputs['outs'].setdefault(tech, []).extend(outputs_gz)
-        io_update(self, o_f=outputs_gz)
+        if cmds:
+            # self.outputs['cmds'].append(cmds)
+            self.outputs['cmds'][tech].append(cmds)
+            # io_update(self, o_f=outputs_gz)
+            io_update(
+                self, i_f=self.inputs[self.sam][tech], o_f=outputs_gz, key=tech)
