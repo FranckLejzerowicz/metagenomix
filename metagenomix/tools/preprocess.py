@@ -8,7 +8,7 @@
 
 import gzip
 from os.path import basename
-from metagenomix._io_utils import io_update, to_do
+from metagenomix._io_utils import io_update, to_do, tech_specificity
 from metagenomix.parameters import tech_params
 
 
@@ -148,7 +148,7 @@ def edit(self) -> None:
 def count_cmd(
         self,
         idx: int,
-        input_fp: str,
+        fastx: str,
         out: str
 ) -> str:
     """Get the command to count the reads in a fasta, fastq or fastq.gz file.
@@ -162,7 +162,7 @@ def count_cmd(
             Parameters
     idx : int
         Unique, incremental numeric identifier.
-    input_fp : str
+    fastx : str
         Path to the input file name.
     out : str
         Path to the output file name.
@@ -172,20 +172,20 @@ def count_cmd(
     cmd : str
         Command to count reads and output the counts.
     """
-    if input_fp.endswith('fastq.gz'):
-        cmd = "n%s=`zcat %s | wc -l | " % (idx, input_fp)
+    if fastx.endswith('fastq.gz'):
+        cmd = "n%s=`zcat %s | wc -l | " % (idx, fastx)
         cmd += "sed 's/ //g' | awk '{x=$1/4; print x}'`\n"
         # cmd += "cut -d ' ' -f 1 | awk '{x=$1/4; print x}'`"
-    elif input_fp.endswith('fasta'):
-        cmd = "n%s=`wc -l %s | " % (idx, input_fp)
+    elif fastx.endswith('fasta'):
+        cmd = "n%s=`wc -l %s | " % (idx, fastx)
         cmd += "sed 's/ //g' | awk '{x=$1/2; print x}'`\n"
         # cmd += "cut -d ' ' -f 1 | awk '{x=$1/2; print x}'`"
-    elif input_fp.endswith('fastq'):
-        cmd = "n%s=`wc -l %s | " % (idx, input_fp)
+    elif fastx.endswith('fastq'):
+        cmd = "n%s=`wc -l %s | " % (idx, fastx)
         cmd += "sed 's/ //g' | awk '{x=$1/4; print x}'`\n"
         # cmd += "cut -d ' ' -f 1 | awk '{x=$1/4; print x}'`"
     else:
-        raise IOError("Input sequence file invalid %s" % input_fp)
+        raise IOError("Input sequence file invalid %s" % fastx)
     if idx:
         cmd += 'echo "%s,2,${n%s}" >> %s\n' % (self.sam, idx, out)
     else:
@@ -213,16 +213,18 @@ def count(self) -> None:
             Configurations
     """
     outs = {}
-    for tech, inputs in self.inputs[self.sam].items():
+    for tech, fastxs in self.inputs[self.sam].items():
+        if tech_specificity(self, fastxs, tech):
+            continue
         out_dir = '%s/%s' % (self.dir, tech)
         self.outputs['dirs'].append(out_dir)
         out = '%s/%s_read_count.tsv' % (out_dir, self.sam)
         outs[tech] = out
         if self.config.force or to_do(out):
-            for idx, input_path in enumerate(inputs):
-                cmd = count_cmd(self, idx, input_path, out)
+            for idx, fastx in enumerate(fastxs):
+                cmd = count_cmd(self, idx, fastx, out)
                 self.outputs['cmds'].setdefault(tech, []).append(cmd)
-            io_update(self, i_f=inputs, o_f=out, key=tech)
+            io_update(self, i_f=fastxs, o_f=out, key=tech)
     self.outputs['outs'] = outs
 
 
@@ -246,15 +248,17 @@ def fastqc(self) -> None:
             Configurations
     """
     outs = {}
-    for tech, inputs in self.inputs[self.sam].items():
+    for tech, fastxs in self.inputs[self.sam].items():
+        if tech_specificity(self, fastxs, tech):
+            continue
         out_dir = '%s/%s/%s' % (self.dir, tech, self.sam)
         self.outputs['dirs'].append(out_dir)
-        out = ['%s_fastqc.html' % x.rsplit('.fastq', 1)[0] for x in inputs]
+        out = ['%s_fastqc.html' % x.rsplit('.fastq', 1)[0] for x in fastxs]
         outs[tech] = out
         if self.config.force or not sum([to_do(x) for x in out]):
-            cmd = 'fastqc %s -o %s' % (' '.join(inputs), out_dir)
+            cmd = 'fastqc %s -o %s' % (' '.join(fastxs), out_dir)
             self.outputs['cmds'][tech] = [cmd]
-            io_update(self, i_f=inputs, o_d=out_dir, key=tech)
+            io_update(self, i_f=fastxs, o_d=out_dir, key=tech)
     self.outputs['outs'] = outs
 
 
@@ -398,7 +402,7 @@ def fastp(self) -> None:
             Configurations
     """
     for tech, fastqs in self.inputs[self.sam].items():
-        if not fastqs:
+        if tech_specificity(self, fastqs, tech):
             continue
         out_dir = '%s/%s/%s' % (self.dir, tech, self.sam)
         self.outputs['dirs'].append(out_dir)
@@ -461,7 +465,7 @@ def cutadapt(self) -> None:
             Configurations
     """
     for tech, fastqs in self.inputs[self.sam].items():
-        if tech not in ['illumina'] or not fastqs:
+        if tech_specificity(self, fastqs, tech, ['illumina']):
             continue
         out_dir = '%s/%s/%s' % (self.dir, tech, self.sam)
         self.outputs['dirs'].append(out_dir)
@@ -590,7 +594,7 @@ def atropos(self) -> None:
             Configurations
     """
     for tech, fastqs in self.inputs[self.sam].items():
-        if tech not in ['illumina'] or not fastqs:
+        if tech_specificity(self, fastqs, tech, ['illumina']):
             continue
         out_dir = '%s/%s/%s' % (self.dir, tech, self.sam)
         self.outputs['dirs'].append(out_dir)
@@ -606,7 +610,7 @@ def kneaddata_cmd(
         self,
         tech: str,
         inputs: list,
-        out_dir:str
+        out_dir: str
 ) -> tuple:
     """Collect the Kneaddata commands.
 
@@ -689,7 +693,7 @@ def kneaddata(self) -> None:
             Configurations
     """
     for tech, fastqs in self.inputs[self.sam].items():
-        if tech not in ['illumina'] or not fastqs:
+        if tech_specificity(self, fastqs, tech, ['illumina']):
             continue
         out_dir = '%s/%s/%s' % (self.dir, tech, self.sam)
         self.outputs['dirs'].append(out_dir)
@@ -776,7 +780,7 @@ def filtering(self):
             Configurations
     """
     for tech, fastqs_ in self.inputs[self.sam].items():
-        if not fastqs_:
+        if tech_specificity(self, fastqs_, tech):
             continue
         fastqs = fastqs_
         cmds = ''
