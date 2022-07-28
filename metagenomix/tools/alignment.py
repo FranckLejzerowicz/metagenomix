@@ -245,7 +245,7 @@ def bowtie2(self) -> None:
         for db, db_path in self.soft.params['databases'].items():
             db_out = '%s/%s/%s' % (out, db, self.soft.params['pairing'])
             cmd, sam = get_bowtie2_cmd(self, tech, fastxs, db_path, db_out)
-            self.outputs['outs'][tech][db] = sam
+            self.outputs['outs'][tech][(db, 'bowtie2')] = sam
             if self.config.force or to_do(sam):
                 cmd = get_alignment_cmd(fastxs, cmd, sam)
                 self.outputs['cmds'].setdefault(tech, []).append(cmd)
