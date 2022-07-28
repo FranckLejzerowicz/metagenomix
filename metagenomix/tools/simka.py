@@ -9,12 +9,17 @@
 import glob
 import pkg_resources
 from os.path import isdir
-from metagenomix._io_utils import mkdr, io_update, to_do
+
+from metagenomix._io_utils import io_update, to_do
+from metagenomix.parameters import tech_params
 
 RESOURCES = pkg_resources.resource_filename("metagenomix", "resources/scripts")
 
 
-def get_simka_input(self) -> str:
+def get_simka_input(
+        self,
+        tech: str
+) -> tuple:
     """Write the file containing the paths to each sample.
 
     Parameters
@@ -24,26 +29,33 @@ def get_simka_input(self) -> str:
             Path to pipeline output folder for spades
         .inputs : dict
             Input files
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
 
     Returns
     -------
-    sim_out : str
-        Path to the file to write.
+    cmd : str
+        Command to create the inputs file
+    out : str
+        Path to the file to write
     """
-    out_dir = self.dir.replace('${SCRATCH_FOLDER}', '')
-    sim_out = '%s/samples_files.txt' % out_dir
-    mkdr(sim_out, True)
-    with open(sim_out, 'w') as o:
-        for sam in self.inputs:
-            fs = self.inputs[sam]
-            if 'after_None' not in out_dir:
-                fs = ['%sq' % x[:-1] if 'notCombined_' in x else x for x in fs]
-            o.write('%s: %s\n' % (sam, '; '.join(fs)))
-            io_update(self, i_f=fs)
-    return sim_out
+    out = '%s/%s/samples_files.txt' % (self.dir, tech)
+    cmd = ''
+    for sdx, sam in enumerate(self.inputs):
+        fs = self.inputs[sam][tech]
+        if not fs:
+            continue
+        if sdx:
+            cmd += 'echo -e "%s: %s\\n" >> %s\n' % (sam, '; '.join(fs), out)
+        else:
+            cmd += 'echo -e "%s: %s\\n" > %s\n' % (sam, '; '.join(fs), out)
+    if cmd:
+        cmd += 'envsubst < %s > %s.tmp\n' % (out, out)
+        cmd += 'mv %s.tmp %s\n' % (out, out)
+    return cmd, out
 
 
-def simka_cmd(self, smin: bool, sim_in: str, out_dir: str,
+def simka_cmd(self, params: dict, sim_in: str, out_dir: str,
               k: int, n: int) -> str:
     """
 
@@ -54,8 +66,8 @@ def simka_cmd(self, smin: bool, sim_in: str, out_dir: str,
             Parameters
         .config
             Configurations
-    smin : bool
-        Whether to use SimkaMin (True) or base Simka (False)
+    params : dict
+        Parameters for the current technology
     sim_in : str
         Input file containing to the fastq file paths for Simka
     out_dir : str
@@ -73,15 +85,15 @@ def simka_cmd(self, smin: bool, sim_in: str, out_dir: str,
     cmd = ''
     if isdir('%s/simkamin' % out_dir):
         cmd = 'rm -rf %s/simkamin\n' % out_dir
-    if smin:
+    if params['simkaMin']:
         if not self.config.force:
             if not to_do('%s/mat_abundance_braycurtis.csv' % out_dir):
                 return ''
             elif not to_do('%s/mat_abundance_braycurtis.csv.gz' % out_dir):
                 return ''
-        cmd += simka_min_cmd(self.soft.params, sim_in, out_dir, k, str(n))
+        cmd += simka_min_cmd(params, sim_in, out_dir, k, str(n))
     else:
-        cmd += simka_base_cmd(self.soft.params, sim_in, out_dir, k, str(n))
+        cmd += simka_base_cmd(params, sim_in, out_dir, k, str(n))
     return cmd
 
 
@@ -107,10 +119,9 @@ def simka_min_cmd(params: dict, sim_in: str, out_dir: str,
     cmd : str
         Simka command line.
     """
-    cmd = 'envsubst < %s > %s.tmp\n' % (sim_in, sim_in)
-    cmd += 'python %s/simkaMin/simkaMin.py' % params['path']
+    cmd = 'python %s/simkaMin/simkaMin.py' % params['path']
     cmd += ' -bin %s/bin/simkaMinCore' % params['path']
-    cmd += ' -in %s.tmp' % sim_in
+    cmd += ' -in %s' % sim_in
     cmd += ' -out %s' % out_dir
     cmd += ' -max-reads %s' % n
     cmd += ' -kmer-size %s' % str(k)
@@ -126,7 +137,6 @@ def simka_min_cmd(params: dict, sim_in: str, out_dir: str,
     cmd += ' -max-memory %s' % mem
     cmd += ' -nb-cores %s\n' % params['cpus']
     cmd += 'rm -rf %s/simkamin\n' % out_dir
-    cmd += 'rm %s.tmp\n' % sim_in
     return cmd
 
 
@@ -152,8 +162,7 @@ def simka_base_cmd(
     cmd : str
         Simka command line.
     """
-    cmd = 'envsubst < %s > %s.tmp\n' % (sim_in, sim_in)
-    cmd += '%s/bin/simka' % params['path']
+    cmd = '%s/bin/simka' % params['path']
     cmd += ' -in %s.tmp' % sim_in
     cmd += ' -out %s' % out_dir
     cmd += ' -out-tmp %s_tmp' % out_dir
@@ -248,19 +257,21 @@ def simka(self) -> None:
         .config
             Configurations
     """
-    input_file = get_simka_input(self)
-    io_update(self, i_f=input_file)
-    smin = self.soft.params['simkaMin']
-    for k in map(int, self.soft.params['kmer']):
-        for n in map(int, self.soft.params['log_reads']):
-            out_d = '%s/k%s/n%s' % (self.dir, k, n)
-            cmd = simka_cmd(self, smin, input_file, out_d, k, n)
-            if cmd:
-                self.outputs['dirs'].append(out_d)
-                self.outputs['cmds'].append(cmd)
-                io_update(self, o_d=out_d)
-            for mdx, mat in enumerate(glob.glob('%s/mat_*.csv*' % out_d)):
-                cmd = simka_pcoa_cmd(mat, self.config)
+    for tech in self.config.techs:
+        params = tech_params(self, tech)
+        input_cmd, input_file = get_simka_input(self, tech)
+        io_update(self, i_f=input_file, key=tech)
+        for k in map(int, params['kmer']):
+            for n in map(int, params['log_reads']):
+                out_d = '%s/%s/k%s/n%s' % (self.dir, tech, k, n)
+                cmd = simka_cmd(self, params, input_file, out_d, k, n)
                 if cmd:
-                    self.outputs['cmds'].append(cmd)
-                    io_update(self, o_d=out_d)
+                    cmd = input_cmd + cmd
+                    self.outputs['dirs'].append(out_d)
+                    self.outputs['cmds'].setdefault(tech, []).append(cmd)
+                    io_update(self, o_d=out_d, key=tech)
+                for mdx, mat in enumerate(glob.glob('%s/mat_*.csv*' % out_d)):
+                    cmd = simka_pcoa_cmd(mat, self.config)
+                    if cmd:
+                        self.outputs['cmds'].setdefault(tech, []).append(cmd)
+                        io_update(self, o_d=out_d, key=tech)
