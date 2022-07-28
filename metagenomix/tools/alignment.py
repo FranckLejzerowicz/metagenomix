@@ -240,7 +240,7 @@ def bowtie2(self) -> None:
     for tech, fastxs in self.inputs[self.sam].items():
         if tech_specificity(self, fastxs, tech):
             continue
-        out = self.dir + '/' + self.sam
+        out = '%s/%s/%s' % (self.dir, tech, self.sam)
         self.outputs['outs'][tech] = dict()
         for db, db_path in self.soft.params['databases'].items():
             db_out = '%s/%s/%s' % (out, db, self.soft.params['pairing'])
@@ -333,7 +333,7 @@ def flash(self) -> None:
             continue
         no_merging(fastqs, 'flash')
 
-        out = '%s/%s' % (self.dir, self.sam)
+        out = '%s/%s/%s' % (self.dir, tech, self.sam)
         self.outputs['dirs'].append(out)
 
         rad = out + '/' + self.sam
@@ -424,7 +424,7 @@ def ngmerge(self) -> None:
             continue
         no_merging(fastqs, 'ngmerge')
 
-        out = '%s/%s' % (self.dir, self.sam)
+        out = '%s/%s/%s' % (self.dir, tech, self.sam)
         self.outputs['dirs'].append(out)
 
         rad = out + '/' + self.sam
@@ -526,7 +526,7 @@ def pear(self) -> None:
             continue
         no_merging(fastqs, 'pear')
 
-        out = '%s/%s' % (self.dir, self.sam)
+        out = '%s/%s/%s' % (self.dir, tech, self.sam)
         self.outputs['dirs'].append(out)
 
         rad = out + '/' + self.sam
@@ -639,7 +639,7 @@ def bbmerge(self) -> None:
             continue
         no_merging(fastqs, 'bbmerge')
 
-        out = '%s/%s' % (self.dir, self.sam)
+        out = '%s/%s/%s' % (self.dir, tech, self.sam)
         self.outputs['dirs'].append(out)
 
         rad = out + '/' + self.sam
