@@ -363,8 +363,8 @@ def files_to_show(self, sam, tech):
 def show_inputs(self):
     if self.config.verbose:
         mlen = max([len(x) for x in self.inputs])
-        print('\n%s\n[%s] inputs\n%s\n' % (
-            ('-' * 30), self.soft.name, ('-' * 30)))
+        print('\n%s\n[%s] inputs (after %s)\n%s\n' % (
+            ('-' * 30), self.soft.name, self.soft.prev, ('-' * 30)))
         print('sample%s %s' % (' ' * (mlen - 6), ' '.join(self.config.techs)))
         for sam in self.inputs:
             show_sam = True
