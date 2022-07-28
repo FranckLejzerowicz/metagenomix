@@ -193,6 +193,8 @@ class AnalysesConfig(object):
     def get_r(self):
         self.r = {}
         for sam in self.fastq:
+            if 'illumina' not in self.fastq[sam]:
+                continue
             r1_r2 = self.fastq[sam]['illumina']
             self.r[sam] = []
             if len(r1_r2) == 2:
