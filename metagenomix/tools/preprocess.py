@@ -413,9 +413,10 @@ def fastp(self) -> None:
 
 def cutadapt_cmd(
         self,
+        tech: str,
         fastqs: list,
-        outs: list
-) -> str:
+        out_dir: str
+) -> tuple:
     """Collect the Cutadapt command.
 
     Parameters
@@ -423,24 +424,48 @@ def cutadapt_cmd(
     self : Commands class instance
         .soft.params
             Parameters
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
     fastqs : list
         Path to the input files
-    outs : list
-        Path to the output files
+    out_dir : str
+        Path to the output folder
 
     Returns
     -------
     cmd : str
         Cutadapt command
+    outs : list
+        Path to the output files
     """
+    params = tech_params(self, tech)
     cmd = 'cutadapt'
     cmd += ' -a AGATCGGAAGAGCACACGTCTGAACTCCAGTCA'
     cmd += ' -A AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT'
-    cmd += ' -m 10'
-    cmd += ' -o %s' % outs[0]
-    cmd += ' -p %s ' % outs[1]
+    for boolean in [
+        'trim_n', 'revcomp', 'zero_cap', 'no_indels', 'pair_adapters',
+        'discard_trimmed', 'discard_untrimmed', 'match_read_wildcards',
+        'no_match_adapter_wildcards'
+    ]:
+        if params[boolean]:
+            cmd += ' --%s' % boolean.replace('_', '-')
+    for param in [
+        'times', 'overlap', 'error_rate', 'quality_base', 'report',
+        'pair-filter', 'action'
+    ]:
+        cmd += ' --%s %s' % (param.replace('_', '-'), params[param])
+    cmd += ' --minimum-length 10'
+    cmd += ' --cores %s' % params['cpus']
+
+    r1_o = '%s/%s.R1.fastq.gz' % (out_dir, self.sam)
+    cmd += ' --output %s' % r1_o
+    outs = [r1_o]
+    if len(outs) == 2:
+        r2_o = '%s/%s.R2.fastq.gz' % (out_dir, self.sam)
+        cmd += ' --paired-output %s ' % r2_o
+        outs.append(r2_o)
     cmd += ' '.join(fastqs)
-    return cmd
+    return cmd, outs
 
 
 def cutadapt(self) -> None:
@@ -468,13 +493,10 @@ def cutadapt(self) -> None:
         out_dir = '%s/%s/%s' % (self.dir, tech, self.sam)
         self.outputs['dirs'].append(out_dir)
 
-        r1_o = '%s/%s.R1.fastq.gz' % (out_dir, self.sam)
-        r2_o = '%s/%s.R2.fastq.gz' % (out_dir, self.sam)
-        outs = [r1_o, r2_o]
+        cmd, outs = cutadapt_cmd(self, tech, fastqs, out_dir)
         self.outputs['outs'].setdefault(tech, []).extend(outs)
 
-        cmd = cutadapt_cmd(self, fastqs, outs)
-        if self.config.force or to_do(r1_o) or to_do(r2_o):
+        if self.config.force or sum([to_do(x) for x in outs]):
             self.outputs['cmds'][tech] = [cmd]
             io_update(self, i_f=fastqs, o_f=outs, key=tech)
 
@@ -502,14 +524,12 @@ def atropos_outs(
         Path to the output files
     """
     if len(fastqs) == 1:
-        out1 = '%s/%s.fastq' % (out_dir, self.sam)
+        outs = ['%s/%s.fastq' % (out_dir, self.sam)]
     else:
-        out1 = '%s/%s_R1.fastq' % (out_dir, self.sam)
-    out2 = '%s/%s_R2.fastq' % (out_dir, self.sam)
-    if fastqs[0].endswith('.gz'):
-        out1 += '%s.gz'
-        out2 += '%s.gz'
-    outs = [out1, out2]
+        outs = ['%s/%s_R1.fastq' % (out_dir, self.sam),
+                '%s/%s_R2.fastq' % (out_dir, self.sam)]
+    outs = ['%s.gz' % outs[idx] if x.endswith('.gz') else x
+            for idx, x in enumerate(fastqs)]
     return outs
 
 

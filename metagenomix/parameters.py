@@ -1699,32 +1699,41 @@ def check_necat(self, params, soft):
     return defaults
 
 
-# def check_circlator(self, params, soft):
-#     defaults = {
-#         '': [],
-#         '':,
-#     }
-#     ints = []
-#     check_nums(self, params, defaults, ints, int, soft.name)
-#     floats = []
-#     check_nums(self, params, defaults, floats, float, soft.name)
-#     check_default(self, params, defaults, soft.name, (ints + floats))
-#     defaults[''] = '<>'
-#     return defaults
+def check_pooling(self, params, soft):
+    param = 'pool_single_and_merged'
+    defaults = {param: [True, False]}
+    if param in params:
+        if set(params[param]).issubset(self.config.techs):
+            sys.exit('[pooling] Param "%s" can not be set per tech' % param)
+    check_default(self, params, defaults, soft.name)
+    return defaults
 
 
-# def check_circlator(self, params, soft):
-#     defaults = {
-#         '': [],
-#         '':,
-#     }
-#     ints = []
-#     check_nums(self, params, defaults, ints, int, soft.name)
-#     floats = []
-#     check_nums(self, params, defaults, floats, float, soft.name)
-#     check_default(self, params, defaults, soft.name, (ints + floats))
-#     defaults[''] = '<>'
-#     return defaults
+def check_cutadapt(self, params, soft):
+    defaults = {
+        'times': 1,
+        'overlap': 3,
+        'error_rate': 0.1,
+        'quality_base': 33,
+        'trim_n': [False, True],
+        'revcomp': [False, True],
+        'zero_cap': [False, True],
+        'no_indels': [False, True],
+        'pair_adapters': [False, True],
+        'discard_trimmed': [False, True],
+        'discard_untrimmed': [False, True],
+        'match_read_wildcards': [False, True],
+        'no_match_adapter_wildcards': [False, True],
+        'report': ['full', 'minimal'],
+        'pair-filter': ['any', 'both', 'first'],
+        'action': ['trim', 'retain', 'mask', 'lowercase', 'none'],
+    }
+    ints = ['times', 'overlap', 'quality_base']
+    check_nums(self, params, defaults, ints, int, soft.name)
+    floats = ['error_rate']
+    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
+    check_default(self, params, defaults, soft.name, (ints + floats))
+    return defaults
 
 
 # def check_circlator(self, params, soft):
