@@ -119,9 +119,7 @@ def get_edit_cmd(
     if not line_split[0].endswith('/%s' % num):
         if len(line_split) > 1:
             cmd = edit_fastq_cmd(fastq_fp, num)
-            # self.outputs['cmds'].append(cmd)
             self.outputs['cmds'].setdefault(tech, []).append(cmd)
-    # io_update(self, i_f=fastqs_fps, o_f=fastqs_fps)
     io_update(self, i_f=fastqs_fps, o_f=fastqs_fps, key=tech)
 
 
