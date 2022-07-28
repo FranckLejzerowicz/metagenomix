@@ -193,7 +193,7 @@ def reads_lines(file_fp: str) -> list:
     return file_lines
 
 
-def check_min_lines_count(input_fp: str) -> bool:
+def min_nlines(input_fp: str) -> bool:
     """Check whether the number of lines in the file is above one.
 
     Parameters
@@ -429,6 +429,50 @@ def to_do(file: str = None, folder: str = None) -> bool:
     if folder and isdir(folder.replace('${SCRATCH_FOLDER}', '')):
         return False
     return True
+
+
+def tech_specificity(
+        self,
+        data,
+        tech: str,
+        specificity: list = []
+) -> bool:
+    """Returns a boolean that is True if the current technology can not be
+    processed by the current tool, possibly because is has no input files.
+    If there are files but the technology can not be processed, the files
+    are passed as output so that they can be available to the next steps.
+
+    Notes
+    -----
+    This behaviour is common to all software functions and therefore
+    justifies this function, and some tools of a workflow ar not designed
+    for some technologies so the pipeline should pass through these while
+    retaining the files available for a next step.
+    For example, the reads merging can only happen on the 'illumina' data.
+    So the 'pacbio' and 'nanopore' data will just be passed as output to read
+    merging (without merging) so that they can be available to the next step.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .outputs : dict
+            All outputs
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    data : str
+        Path to the input files or other input data structure
+    specificity : list
+        Technology that can be processed by the current software
+
+    Returns
+    -------
+    bool
+        Whether the technology is possibly processed using this tool
+    """
+    if not data or (specificity and tech not in specificity):
+        self.outputs['outs'].setdefault(tech, []).extend(data)
+        return True
+    return False
 
 
 def caller(self, namespace):
