@@ -9,6 +9,7 @@
 import itertools
 from os.path import abspath
 
+from metagenomix._io_utils import show_inputs
 from metagenomix.tools.preprocess import *
 from metagenomix.tools.alignment import *
 from metagenomix.tools.simka import *
@@ -77,32 +78,7 @@ class Commands(object):
                 self.inputs = self.config.fastq
         else:
             self.inputs = self.softs[self.soft.prev].outputs
-        self.show_inputs()
-
-    def show_inputs(self):
-        if self.config.verbose:
-            mlen = max([len(x) for x in self.inputs])
-            print('\n%s\n[%s] inputs\n%s\n' % (
-                ('-' * 30), self.soft.name, ('-' * 30)))
-            print('sample%s %s' % (' '*(mlen - 6), ' '.join(self.config.techs)))
-            for sam in self.inputs:
-                show_sam = True
-                s = '%s%s' % (sam, ' ' * (mlen - len(sam)))
-                for tdx, tech in enumerate(self.config.techs[::-1]):
-                    techs = self.config.techs[:1+self.config.techs.index(tech)]
-                    sep = ''.join(
-                        ['│%s' % (' '*len(t)) if t in self.inputs[sam] and
-                                                 len(self.inputs[sam][t])
-                         else 'X%s' % (' '*len(t)) for t in techs])
-                    if sep.rstrip()[-1] != 'X':
-                        sep = '%s └─' % sep.rstrip()[:-2]
-                    for f in self.inputs[sam].get(tech, []):
-                        if show_sam:
-                            print('%s %s %s' % (s, sep.strip(), f))
-                            show_sam = False
-                        else:
-                            print('%s %s %s' % ((' ' * len(s)), sep.strip(), f))
-                print()
+        show_inputs(self)
 
     def get_dir(self):
         self.dir = abspath('%s/%s/after_%s' % (

@@ -315,6 +315,73 @@ def write_hmms(self) -> str:
     return hmms_fp
 
 
+def files_to_show_list(self, sam, tech, t, ins, seps, fs):
+    seps.append('│%s' % (' ' * len(t)))
+    files = []
+    for i in ins:
+        if '/%s/' % tech in i:
+            files.append(i)
+        elif i in self.config.fastq_mv[sam][tech]:
+            files.append(i)
+        elif isinstance(i, tuple) and '/%s/' % tech in i[0]:
+            files.append('%s (%s)' % i)
+    fs.extend(files)
+
+
+def files_to_show_dict(t, ins, seps, fs):
+    seps.append('│%s' % (' ' * len(t)))
+    fs.extend(['%s (%s)' % (y, x) for x, y in ins.items()])
+
+
+def fill_seps_and_fs(self, sam, tech, t, seps, fs):
+    ins = self.inputs[sam][t]
+    if isinstance(ins, list) and len(ins):
+        files_to_show_list(self, sam, tech, t, ins, seps, fs)
+    elif isinstance(ins, dict) and [x for x in ins.values()
+                                    if '/%s/' % tech in x]:
+        files_to_show_dict(t, ins, seps, fs)
+    else:
+        no_file_to_show(t, seps)
+
+
+def no_file_to_show(t, seps):
+    seps.append('X%s' % (' ' * len(t)))
+
+
+def files_to_show(self, sam, tech):
+    seps, fs = [], []
+    techs = self.config.techs[:1 + self.config.techs.index(tech)]
+    for t in techs:
+        if t in self.inputs[sam]:
+            fill_seps_and_fs(self, sam, tech, t, seps, fs)
+        else:
+            no_file_to_show(t, seps)
+    sep = ''.join(seps)
+    return sep, fs
+
+
+def show_inputs(self):
+    if self.config.verbose:
+        mlen = max([len(x) for x in self.inputs])
+        print('\n%s\n[%s] inputs\n%s\n' % (
+            ('-' * 30), self.soft.name, ('-' * 30)))
+        print('sample%s %s' % (' ' * (mlen - 6), ' '.join(self.config.techs)))
+        for sam in self.inputs:
+            show_sam = True
+            s = '%s%s' % (sam, ' ' * (mlen - len(sam)))
+            for tdx, tech in enumerate(self.config.techs[::-1]):
+                sep, fs = files_to_show(self, sam, tech)
+                if sep.rstrip()[-1] != 'X':
+                    sep = '%s └─' % sep.rstrip()[:-2]
+                for f in fs:
+                    if show_sam:
+                        print('%s %s %s' % (s, sep.strip(), f))
+                        show_sam = False
+                    else:
+                        print('%s %s %s' % ((' ' * len(s)), sep.strip(), f))
+            print()
+
+
 def get_roundtrip(io) -> dict:
     roundtrip = {'to': inputs_to_scratch(io), 'from': outputs_back(io)}
     return roundtrip
