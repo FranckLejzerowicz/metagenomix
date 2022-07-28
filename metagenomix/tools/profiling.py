@@ -10,13 +10,19 @@ import glob
 import pkg_resources
 from os.path import basename, dirname, isfile, splitext
 
-from metagenomix._io_utils import check_min_lines_count, io_update, to_do
+from metagenomix._io_utils import min_nlines, io_update, to_do, tech_specificity
 from metagenomix.tools.alignment import get_alignment_cmd
+from metagenomix.parameters import tech_params
 
 RESOURCES = pkg_resources.resource_filename('metagenomix', 'resources')
 
 
-def shogun_append_cmd(self, cmds: list, tab: str):
+def shogun_append_cmd(
+        self,
+        tech: str,
+        cmds: list,
+        tab: str
+) -> None:
     """Add or not the current SHOGUN command to the list of commands to run
     depending on whether the file already exists or exists but is only a header.
 
@@ -27,14 +33,16 @@ def shogun_append_cmd(self, cmds: list, tab: str):
             All outputs
         .config
             Configurations
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
     cmds : list
         List of current SHOGUN command lines
     tab : str
         Path to the output table of the current command
     """
     if self.config.force:
-        self.outputs['cmds'].extend(cmds)
-    elif to_do(tab) or not check_min_lines_count(tab):
+        self.outputs['cmds'].setdefault(tech, []).extend(cmds)
+    elif to_do(tab) or not min_nlines(tab):
         cmd = 'file="%s"\n' % tab
         cmd += 'if [ -f "$file" ]\n'
         cmd += 'then\n'
@@ -43,11 +51,17 @@ def shogun_append_cmd(self, cmds: list, tab: str):
         cmd += 'then\n'
         cmd += '\n'.join(cmds)
         cmd += 'fi\n'
-        self.outputs['cmds'].append(cmd)
+        self.outputs['cmds'].setdefault(tech, []).append(cmd)
 
 
-def shogun_redistribute(self, db: str, aligner: str, tax_norm: str,
-                        db_path: str) -> None:
+def shogun_redistribute(
+        self,
+        tech: str,
+        db: str,
+        aligner: str,
+        tax_norm: str,
+        db_path: str
+) -> None:
     """Get the SHOGUN command to redistribute a taxonomic profile
     at various taxonomic levels.
 
@@ -58,6 +72,8 @@ def shogun_redistribute(self, db: str, aligner: str, tax_norm: str,
             All outputs
         .config
             Configurations
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
     db : str
         Database name
     aligner : str
@@ -76,14 +92,19 @@ def shogun_redistribute(self, db: str, aligner: str, tax_norm: str,
         cmd += ' -l %s' % level
         cmd += ' -o %s' % redist
         redist_cmds.append(cmd)
-        self.outputs['outs'].setdefault((db, aligner), []).append(redist)
-        io_update(self, o_f=redist)
+        self.outputs['outs'].setdefault((db, aligner, tech), []).append(redist)
+        io_update(self, o_f=redist, key=tech)
     redist_out = '%s.redist.strain.tsv' % splitext(tax_norm)[0]
-    shogun_append_cmd(self, redist_cmds, redist_out)
+    shogun_append_cmd(self, tech, redist_cmds, redist_out)
 
 
-def shogun_assign_taxonomy(aligner: str, ali: str, tax: str, db_path: str,
-                           sub_db: str) -> str:
+def shogun_assign_taxonomy(
+        aligner: str,
+        ali: str,
+        tax: str,
+        db_path: str,
+        sub_db: str
+) -> str:
     """Get the assign taxonomy command.
 
     Parameters
@@ -112,7 +133,10 @@ def shogun_assign_taxonomy(aligner: str, ali: str, tax: str, db_path: str,
     return cmd
 
 
-def shogun_normalize(input_fp: str, output_fp: str) -> str:
+def shogun_normalize(
+        input_fp: str,
+        output_fp: str
+) -> str:
     """Get the SHOGUN command to normalize table.
 
     Parameters
@@ -131,16 +155,19 @@ def shogun_normalize(input_fp: str, output_fp: str) -> str:
     return cmd
 
 
-def get_ali_cmd(self, fasta: str, out: str, db_path: str, aligner: str) -> str:
+def align_cmd(
+        params: dict,
+        fasta: str,
+        out: str,
+        db_path: str,
+        aligner: str
+) -> str:
     """Get the SHOGUN alignment command.
 
     Parameters
     ----------
-    self : Commands class instance
-        .soft.params
-            Parameters
-        .databases
-            All databases class instance
+    params : dict
+        Parameters for the current technology
     fasta : str
         Path to the input fasta file
     db_path : str
@@ -158,12 +185,26 @@ def get_ali_cmd(self, fasta: str, out: str, db_path: str, aligner: str) -> str:
     cmd = 'shogun align -a %s' % aligner
     cmd += ' -i %s' % fasta
     cmd += ' -d %s' % db_path
-    cmd += ' -t %s' % self.soft.params['cpus']
+    cmd += ' -t %s' % params['cpus']
     cmd += ' -o %s' % out
     return cmd
 
 
-def get_alignment_basename(aligner):
+def get_alignment_basename(
+        aligner: str
+) -> str:
+    """Get the default basename for SHOGUN-output alignments.
+
+    Parameters
+    ----------
+    aligner : str
+        Name of the Aligner
+
+    Returns
+    -------
+    ali_base : str
+        Basename for the output alignment file
+    """
     if aligner == 'bowtie2':
         ali_base = 'alignment.bowtie2.sam'
     elif aligner == 'burst':
@@ -173,7 +214,21 @@ def get_alignment_basename(aligner):
     return ali_base
 
 
-def get_orients(inputs: list):
+def get_orients(
+        inputs: list
+) -> list:
+    """Return the reads orientations.
+
+    Parameters
+    ----------
+    inputs : list
+        Path to the input fastx files
+
+    Returns
+    -------
+    orients : list
+        Reads orientations
+    """
     if len(inputs) == 1:
         orients = ['']
     elif len(inputs) == 2:
@@ -185,7 +240,13 @@ def get_orients(inputs: list):
     return orients
 
 
-def get_combine_cmd(self, out_dir: str, combine_cmds: list) -> list:
+def get_combine_cmd(
+        self,
+        tech: str,
+        inputs: list,
+        out: str,
+        combine_cmds: list
+) -> list:
     """
 
     Parameters
@@ -197,7 +258,11 @@ def get_combine_cmd(self, out_dir: str, combine_cmds: list) -> list:
             Input files
         .outputs : dict
             All outputs
-    out_dir : str
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    inputs : list
+        Path to the input files
+    out : str
         Path to pipeline output folder for SHOGUN
     combine_cmds : list
         Commands to turn .fastq or .fastq.gz files into .fasta files
@@ -209,19 +274,19 @@ def get_combine_cmd(self, out_dir: str, combine_cmds: list) -> list:
     """
     fastas = []
     # get the fastq versions of input file
-    orients = get_orients(self.inputs[self.sam])
-    for pdx, path_ in enumerate(sorted(self.inputs[self.sam])):
-        io_update(self, i_f=path_)
+    orients = list(get_orients(inputs))
+    for pdx, path_ in enumerate(inputs):
         path = path_
         if path_.endswith('fastq') or path_.endswith('fastq.gz'):
             # replace non-fasta by fasta extensions
             path = path_.replace('.fastq', '.fasta').replace('.gz', '')
             # Prepare the extraction command and collect it
-            if not to_do(path_) and to_do(path):
+            if to_do(path):
+                io_update(self, i_f=path_, o_f=path, key=tech)
                 to_fasta_cmd = 'seqtk seq -A %s > %s' % (path_, path)
                 combine_cmds.append(to_fasta_cmd)
 
-        path_out = '%s/%s' % (out_dir, basename(path))
+        path_out = '%s/%s' % (out, basename(path))
         edit_fasta = 'python3 %s/scripts/fasta4shogun.py -i %s -o %s -s %s' % (
             RESOURCES, path, path_out, self.sam)
         orient = orients[pdx]
@@ -233,7 +298,13 @@ def get_combine_cmd(self, out_dir: str, combine_cmds: list) -> list:
     return fastas
 
 
-def combine_inputs(self, out_dir: str, combine_cmds: list) -> str:
+def combine_inputs(
+        self,
+        tech: str,
+        inputs: list,
+        out: str,
+        combine_cmds: list
+) -> str:
     """Combine the fastq/a of the sample to run shogun.
 
     Parameters
@@ -245,7 +316,11 @@ def combine_inputs(self, out_dir: str, combine_cmds: list) -> str:
             Input files
         .outputs : dict
             All outputs
-    out_dir : str
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    inputs : list
+        Path to the input files
+    out : str
         Path to pipeline output folder for SHOGUN
     combine_cmds : list
         Commands to turn .fastq or .fastq.gz files into .fasta files
@@ -255,15 +330,22 @@ def combine_inputs(self, out_dir: str, combine_cmds: list) -> str:
     fasta : str
         Path to the combined sequences fasta file
     """
-    fastas = get_combine_cmd(self, out_dir, combine_cmds)
-    fasta = '%s/combined.fasta' % out_dir
+    fastas = get_combine_cmd(self, tech, inputs, out, combine_cmds)
+    fasta = '%s/combined.fasta' % out
     combine_cmds.extend([
         'cat %s > %s' % (' '.join(fastas), fasta), 'rm %s' % ' '.join(fastas)])
     return fasta
 
 
-def align_cmds(self, fasta: str, out: str, db: str, aligner: str,
-               ali_cmds: list) -> str:
+def align(
+        self,
+        tech: str,
+        fasta: str,
+        out: str,
+        db: str,
+        aligner: str,
+        ali_cmds: list
+) -> str:
     """
 
     Parameters
@@ -271,6 +353,8 @@ def align_cmds(self, fasta: str, out: str, db: str, aligner: str,
     self : Commands class instance
         .outputs : dict
             All outputs
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
     fasta : str
         Path to the combined sequences fasta file
     out : str
@@ -286,23 +370,28 @@ def align_cmds(self, fasta: str, out: str, db: str, aligner: str,
         Alignment output file
     """
     out_dir = '%s/%s/%s' % (out, db, aligner)
-    ali = '%s/%s' % (out_dir, get_alignment_basename(aligner))
+    self.outputs['dirs'].append(out_dir)
 
+    ali = '%s/%s' % (out_dir, get_alignment_basename(aligner))
+    params = tech_params(self, tech)
     db_path = '%s/shogun' % self.databases.paths[db]
-    cmd = get_ali_cmd(self, fasta, out_dir, db_path, aligner)
+    cmd = align_cmd(params, fasta, out_dir, db_path, aligner)
     cmd = get_alignment_cmd([fasta], cmd, ali)
     ali_cmds.append(cmd)
-    if cmd.startswith('shogun'):
-        io_update(self, i_f=ali)
+    if not cmd.startswith('shogun'):
+        io_update(self, i_f=ali, key=tech)
 
-    self.outputs['dirs'].append(out_dir)
-    self.outputs['outs'].setdefault((db, aligner), []).append(ali)
-    io_update(self, o_d=out_dir)
+    self.outputs['outs'][tech].setdefault((db, aligner), []).append(ali)
+    io_update(self, o_d=out_dir, key=tech)
 
     return ali
 
 
-def format_sam(sam_: str, ali_cmds: list, sample: str) -> str:
+def format_sam(
+        sam_: str,
+        ali_cmds: list,
+        sample: str
+) -> str:
     sam = '%s_formatted.sam' % splitext(sam_)[0]
     cmd = 'python3 %s/scripts/sam4shogun.py -i %s -o %s -s %s' % (
         RESOURCES, sam_, sam, sample)
@@ -310,7 +399,11 @@ def format_sam(sam_: str, ali_cmds: list, sample: str) -> str:
     return sam
 
 
-def get_dir(out_dir: str, db: str, aligner: str) -> str:
+def get_dir(
+        out_dir: str,
+        db: str,
+        aligner: str
+) -> str:
     """
 
     Parameters
@@ -334,8 +427,15 @@ def get_dir(out_dir: str, db: str, aligner: str) -> str:
     return out
 
 
-def shogun_assign_normalize(self, tab: str, aligner: str, ali: str,
-                            db_path: str, sub_db: str):
+def shogun_assign_normalize(
+        self,
+        tech: str,
+        tab: str,
+        aligner: str,
+        ali: str,
+        db_path: str,
+        sub_db: str
+) -> None:
     """Get the assignment and the normalization SHOGUN commands for
     the taxonomy or functional classifications.
 
@@ -346,6 +446,8 @@ def shogun_assign_normalize(self, tab: str, aligner: str, ali: str,
             All outputs
         .config
             Configurations
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
     tab : str
         Path to the output table
     aligner : str
@@ -364,10 +466,17 @@ def shogun_assign_normalize(self, tab: str, aligner: str, ali: str,
     if self.config.force or to_do(tab_norm):
         cmd += shogun_normalize(tab, tab_norm)
     if cmd:
-        shogun_append_cmd(self, list([cmd]), tab_norm)
+        shogun_append_cmd(self, tech, list([cmd]), tab_norm)
 
 
-def get_paths(self, out: str, aligner: str, db: str, tax_fun: str) -> tuple:
+def get_paths(
+        self,
+        tech: str,
+        out: str,
+        aligner: str,
+        db: str,
+        tax_fun: str
+) -> tuple:
     """
 
     Parameters
@@ -375,6 +484,8 @@ def get_paths(self, out: str, aligner: str, db: str, tax_fun: str) -> tuple:
     self : Commands class instance
         .outputs : dict
             All outputs
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
     out : str
         Path to pipeline output folder for SHOGUN
     aligner : str
@@ -388,21 +499,27 @@ def get_paths(self, out: str, aligner: str, db: str, tax_fun: str) -> tuple:
     -------
     tax : str
         Path to the output table
-    tax_norm : str
+    norm : str
         Path to the output table (relative abundances)
     """
     out_dir = get_dir(out, db, aligner)
     self.outputs['dirs'].append(out_dir)
 
     tab = '%s/%s.tsv' % (out_dir, tax_fun)
-    tab_norm = '%s/%s_norm.tsv' % (out_dir, tax_fun)
-    self.outputs['outs'].setdefault((db, aligner), []).extend([tab, tab_norm])
-    io_update(self, i_d=out_dir, o_f=[tab, tab_norm])
-    return tab, tab_norm
+    norm = '%s/%s_norm.tsv' % (out_dir, tax_fun)
+    self.outputs['outs'][tech].setdefault((db, aligner), []).extend([tab, norm])
+    io_update(self, i_d=out_dir, o_f=[tab, norm], key=tech)
+    return tab, norm
 
 
-def shogun_coverage_cmd(self, ali: str, db_path: str, level: str,
-                        cov_tab: str) -> None:
+def shogun_coverage_cmd(
+        self,
+        tech: str,
+        ali: str,
+        db_path: str,
+        level: str,
+        cov_tab: str
+) -> None:
     """Get the SHOGUN command that calculates the coverage per taxon.
 
     Parameters
@@ -412,6 +529,8 @@ def shogun_coverage_cmd(self, ali: str, db_path: str, level: str,
             All outputs
         .config
             Configurations
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
     ali : str
         Path to the alignment
     db_path : str
@@ -426,20 +545,34 @@ def shogun_coverage_cmd(self, ali: str, db_path: str, level: str,
     cmd += ' -d %s' % db_path
     cmd += ' -l %s' % level
     cmd += ' -o %s' % cov_tab
-    shogun_append_cmd(self, list([cmd]), cov_tab)
+    shogun_append_cmd(self, tech, list([cmd]), cov_tab)
 
 
-def shogun_coverage(self, out: str, aligner: str, ali: str, db: str) -> None:
+def shogun_coverage(
+        self,
+        tech: str,
+        out: str,
+        aligner: str,
+        ali: str,
+        db: str
+) -> None:
     db_path = '%s/shogun' % self.databases.paths[db]
     if aligner == 'burst':
         cov_tab = '%s/coverage.tsv' % out
-        self.outputs['outs'].setdefault((db, aligner), []).append(cov_tab)
+        self.outputs['outs'][tech].setdefault((db, aligner), []).append(cov_tab)
         if self.config.force or to_do(cov_tab):
-            shogun_coverage_cmd(self, ali, db_path, 'strain', cov_tab)
-            io_update(self, o_f=cov_tab)
+            shogun_coverage_cmd(self, tech, ali, db_path, 'strain', cov_tab)
+            io_update(self, o_f=cov_tab, key=tech)
 
 
-def shogun_taxonomy(self, out: str, aligner: str, ali: str, db: str) -> str:
+def shogun_taxonomy(
+        self,
+        tech: str,
+        out: str,
+        aligner: str,
+        ali: str,
+        db: str
+) -> str:
     """
 
     Parameters
@@ -449,6 +582,8 @@ def shogun_taxonomy(self, out: str, aligner: str, ali: str, db: str) -> str:
             All outputs
         .config
             Configurations
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
     out : str
         Path to pipeline output folder for SHOGUN
     aligner : str
@@ -464,28 +599,42 @@ def shogun_taxonomy(self, out: str, aligner: str, ali: str, db: str) -> str:
         Path to the normalized output table
     """
     db_path = '%s/shogun' % self.databases.paths[db]
-    tab, norm = get_paths(self, out, aligner, db, 'taxonomy')
-    shogun_assign_normalize(self, tab, aligner, ali, db_path, '')
-    shogun_redistribute(self, db, aligner, norm, db_path)
+    tab, norm = get_paths(self, tech, out, aligner, db, 'taxonomy')
+    shogun_assign_normalize(self, tech, tab, aligner, ali, db_path, '')
+    shogun_redistribute(self, tech, db, aligner, norm, db_path)
     return norm
 
 
-def shogun_function(self, out: str, aligner: str, ali: str, db: str,
-                    norm: str) -> None:
+def shogun_function(
+        self,
+        tech: str,
+        out: str,
+        aligner: str,
+        ali: str,
+        db: str,
+        norm: str
+) -> None:
     db_path = '%s/shogun' % self.databases.paths[db]
     for sub in ['kegg', 'refseq', 'uniprot']:
-        fun, f_norm = get_paths(self, out, aligner, db, 'function-%s' % sub)
-        shogun_assign_normalize(self, fun, aligner, ali, db_path,
-                                '/functions-%s' % sub)
-        shogun_redistribute(self, db, aligner, f_norm, db_path)
+        fun, f_norm = get_paths(
+            self, tech, out, aligner, db, 'function-%s' % sub)
+        shogun_assign_normalize(
+            self, tech, fun, aligner, ali, db_path, '/functions-%s' % sub)
+        shogun_redistribute(self, tech, db, aligner, f_norm, db_path)
 
     out_dir = out + '/functional'
     for level in ['genus', 'species']:
-        shogun_functional(self, norm, fun, out_dir, level)
+        shogun_functional(self, tech, norm, fun, out_dir, level)
 
 
-def shogun_functional(self, norm: str, db_path: str, out_dir: str,
-                      level: str) -> None:
+def shogun_functional(
+        self,
+        tech: str,
+        norm: str,
+        db_path: str,
+        out_dir: str,
+        level: str
+) -> None:
     """
 
     Parameters
@@ -495,6 +644,8 @@ def shogun_functional(self, norm: str, db_path: str, out_dir: str,
             All outputs
         .config
             Configurations
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
     norm : str
         Path to the input table file
     db_path : str
@@ -511,7 +662,7 @@ def shogun_functional(self, norm: str, db_path: str, out_dir: str,
     cmd += ' -l %s' % level
     base = splitext(basename(norm))[0]
     out = '%s/%s.%s.normalized.txt' % (out_dir, base, level)
-    shogun_append_cmd(self, list([cmd]), out)
+    shogun_append_cmd(self, tech, list([cmd]), out)
 
 
 def shogun(self) -> None:
@@ -539,30 +690,41 @@ def shogun(self) -> None:
         .config
             Configurations
     """
-    self.outputs['outs'] = dict({})
-    combine_cmds, ali_cmds = [], []
+    for tech, inputs in self.inputs[self.sam].items():
+        if tech_specificity(self, inputs, tech):
+            continue
+        self.outputs['outs'][tech] = {}
+        params = tech_params(self, tech)
+        combine_cmds, ali_cmds = [], []
 
-    out = self.dir + '/' + self.sam
-    self.outputs['dirs'].append(out)
-    io_update(self, o_d=out)
+        out = '%s/%s/%s' % (self.dir, tech, self.sam)
+        self.outputs['dirs'].append(out)
+        io_update(self, o_d=out, key=tech)
 
-    if self.soft.prev == 'bowtie2':
-        for db, sam_ in self.inputs[self.sam].items():
-            ali = format_sam(sam_, ali_cmds, self.sam)
-            shogun_taxonomy(self, out, '', ali, db)
-    elif self.soft.params['databases']:
-        fasta = combine_inputs(self, out, combine_cmds)
-        for db, aligners in self.soft.params['databases'].items():
-            for aligner in aligners:
-                ali = align_cmds(self, fasta, out, db, aligner, ali_cmds)
-                norm = shogun_taxonomy(self, out, aligner, ali, db)
-                shogun_coverage(self, out, aligner, ali, db)
-                shogun_function(self, out, aligner, ali, db, norm)
-    if self.outputs['cmds']:
-        self.outputs['cmds'] = combine_cmds + ali_cmds + self.outputs['cmds']
+        if self.soft.prev == 'bowtie2':
+            for (db, aligner), sam in inputs.items():
+                ali = format_sam(sam, ali_cmds, self.sam)
+                self.outputs['outs'][tech].setdefault(
+                    (db, 'bowtie2'), []).append(ali)
+                shogun_taxonomy(self, tech, out, 'bowtie2', ali, db)
+
+        elif params['databases']:
+            fasta = combine_inputs(self, tech, inputs, out, combine_cmds)
+            for db, aligners in params['databases'].items():
+                for aligner in aligners:
+                    ali = align(self, tech, fasta, out, db, aligner, ali_cmds)
+                    norm = shogun_taxonomy(self, tech, out, aligner, ali, db)
+                    shogun_coverage(self, tech, out, aligner, ali, db)
+                    shogun_function(self, tech, out, aligner, ali, db, norm)
+        if self.outputs['cmds']:
+            cmd = combine_cmds + ali_cmds + self.outputs['cmds'][tech]
+            self.outputs['cmds'][tech] = cmd
 
 
-def woltka_aligments(self) -> dict:
+def woltka_aligments(
+        self,
+        tech: str
+) -> dict:
     """Get the alignment paths per sample.
 
     Parameters
@@ -572,22 +734,34 @@ def woltka_aligments(self) -> dict:
             Input files
         .outputs : dict
             All outputs
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
 
     Returns
     -------
-    alis : dict
-        Alignments per sample per pairing
+    alignments : dict
+        Alignments per sample and per pairing
     """
-    alis = {}
+    alignments = {}
     for sample, sam_inputs in self.inputs.items():
-        for db, sam in sam_inputs.items():
-            if db == 'wol':
-                alis[sample] = sam
-                io_update(self, i_f=sam)
-    return alis
+        if sam_inputs[tech]:
+            for (db, aligner), sam in sam_inputs[tech].items():
+                tech_aligner = tech + '_' + aligner
+                if sam and db == 'wol':
+                    if aligner not in alignments:
+                        alignments[aligner] = {}
+                    alignments[aligner][sample] = sam
+                    io_update(self, i_f=sam, key=tech_aligner)
+    return alignments
 
 
-def woltka_write_map(self, pairing: str, alis: dict) -> str:
+def woltka_write_map(
+        self,
+        tech: str,
+        pairing: str,
+        aligner: str,
+        alis: dict
+) -> str:
     """Write the mapping file that servers as input to Woltka.
 
     Parameters
@@ -597,8 +771,12 @@ def woltka_write_map(self, pairing: str, alis: dict) -> str:
             Path to the output folder
         .outputs: dict
             All outputs
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
     pairing : str
         Type of reads pairing during alignment
+    aligner : str
+        Aligner used to create the input alignments
     alis : dict
         Alignments
 
@@ -607,9 +785,12 @@ def woltka_write_map(self, pairing: str, alis: dict) -> str:
     map_fp : str
         Path to the output woltka samples file.
     """
-    map_fp = '%s/%s/samples.map' % (self.dir, pairing)
-    self.outputs['dirs'].append((self.dir + '/' + pairing))
+
+    out_dir = '%s/%s/%s/%s' % (self.dir, tech, aligner, pairing)
+    self.outputs['dirs'].append(out_dir)
+
     cmd = ''
+    map_fp = '%s/samples.map' % out_dir
     for idx, sam in enumerate(alis.keys()):
         echo = 'echo -e "%s\\t%s"' % (sam, alis[sam])
         if idx:
@@ -619,11 +800,18 @@ def woltka_write_map(self, pairing: str, alis: dict) -> str:
     if cmd:
         cmd += 'envsubst < %s > %s.tmp\n' % (map_fp, map_fp)
         cmd += 'mv %s.tmp %s\n' % (map_fp, map_fp)
-        self.outputs['cmds'].append(cmd)
+        self.outputs['cmds'].setdefault((tech + '_' + aligner), []).append(cmd)
     return map_fp
 
 
-def woltka_tax_cmd(self, pairing: str, woltka_map: str, database: str) -> str:
+def woltka_tax_cmd(
+        self,
+        tech: str,
+        pairing: str,
+        aligner: str,
+        woltka_map: str,
+        database: str
+) -> str:
     """Get the taxonomic classification outputs and prepare the
     Woltka commands for this classification.
 
@@ -634,8 +822,12 @@ def woltka_tax_cmd(self, pairing: str, woltka_map: str, database: str) -> str:
             Path to pipeline output folder for SHOGUN.
         .outputs: dict
             All outputs
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
     pairing : str
         Type of reads pairing during alignment
+    aligner : str
+        Aligner used to create the input alignments
     woltka_map : str
         Path to the Woltka input file.
     database : str
@@ -646,21 +838,22 @@ def woltka_tax_cmd(self, pairing: str, woltka_map: str, database: str) -> str:
     tax_outmap : str
         Path to the folder containing the taxonomic maps.
     """
-    out = '%s/%s' % (self.dir, pairing)
+    tech_aligner = tech + '_' + aligner
+    out = '%s/%s/%s/%s' % (self.dir, tech, aligner, pairing)
     tax_out, tax_outmap = '%s/taxa' % out, '%s/taxmap' % out
     tax_outputs = ['phylum', 'family', 'genus', 'species', 'none']
     tax_to_do = []
     for tdx, tax_output in enumerate(tax_outputs):
-        cur_tax_output = '%s/%s.tsv' % (tax_out, tax_output)
-        self.outputs['outs'].append(cur_tax_output)
-        if to_do(cur_tax_output):
+        out_dir = '%s/%s.tsv' % (tax_out, tax_output)
+        self.outputs['outs'].setdefault(tech_aligner, []).append(out_dir)
+        if to_do(out_dir):
             tax_to_do.append(tax_output)
-            io_update(self, o_f=cur_tax_output)
+            io_update(self, o_f=out_dir, key=tech_aligner)
 
     taxid = '%s/taxonomy/taxid.map' % database
     nodes = '%s/taxonomy/nodes.dmp' % database
     names = '%s/taxonomy/names.dmp' % database
-    io_update(self, i_f=[taxid, nodes, names])
+    io_update(self, i_f=[taxid, nodes, names], key=tech_aligner)
     if len(tax_to_do):
         cur_cmd = '\n# taxonomic\n'
         cur_cmd += 'woltka classify'
@@ -675,14 +868,22 @@ def woltka_tax_cmd(self, pairing: str, woltka_map: str, database: str) -> str:
         cur_cmd += ' --to-tsv'
         cur_cmd += ' --outmap %s' % tax_outmap
         cur_cmd += ' -o %s' % tax_out
-        self.outputs['cmds'].append(cur_cmd)
-        io_update(self, o_d=tax_outmap)
+        self.outputs['cmds'].setdefault(tech_aligner, []).append(cur_cmd)
+        io_update(self, o_d=tax_outmap, key=tech_aligner)
     else:
-        io_update(self, i_d=tax_outmap)
+        io_update(self, i_d=tax_outmap, key=tech_aligner)
     return tax_outmap
 
 
-def woltka_go(self, pairing: str, woltka_map: str, taxmap: str, database: str):
+def woltka_go(
+        self,
+        tech: str,
+        pairing: str,
+        aligner: str,
+        woltka_map: str,
+        taxmap: str,
+        database: str
+) -> None:
     """Get the taxonomic classification outputs and prepare the Woltka
     commands for this classification.
 
@@ -693,8 +894,12 @@ def woltka_go(self, pairing: str, woltka_map: str, taxmap: str, database: str):
             Path to pipeline output folder for SHOGUN.
         .outputs: dict
             All outputs
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
     pairing : str
         Type of reads pairing during alignment
+    aligner : str
+        Aligner used to create the input alignments
     woltka_map : str
         Path to the Woltka input file.
     taxmap : str
@@ -707,8 +912,11 @@ def woltka_go(self, pairing: str, woltka_map: str, taxmap: str, database: str):
     uniref_names = '%s/function/uniref/uniref.name.xz' % database
     go_rt = '%s/function/go' % database
     gos = ['process', 'function', 'component']
-    woltka_fun_out = '%s/%s/go' % (self.dir, pairing)
-    io_update(self, i_f=[coords, uniref_map, uniref_names], o_d=woltka_fun_out)
+
+    out_dir = '%s/%s/%s/%s/go' % (self.dir, tech, aligner, pairing)
+    tech_aligner = tech + '_' + aligner
+    io_update(self, i_f=[coords, uniref_map, uniref_names],
+              o_d=out_dir, key=tech_aligner)
     for go in gos:
         cmd = '\n# %s [no stratification]\n' % go
         cmd += 'woltka classify'
@@ -720,40 +928,46 @@ def woltka_go(self, pairing: str, woltka_map: str, taxmap: str, database: str):
         cmd += ' --to-tsv'
         cur_map = '%s/%s.map.xz' % (go_rt, go)
         cmd += ' --map %s' % cur_map
-        io_update(self, i_f=cur_map)
-        cur_out = '%s/%s.tsv' % (woltka_fun_out, go)
+        io_update(self, i_f=cur_map, key=tech_aligner)
+        cur_out = '%s/%s.tsv' % (out_dir, go)
         cmd += ' -o %s' % cur_out
         if to_do(cur_out):
-            self.outputs['cmds'].append(cmd)
-            io_update(self, o_f=cur_out)
-        self.outputs['outs'].append(cur_out)
+            self.outputs['cmds'].setdefault(tech_aligner, []).append(cmd)
+            io_update(self, o_f=cur_out, key=tech_aligner)
+        self.outputs['outs'].setdefault(tech_aligner, []).append(cur_out)
 
-    stratifications = ['phylum', 'family', 'genus', 'species']
-    for stratification in stratifications:
-        woltka_fun_out = '%s/%s/go_%s' % (self.dir, pairing, stratification)
-        io_update(self, o_d=woltka_fun_out)
+    stratifs = ['phylum', 'family', 'genus', 'species']
+    for stratif in stratifs:
+        out_dir_strat = '%s_%s' % (out_dir, stratif)
+        io_update(self, o_d=out_dir_strat, key=tech_aligner)
         for go in gos:
-            cmd = '\n# %s [%s]\n' % (go, stratification)
+            cmd = '\n# %s [%s]\n' % (go, stratif)
             cmd += 'woltka classify'
             cmd += ' -i %s' % woltka_map
             cmd += ' --coords %s' % coords
             cmd += ' --map-as-rank'
             cmd += ' --rank %s' % go
-            cmd += ' --stratify %s/%s' % (taxmap, stratification)
+            cmd += ' --stratify %s/%s' % (taxmap, stratif)
             cmd += ' --map %s' % uniref_map
             cmd += ' --to-tsv'
             cur_map = '%s/%s.map.xz' % (go_rt, go)
             cmd += ' --map %s' % cur_map
-            go_out = '%s/%s.tsv' % (woltka_fun_out, go)
+            go_out = '%s/%s.tsv' % (out_dir_strat, go)
             cmd += ' -o %s' % go_out
             if to_do(go_out):
-                self.outputs['cmds'].append(cmd)
-                io_update(self, o_f=go_out)
-            self.outputs['outs'].append(go_out)
+                self.outputs['cmds'].setdefault(tech_aligner, []).append(cmd)
+            self.outputs['outs'].setdefault(tech_aligner, []).append(go_out)
 
 
-def woltka_genes(self, pairing: str, woltka_map: str, taxmap: str,
-                 database: str) -> tuple:
+def woltka_genes(
+        self,
+        tech: str,
+        pairing: str,
+        aligner: str,
+        woltka_map: str,
+        taxmap: str,
+        database: str
+) -> tuple:
     """Get the Woltka commands for the gene-level classification.
 
     Parameters
@@ -763,8 +977,12 @@ def woltka_genes(self, pairing: str, woltka_map: str, taxmap: str,
             Path to pipeline output folder for SHOGUN.
         .outputs: dict
             All outputs
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
     pairing : str
         Type of reads pairing during alignment
+    aligner : str
+        Aligner used to create the input alignments
     woltka_map : str
         Path to the Woltka input file.
     taxmap : str
@@ -779,42 +997,51 @@ def woltka_genes(self, pairing: str, woltka_map: str, taxmap: str,
     genes_tax : dict
         Path to the stratified genes classification output.
     """
+    tech_aligner = tech + '_' + aligner
     coords = '%s/proteins/coords.txt.xz' % database
-    genes = '%s/%s/genes.biom' % (self.dir, pairing)
+    out_dir = '%s/%s/%s/%s' % (self.dir, tech, aligner, pairing)
+    genes = '%s/genes.biom' % out_dir
     if to_do(genes):
         cmd = '\n# per gene\n'
         cmd += 'woltka classify'
         cmd += ' -i %s' % woltka_map
         cmd += ' --coords %s' % coords
         cmd += ' -o %s' % genes
-        self.outputs['cmds'].append(cmd)
-        io_update(self, o_f=genes)
+        self.outputs['cmds'].setdefault(tech_aligner, []).append(cmd)
+        io_update(self, o_f=genes, key=tech_aligner)
     else:
-        io_update(self, i_f=genes)
-    self.outputs['outs'].append(genes)
+        io_update(self, i_f=genes, key=tech_aligner)
+    self.outputs['outs'].setdefault(tech_aligner, []).append(genes)
 
     genes_tax = {}
-    stratifications = ['phylum', 'family', 'genus', 'species']
-    for stratification in stratifications:
-        genes = '%s/%s/genes_%s.biom' % (self.dir, pairing, stratification)
-        genes_tax[stratification] = genes
+    stratifs = ['phylum', 'family', 'genus', 'species']
+    for stratif in stratifs:
+        genes = '%s/genes_%s.biom' % (out_dir, stratif)
+        genes_tax[stratif] = genes
         if to_do(genes):
-            cmd = '\n# per gene [%s]\n' % stratification
+            cmd = '\n# per gene [%s]\n' % stratif
             cmd += 'woltka classify'
             cmd += ' -i %s' % woltka_map
             cmd += ' --coords %s' % coords
-            cmd += ' --stratify %s/%s' % (taxmap, stratification)
+            cmd += ' --stratify %s/%s' % (taxmap, stratif)
             cmd += ' -o %s' % genes
-            self.outputs['cmds'].append(cmd)
-            io_update(self, o_f=genes)
+            self.outputs['cmds'].setdefault(tech_aligner, []).append(cmd)
+            io_update(self, o_f=genes, key=tech_aligner)
         else:
-            io_update(self, i_f=genes)
-        self.outputs['outs'].append(genes)
+            io_update(self, i_f=genes, key=tech_aligner)
+        self.outputs['outs'].setdefault(tech_aligner, []).append(genes)
     return genes, genes_tax
 
 
-def woltka_uniref(self, pairing: str, genes: str, genes_tax: dict,
-                  database: str):
+def woltka_uniref(
+        self,
+        tech: str,
+        pairing: str,
+        aligner: str,
+        genes: str,
+        genes_tax: dict,
+        database: str
+) -> tuple:
     """Get the Woltka commands for the uniref-level classification.
 
     Parameters
@@ -824,6 +1051,10 @@ def woltka_uniref(self, pairing: str, genes: str, genes_tax: dict,
             Path to pipeline output folder for SHOGUN.
         .outputs: dict
             All outputs
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    aligner : str
+        Aligner used to create the input alignments
     pairing : str
         Type of reads pairing during alignment
     genes : str
@@ -840,9 +1071,11 @@ def woltka_uniref(self, pairing: str, genes: str, genes_tax: dict,
     uniref_tax : dict
         Path to the stratified uniref classification.
     """
+    tech_aligner = tech + '_' + aligner
     uniref_map = '%s/function/uniref/uniref.map.xz' % database
     uniref_names = '%s/function/uniref/uniref.name.xz' % database
-    uniref = '%s/%s/uniref.biom' % (self.dir, pairing)
+    out_dir = '%s/%s/%s/%s' % (self.dir, tech, aligner, pairing)
+    uniref = '%s/uniref.biom' % out_dir
     if to_do(uniref):
         cmd = '\n# uniref\n'
         cmd += 'woltka tools collapse'
@@ -850,36 +1083,43 @@ def woltka_uniref(self, pairing: str, genes: str, genes_tax: dict,
         cmd += ' --map %s' % uniref_map
         cmd += ' --names %s' % uniref_names
         cmd += ' --output %s' % uniref
-        self.outputs['cmds'].append(cmd)
-        io_update(self, o_f=uniref)
+        self.outputs['cmds'].setdefault(tech_aligner, []).append(cmd)
+        io_update(self, o_f=uniref, key=tech_aligner)
     else:
-        io_update(self, i_f=uniref)
-    self.outputs['outs'].append(uniref)
+        io_update(self, i_f=uniref, key=tech_aligner)
+    self.outputs['outs'].setdefault(tech_aligner, []).append(uniref)
 
     uniref_tax = {}
-    stratifications = ['phylum', 'family', 'genus', 'species']
-    for stratification in stratifications:
-        uniref = '%s/%s/uniref_%s.biom' % (self.dir, pairing, stratification)
-        uniref_tax[stratification] = genes
+    stratifs = ['phylum', 'family', 'genus', 'species']
+    for stratif in stratifs:
+        uniref = '%s/uniref_%s.biom' % (out_dir, stratif)
+        uniref_tax[stratif] = genes
         if to_do(uniref):
-            cmd = '\n# uniref [%s]\n' % stratification
+            cmd = '\n# uniref [%s]\n' % stratif
             cmd += 'woltka tools collapse'
-            cmd += ' --input %s' % genes_tax[stratification]
+            cmd += ' --input %s' % genes_tax[stratif]
             cmd += ' --map %s' % uniref_map
             cmd += ' --names %s' % uniref_names
             cmd += ' --field 2'
             cmd += ' --output %s' % uniref
-            self.outputs['cmds'].append(cmd)
-            io_update(self, o_f=uniref)
+            self.outputs['cmds'].setdefault(tech_aligner, []).append(cmd)
+            io_update(self, o_f=uniref, key=tech_aligner)
         else:
-            io_update(self, i_f=uniref)
-        self.outputs['outs'].append(uniref)
+            io_update(self, i_f=uniref, key=tech_aligner)
+        self.outputs['outs'].setdefault(tech_aligner, []).append(uniref)
 
     return uniref, uniref_tax
 
 
-def woltka_eggnog(self, pairing: str, uniref: str, uniref_tax: dict,
-                  database: str):
+def woltka_eggnog(
+        self,
+        tech: str,
+        pairing: str,
+        aligner: str,
+        uniref: str,
+        uniref_tax: dict,
+        database: str
+) -> None:
     """Get the Woltka commands for the eggnog-level classification.
 
     Parameters
@@ -889,6 +1129,10 @@ def woltka_eggnog(self, pairing: str, uniref: str, uniref_tax: dict,
             Path to pipeline output folder for SHOGUN.
         .outputs: dict
             All outputs
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    aligner : str
+        Aligner used to create the input alignments
     pairing : str
         Type of reads pairing during alignment
     uniref : str
@@ -898,49 +1142,59 @@ def woltka_eggnog(self, pairing: str, uniref: str, uniref_tax: dict,
     database : str
         WOL database path
     """
-    biom = '%s/%s/eggnog/eggnog.biom' % (self.dir, pairing)
+    tech_aligner = tech + '_' + aligner
+    out_dir = '%s/%s/%s/%s' % (self.dir, tech, aligner, pairing)
+    biom = '%s/eggnog/eggnog.biom' % out_dir
     if to_do(biom):
         cmd = 'woltka tools collapse'
         cmd += '--input %s' % uniref
         cmd += ' --map %s/function/eggnog/eggnog.map.xz' % database
         cmd += ' --output %s\n\n' % biom
-        self.outputs['cmds'].append(cmd)
-        io_update(self, o_f=biom)
+        self.outputs['cmds'].setdefault(tech_aligner, []).append(cmd)
+        io_update(self, o_f=biom, key=tech_aligner)
     else:
-        io_update(self, i_f=biom)
+        io_update(self, i_f=biom, key=tech_aligner)
     tsv = '%s.tsv' % splitext(biom)[0]
     if to_do(tsv):
         cmd = 'biom convert -i %s -o %s.tmp --to-tsv\n' % (biom, tsv)
         cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
         cmd += 'rm %s.tmp\n' % tsv
-        self.outputs['cmds'].append(cmd)
-        io_update(self, o_f=tsv)
-    self.outputs['outs'].extend([tsv, biom])
+        self.outputs['cmds'].setdefault(tech_aligner, []).append(cmd)
+        io_update(self, o_f=tsv, key=tech_aligner)
+    self.outputs['outs'].setdefault(tech_aligner, []).extend([tsv, biom])
 
     stratifs = ['phylum', 'family', 'genus', 'species']
     for stratif in stratifs:
-        biom = '%s/%s/eggnog/eggnog_%s.biom' % (self.dir, pairing, stratif)
+        biom = '%s/eggnog/eggnog_%s.biom' % (out_dir, stratif)
         if to_do(biom):
             cmd = 'woltka tools collapse'
             cmd += '--input %s' % uniref_tax[stratif]
             cmd += ' --map %s/function/eggnog/eggnog.map.xz' % database
             cmd += ' --field 2'
             cmd += ' --output %s\n\n' % biom
-            self.outputs['cmds'].append(cmd)
-            io_update(self, o_f=biom)
+            self.outputs['cmds'].setdefault(tech_aligner, []).append(cmd)
+            io_update(self, o_f=biom, key=tech_aligner)
         else:
-            io_update(self, i_f=biom)
+            io_update(self, i_f=biom, key=tech_aligner)
         tsv = '%s.tsv' % splitext(biom)[0]
         if to_do(tsv):
             cmd = 'biom convert -i %s -o %s.tmp --to-tsv\n' % (biom, tsv)
             cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
             cmd += 'rm %s.tmp\n' % tsv
-            self.outputs['cmds'].append(cmd)
-            io_update(self, o_f=tsv)
-        self.outputs['outs'].extend([tsv, biom])
+            self.outputs['cmds'].setdefault(tech_aligner, []).append(cmd)
+            io_update(self, o_f=tsv, key=tech_aligner)
+        self.outputs['outs'].setdefault(tech_aligner, []).extend([tsv, biom])
 
 
-def woltka_cazy(self, pairing: str, genes: str, genes_tax: dict, database: str):
+def woltka_cazy(
+        self,
+        tech: str,
+        pairing: str,
+        aligner: str,
+        genes: str,
+        genes_tax: dict,
+        database: str
+) -> None:
     """Get the Woltka commands for the cazy-level classification.
 
     Parameters
@@ -952,6 +1206,10 @@ def woltka_cazy(self, pairing: str, genes: str, genes_tax: dict, database: str):
             All databases class instance
         .outputs: dict
             All outputs
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    aligner : str
+        Aligner used to create the input alignments
     pairing : str
         Type of reads pairing during alignment
     genes : str
@@ -961,52 +1219,61 @@ def woltka_cazy(self, pairing: str, genes: str, genes_tax: dict, database: str):
     database : str
         WOL database path
     """
+    tech_aligner = tech + '_' + aligner
     cazy_map = '%s/function/cazy/3tools.txt' % database
-    biom = '%s/%s/cazy/cazy.biom' % (self.dir, pairing)
+    out_dir = '%s/%s/%s/%s' % (self.dir, tech, aligner, pairing)
+    biom = '%s/cazy/cazy.biom' % out_dir
     if to_do(biom):
         cmd = 'woltka tools collapse'
         cmd += '--input %s' % genes
         cmd += ' --map %s' % cazy_map
         cmd += ' --output %s\n\n' % biom
-        self.outputs['cmds'].append(cmd)
-        io_update(self, o_f=biom)
+        self.outputs['cmds'].setdefault(tech_aligner, []).append(cmd)
+        io_update(self, o_f=biom, key=tech_aligner)
     else:
-        io_update(self, i_f=biom)
+        io_update(self, i_f=biom, key=tech_aligner)
     tsv = '%s.tsv' % splitext(biom)[0]
     if to_do(tsv):
         cmd = 'biom convert -i %s -o %s.tmp --to-tsv\n' % (biom, tsv)
         cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
         cmd += 'rm %s.tmp\n' % tsv
-        self.outputs['cmds'].append(cmd)
-        io_update(self, o_f=tsv)
-    self.outputs['outs'].extend([biom, tsv])
+        self.outputs['cmds'].setdefault(tech_aligner, []).append(cmd)
+        io_update(self, o_f=tsv, key=tech_aligner)
+    self.outputs['outs'].setdefault(tech_aligner, []).extend([biom, tsv])
 
     stratifs = ['phylum', 'family', 'genus', 'species']
     for stratif in stratifs:
         cazy_map = '%s/function/cazy/3tools.txt' % database
-        biom = '%s/%s/cazy/cazy_%s.biom' % (self.dir, pairing, stratif)
+        biom = '%s/cazy/cazy_%s.biom' % (out_dir, stratif)
         if to_do(biom):
             cmd = 'woltka tools collapse'
             cmd += '--input %s' % genes_tax[stratif]
             cmd += ' --map %s' % cazy_map
             cmd += ' --field 2'
             cmd += ' --output %s\n\n' % biom
-            self.outputs['cmds'].append(cmd)
-            io_update(self, o_f=biom)
+            self.outputs['cmds'].setdefault(tech_aligner, []).append(cmd)
+            io_update(self, o_f=biom, key=tech_aligner)
         else:
-            io_update(self, i_f=biom)
+            io_update(self, i_f=biom, key=tech_aligner)
         tsv = '%s.tsv' % splitext(biom)[0]
         if to_do(tsv):
             cmd = 'biom convert -i %s -o %s.tmp --to-tsv\n' % (biom, tsv)
             cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
             cmd += 'rm %s.tmp\n' % tsv
-            self.outputs['cmds'].append(cmd)
-            io_update(self, o_f=tsv)
-        self.outputs['outs'].extend([biom, tsv])
+            self.outputs['cmds'].setdefault(tech_aligner, []).append(cmd)
+            io_update(self, o_f=tsv, key=tech_aligner)
+        self.outputs['outs'].setdefault(tech_aligner, []).extend([biom, tsv])
 
 
-def woltka_metacyc(self, pairing: str, genes: str, genes_tax: dict,
-                   database: str):
+def woltka_metacyc(
+        self,
+        tech: str,
+        pairing: str,
+        aligner: str,
+        genes: str,
+        genes_tax: dict,
+        database: str
+) -> None:
     """Get the Woltka commands for the metacyc-level classification.
 
     Parameters
@@ -1016,6 +1283,10 @@ def woltka_metacyc(self, pairing: str, genes: str, genes_tax: dict,
             Path to pipeline output folder for SHOGUN.
         .outputs: dict
             All outputs
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    aligner : str
+        Aligner used to create the input alignments
     pairing : str
         Type of reads pairing during alignment
     genes : str
@@ -1036,8 +1307,10 @@ def woltka_metacyc(self, pairing: str, genes: str, genes_tax: dict,
                ('ec', '', 'reaction-to-ec.txt')]
     files = {}
     files_tax = {}
-    woltka_fun_out = '%s/%s/metacyc' % (self.dir, pairing)
-    io_update(self, o_d=woltka_fun_out)
+    tech_aligner = tech + '_' + aligner
+    out_dir = '%s/%s/%s/%s' % (self.dir, tech, aligner, pairing)
+    woltka_fun_out = '%s/metacyc' % out_dir
+    io_update(self, o_d=woltka_fun_out, key=tech_aligner)
     cmd = ''
     for idx, (level, names, maps) in enumerate(metacyc):
         if '-to-' in maps:
@@ -1054,9 +1327,9 @@ def woltka_metacyc(self, pairing: str, genes: str, genes_tax: dict,
                 cmd += ' --names %s/%s' % (metacyc_dir, names)
             cmd += ' --map %s/%s' % (metacyc_dir, maps)
             cmd += ' --output %s\n' % biom
-            io_update(self, o_f=biom)
+            io_update(self, o_f=biom, key=tech_aligner)
         else:
-            io_update(self, i_f=biom)
+            io_update(self, i_f=biom, key=tech_aligner)
         if to_do(tsv):
             cmd += 'biom convert'
             cmd += ' -i %s' % biom
@@ -1064,9 +1337,9 @@ def woltka_metacyc(self, pairing: str, genes: str, genes_tax: dict,
             cmd += ' --to-tsv\n'
             cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
             cmd += 'rm %s.tmp\n' % tsv
-            io_update(self, o_f=tsv)
+            io_update(self, o_f=tsv, key=tech_aligner)
         else:
-            io_update(self, i_f=tsv)
+            io_update(self, i_f=tsv, key=tech_aligner)
         files[level] = biom
 
         stratifs = ['phylum', 'family', 'genus', 'species']
@@ -1089,9 +1362,9 @@ def woltka_metacyc(self, pairing: str, genes: str, genes_tax: dict,
                 cmd += ' --field 2'
                 cmd += ' --map %s/%s' % (metacyc_dir, maps)
                 cmd += ' --output %s\n' % biom
-                io_update(self, o_f=biom)
+                io_update(self, o_f=biom, key=tech_aligner)
             else:
-                io_update(self, i_f=biom)
+                io_update(self, i_f=biom, key=tech_aligner)
             if to_do(tsv):
                 cmd += 'biom convert'
                 cmd += ' -i %s' % biom
@@ -1099,18 +1372,25 @@ def woltka_metacyc(self, pairing: str, genes: str, genes_tax: dict,
                 cmd += ' --to-tsv\n'
                 cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
                 cmd += 'rm %s.tmp\n' % tsv
-                io_update(self, o_f=tsv)
+                io_update(self, o_f=tsv, key=tech_aligner)
             else:
-                io_update(self, i_f=tsv)
+                io_update(self, i_f=tsv, key=tech_aligner)
             files_tax[stratif][level] = biom
 
     if cmd:
-        self.outputs['cmds'].append(cmd)
-    self.outputs['outs'].extend(files)
+        self.outputs['cmds'].setdefault(tech_aligner, []).append(cmd)
+    self.outputs['outs'].setdefault(tech_aligner, []).extend(files)
 
 
-def woltka_kegg(self, pairing: str, uniref: str, uniref_tax: dict,
-                database: str):
+def woltka_kegg(
+        self,
+        tech: str,
+        pairing: str,
+        aligner: str,
+        uniref: str,
+        uniref_tax: dict,
+        database: str
+) -> None:
     """Get the Woltka commands for the kegg-level classification.
 
     Parameters
@@ -1120,6 +1400,10 @@ def woltka_kegg(self, pairing: str, uniref: str, uniref_tax: dict,
             Path to pipeline output folder for SHOGUN.
         .outputs: dict
             All outputs
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    aligner : str
+        Aligner used to create the input alignments
     pairing : str
         Type of reads pairing during alignment
     uniref : str
@@ -1171,10 +1455,12 @@ def woltka_kegg(self, pairing: str, uniref: str, uniref_tax: dict,
          'reaction-to-right_compound.txt', 'ko-reaction')]
     cmd = ''
     files = []
-    kegg_maps = '%s/%s/kegg_queried' % (self.dir, pairing)
+    tech_aligner = tech + '_' + aligner
+    out_dir = '%s/%s/%s/%s' % (self.dir, tech, aligner, pairing)
+    kegg_maps = '%s/kegg_queried' % out_dir
     for (level, name, maps, prev) in ko_names_maps:
         if maps:
-            biom = '%s/%s/kegg/%s.biom' % (self.dir, pairing, level)
+            biom = '%s/kegg/%s.biom' % (out_dir, level)
             tsv = '%s.tsv' % splitext(biom)[0]
             if not prev:
                 if to_do(tsv):
@@ -1190,11 +1476,11 @@ def woltka_kegg(self, pairing: str, uniref: str, uniref_tax: dict,
                     cmd += ' tail -n +2 %s.tmp\n' % tsv
                     cmd += ' > %s\n' % tsv
                     cmd += ' rm %s.tmp\n' % tsv
-                    io_update(self, o_f=[biom, tsv])
+                    io_update(self, o_f=[biom, tsv], key=tech_aligner)
                 else:
-                    io_update(self, i_f=biom)
+                    io_update(self, i_f=biom, key=tech_aligner)
             else:
-                input_fp = '%s/%s/kegg/%s.biom' % (self.dir, pairing, level)
+                input_fp = '%s/kegg/%s.biom' % (out_dir, level)
                 if to_do(tsv):
                     cmd += 'woltka tools collapse'
                     cmd += ' --input %s' % input_fp
@@ -1206,14 +1492,13 @@ def woltka_kegg(self, pairing: str, uniref: str, uniref_tax: dict,
                     cmd += ' -o %s.tmp --to-tsv\n' % tsv
                     cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
                     cmd += 'rm %s.tmp\n\n' % tsv
-                    io_update(self, o_f=[biom, tsv])
+                    io_update(self, o_f=[biom, tsv], key=tech_aligner)
                 else:
-                    io_update(self, i_f=biom)
+                    io_update(self, i_f=biom, key=tech_aligner)
 
             stratifs = ['phylum', 'family', 'genus', 'species']
             for stratif in stratifs:
-                biom = '%s/%s/kegg/%s_%s.biom' % (self.dir, pairing, level,
-                                                  stratif)
+                biom = '%s/kegg/%s_%s.biom' % (out_dir, level, stratif)
                 tsv = '%s.tsv' % splitext(biom)[0]
                 if not prev:
                     if to_do(tsv):
@@ -1230,12 +1515,11 @@ def woltka_kegg(self, pairing: str, uniref: str, uniref_tax: dict,
                         cmd += ' tail -n +2 %s.tmp\n' % tsv
                         cmd += ' > %s\n' % tsv
                         cmd += ' rm %s.tmp\n' % tsv
-                        io_update(self, o_f=[biom, tsv])
+                        io_update(self, o_f=[biom, tsv], key=tech_aligner)
                     else:
-                        io_update(self, i_f=biom)
+                        io_update(self, i_f=biom, key=tech_aligner)
                 else:
-                    input_fp = '%s/%s/kegg/%s_%s.biom' % (
-                        self.dir, pairing, level, stratif)
+                    input_fp = '%s/kegg/%s_%s.biom' % (out_dir, level, stratif)
                     if to_do(tsv):
                         cmd += 'woltka tools collapse'
                         cmd += ' --input %s' % input_fp
@@ -1248,9 +1532,9 @@ def woltka_kegg(self, pairing: str, uniref: str, uniref_tax: dict,
                         cmd += ' -o %s.tmp --to-tsv\n' % tsv
                         cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
                         cmd += 'rm %s.tmp\n\n' % tsv
-                        io_update(self, o_f=[biom, tsv])
+                        io_update(self, o_f=[biom, tsv], key=tech_aligner)
                     else:
-                        io_update(self, i_f=biom)
+                        io_update(self, i_f=biom, key=tech_aligner)
         else:
             if to_do('%s/kegg_info.txt' % kegg_maps):
                 cmd += 'cd %s\n' % kegg_maps
@@ -1258,12 +1542,42 @@ def woltka_kegg(self, pairing: str, uniref: str, uniref_tax: dict,
                 kegg_query = '%s/wol/kegg_query.py' % RESOURCES
                 cmd += 'python3 %s %s/%s\n' % (kegg_query, kegg_maps, basename(
                     tsv))
-                io_update(self, o_d=kegg_maps)
+                io_update(self, o_d=kegg_maps, key=tech_aligner)
             else:
-                io_update(self, i_d=kegg_maps)
+                io_update(self, i_d=kegg_maps, key=tech_aligner)
     if cmd:
-        self.outputs['cmds'].append(cmd)
-    self.outputs['outs'].extend(files)
+        self.outputs['cmds'].setdefault(tech_aligner, []).append(cmd)
+    self.outputs['outs'].setdefault(tech_aligner, []).extend(files)
+
+
+def woltka_pairing(
+        self,
+        tech: str
+) -> str:
+    """Get the type of reads pairing that was defined by the
+    user if the previous software was bowtie2.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .prev : str
+            Previous software
+        .soft.params
+            Parameters
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+
+    Returns
+    -------
+    pairing : str
+        Pairing parameter used for Bowtie2
+    """
+    pairing = ''
+    if self.soft.prev == 'bowtie2':
+        pairing = self.softs['bowtie2'].params['pairing']
+        if isinstance(pairing, dict) and tech in set(pairing):
+            pairing = pairing[tech]
+    return pairing
 
 
 def woltka(self) -> None:
@@ -1276,29 +1590,39 @@ def woltka(self) -> None:
             Path to pipeline output folder
         .inputs : dict
             Input files
+        .prev : str
+            Previous software
+        .soft.params
+            Parameters
         .outputs : dict
             All outputs
         .databases
             All databases class instance
     """
     db = self.databases.paths['wol']
-    pairing = ''
-    if self.soft.prev == 'bowtie2':
-        pairing = self.softs['bowtie2'].params['pairing']
-    alis = woltka_aligments(self)
-    maps = woltka_write_map(self, pairing, alis)
-    taxmap = woltka_tax_cmd(self, pairing, maps, db)
-    woltka_go(self, pairing, maps, taxmap, db)
-    genes, genes_tax = woltka_genes(self, pairing, maps, taxmap, db)
-    uniref, uniref_tax = woltka_uniref(self, pairing, genes, genes_tax, db)
-    woltka_eggnog(self, pairing, uniref, uniref_tax, db)
-    # woltka_cazy(self, pairing, genes, genes_tax, db)
-    woltka_metacyc(self, pairing, genes, genes_tax, db)
-    woltka_kegg(self, pairing, uniref, uniref_tax, db)
+    for tech in self.config.techs:
+        pairing = woltka_pairing(self, tech)
+        alignments = woltka_aligments(self, tech)
+        if not alignments:
+            continue
+        for aligner, alis in alignments.items():
+            maps = woltka_write_map(self, tech, pairing, aligner, alis)
+            taxmap = woltka_tax_cmd(self, tech, pairing, aligner, maps, db)
+            woltka_go(self, tech, pairing, aligner, maps, taxmap, db)
+            genes, genes_tax = woltka_genes(
+                self, tech, pairing, aligner, maps, taxmap, db)
+            uniref, uniref_tax = woltka_uniref(
+                self, tech, pairing, aligner, genes, genes_tax, db)
+            woltka_eggnog(self, tech, pairing, aligner, uniref, uniref_tax, db)
+            # woltka_cazy(self, tech, pairing, aligner, genes, genes_tax, db)
+            woltka_metacyc(self, tech, pairing, aligner, genes, genes_tax, db)
+            woltka_kegg(self, tech, pairing, aligner, uniref, uniref_tax, db)
 
 
 def get_midas_cmd(
         self,
+        tech: str,
+        inputs: list,
         focus_dir: str,
         analysis: str,
         select: set = None) -> str:
@@ -1313,6 +1637,10 @@ def get_midas_cmd(
             Input files
         .soft.params
             Parameters
+    inputs : list
+        Paths to the input files
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
     focus_dir : str
         Path to the output folder.
     analysis : str
@@ -1325,63 +1653,154 @@ def get_midas_cmd(
     cmd : str
         Midas command line for the species level.
     """
+    params = tech_params(self, tech)
     cmd = 'run_midas.py %s' % analysis
     cmd += ' %s' % focus_dir
-    cmd += ' -1 %s' % self.inputs[self.sam][0]
-    if len(self.inputs[self.sam]) > 1:
-        cmd += ' -2 %s' % self.inputs[self.sam][1]
+    cmd += ' -1 %s' % inputs[0]
+    if len(inputs) > 1:
+        cmd += ' -2 %s' % inputs[1]
     cmd += ' -d %s' % self.databases.paths['midas']
-    cmd += ' -t %s' % self.soft.params['cpus']
+    cmd += ' -t %s' % params['cpus']
     cmd += ' --remove_temp'
     for param in ['n', 'mapid', 'aln_cov']:
-        if self.soft.params[param]:
+        if params[param]:
             if len(param) == 1:
-                cmd += ' -%s %s' % (param, self.soft.params[param])
+                cmd += ' -%s %s' % (param, params[param])
             else:
-                cmd += ' --%s %s' % (param, self.soft.params[param])
+                cmd += ' --%s %s' % (param, params[param])
     if analysis != 'species':
         for param in ['m', 's', 'species_cov', 'species_topn', 'readq', 'trim']:
-            if self.soft.params[param]:
+            if params[param]:
                 if len(param) == 1:
-                    cmd += ' -%s %s' % (param, self.soft.params[param])
+                    cmd += ' -%s %s' % (param, params[param])
                 else:
-                    cmd += ' --%s %s' % (param, self.soft.params[param])
+                    cmd += ' --%s %s' % (param, params[param])
     else:
-        cmd += ' --word_size %s' % self.soft.params['word_size']
+        cmd += ' --word_size %s' % params['word_size']
     if select:
         cmd += ' --species_id %s' % ','.join(list(select))
     return cmd
 
 
-def midas_species(self, focus_dir, tax) -> None:
+def midas_species(
+        self,
+        tech: str,
+        inputs: list,
+        focus_dir: str,
+        analysis: str
+) -> None:
+    """Collect the MIDAS commands for the species level.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .outputs : dict
+            All outputs
+        .config
+            Configurations
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    inputs : list
+        Paths to the input files
+    focus_dir : str
+        Path to the species output folder
+    analysis : str
+        Current analysis: 'species', 'genes', or 'snps'
+    """
     species_out = '%s/species' % focus_dir
     species_profile = '%s/species_profile.txt' % species_out
     if not self.config.force and not to_do(species_profile):
-        io_update(self, i_d=species_out)
+        io_update(self, i_d=species_out, key=tech)
     else:
-        self.outputs['cmds'].append(get_midas_cmd(self, focus_dir, tax))
-        io_update(self, i_f=self.inputs[self.sam], o_d=species_out)
-    self.outputs['outs'].append(species_out)
+        self.outputs['cmds'].setdefault(tech, []).append(
+            get_midas_cmd(self, tech, inputs, focus_dir, analysis))
+        io_update(self, i_f=inputs, o_d=species_out, key=tech)
+    self.outputs['outs'].setdefault(tech, []).append(species_out)
     self.outputs['dirs'].append(species_out)
 
 
-def midas_genus(self, focus_dir, genes_out, tax, select):
+def midas_genes(
+        self,
+        tech: str,
+        inputs: list,
+        focus_dir: str,
+        genes_out: str,
+        analysis: str,
+        select: set
+) -> None:
+    """Collect the MIDAS commands for the genes level.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .outputs : dict
+            All outputs
+        .config
+            Configurations
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    inputs : list
+        Paths to the input files
+    focus_dir : str
+        Path to the species output folder
+    genes_out : str
+        Path to the output folder
+    analysis : str
+        Current analysis: 'species', 'genes', or 'snps'
+    select : set
+        Set of taxa to focus
+    """
     if self.config.force or to_do('%s/readme.txt' % genes_out):
-        self.outputs['cmds'].append(get_midas_cmd(self, focus_dir, tax, select))
-        io_update(self, o_d=genes_out)
-    self.outputs['outs'].append(genes_out)
+        self.outputs['cmds'].setdefault(tech, []).append(
+            get_midas_cmd(self, tech, inputs, focus_dir, analysis, select))
+        io_update(self, o_d=genes_out, key=tech)
+    self.outputs['outs'].setdefault(tech, []).append(genes_out)
     self.outputs['dirs'].append(genes_out)
 
 
-def midas_snps(self, focus_dir, snps_out, tax, select):
+def midas_snps(
+        self,
+        tech: str,
+        inputs: list,
+        focus_dir: str,
+        snps_out: str,
+        analysis: str,
+        select: set
+) -> None:
+    """Collect the MIDAS commands for the species level.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .outputs : dict
+            All outputs
+        .config
+            Configurations
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    inputs : list
+        Paths to the input files
+    focus_dir : str
+        Path to the species output folder
+    snps_out : str
+        Path to the output folder
+    analysis : str
+        Current analysis: 'species', 'genes', or 'snps'
+    select : set
+        Set of taxa to focus
+    """
     if self.config.force or to_do('%s/readme.txt' % snps_out):
-        self.outputs['cmds'].append(get_midas_cmd(self, focus_dir, tax, select))
-        io_update(self, o_d=snps_out)
-    self.outputs['outs'].append(snps_out)
+        self.outputs['cmds'].setdefault(tech, []).append(
+            get_midas_cmd(self, tech, inputs, focus_dir, analysis, select))
+        io_update(self, o_d=snps_out, key=tech)
+    self.outputs['outs'].setdefault(tech, []).append(snps_out)
     self.outputs['dirs'].append(snps_out)
 
 
-def get_species_select(self, species_list: str) -> set:
+def get_species_select(
+        self,
+        species_list: str
+) -> set:
     """Get the species names for which there is a reference in the database.
 
     Parameters
@@ -1433,17 +1852,55 @@ def midas(self) -> None:
         .config
             Configurations
     """
-    for focus, species_list in self.soft.params['focus'].items():
-        focus_dir = '%s/%s/%s' % (self.dir, focus, self.sam)
-        midas_species(self, focus_dir, 'species')
-        select = set(get_species_select(self, species_list))
-        genes_out = '%s/genes' % focus_dir
-        midas_genus(self, focus_dir, genes_out, 'genes', select)
-        snps_out = '%s/snps' % focus_dir
-        midas_snps(self, focus_dir, snps_out, 'snps', select)
+    for tech, inputs in self.inputs[self.sam].items():
+        if tech_specificity(self, inputs, tech):
+            continue
+        params = tech_params(self, tech)
+        for focus, species_list in params['focus'].items():
+            focus_dir = '%s/%s/%s' % (self.dir, focus, self.sam)
+            midas_species(self, tech, inputs, focus_dir, 'species')
+            select = set(get_species_select(self, species_list))
+            genes = '%s/genes' % focus_dir
+            midas_genes(self, tech, inputs, focus_dir, genes, 'genes', select)
+            snps = '%s/snps' % focus_dir
+            midas_snps(self, tech, inputs, focus_dir, snps, 'snps', select)
 
 
-def get_kraken2_db(self, db):
+def get_kraken2_db(
+        self,
+        db: str
+) -> None:
+    """Get the path the Kraken2 database passed by the user.
+
+    Notes
+    -----
+    If the database is not valid, the pipeline will stop with a useful hint.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for MIDAS
+        .sam : str
+            Sample name
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .databases
+            All databases class instance
+        .config
+            Configurations
+    db : str
+        Name of the Kraken2 database
+
+    Returns
+    -------
+    str
+        Path to the Kraken2 database
+    """
     if db == 'default':
         return self.databases.paths['kraken2']
     elif db in self.databases.paths:
@@ -1462,13 +1919,53 @@ def get_kraken2_db(self, db):
         sys.exit('[kraken2] Database not found: %s' % db)
 
 
-def get_kraken2_cmd(self, out: str, db_path: str, report: str, result: str):
+def get_kraken2_cmd(
+        self,
+        tech: str,
+        inputs: list,
+        out: str,
+        db_path: str,
+) -> str:
+    """Collect the Kraken2 command.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for Kraken2
+        .sam : str
+            Sample name
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .databases
+            All databases class instance
+        .config
+            Configurations
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    inputs : list
+        Path to the input files
+    out : str
+        Path to the output folder
+    db_path : str
+        Path to the Kraken2 database
+
+    Returns
+    -------
+    cmd : str
+        Kraken2 command
+    """
+    params = tech_params(self, tech)
     cmd = 'kraken2 '
     cmd += ' -db %s' % db_path
-    cmd += ' --threads %s' % self.soft.params['cpus']
-    cmd += ' --report %s' % report
-    cmd += ' --confidence %s' % self.soft.params['confidence']
-    if len(self.inputs[self.sam]) > 1:
+    cmd += ' --report %s/report.tsv' % out
+    cmd += ' --threads %s' % params['cpus']
+    cmd += ' --confidence %s' % params['confidence']
+    if len(inputs) > 1:
         unclass = ['%s/unclassified_%s.fastq' % (out, r) for r in [1, 2]]
         classif = ['%s/classified_%s.fastq' % (out, r) for r in [1, 2]]
         cmd += ' --unclassified-out %s/unclassified#.fastq' % out
@@ -1479,24 +1976,24 @@ def get_kraken2_cmd(self, out: str, db_path: str, report: str, result: str):
         classif = ['%s/classified.fastq' % out]
         cmd += ' --unclassified-out %s/unclassified.fastq' % out
         cmd += ' --classified-out %s/classified.fastq' % out
-    if self.inputs[self.sam][0].endswith('.gz'):
+    if inputs[0].endswith('.gz'):
         cmd += ' --gzip-compressed'
-        io_update(self, o_f=(
-            ['%s.gz' % x for x in unclass] + ['%s.gz' % x for x in classif]))
+        outs = ['%s.gz' % x for x in unclass] + ['%s.gz' % x for x in classif]
+        io_update(self, o_f=outs, key=tech)
     else:
-        io_update(self, o_f=(unclass + classif))
-    cmd += ' %s > %s' % (' '.join(self.inputs[self.sam]), result)
+        io_update(self, o_f=(unclass + classif), key=tech)
+    cmd += ' %s > %s/result.tsv' % (' '.join(inputs), out)
     return cmd
 
 
 def kraken2(self) -> None:
-    """Create command lines for kraken2.
+    """Create command lines for Kraken2.
 
     Parameters
     ----------
     self : Commands class instance
         .dir : str
-            Path to pipeline output folder for kraken2
+            Path to pipeline output folder for Kraken2
         .sam : str
             Sample name
         .inputs : dict
@@ -1510,36 +2007,122 @@ def kraken2(self) -> None:
         .config
             Configurations
     """
-    for db in self.soft.params['databases']:
-        out = '%s/%s/%s' % (self.dir, self.sam, db)
-        self.outputs['dirs'].append(out)
-        report = '%s/report.tsv' % out
-        result = '%s/result.tsv' % out
-        if self.config.force or to_do(result):
-            db_path = get_kraken2_db(self, db)
-            cmd = get_kraken2_cmd(self, out, db_path, report, result)
-            self.outputs['outs'].append((report, db))
-            self.outputs['cmds'].append(cmd)
-            io_update(self, i_f=self.inputs[self.sam], o_d=out)
+    for tech, inputs in self.inputs[self.sam].items():
+        if tech_specificity(self, inputs, tech):
+            continue
+        params = tech_params(self, tech)
+        for db in params['databases']:
+            out = '%s/%s/%s/%s' % (self.dir, tech, self.sam, db)
+            self.outputs['dirs'].append(out)
+            if self.config.force or to_do('%s/result.tsv' % out):
+                db_path = get_kraken2_db(self, db)
+                cmd = get_kraken2_cmd(self, tech, inputs, out, db_path)
+                self.outputs['outs'].setdefault(tech, []).append((out, db))
+                self.outputs['cmds'].setdefault(tech, []).append(cmd)
+                io_update(self, i_f=inputs, o_d=out, key=tech)
 
 
-def get_bracken_db_path(self, db):
-    if db == 'default':
-        return self.databases.paths['kraken2']
-    elif 'bracken' in self.databases.builds[db]:
-        return self.databases.builds[db]['bracken']
-    else:
-        return None
+def get_bracken_db(
+        self,
+        db: str,
+        read_len: int
+) -> str:
+    """Get the path the Bracken database passed by the user.
 
-
-def bracken(self) -> None:
-    """Create command lines for bracken.
+    Notes
+    -----
+    If the database is not valid, the pipeline will stop with a useful hint.
 
     Parameters
     ----------
     self : Commands class instance
         .dir : str
-            Path to pipeline output folder for bracken
+            Path to pipeline output folder for MIDAS
+        .sam : str
+            Sample name
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .databases
+            All databases class instance
+        .config
+            Configurations
+    db : str
+        Name of the Bracken database
+    read_len : int
+        Current reads length to find the suitable Bracken database
+
+    Returns
+    -------
+    str
+        Path tho the Bracken database
+    """
+    if db == 'default':
+        path = self.databases.paths['kraken2']
+    elif 'bracken' in self.databases.builds[db]:
+        path = self.databases.builds[db]['bracken']
+    elif self.config.dev:
+        path = 'dummy/bracken/path'
+    else:
+        sys.exit('[bracken] Database name "%s" not found' % db)
+    db_path = '%s/database%smers.kmer_distrib' % (path, read_len)
+    if not self.config.dev and not isfile(db_path):
+        sys.exit('[bracken] No database for name "%s": %s' % (db, db_path))
+    return db_path
+
+
+def bracken_cmd(
+        self,
+        tech: str,
+        db_path: str,
+        report: str,
+        out_dir: str
+) -> str:
+    """Collect command for Bracken.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .soft.params
+            Parameters
+    tech: str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    db_path : str
+        Path tho the Bracken database
+    report : str
+        Path to the kraken2 output folder
+    out_dir : str
+        Path to the output folder
+
+    Returns
+    -------
+    cmd : str
+        Bracken command
+    """
+    params = tech_params(self, tech)
+    cmd = 'bracken'
+    cmd += ' -d %s' % db_path
+    cmd += ' -i %s' % report
+    cmd += ' -o %s/results.tsv' % out_dir
+    cmd += ' -w %s/report.tsv' % out_dir
+    cmd += ' -r %s' % params['read_len']
+    cmd += ' -l %s' % params['level']
+    cmd += ' -t %s' % params['threshold']
+    return cmd
+
+
+def bracken(self) -> None:
+    """Run Bracken to perform abundance estimation based on the
+    results of Kraken2.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for Bracken
         .sam : str
             Sample name
         .inputs : dict
@@ -1551,34 +2134,45 @@ def bracken(self) -> None:
         .config
             Configurations
     """
-    for (kraken2_report, db) in self.inputs[self.sam]:
-        db_path = get_bracken_db_path(self, db)
-        if not db_path:
+    if self.soft.prev != 'kraken2':
+        sys.exit('[bracken] Can only be run after kraken2')
+    for tech, inputs in self.inputs[self.sam].items():
+        if tech_specificity(self, inputs, tech):
             continue
-        db_bracken = '%s/database%smers.kmer_distrib' % (
-            db_path, self.soft.params['read_len'])
-        if not isfile(db_bracken):
-            continue
-        out_dir = '%s/%s/%s' % (self.dir, self.sam, db)
-        self.outputs['dirs'].append(out_dir)
-        bracken_result = '%s/results.tsv' % out_dir
-        bracken_report = '%s/report.tsv' % out_dir
-        if self.config.force or to_do(bracken_result):
-            cmd = 'bracken'
-            cmd += ' -d %s' % db_bracken
-            cmd += ' -i %s' % kraken2_report
-            cmd += ' -o %s' % bracken_result
-            cmd += ' -w %s' % bracken_report
-            cmd += ' -r %s' % self.soft.params['read_len']
-            cmd += ' -l %s' % self.soft.params['level']
-            cmd += ' -t %s' % self.soft.params['threshold']
-            self.outputs['outs'].extend([bracken_result, bracken_report])
-            self.outputs['cmds'].append(cmd)
-            io_update(
-                self, i_f=kraken2_report, o_f=[bracken_result, bracken_report])
+        params = tech_params(self, tech)
+        for (k2, db) in inputs:
+            db_path = get_bracken_db(self, db, params['read_len'])
+            out_dir = '%s/%s/%s/%s' % (self.dir, tech, self.sam, db)
+            self.outputs['dirs'].append(out_dir)
+            if self.config.force or to_do('%s/results.tsv' % out_dir):
+                report = '%s/report.tsv' % k2
+                cmd = bracken_cmd(self, tech, db_path, report, out_dir)
+                self.outputs['outs'].setdefault(tech, []).extend(out_dir)
+                self.outputs['cmds'].setdefault(tech, []).append(cmd)
+                io_update(self, i_f=report, o_d=out_dir, key=tech)
 
 
 def metaxa2(self) -> None:
+    """
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for Metaxa2
+        .sam : str
+            Sample name
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .databases
+            All databases class instance
+        .config
+            Configurations
+    """
     if self.soft.prev == 'kneaddata':
         split_term = '_1.fastq'
     else:
