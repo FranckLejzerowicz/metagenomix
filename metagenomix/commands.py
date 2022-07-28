@@ -10,6 +10,7 @@ import itertools
 from os.path import abspath
 
 from metagenomix._io_utils import show_inputs
+from metagenomix.tools.pooling import pooling
 from metagenomix.tools.preprocess import *
 from metagenomix.tools.alignment import *
 from metagenomix.tools.simka import *
@@ -180,7 +181,7 @@ class Commands(object):
         for tech, cmds in self.outputs['cmds'].items():
             if self.soft.name in ['drep']:
                 for k, v in cmds.items():
-                    self.cmds[(k, tech)] = v
+                    self.cmds[tuple(list(k) + [tech])] = v
             else:
                 self.cmds[(self.sam, tech)] = cmds
         # print()
