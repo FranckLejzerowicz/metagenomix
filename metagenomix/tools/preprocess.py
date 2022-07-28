@@ -460,7 +460,7 @@ def cutadapt_cmd(
     r1_o = '%s/%s.R1.fastq.gz' % (out_dir, self.sam)
     cmd += ' --output %s' % r1_o
     outs = [r1_o]
-    if len(outs) == 2:
+    if len(fastqs) == 2:
         r2_o = '%s/%s.R2.fastq.gz' % (out_dir, self.sam)
         cmd += ' --paired-output %s ' % r2_o
         outs.append(r2_o)
