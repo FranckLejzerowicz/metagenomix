@@ -254,22 +254,33 @@ def bowtie2(self) -> None:
 
 
 def no_merging(
+        self,
+        tech: str,
         fastqs: list,
-        tool: str
-) -> None:
+) -> bool:
     """Checks whether there are two input files, which is what is needed for
     merging. Otherwise, stop there and show a useful error message.
 
     Parameters
     ----------
+    self : Commands class instance
+        .outputs : dict
+            All outputs
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
     fastqs : list
         Paths to the input files
-    tool : str
-        Name of the current reads merging tool
+
+    Returns
+    -------
+    bool
+        Whether the input files are not possibly pooled or not
     """
     nfiles = len(fastqs)
     if nfiles != 2:
-        sys.exit('[%s] No merging on one %s fastq input file' % (nfiles, tool))
+        self.outputs['outs'].setdefault(tech, []).extend(fastqs)
+        return True
+    return False
 
 
 def flash_cmd(
@@ -331,7 +342,8 @@ def flash(self) -> None:
     for tech, fastqs in self.inputs[self.sam].items():
         if tech_specificity(self, fastqs, tech, ['illumina']):
             continue
-        no_merging(fastqs, 'flash')
+        if no_merging(self, tech, fastqs):
+            continue
 
         out = '%s/%s/%s' % (self.dir, tech, self.sam)
         self.outputs['dirs'].append(out)
@@ -422,7 +434,8 @@ def ngmerge(self) -> None:
     for tech, fastqs in self.inputs[self.sam].items():
         if tech_specificity(self, fastqs, tech, ['illumina']):
             continue
-        no_merging(fastqs, 'ngmerge')
+        if no_merging(self, tech, fastqs):
+            continue
 
         out = '%s/%s/%s' % (self.dir, tech, self.sam)
         self.outputs['dirs'].append(out)
@@ -524,7 +537,8 @@ def pear(self) -> None:
     for tech, fastqs in self.inputs[self.sam].items():
         if tech_specificity(self, fastqs, tech, ['illumina']):
             continue
-        no_merging(fastqs, 'pear')
+        if no_merging(self, tech, fastqs):
+            continue
 
         out = '%s/%s/%s' % (self.dir, tech, self.sam)
         self.outputs['dirs'].append(out)
@@ -637,7 +651,8 @@ def bbmerge(self) -> None:
     for tech, fastqs in self.inputs[self.sam].items():
         if tech_specificity(self, fastqs, tech, ['illumina']):
             continue
-        no_merging(fastqs, 'bbmerge')
+        if no_merging(self, tech, fastqs):
+            continue
 
         out = '%s/%s/%s' % (self.dir, tech, self.sam)
         self.outputs['dirs'].append(out)
