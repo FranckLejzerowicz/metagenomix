@@ -191,19 +191,21 @@ def check_default(self, params, defaults, tool, let_go: list = [],
         check_default_type(self, params, param, multi, tool)
 
 
-def check_binary(self, tool, params, defaults, opt):
+def check_binary(self, t, params, defaults, opt):
+    if [x for x in self.config.modules.get(t, []) if x.lower().startswith(t)]:
+        return None
     if opt == 'path':
         message = 'Param "path" for path to binaries folder missing'
-        defaults['path'] = '<Path to folder containing the %s binary>' % tool
+        defaults['path'] = '<Path to folder containing the %s binary>' % t
         isfile_or_isdir = isdir
     if opt in ['binary', 'trimmomatic', 'bowtie2']:
         message = 'Param "binary" for path to binary/executable'
-        defaults['binary'] = '<Path to the %s binary>' % tool
+        defaults['binary'] = '<Path to the %s binary>' % t
         isfile_or_isdir = isfile
     if opt not in params:
-        sys.exit('[%s] %s' % (tool, message))
+        sys.exit('[%s] %s' % (t, message))
     if not self.config.dev and not isfile_or_isdir(params[opt]):
-        sys.exit('[%s] Please provide valid path to param "%s"' % (opt, tool))
+        sys.exit('[%s] Please provide valid path to param "%s"' % (opt, t))
 
 
 class Parameters(object):
@@ -358,8 +360,10 @@ def check_search(self, params, soft):
 
 def check_ccmap(self, params, soft):
     defaults = {
-        'preserve_tmpdir': [False, True], 'terminal_fragment_size': 500,
-        'min_percent_identity': 94, 'min_aligned_length': 50}
+        'preserve_tmpdir': [False, True],
+        'terminal_fragment_size': 500,
+        'min_percent_identity': 94,
+        'min_aligned_length': 50}
     check_nums(self, params, defaults,
                ['terminal_fragment_size', 'min_aligned_length'], int, soft.name)
     check_nums(self, params, defaults, ['min_percent_identity'],
@@ -372,8 +376,12 @@ def check_ccmap(self, params, soft):
 
 def check_barrnap(self, params, soft):
     defaults = {
-        'evalue': 1e-06, 'reject': 0.25, 'lencutoff': 0.8,
-        'incseq': [False, True], 'kingdom': ['bac', 'mito', 'arc', 'euk']}
+        'evalue': 1e-06,
+        'reject': 0.25,
+        'lencutoff': 0.8,
+        'incseq': [False, True],
+        'kingdom': ['bac', 'mito', 'arc', 'euk']
+    }
     floats = ['evalue', 'reject', 'lencutoff']
     check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
     check_default(self, params, defaults, soft.name, floats)
@@ -382,11 +390,17 @@ def check_barrnap(self, params, soft):
 
 def check_integron_finder(self, params, soft):
     defaults = {
-        'evalue_attc': 1, 'min_length': 1500,
-        'min_attc_size': 40, 'max_attc_size': 200,
-        'pdf': [True, False], 'gbk': [True, False], 'mute': [True, False],
-        'local_max': [True, False], 'promoter_attI': [True, False],
-        'union_integrases': [False, True], 'topology': ['linear', 'circ'],
+        'evalue_attc': 1,
+        'min_length': 1500,
+        'min_attc_size': 40,
+        'max_attc_size': 200,
+        'pdf': [True, False],
+        'gbk': [True, False],
+        'mute': [True, False],
+        'local_max': [True, False],
+        'promoter_attI': [True, False],
+        'union_integrases': [False, True],
+        'topology': ['linear', 'circ'],
     }
     check_nums(self, params, defaults, ['min_length', 'min_attc_size',
                                         'max_attc_size'], int, soft.name)
@@ -420,9 +434,12 @@ def check_prokka_config(params):
 def check_prokka(self, params, soft):
     defaults = {
         'kingdom': ['Archaea', 'Bacteria', 'Mitochondria', 'Viruses'],
-        'evalue': 1e-09, 'coverage': 80, 'mincontiglen': 100,
+        'evalue': 1e-09,
+        'coverage': 80,
+        'mincontiglen': 100,
         'gcode': [11, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-        'notrna': [False, True], 'norrna': [False, True],
+        'notrna': [False, True],
+        'norrna': [False, True],
         'metagenome': [True, False]
     }
     check_nums(self, params, defaults, ['evalue'], float, soft.name, 0, 100)
@@ -677,16 +694,6 @@ def check_kraken2(self, params, soft):
         'databases': ['default'],
         'confidence': 0.5
     }
-    print()
-    print()
-    print()
-    print()
-    print(params)
-    print(self.databases)
-    print()
-    print()
-    print()
-    print()
     check_databases('kraken2', params, self.databases)
     check_nums(self, params, defaults, ['confidence'], float, soft.name, 0, 1)
     check_default(self, params, defaults, soft.name,
@@ -790,24 +797,27 @@ def check_bowtie2(self, params, soft):
 
 def check_spades(self, params, soft):
     defaults = {
+        'hybrid': ['illumina', 'nanopore', 'pacbio'],
         'k': ['33', '55', '77', '99', '127'],
-        'meta': [True, False],
-        'only_assembler': [True, False],
-        'only_error_correction': [False, True],
-        'careful': [False, True],
         'checkpoints': ['all', 'last'],
+        'cov_cutoff': ['off', 'auto'],
+        'meta': [True, False],
+        'careful': [False, True],
         'continue': [True, False],
-        'disable_gzip_output': [False, True],
         'disable_rr': [False, True],
-        'cov_cutoff': ['off', 'auto']
+        'only_assembler': [True, False],
+        'disable_gzip_output': [False, True],
+        'only_error_correction': [False, True],
     }
+    if 'hybrid' not in params:
+        params['hybrid'] = defaults['hybrid']
     if 'k' not in params:
         params['k'] = defaults['k']
     else:
         kerrors = [x for x in params['k'] if not str(x).isdigit()]
         if len(kerrors):
             sys.exit('[spades] "k" must be integers (%s)' % ','.join(kerrors))
-    check_default(self, params, defaults, soft.name, ['k'])
+    check_default(self, params, defaults, soft.name, ['k'], ['hybrid'])
     return defaults
 
 
@@ -881,9 +891,12 @@ def check_metamarker(self, params, soft):
 
 def check_metawrap(self, params, soft):
     defaults = {
+        'min_completion': 25,
+        'min_contamination': 5,
+        'min_contig_length': 1000,
+        'min_completion_reassembly': 25,
+        'min_contamination_reassembly': 5,
         'binners': ['maxbin2', 'metabat2', 'concoct'],
-        'min_completion': 25, 'min_contamination': 5, 'min_contig_length': 1000,
-        'min_completion_reassembly': 25, 'min_contamination_reassembly': 5,
         'reassembly': ['permissive', 'strict'],
         'blobology': ['coassembly', 'sample']
     }
@@ -1354,16 +1367,22 @@ def check_plasforest(self, params, soft):
 
 def check_flye(self, params, soft):
     defaults = {
+        'stop_after': [
+            None, 'assembly', 'consensus', 'repeat', 'trestle', 'polishing'],
+        'resume_from': [
+            None, 'assembly', 'consensus', 'repeat', 'trestle', 'polishing'],
+        'read_error': 0.,
         'iterations': 1,
         'min_overlap': 0,
         'asm_coverage': 0,
-        'read_error': 0.,
-        'polish_target': [False, True],
         'meta': [True, False],
-        'keep_haplotypes': [False, True],
+        'resume': [False, True],
         'scaffold': [True, False],
-        'long_reads': ['pacbio-raw', 'pacbio-corr', 'pacbio-hifi',
-                       'nano-raw', 'nano-corr', 'nano-hq'],
+        'polish_target': [False, True],
+        'keep_haplotypes': [False, True],
+        'long_reads': [
+            'pacbio-raw', 'pacbio-corr', 'pacbio-hifi', 'nano-raw',
+            'nano-corr', 'nano-hq'],
     }
     ints = ['iterations', 'asm_coverage', 'min_overlap']
     check_nums(self, params, defaults, ints, int, soft.name)
@@ -1377,20 +1396,29 @@ def check_flye(self, params, soft):
 
 def check_canu(self, params, soft):
     defaults = {
+        'stage': [
+            None, 'haplotype', 'correct', 'trim', 'assemble', 'trim-assemble'],
+        'corMhapSensitivity': ['high', 'normal', 'low'],
         'processing': [None, 'corrected', 'trimmed'],
-        'technology': ['pacbio', 'nanopore', 'pacbio-hifi'],
-        'stage': [None, 'haplotype', 'correct', 'trim', 'assemble',
-                  'trim-assemble'],
         'correctedErrorRate': 0.,
-        'minReadLength': 1000,
         'minOverlapLength': 500,
         'rawErrorRate': 0.,
+        'maxInputCoverage': 10000,
+        'minReadLength': 1000,
+        'corOutCoverage': 10000,
+        'corMinCoverage': 0,
+        'redMemory': 32,
+        'oeaMemory': 32,
+        'batMemory': 200,
     }
-    ints = ['minReadLength', 'minOverlapLength']
+    ints = ['minReadLength', 'minOverlapLength', 'redMemory', 'oeaMemory',
+            'batMemory', 'maxInputCoverage']
     check_nums(self, params, defaults, ints, int, soft.name)
+    ints_ = ['corMinCoverage', 'corOutCoverage']
+    check_nums(self, params, defaults, ints_, int, soft.name, 0, 4)
     floats = ['correctedErrorRate', 'rawErrorRate']
     check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
-    check_default(self, params, defaults, soft.name, (ints + floats))
+    check_default(self, params, defaults, soft.name, (ints + ints_ + floats))
     check_binary(self, soft.name, params, defaults, 'path')
     defaults['genome_size'] = '<estimated genome size (e.g., 5m or 2.6g)>'
     defaults['specifications'] = '<Path to assembly option specifications file>'
@@ -1399,6 +1427,7 @@ def check_canu(self, params, soft):
 
 def check_unicycler(self, params, soft):
     defaults = {
+        'hybrid': [True, False],
         'min_bridge_qual': 25.0,
         'start_gene_cov': 95.0,
         'start_gene_id': 90.0,
@@ -1423,7 +1452,6 @@ def check_unicycler(self, params, soft):
         'keep': ['2', '1', '3', '0'],
         'verbosity': ['2', '3', '1', '0'],
         'mode': ['conservative', 'normal', 'bold'],
-        'method': ['illumina', 'long-reads', 'hybrid'],
         'bowtie2_build_path': ['bowtie2-build'],
         'bcftools_path': ['bcftools'],
         'makeblastdb_path': ['makeblastdb'],
@@ -1734,6 +1762,78 @@ def check_cutadapt(self, params, soft):
     check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
     check_default(self, params, defaults, soft.name, (ints + floats))
     return defaults
+
+
+def check_megahit(self, params, soft):
+    defaults = {
+        'mem_flag': [1, 0],
+        'bubble_level': [2, 1, 0],
+        'prune_level': [2, 1, 0, 3],
+        'presets': [None, 'meta-sensitive', 'meta-large'],
+        'k_list': '21,29,39,59,79,99,119,141',
+        'k_min': 21,
+        'k_max': 141,
+        'k_step': 12,
+        'min_count': 2,
+        'prune_depth': 2,
+        'cleaning_rounds': 5,
+        'min_contig_len': 200,
+        'merge_level': '20,0.95',
+        'disconnect_ratio': 0.1,
+        'low_local_ratio': 0.2,
+        'memory': 0.9,
+        'no_mercy': [False, True],
+        'no_local': [False, True],
+        'continue': [False, True],
+        'kmin_1pass': [False, True],
+        'no_hw_accel': [False, True],
+        'keep_tmp_files': [False, True],
+    }
+    p = 'k_list'
+    let_go = [p]
+    if p not in params:
+        params[p] = defaults[p]
+    else:
+        if ',' not in params[p]:
+            sys.exit('[megahit] Param "%s" must be ","-separated values' % p)
+        vals = params[p].split(',')
+        if [v for v in vals if not v.isdigit() or 15 < int(v) or int(v) > 255]:
+            sys.exit('[megahit] Param "%s" invalid: %s' % (p, params[p]))
+    p = 'merge_level'
+    let_go.append(p)
+    if p not in params:
+        params[p] = defaults[p]
+    else:
+        if params[p].count(',') != 1:
+            sys.exit('[megahit] Param "%s" must be 2 ","-separated values' % p)
+        l, s = params[p].split(',')
+        if not str(l).isdigit():
+            sys.exit('[megahit] Param "%s" invalid: %s' % (p, params[p]))
+        try:
+            float(str(s))
+        except ValueError:
+            sys.exit('[megahit] Param "%s" invalid: %s' % (p, params[p]))
+    ints = ['k_min', 'k_max', 'k_step', 'min_count', 'prune_depth',
+            'cleaning_rounds', 'min_contig_len']
+    check_nums(self, params, defaults, ints, int, soft.name)
+    floats = ['memory', 'low_local_ratio', 'disconnect_ratio']
+    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
+    check_default(self, params, defaults, soft.name, (let_go + ints + floats))
+    return defaults
+
+
+# def check_circlator(self, params, soft):
+#     defaults = {
+#         '': [],
+#         '':,
+#     }
+#     ints = []
+#     check_nums(self, params, defaults, ints, int, soft.name)
+#     floats = []
+#     check_nums(self, params, defaults, floats, float, soft.name)
+#     check_default(self, params, defaults, soft.name, (ints + floats))
+#     defaults[''] = '<>'
+#     return defaults
 
 
 # def check_circlator(self, params, soft):
