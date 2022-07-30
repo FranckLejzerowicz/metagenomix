@@ -41,7 +41,6 @@ class Commands(object):
         self.sam = None
         self.dir = ''
         self.out = []
-        self.io = set
         self.struc = list
         self.holistics = [
             'antismash'
@@ -90,10 +89,8 @@ class Commands(object):
 
     def is_pool(self):
         self.struc = list
-        self.io = set
         if set(self.inputs) == set(self.pools) or self.soft.name == 'pooling':
             self.struc = dict
-            self.io = dict
 
     def generic_command(self):
         self.sam = ''
@@ -115,9 +112,6 @@ class Commands(object):
                                    for x in self.outputs['dirs']]))
 
     def init_outputs(self):
-        # self.outputs = {'cmds': self.struc(), 'outs': {}, 'dirs': [],
-        #                 'io': {('I', 'd'): self.io(), ('I', 'f'): self.io(),
-        #                        ('O', 'd'): self.io(), ('O', 'f'): self.io()}}
         self.outputs = {'cmds': {}, 'outs': {}, 'dirs': [],
                         'io': {('I', 'd'): {}, ('I', 'f'): {},
                                ('O', 'd'): {}, ('O', 'f'): {}}}
@@ -158,24 +152,19 @@ class Commands(object):
             # print()
             # print("self.outputs['io']")
             # print(self.outputs['io'])
-            for tech, io in self.outputs['io'].get((i, j), {}).items():
-                if self.io == set:
-                    self.init_io((self.sam, tech))
-                    self.soft.io[(self.sam, tech)][(i, j)] = io
-                else:
-                    for k, v in io.items():
-                        self.init_io((self.sam, tech, k))
-                        self.soft.io[(self.sam, tech, k)][(i, j)] = v
+            for key, io in self.outputs['io'].get((i, j), {}).items():
+                self.init_io((self.sam, key))
+                self.soft.io[(self.sam, key)][(i, j)] = io
+                # else:
+                #     print(tech, io)
+                #     print(self.soft.io)
+                #     for k, v in io.items():
+                #         self.init_io((self.sam, k))
+                #         self.soft.io[(self.sam, k)][(i, j)] = v
         # print()
         # print("self.soft.io")
         # print(self.soft.io)
         # print(selfsoftio)
-
-    # def unpack_cmds(self):
-    #     if self.soft.name in ['drep']:
-    #         self.cmds = self.outputs['cmds']
-    #     else:
-    #         self.cmds[self.sam] = self.outputs['cmds']
 
     def unpack_cmds(self):
         for tech, cmds in self.outputs['cmds'].items():
@@ -184,9 +173,6 @@ class Commands(object):
                     self.cmds[tuple(list(k) + [tech])] = v
             else:
                 self.cmds[(self.sam, tech)] = cmds
-        # print()
-        # print("self.cmds")
-        # print(self.cmds)
 
     def extract_data(self):
         if self.outputs.get('cmds'):
