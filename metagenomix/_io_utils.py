@@ -216,7 +216,7 @@ def min_nlines(input_fp: str) -> bool:
 
 
 def get_out_dir_(out_dir: str, inputs: dict, sam_pool: str,
-                group: str = None) -> tuple:
+                 group: str = None) -> tuple:
     """Get the output directory for either the
 
     Parameters
@@ -315,13 +315,13 @@ def write_hmms(self) -> str:
     return hmms_fp
 
 
-def files_to_show_list(self, sam, tech, t, ins, seps, fs):
+def files_to_show_list(self, s, tech, t, ins, seps, fs):
     seps.append('│%s' % (' ' * len(t)))
     files = []
     for i in ins:
         if '/%s/' % tech in i:
             files.append(i)
-        elif i in self.config.fastq_mv[sam][tech]:
+        elif s in self.config.fastq_mv and i in self.config.fastq_mv[s][tech]:
             files.append(i)
         elif isinstance(i, tuple) and '/%s/' % tech in i[0]:
             files.append('%s (%s)' % i)
@@ -333,8 +333,8 @@ def files_to_show_dict(t, ins, seps, fs):
     fs.extend(['%s (%s)' % (y, x) for x, y in ins.items()])
 
 
-def fill_seps_and_fs(self, sam, tech, t, seps, fs):
-    ins = self.inputs[sam][t]
+def fill_seps_and_fs(self, inputs, sam, tech, t, seps, fs):
+    ins = inputs[sam][t]
     if isinstance(ins, list) and len(ins):
         files_to_show_list(self, sam, tech, t, ins, seps, fs)
     elif isinstance(ins, dict) and [x for x in ins.values()
@@ -348,29 +348,54 @@ def no_file_to_show(t, seps):
     seps.append('X%s' % (' ' * len(t)))
 
 
-def files_to_show(self, sam, tech):
+def files_to_show(self, inputs, techs, sam, tech):
     seps, fs = [], []
-    techs = self.config.techs[:1 + self.config.techs.index(tech)]
+    techs = techs[:1 + techs.index(tech)]
     for t in techs:
-        if t in self.inputs[sam]:
-            fill_seps_and_fs(self, sam, tech, t, seps, fs)
+        if t in inputs[sam]:
+            fill_seps_and_fs(self, inputs, sam, tech, t, seps, fs)
         else:
             no_file_to_show(t, seps)
     sep = ''.join(seps)
     return sep, fs
 
 
+def get_inputs_to_show(self) -> tuple:
+    sams = []
+    inputs = {}
+    techs = self.config.techs
+    if set(self.inputs).issubset(set(self.pools)):
+        col = 'pool (group)'
+        for pool, group_inputs in self.inputs.items():
+            for group, files in group_inputs.items():
+                if set(files).issubset(techs):
+                    pool_group = '%s (%s)' % (pool, group)
+                    sams.append(pool_group)
+                    inputs[pool_group] = files
+        if not inputs:
+            col = 'co-assembly'
+            techs = [y for x in self.inputs.values() for y in x]
+            sams = sorted(self.inputs)
+            inputs = dict(self.inputs)
+    else:
+        col = 'sample'
+        sams = sorted(self.inputs.keys())
+        inputs = dict(self.inputs)
+    return inputs, techs, sams, col
+
+
 def show_inputs(self):
     if self.config.verbose:
-        mlen = max([len(x) for x in self.inputs])
+        inputs, techs, sams, c = get_inputs_to_show(self)
+        mlen = max([len(x) for x in sams])
         print('\n%s\n[%s] inputs (after %s)\n%s\n' % (
             ('-' * 30), self.soft.name, self.soft.prev, ('-' * 30)))
-        print('sample%s %s' % (' ' * (mlen - 6), ' '.join(self.config.techs)))
-        for sam in self.inputs:
+        print('%s%s %s' % (c, ' ' * (mlen-len(c)), ' '.join(techs)))
+        for sam in sams:
             show_sam = True
-            s = '%s%s' % (sam, ' ' * (mlen - len(sam)))
-            for tdx, tech in enumerate(self.config.techs[::-1]):
-                sep, fs = files_to_show(self, sam, tech)
+            s = '%s%s' % (sam, ' ' * (mlen-len(sam)))
+            for tdx, tech in enumerate(techs[::-1]):
+                sep, fs = files_to_show(self, inputs, techs, sam, tech)
                 if sep.rstrip()[-1] != 'X':
                     sep = '%s └─' % sep.rstrip()[:-2]
                 for f in fs:

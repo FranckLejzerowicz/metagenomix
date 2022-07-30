@@ -194,9 +194,14 @@ class Workflow(object):
         elif self.config.userscratch:
             soft.params['scratch'] = 'userscratch'
 
+    def get_user_params(self, soft, name):
+        user_params = dict(self.config.user_params.get(name, {}))
+        user_params.update(dict(self.config.user_params.get(soft.name, {})))
+        return user_params
+
     def set_user_params(self, soft):
         name = soft.name.split('_')[0]
-        user_params = dict(self.config.user_params.get(name, {}))
+        user_params = self.get_user_params(soft, name)
         func = 'check_%s' % name
         if hasattr(parameters, func) and callable(getattr(parameters, func)):
             check_ = getattr(parameters, func)
