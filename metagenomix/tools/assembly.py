@@ -313,7 +313,7 @@ def megahit_cmd(
         group: str,
         tmp: str,
         out: str,
-) -> tuple:
+) -> str:
     """Create command lines for SPAdes.
 
     Parameters
@@ -357,7 +357,6 @@ def megahit_cmd(
     ]:
         if self.soft.params[boolean]:
             cmd += ' --%s' % boolean.replace('_', '-')
-    inputs = []
     cmd += ' --out-dir %s' % out
     out_folder = '%s/intermediate_contigs' % out
     if self.soft.params['continue'] and not to_do(folder=out_folder):
@@ -370,7 +369,7 @@ def megahit_cmd(
         if len(inputs) == 1:
             cmd += ' --read %s' % inputs[0]
     cmd += '\nrm -rf %s\n' % tmp
-    return cmd, inputs
+    return cmd
 
 
 def megahit(self) -> None:
@@ -625,7 +624,7 @@ def canu(self) -> None:
     """
     for group, techs_inputs in self.inputs[self.pool].items():
 
-        if not sum([t in techs_inputs for t in ['pacbio', 'nanopore']]):
+        if not [t for t in ['pacbio', 'nanopore'] if techs_inputs.get(t)]:
             sys.exit('[flye] Only for "pacbio" and/or "nanopore" (no input)')
 
         for tech, inputs in techs_inputs.items():
@@ -732,22 +731,27 @@ def unicycler(self) -> None:
         .config
             Configurations
     """
-    for sam_group, techs_inputs in self.inputs[self.pool].items():
+    if self.pool in self.pools:
+        fastqs = self.inputs[self.pool]
+    else:
+        fastqs = self.inputs
 
+    for sam_group, techs_inputs in fastqs.items():
         if 'illumina' not in techs_inputs:
             sys.exit('[unicycler] Illumina reads are required (skipped)')
 
-        long_techs = [t for t in ['pacbio', 'nanopore'] if t in techs_inputs]
+        long_techs = [t for t in ['pacbio', 'nanopore'] if techs_inputs.get(t)]
         if not long_techs and self.soft.params['hybrid']:
-            print('[unicycler] No long reads: no hybrid assembly (skipped)')
+            print('[unicycler] No long reads/hybrid assembly w/ %s' % sam_group)
 
         techs_pairs = [['illumina']]
         if self.soft.params['hybrid']:
-            techs_pairs = [['illumina', tech] for tech in long_techs]
+            techs_pairs += [['illumina', tech] for tech in long_techs]
 
         for techs in techs_pairs:
             hybrid = '_'.join(techs)
             key = '%s_%s' % (hybrid, sam_group)
+            print(sam_group)
             if len(techs) > 1:
                 hybrid = 'hybrid__%s' % hybrid
 
