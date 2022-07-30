@@ -11,8 +11,7 @@ import sys
 import subprocess
 import pkg_resources
 from os.path import abspath, basename, isdir, isfile, splitext
-from metagenomix._io_utils import (
-    read_yaml, get_fastq_files, get_fastq_paths)
+from metagenomix._io_utils import read_yaml, get_fastq_files, get_fastq_paths
 from metagenomix._metadata import read_metadata
 import pandas as pd
 import numpy as np
@@ -29,7 +28,8 @@ class AnalysesConfig(object):
         self.conda_envs = {}
         self.modules = {}
         self.soft_paths = []
-        self.techs = ['illumina', 'pacbio', 'nanopore']
+        self.techs = []
+        self.techs_fastqs = {}
         self.fastq_mv = {}
         self.fastq = {}
         self.params = {}
@@ -42,6 +42,7 @@ class AnalysesConfig(object):
         self.check_xhpc_install()
         self.get_conda_envs()
         self.set_metadata()
+        self.get_techs()
         self.set_fastqs()
         self.show_fastqs()
         self.get_r()
@@ -159,22 +160,28 @@ class AnalysesConfig(object):
                     break
         return fastq
 
-    def get_fastq_samples(self, tech_dir):
-        tech = tech_dir.split('_')[0]
-        fastq_paths = get_fastq_paths(self.__dict__[tech_dir])
+    def get_fastq_samples(self, tech):
         # keep only the `.fastq.gz` files (if `.fastq` files are also present)
-        for sam, fastqs in self.fill_fastq(fastq_paths).items():
+        for sam, fastqs in self.fill_fastq(self.techs_fastqs[tech]).items():
             self.init_fastq(sam)
             fqs = get_fastq_files(fastqs)
             self.fastq[sam][tech] = fqs
             self.fastq_mv[sam][tech] = ['${SCRATCH_FOLDER}%s' % x for x in fqs]
 
+    def get_techs(self):
+        for tech_dir in [x for x in self.__dict__.keys() if x.endswith('dirs')]:
+            tech = tech_dir.split('_')[0]
+            fastq_paths = get_fastq_paths(self.__dict__[tech_dir])
+            if fastq_paths:
+                self.techs.append(tech)
+                self.techs_fastqs[tech] = fastq_paths
+
     def set_fastqs(self):
         """
         Check that fastq folder exists and that it contains fastq files.
         """
-        for tech_dir in [x for x in self.__dict__.keys() if x.endswith('dirs')]:
-            self.get_fastq_samples(tech_dir)
+        for tech in self.techs:
+            self.get_fastq_samples(tech)
         if not sum([len(y) for _, x in self.fastq.items() for y in x.values()]):
             sys.exit('Input fastq folder(s) do not exist')
 
@@ -182,7 +189,7 @@ class AnalysesConfig(object):
         if self.verbose:
             max_sam_len = max([len(x) for x in self.fastq])
             print('\n========\n Inputs\n========\n')
-            print('sample%s illumina pacbio nanopore' % (' '*(max_sam_len - 6)))
+            print('sample%s %s' % (' '*(max_sam_len - 6), ' '.join(self.techs)))
             for sam in self.fastq:
                 print('%s%s' % (sam, ' '*(max_sam_len - len(sam))), end='')
                 for tech in self.techs:
