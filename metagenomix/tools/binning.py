@@ -39,13 +39,13 @@ def get_sams_fastqs(
 
 
 def get_fqs(
-        fastq: list
+        fastq_fps: list
 ) -> tuple:
     """Get the fastq files for the current sample to reassemble
 
     Parameters
     ----------
-    fastq : list
+    fastq_fps : list
         Paths to fastq files for the current sample to reassemble
 
     Returns
@@ -57,7 +57,7 @@ def get_fqs(
     """
     fqs = []
     cmd = ''
-    for f in fastq:
+    for f in fastq_fps:
         if f.endswith('.gz'):
             cmd += 'gunzip -c %s > %s\n' % (f, f.replace('.gz', ''))
             fqs.append(f.replace('.gz', ''))
@@ -258,7 +258,7 @@ def get_blobology_cmd(
     bins : str
         Path to the input bins folder
     """
-    fqs, fqs_cmd = get_fqs(fastq)
+    fqs, fqs_cmd = get_fqs(fastq_fps)
     cmd = 'metawrap blobology'
     cmd += ' -o %s' % out
     cmd += ' -a %s' % contigs
