@@ -437,6 +437,9 @@ def plass_cmd(
     """
     cmd = 'mkdir -p %s\n' % tmp_dir
     cmd += 'plass %s' % self.soft.params['type']
+    cmd += ' %s' % ' '.join(fastqs)
+    cmd += ' %s' % contigs
+    cmd += ' %s' % tmp_dir
     cmd += ' --threads %s' % self.soft.params['cpus']
     for param in [
         'alph_size', 'k', 'split_memory_limit', 'e', 'c', 'a', 'cov_mode',
@@ -462,9 +465,7 @@ def plass_cmd(
     ]:
         if self.soft.params[boolean]:
             cmd += ' --%s 1' % boolean
-    cmd += ' %s' % ' '.join(fastqs)
-    cmd += ' %s' % contigs
-    cmd += ' %s\n' % tmp_dir
+    cmd += '\n'
     cmd += 'rm -rf %s\n' % tmp_dir
     return cmd
 
