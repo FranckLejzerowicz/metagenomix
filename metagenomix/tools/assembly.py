@@ -8,7 +8,7 @@
 import sys
 from os.path import basename
 
-from metagenomix._io_utils import io_update, to_do
+from metagenomix._io_utils import io_update, to_do, tech_specificity
 from metagenomix.parameters import tech_params
 
 
@@ -410,6 +410,65 @@ def megahit(self) -> None:
             io_update(self, i_f=inputs, i_d=out, o_d=out, key=group)
 
 
+def plass_cmd(
+        self,
+        fastqs: list,
+        contigs: str,
+        tmp_dir: str
+) -> str:
+    """Collect PLASS command.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .soft.params
+            Parameters
+    fastqs : list
+        Paths to the fastqs input files
+    contigs : str
+        Path to the contigs output file
+    tmp_dir : str
+        Path to the temporary folder
+
+    Returns
+    -------
+    cmd : str
+        PLASS command
+    """
+    cmd = 'mkdir -p %s\n' % tmp_dir
+    cmd += 'plass %s' % self.soft.params['type']
+    cmd += ' --threads %s' % self.soft.params['cpus']
+    for param in [
+        'alph_size', 'k', 'split_memory_limit', 'e', 'c', 'a', 'cov_mode',
+        'min_seq_id', 'min_aln_len', 'seq_id_mode', 'kmer_per_seq',
+        'kmer_per_seq_scale', 'hash_shift', 'num_iterations', 'rescore_mode',
+        'min_length', 'max_length', 'max_gaps', 'contig-start-mode',
+        'contig_end_mode', 'orf_start_mode', 'forward_frames', 'reverse_frames',
+        'translation_table', 'id_offset', 'protein_filter_threshold', 'dbtype',
+        'db_load_mode', 'v', 'max_seq_len',
+    ]:
+        if len(param) == 1:
+            cmd += ' -%s %s' % (param, self.soft.params[param])
+        else:
+            cmd += ' --%s %s' % (param, self.soft.params[param])
+
+    for boolean in [
+        'add_self_matches', 'spaced_kmer_mode', 'mask', 'mask_lower_case',
+        'wrapped_scoring', 'adjust_kmer_len', 'include_only_extendable',
+        'ignore_multi_kmer', 'translate', 'use_all_table_starts',
+        'filter_proteins', 'shuffle', 'createdb_mode', 'compressed',
+        'delete_tmp_inc', 'remove_tmp_files', 'filter_hits', 'sort_results',
+        'create_lookup', 'write_lookup'
+    ]:
+        if self.soft.params[boolean]:
+            cmd += ' --%s 1' % boolean
+    cmd += ' %s' % ' '.join(fastqs)
+    cmd += ' %s' % contigs
+    cmd += ' %s\n' % tmp_dir
+    cmd += 'rm -rf %s\n' % tmp_dir
+    return cmd
+
+
 def plass(self) -> None:
     """Create command lines for Plass.
 
@@ -427,27 +486,20 @@ def plass(self) -> None:
         .config
             Configurations
     """
-    out = '%s/%s' % (self.dir, self.sam)
-    self.outputs['dirs'].append(out)
-    inputs = self.inputs[self.sam]
-    if self.soft.prev == 'flash':
-        inputs = [x.replace('.fasta', '.fastq') for x in inputs if
-                  'notCombined_' in basename(x)]
-    out_fp = '%s/plass_%sassembly.fasta' % (out, self.soft.params.type)
-    self.outputs['outs'].append(out_fp)
-    tmp_dir = '$TMPDIR/plass_%s' % self.sam
-    cmd = 'plass %sassemble' % self.soft.params.type
-    cmd += ' --threads %s' % self.soft.params['cpus']
-    cmd += ' --num-iterations 6'
-    cmd += ' --min-seq-id 0.8'
-    cmd += ' -c 0.8'
-    cmd += ' %s' % ' '.join(sorted(inputs))
-    cmd += ' %s' % out_fp
-    cmd += ' %s' % tmp_dir
-    if self.config.force or to_do(out_fp):
-        cmd = 'mkdir -p %s\n%s\nrm -rf %s' % (tmp_dir, cmd, tmp_dir)
-        self.outputs['cmds'].append(cmd)
-        io_update(self, i_f=inputs, i_d=tmp_dir, o_f=out_fp)
+    for tech, fastqs in self.inputs[self.sam].items():
+        if tech_specificity(self, fastqs, tech, ['illumina']):
+            continue
+        out = '%s/%s' % (self.dir, self.sam)
+        self.outputs['dirs'].append(out)
+
+        contigs = '%s/plass_%sassembly.fasta' % (out, self.soft.params['type'])
+        self.outputs['outs'].setdefault(tech, []).append(contigs)
+
+        if self.config.force or to_do(contigs):
+            tmp_dir = '$TMPDIR/plass_%s' % self.sam
+            cmd = plass_cmd(self, fastqs, contigs, tmp_dir)
+            self.outputs['cmds'].setdefault(tech, []).append(cmd)
+            io_update(self, i_f=fastqs, o_d=out, key=tech)
 
 
 def flye_cmd(
@@ -790,15 +842,30 @@ def miniasm(self):
     pass
 
 
-def necat_cmd(self, group: str, fastxs: list, out: str):
-    """Create command lines for NECAT.
+def necat_cmd(
+        self,
+        group: str,
+        fastxs: list,
+        out: str
+) -> str:
+    """Collect NECAT command.
 
     Parameters
     ----------
-    config_fp : str
-        Config file for NECAT
+    self : Commands class instance
+        .soft.params
+            Parameters
+    group : str
+        Name of the sample group within the pool
+    fastxs : list
+        Paths to the input files
     out : str
         Output folder for NECAT
+
+    Returns
+    -------
+    cmd : str
+        NECAT command
     """
     reads_fp = '%s/reads.txt' % out
     cmd = necat_reads(fastxs, reads_fp)
@@ -812,7 +879,24 @@ def necat_cmd(self, group: str, fastxs: list, out: str):
     return cmd
 
 
-def necat_reads(fastxs: list, reads_fp: str):
+def necat_reads(
+        fastxs: list,
+        reads_fp: str
+) -> str:
+    """Make the `reads.txt` input file.
+
+    Parameters
+    ----------
+    fastxs : list
+        Paths to the reads input files
+    reads_fp : str
+        Path to the `reads.txt` input file
+
+    Returns
+    -------
+    cmd : str
+        echo commands to make the `reads.txt` input file
+    """
     cmd = ''
     for fdx, fastx in enumerate(fastxs):
         if fdx:
@@ -822,7 +906,31 @@ def necat_reads(fastxs: list, reads_fp: str):
     return cmd
 
 
-def necat_config(self, reads_fp: str, config_fp: str, group: str):
+def necat_config(
+        self,
+        reads_fp: str,
+        config_fp: str,
+        group: str
+) -> str:
+    """Create command lines for NECAT.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .soft.params
+            Parameters
+    reads_fp : str
+        Path to the `reads.txt` input file
+    config_fp : str
+        Path to the `config.txt` input file
+    group : str
+        Name of the sample group within the pool
+
+    Returns
+    -------
+    cmd : str
+        echo commands to make the `config.txt` input file
+    """
 
     opts = {x: [y for y in self.soft.params if y.startswith(y.rsplit('_')[0])]
             for x in self.soft.params if 'options' in x}
@@ -855,7 +963,7 @@ def necat_config(self, reads_fp: str, config_fp: str, group: str):
 
 
 def necat(self) -> None:
-    """Create command lines for NECAT.
+    """Perform nanopore assembly using NECAT.
 
     Parameters
     ----------

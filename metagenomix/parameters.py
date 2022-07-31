@@ -1822,18 +1822,86 @@ def check_megahit(self, params, soft):
     return defaults
 
 
-# def check_circlator(self, params, soft):
-#     defaults = {
-#         '': [],
-#         '':,
-#     }
-#     ints = []
-#     check_nums(self, params, defaults, ints, int, soft.name)
-#     floats = []
-#     check_nums(self, params, defaults, floats, float, soft.name)
-#     check_default(self, params, defaults, soft.name, (ints + floats))
-#     defaults[''] = '<>'
-#     return defaults
+def check_plass(self, params, soft):
+    defaults = {
+        'type': ['assemble', 'nuclassemble'],
+        'add_self_matches': [False, True],
+        'alph_size': 13,
+        'spaced_kmer_mode': [False, True],
+        'mask': [False, True],
+        'mask_lower_case': [False, True],
+        'k': 14,
+        'split_memory_limit': 0,
+        'wrapped_scoring': [False, True],
+        'e': 0.,
+        'c': 0.,
+        'a': 0,
+        'cov_mode': [3, 0, 1, 2, 4, 5],
+        'min_seq_id': 0.9,
+        'min_aln_len': 0,
+        'seq_id_mode': [0, 1, 2],
+        'kmer_per_seq': 60,
+        'kmer_per_seq_scale': 'nucl:0.200,aa:0.000',
+        'adjust_kmer_len': [False, True],
+        'hash_shift': 67,
+        'include_only_extendable': [True, False],
+        'ignore_multi_kmer': [True, False],
+        'num_iterations': 12,
+        'rescore_mode': [3, 0, 1, 2, 4],
+        'min_length': 45.,
+        'max_length': 32734,
+        'max_gaps': 2147483647,
+        'contig-start-mode': [2, 1, 0],
+        'contig_end_mode': [2, 1, 0],
+        'orf_start_mode': [1, 0, 2],
+        'forward_frames': '1,2,3',
+        'reverse_frames': '1,2,3',
+        'translation_table': list(range(1, 32)),
+        'translate': [False, True],
+        'use_all_table_starts': [False, True],
+        'id_offset': 0,
+        'protein_filter_threshold': 0.2,
+        'filter_proteins': [True, False],
+        'dbtype': [0, 1, 2],
+        'shuffle': [True, False],
+        'createdb_mode': [False, True],
+        'db_load_mode': [0, 1, 2, 3],
+        'compressed': [False, True],
+        'v': [0, 1, 2, 3],
+        'max_seq_len': 65535,
+        'delete_tmp_inc': [False, True],
+        'remove_tmp_files': [False, True],
+        'filter_hits': [False, True],
+        'sort_results': [False, True],
+        'create_lookup': [False, True],
+        'write_lookup': [True, False],
+    }
+    p = 'kmer_per_seq_scale'
+    if p not in params:
+        params[p] = defaults[p]
+    else:
+        if 'nucl:' not in params[p] or ',aa:' not in params[p]:
+            sys.exit('[plass] Prams "%s" invalid format (nucl:#,aa:#)' % p)
+        vals = params[p].split(',aa:')
+        try:
+            float(vals[-1])
+            float(vals[0].split('nucl:')[-1])
+        except ValueError:
+            sys.exit('[plass] Prams "%s" invalid format (nucl:#,aa:#)' % p)
+
+    ints = ['a', 'split_memory_limit', 'k', 'min_aln_len', 'kmer_per_seq',
+            'hash_shift', 'min_length', 'max_length', 'max_gaps',
+            'id_offset', 'max_seq_len']
+    check_nums(self, params, defaults, ints, int, soft.name)
+    int1 = ['num_iterations']
+    check_nums(self, params, defaults, int1, int, soft.name, 1, 1000000000)
+    int2 = ['alph_size']
+    check_nums(self, params, defaults, int2, int, soft.name, 2, 21)
+    floats = ['e', 'c', 'min_seq_id', 'protein_filter_threshold']
+    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
+    check_default(self, params, defaults, soft.name, (
+            ints + int1 + int2 + floats + ['kmer_per_seq_scale']))
+    return defaults
 
 
 # def check_circlator(self, params, soft):
