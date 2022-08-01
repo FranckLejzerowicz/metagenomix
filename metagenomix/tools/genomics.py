@@ -19,44 +19,51 @@ def get_drep_bins(self) -> dict:
     Parameters
     ----------
     self : Commands class instance
-        Contains all attributes needed for dereplicating on the current sample:
-            prev : str
-                Name of the software preceding drep.
-            pools : dict
-                Samples per group as dispatched according to the pooling design.
-            inputs : dict
-                Outputs from the software preceding drep.
+        .prev : str
+            Previous software in the pipeline
+        .pools : dict
+            Samples per group as dispatched according to the pooling design
+        .inputs : dict
+            Path to the input files per pool
 
     Returns
     -------
-    genomes : dict
-        Genomes bins to dereplicate.
+    genomes : nested dict
+        Path to folders with bins to dereplicate per pool and per stringency:
+        "stringent" or "permissive" for metaWRAP, empty for other/no binning
     """
     genomes = {}
     for pool in self.pools:
-        genomes[pool] = {}
-        for group, group_paths in self.inputs[self.pool].items():
+        for (tech, group), group_paths in self.inputs[self.pool].items():
+            genomes[(tech, pool)] = {}
             if self.soft.prev == 'metawrap_refine':
-                genomes[pool].setdefault('', []).append((group, group_paths[1]))
+                genomes[(tech, pool)].setdefault('', []).append(group_paths[1])
             elif self.soft.prev == 'metawrap_reassemble':
-                for path in group_paths:
-                    suf = path.split('_')[-1]
-                    genomes[pool].setdefault(suf, []).append((group, path))
+                for pa in group_paths:
+                    stringency = pa.split('_')[-1]
+                    genomes[(tech, pool)].setdefault(stringency, []).append(pa)
             else:
                 sys.exit('[drep] Not possible after "%s"' % self.soft.prev)
     return genomes
 
 
-def get_drep_inputs(self, drep_dir: str, sam_paths: list):
+def get_drep_inputs(
+        self,
+        drep_dir: str,
+        paths: list
+) -> tuple:
     """Write the file containing the inputs bins to drep
     and the list of paths to these bins.
 
     Parameters
     ----------
+    self : Commands class instance
+        .config
+            Configurations
     drep_dir :
         Path to the drep output folder
-    sam_paths : list
-        List containing for each (group, bins_folder)
+    paths : list
+        Paths to the folders with the genome files to dereplicate
 
     Returns
     -------
@@ -64,38 +71,66 @@ def get_drep_inputs(self, drep_dir: str, sam_paths: list):
         Command to create the input
     drep_in : str
         File containing the paths corresponding to each bin
-    paths : list
-        List of paths corresponding to each bin
+    n_bins : int
+        Number of genome files to use for dereplication
     """
     cmd = ''
-    paths = []
+    n_bins = 0
     drep_in = '%s/input_genomes.txt' % drep_dir
-    for group, bins in sam_paths:
-        bin_paths = glob.glob('%s/*fa' % bins.replace('${SCRATCH_FOLDER}', ''))
+    for path in paths:
+        bin_paths = glob.glob('%s/*fa' % path.replace('${SCRATCH_FOLDER}', ''))
         if self.config.dev:
-            bin_paths = ['%s/a.fa' % bins.replace('${SCRATCH_FOLDER}', ''),
-                         '%s/b.fa' % bins.replace('${SCRATCH_FOLDER}', '')]
-        for path in bin_paths:
-            paths.append(path)
+            bin_paths = ['%s/a.fa' % path.replace('${SCRATCH_FOLDER}', ''),
+                         '%s/b.fa' % path.replace('${SCRATCH_FOLDER}', '')]
+        for bin_path in bin_paths:
+            n_bins += 1
             if cmd:
-                cmd += 'echo "%s" >> %s\n' % (path, drep_in)
+                cmd += 'echo "%s" >> %s\n' % (bin_path, drep_in)
             else:
-                cmd += 'echo "%s" > %s\n' % (path, drep_in)
+                cmd += 'echo "%s" > %s\n' % (bin_path, drep_in)
     if cmd:
         cmd += 'envsubst < %s > %s.tmp\n' % (drep_in, drep_in)
         cmd += 'mv %s.tmp %s\n' % (drep_in, drep_in)
-    return cmd, drep_in, paths
+    return cmd, drep_in, n_bins
 
 
-def drep_cmd(self, algorithm: str, drep_in: str, drep_out: str,
-             paths: list, cmd: str) -> str:
-    cmd = '\ndRep dereplicate'
+def drep_cmd(
+        self,
+        algorithm: str,
+        drep_in: str,
+        drep_out: str,
+        n_bins: int,
+        input_cmd: str
+) -> str:
+    """Collect dRep dereplicate command.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .soft.params
+            Parameters
+    algorithm : str
+        Alignment algorithm: 'fastANI', 'ANIn', 'ANImf', 'gANI', or 'goANI'
+    drep_in : str
+        File containing the paths corresponding to each bin
+    drep_out : str
+        Path to the output folder
+    n_bins : int
+        Number of genome files to use for dereplication
+    input_cmd : str
+        Command to create the input
+
+    Returns
+    -------
+    cmd : str
+        dRep dereplicate command
+    """
+    cmd = '%s\ndRep dereplicate' % input_cmd
     cmd += ' %s' % drep_out
     cmd += ' --S_algorithm %s' % algorithm
     cmd += ' --ignoreGenomeQuality'
     cmd += ' --processors %s' % self.soft.params['cpus']
-    chunk_size = self.soft.params['primary_chunksize']
-    if len(paths) > chunk_size:
+    if n_bins > self.soft.params['primary_chunksize']:
         cmd += ' --multiround_primary_clustering'
         cmd += ' --run_tertiary_clustering'
         if algorithm == 'fastANI':
@@ -118,50 +153,114 @@ def drep_cmd(self, algorithm: str, drep_in: str, drep_out: str,
     cmd += ' --genomes %s' % drep_in
     return cmd
 
-def get_key(stringency, algorithm):
-    if stringency:
-        key = (stringency, algorithm)
-    else:
-        key = (algorithm,)
-    return key
 
+def get_drep_out(
+        self,
+        tech: str,
+        pool: str,
+        stringency: str,
+        algorithm: str
+) -> str:
+    """Get the the dRep output folder.
 
-def get_drep_out(self, pool, stringency, algorithm):
-    drep_out = '%s/%s' % (self.dir, pool)
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for unicycler
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    pool : str
+        Co-assembly pool name
+    stringency : str
+        "stringent" or "permissive" for metaWRAP, or empty for other/no binning
+    algorithm : str
+        Alignment algorithm: 'fastANI', 'ANIn', 'ANImf', 'gANI', or 'goANI'
+
+    Returns
+    -------
+    drep_out : str
+        Path to the output folder
+    """
+    drep_out = '%s/%s/%s' % (self.dir, tech, pool)
     if stringency:
         drep_out += '/%s' % stringency
     drep_out += '/%s' % algorithm
-    self.outputs['dirs'].append(drep_out)
     return drep_out
 
 
 def drep(self):
+    """Dereplicate the binned genomes to obtain MAGs across samples.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .prev : str
+            Previous software in the pipeline
+        .dir : str
+            Path to pipeline output folder for unicycler
+        .pool : str
+            Pool name.
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    """
     prev = self.soft.prev
     genomes = get_drep_bins(self)
-    for pool, pool_paths in genomes.items():
-        for stringency, sam_paths in pool_paths.items():
+    for (tech, pool), pool_paths in genomes.items():
+        self.outputs['outs'][(tech, pool)] = {}
+        for stringency, paths in pool_paths.items():
             for algorithm in self.soft.params['S_algorithm']:
-                key = get_key(stringency, algorithm)
-                drep_out = get_drep_out(self, pool, stringency, algorithm)
-                cmd, drep_in, paths = get_drep_inputs(self, drep_out, sam_paths)
+
+                drep_out = get_drep_out(self, tech, pool, stringency, algorithm)
+                self.outputs['dirs'].append(drep_out)
+
                 dereps = '%s/dereplicated_genomes' % drep_out
-                if not paths:
+                mode = tuple([x for x in [stringency, algorithm] if x])
+                self.outputs['outs'][(tech, pool)][mode] = dereps
+                cmd, drep_in, n_bins = get_drep_inputs(self, drep_out, paths)
+                if not n_bins:
                     self.soft.status.add('Must run %s (%s)' % (prev, self.pool))
                     if self.config.dev:
-                        paths = ['a.fa', 'b.fa', 'c.fa']
+                        n_bins = 30000
+
                 out_dereps = '%s/*.fa' % dereps.replace('${SCRATCH_FOLDER}', '')
                 if not self.config.force and glob.glob(out_dereps):
                     self.soft.status.add('Done')
                     continue
-                io_update(self, i_f=([drep_in] + paths), o_d=drep_out, key=key)
-                cmd += drep_cmd(self, algorithm, drep_in, drep_out, paths, cmd)
+
+                key = '_'.join([tech, pool, stringency, algorithm])
+                io_update(self, i_d=paths, o_d=drep_out, key=key)
+                cmd = drep_cmd(self, algorithm, drep_in, drep_out, n_bins, cmd)
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
-                if pool not in self.outputs['outs']:
-                    self.outputs['outs'][pool] = {}
-                self.outputs['outs'][pool][key] = dereps
 
 
-def get_genomes_out(self, group, genome_dir):
+def get_genomes_out(
+        self,
+        group,
+        genome_dir
+) -> str:
+    """
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .prev : str
+            Previous software in the pipeline
+        .pool : str
+            Pool name.
+    group
+    genome_dir
+
+    Returns
+    -------
+    out : str
+    """
     out = self.dir
     if self.soft.prev == 'drep':
         out += '/%s' % '/'.join(group)
@@ -172,7 +271,25 @@ def get_genomes_out(self, group, genome_dir):
     return out
 
 
-def checkm(self):
+def checkm(self) -> None:
+    """
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for unicycler
+        .pool : str
+            Pool name.
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    """
     if self.soft.params['coverage']:
         if 'mapping_spades' not in self.softs:
             sys.exit('Run "spades mapping_spades" before checkm coverage')
@@ -214,7 +331,35 @@ def checkm(self):
             self.outputs['cmds'].setdefault(group, []).append(cmd)
 
 
-def checkm_coverage(self, out_dir, key, ext, genome_dir, cmd):
+def checkm_coverage(
+        self,
+        out_dir,
+        key,
+        ext,
+        genome_dir,
+        cmd
+) -> str:
+    """
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .prev : str
+            Previous software in the pipeline
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    out_dir
+    key
+    ext
+    genome_dir
+    cmd
+
+    Returns
+    -------
+
+    """
     cov = ''
     if self.soft.params['coverage'] and self.soft.prev != 'drep':
         cov = '%s/coverage.txt' % out_dir
@@ -234,7 +379,41 @@ def checkm_coverage(self, out_dir, key, ext, genome_dir, cmd):
     return cov
 
 
-def checkm_tree(self, out_dir, key, ext, genome_dir, cmd):
+def checkm_tree(
+        self,
+        out_dir,
+        key,
+        ext,
+        genome_dir,
+        cmd
+) -> tuple:
+    """
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for unicycler
+        .pool : str
+            Pool name.
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    out_dir
+    key
+    ext
+    genome_dir
+    cmd
+
+    Returns
+    -------
+
+    """
     tree = '%s/lineage/tree' % out_dir
     self.outputs['dirs'].append(tree)
     cmd_tree = '\ncheckm tree'
@@ -252,7 +431,41 @@ def checkm_tree(self, out_dir, key, ext, genome_dir, cmd):
         return tree, cmd_tree
 
 
-def checkm_tree_qa(self, out, key, tree, cmd_tree, cmd):
+def checkm_tree_qa(
+        self,
+        out,
+        key,
+        tree,
+        cmd_tree,
+        cmd
+) -> str:
+    """
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for unicycler
+        .pool : str
+            Pool name.
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    out
+    key
+    tree
+    cmd_tree
+    cmd
+
+    Returns
+    -------
+
+    """
     tree_qa = '%s/lineage/tree_qa' % out
     io_update(self, o_d=tree_qa, key=key)
     self.outputs['dirs'].append(tree_qa)
@@ -275,7 +488,41 @@ def checkm_tree_qa(self, out, key, tree, cmd_tree, cmd):
     return tree_qa
 
 
-def checkm_lineage_set(self, out, key, tree, tree_qa, cmd):
+def checkm_lineage_set(
+        self,
+        out,
+        key,
+        tree,
+        tree_qa,
+        cmd
+) -> str:
+    """
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for unicycler
+        .pool : str
+            Pool name.
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    out
+    key
+    tree
+    tree_qa
+    cmd
+
+    Returns
+    -------
+
+    """
     lineage = '%s/lineage/lineage.ms' % out
     self.outputs['dirs'].append(dirname(tree_qa))
     if self.config.force or to_do(lineage):
@@ -287,7 +534,43 @@ def checkm_lineage_set(self, out, key, tree, tree_qa, cmd):
     return lineage
 
 
-def checkm_analyze(self, out, key, ext, lineage, genome_dir, cmd):
+def checkm_analyze(
+        self,
+        out,
+        key,
+        ext,
+        lineage,
+        genome_dir,
+        cmd
+) -> tuple:
+    """
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for unicycler
+        .pool : str
+            Pool name.
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    out
+    key
+    ext
+    lineage
+    genome_dir
+    cmd
+
+    Returns
+    -------
+
+    """
     analyze = '%s/lineage/analyze' % out
     cmd_analyze = '\ncheckm analyze'
     cmd_analyze += ' --extension %s' % ext
@@ -309,7 +592,47 @@ def checkm_analyze(self, out, key, ext, lineage, genome_dir, cmd):
         return analyze, cmd_analyze
 
 
-def checkm_qa(self, out, key, cov, lineage, analyze, cmd_analyze, cmd):
+def checkm_qa(
+        self,
+        out,
+        key,
+        cov,
+        lineage,
+        analyze,
+        cmd_analyze,
+        cmd
+) -> None:
+    """
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .prev : str
+            Previous software in the pipeline
+        .dir : str
+            Path to pipeline output folder for unicycler
+        .pool : str
+            Pool name.
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    out
+    key
+    cov
+    lineage
+    analyze
+    cmd_analyze
+    cmd
+
+    Returns
+    -------
+
+    """
     dir_qa = '%s/lineage/qa' % out
     io_update(self, o_d=dir_qa, key=key)
     self.outputs['dirs'].append(dir_qa)
@@ -347,7 +670,43 @@ def checkm_qa(self, out, key, cov, lineage, analyze, cmd_analyze, cmd):
             cmd += ' %s\n' % analyze
 
 
-def checkm_unbinned(self, out_dir, key, ext, genome_dir, cmd):
+def checkm_unbinned(
+        self,
+        out_dir,
+        key,
+        ext,
+        genome_dir,
+        cmd
+) -> None:
+    """
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .prev : str
+            Previous software in the pipeline
+        .dir : str
+            Path to pipeline output folder for unicycler
+        .pool : str
+            Pool name.
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    out_dir
+    key
+    ext
+    genome_dir
+    cmd
+
+    Returns
+    -------
+
+    """
     if self.soft.prev not in ['drep']:
         contigs = self.softs['spades'].outputs[self.pool][key][0]
         unbinned = '%s/unbinned' % out_dir
@@ -365,7 +724,37 @@ def checkm_unbinned(self, out_dir, key, ext, genome_dir, cmd):
             cmd += ' %s\n' % unbinned_stats
 
 
-def checkm_tetra(self, out_dir, key):
+def checkm_tetra(
+        self,
+        out_dir,
+        key
+) -> str:
+    """
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .prev : str
+            Previous software in the pipeline
+        .dir : str
+            Path to pipeline output folder for unicycler
+        .pool : str
+            Pool name.
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    out_dir
+    key
+
+    Returns
+    -------
+
+    """
     cmd = ''
     if self.soft.prev not in ['drep']:
         contigs = self.softs['spades'].outputs[self.pool][key]
@@ -383,7 +772,27 @@ def checkm_tetra(self, out_dir, key):
     return cmd
 
 
-def coconet(self):
+def coconet(self) -> None:
+    """
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .prev : str
+            Previous software in the pipeline
+        .dir : str
+            Path to pipeline output folder for unicycler
+        .pool : str
+            Pool name.
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    """
     if self.soft.prev != 'spades':
         sys.exit('[coconet] can only be run on assembly output')
     bams = {}
@@ -424,7 +833,27 @@ def coconet(self):
         self.outputs['outs'][group] = out_dir
 
 
-def tiara(self):
+def tiara(self) -> None:
+    """
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .prev : str
+            Previous software in the pipeline
+        .dir : str
+            Path to pipeline output folder for unicycler
+        .pool : str
+            Pool name.
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    """
     if self.soft.prev != 'spades':
         sys.exit('[tiara] can only be run on assembly output')
     for group, spades_outs in self.inputs[self.pool].items():
@@ -449,127 +878,85 @@ def tiara(self):
             io_update(self, i_f=spades_outs[1], o_d=out_dir, key=group)
 
 
+def get_genome_dirs(
+        self,
+        tech: str,
+        group: str
+) -> tuple:
+    """Get the paths to the folders contains genomes fasta files.
 
-def plasforest_cmd(self, out_fp: str, in_fp: str):
-    cmd = 'python3 %s' % self.soft.params['path']
-    cmd += ' -i %s' % in_fp
-    cmd += ' -o %s' % out_fp
-    if self.soft.params['size_of_batch']:
-        cmd += ' --size_of_batch %s' % self.soft.params['size_of_batch']
-    cmd += ' --threads %s' % self.soft.params['cpus']
-    for boolean in ['b', 'f', 'r']:
-        if self.soft.params[boolean]:
-            cmd += ' -%s' % boolean
-    return cmd
+    Parameters
+    ----------
+    self : Commands class instance
+        .prev : str
+            Previous software in the pipeline
+        .dir : str
+            Path to pipeline output folder for unicycler
+        .pool : str
+            Pool name.
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    group : str
+        Group for the current co-assembly
 
-
-def plasforest(self):
-    if self.soft.prev != 'spades':
-        sys.exit('[plasforest] can only be run on assembly output')
-    for group, spades_outs in self.inputs[self.pool].items():
-        out_dir = '%s/%s/%s' % (self.dir, self.pool, group)
-        self.outputs['dirs'].append(out_dir)
-        self.outputs['outs'][group] = out_dir
-        out_fp = '%s/plasmids.csv' % out_dir
-        if self.config.force or to_do(out_fp):
-            cmd = plasforest_cmd(self, out_fp, spades_outs[1])
-            self.outputs['cmds'].setdefault(group, []).append(cmd)
-            io_update(self, i_f=spades_outs[1], o_d=out_dir, key=group)
-
-
-def get_genome_dirs(self, group):
+    Returns
+    -------
+    dirs : list
+        Paths to the genomes folders
+    ext : str
+        Extension to the genomes fasta files
+    """
     ext = 'fa'
     if not group:
-        dirs = [self.inputs[self.sam]]
+        dirs = [self.inputs[self.sam][tech]]
     elif self.soft.prev == 'spades':
-        dirs = [[self.inputs[self.pool][group][1]]]
+        dirs = [[self.inputs[self.pool][(tech, group)][1]]]
     elif self.soft.prev == 'drep':
-        dirs = [self.inputs[self.pool][group]]
+        dirs = [self.inputs[self.pool][(tech, group)]]
     elif self.soft.prev == 'metawrap_refine':
-        dirs = [self.inputs[self.pool][group][-1]]
+        dirs = [self.inputs[self.pool][(tech, group)][-1]]
     elif self.soft.prev == 'metawrap_reassemble':
-        dirs = self.inputs[self.pool][group]
+        dirs = self.inputs[self.pool][(tech, group)]
     elif self.soft.prev == 'yamb':
+        to_glob = '%s/bins-yamb-pp-*' % self.inputs[self.pool][(tech, group)]
+        dirs = glob.glob(to_glob)
         ext = 'fna'
-        dirs = glob.glob('%s/bins-yamb-pp-*' % self.inputs[self.pool][group])
     else:
-        sys.exit('[%s] Not possible after "%s"' % (self.soft.name,
-                                                   self.soft.prev))
+        sys.exit('[%s] Not after "%s"' % (self.soft.name, self.soft.prev))
     return dirs, ext
 
 
-def get_groups(self):
+def get_groups(self) -> list:
+    """
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .prev : str
+            Previous software in the pipeline
+        .pool : str
+            Pool name.
+        .inputs : dict
+            Input files
+
+    Returns
+    -------
+    groups : list
+
+    """
     if self.soft.prev == 'drep':
-        groups = self.inputs[self.pool].keys()
+        groups = list(self.inputs[self.pool].keys())
     elif self.pool in self.pools:
-        groups = self.pools[self.pool].keys()
+        groups = list(self.pools[self.pool].keys())
     else:
         groups = ['']
     return groups
 
-
-def plasmidfinder_cmd(self, group: str, out_dir: str, inp):
-    tmp_dir = '$TMPDIR/plasmidfinder_%s_%s' % (self.pool, group)
-    cmd = 'plasmidfinder.py'
-    if isinstance(inp, list):
-        cmd += ' --infile %s' % ' '.join(inp)
-    else:
-        cmd += ' --infile %s' % inp
-    cmd += ' --outputPath %s' % out_dir
-    cmd += ' --tmp_dir %s' % tmp_dir
-    cmd += ' --methodPath %s' % self.soft.params['methodPath']
-    cmd += ' --databasePath %s' % self.soft.params['databasePath']
-    if 'databases' in self.soft.params:
-        cmd += ' --databases %s' % self.soft.params['databases']
-    cmd += ' --mincov %s' % self.soft.params['mincov']
-    cmd += ' --threshold %s' % self.soft.params['threshold']
-    if self.soft.params['extented_output']:
-        cmd += ' --extented_output'
-    cmd += '\nrm -rf %s\n' % tmp_dir
-    # cmd += ' --speciesinfo_json %s' % speciesinfo_json
-    return cmd
-
-
-def get_plasmidfinder_io(self, group, path, ext):
-    if not group or self.soft.prev == 'spades':
-        fps = path
-        out_dir = '%s/%s' % (self.dir, self.sam)
-    else:
-        if self.config.dev:
-            fps = ['%s/a.%s' % (path, ext), '%s/b.%s' % (path, ext)]
-        else:
-            fps = glob.glob('%s/*.%s' % (path, ext))
-        if isinstance(group, str):
-            out_dir = '%s/%s' % (self.dir, group)
-            if 'reassembled_bins' in path:
-                out_dir += '/' + path.split('/')[-1]
-        else:
-            out_dir = '%s/%s' % (self.dir, '/'.join(group))
-    return fps, out_dir
-
-
-def plasmidfinder(self):
-    groups = get_groups(self)
-    for group in groups:
-        paths, ext = get_genome_dirs(self, group)
-        for path in paths:
-            fps, out_dir = get_plasmidfinder_io(self, group, path, ext)
-            if group:
-                io_update(self, i_f=fps, o_d=out_dir, key=group)
-                self.outputs['outs'].setdefault(group, []).append(out_dir)
-            else:
-                io_update(self, i_f=fps, o_d=out_dir)
-                self.outputs['outs'].append(out_dir)
-            self.outputs['dirs'].append(out_dir)
-            if not group or self.soft.prev == 'spades':
-                if self.config.force or not glob.glob('%s/*' % out_dir):
-                    cmd = plasmidfinder_cmd(self, group, out_dir, fps)
-                    if group:
-                        self.outputs['cmds'].setdefault(group, []).append(cmd)
-                    else:
-                        self.outputs['cmds'].append(cmd)
-            else:
-                for fp in fps:
-                    if self.config.force or not glob.glob('%s/*' % out_dir):
-                        cmd = plasmidfinder_cmd(self, group, out_dir, fp)
-                        self.outputs['cmds'].setdefault(group, []).append(cmd)
