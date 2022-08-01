@@ -166,7 +166,7 @@ def get_prodigal(
         Group for the current co-assembly
     """
     self.outputs['dirs'].append(out_dir)
-    outputs = prodigal_outputs(out_dir)
+    outputs = prodigal_outputs(self, out_dir)
 
     self.outputs['outs'][(tech, group)] = outputs
 
