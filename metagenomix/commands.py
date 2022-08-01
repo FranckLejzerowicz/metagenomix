@@ -78,6 +78,10 @@ class Commands(object):
                 self.inputs = self.config.fastq
         else:
             self.inputs = self.softs[self.soft.prev].outputs
+        print()
+        print('*'*100)
+        print(self.inputs)
+        print('*'*100)
         show_inputs(self)
 
     def get_dir(self):
@@ -168,11 +172,7 @@ class Commands(object):
 
     def unpack_cmds(self):
         for tech, cmds in self.outputs['cmds'].items():
-            if self.soft.name in ['drep']:
-                for k, v in cmds.items():
-                    self.cmds[tuple(list(k) + [tech])] = v
-            else:
-                self.cmds[(self.sam, tech)] = cmds
+            self.cmds[(self.sam, tech)] = cmds
 
     def extract_data(self):
         if self.outputs.get('cmds'):
