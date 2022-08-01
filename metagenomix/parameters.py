@@ -15,6 +15,9 @@ from metagenomix._io_utils import read_yaml
 
 
 def tech_params(self, tech: str):
+    params = self.soft.params
+    if tech not in ['illumina', 'pacbio', 'nanopore']:
+        return params
     params = {}
     for param, values in self.soft.params.items():
         if isinstance(values, dict) and tech in set(values):
@@ -388,7 +391,7 @@ def check_barrnap(self, params, soft):
     return defaults
 
 
-def check_integron_finder(self, params, soft):
+def check_integronfinder(self, params, soft):
     defaults = {
         'evalue_attc': 1,
         'min_length': 1500,
@@ -402,6 +405,9 @@ def check_integron_finder(self, params, soft):
         'union_integrases': [False, True],
         'topology': ['linear', 'circ'],
     }
+    for param in ['prot_file', 'attc_model', 'topology_file']:
+        if param not in params:
+            params[param] = None
     check_nums(self, params, defaults, ['min_length', 'min_attc_size',
                                         'max_attc_size'], int, soft.name)
     check_nums(self, params, defaults, ['evalue_attc'],
@@ -1186,16 +1192,32 @@ def check_midas(self, params, soft):
 
 def check_macsyfinder(self, params, soft):
     defaults = {
-        'db_type': (['unordered', 'ordered_replicon', 'gembase'], str),
-        'replicon_topology': (['linear', 'circular'], str),
-        'models': (['TXSS', 'TFF-SF', 'CAS'], list),
-        'evalue': (0.1, float),
-        'coverage': (0.5, float)
+        'db_type': ['unordered', 'ordered_replicon', 'gembase'],
+        'replicon_topology': ['linear', 'circular'],
+        'models': ['TXSS', 'TFF-SF', 'CAS'],
+        'e_value_search': 0.1,
+        'i_evalue_sel': 0.001,
+        'coverage_profile': 0.5,
+        'mandatory_weight': 1.0,
+        'accessory_weight': 0.5,
+        'exchangeable_weight': 0.8,
+        'redundancy_penalty': 1.5,
+        'out_of_cluster': 0.7
     }
-    check_nums(self, params, defaults, ['evalue', 'coverage'],
-               float, soft.name, 0, 1)
-    let_go = ['evalue', 'coverage']
-    check_default(self, params, defaults, soft.name, let_go)
+    if 'models' not in params:
+        params['models'] = defaults['models']
+    else:
+        if not isinstance(params['models'], list):
+            sys.exit('[models] Param "models" not a list')
+        elif not set(params['models']).issubset(defaults['models']):
+            sys.exit('[models] Param "models" not in: %s' % params['models'])
+    flo1 = ['e_value_search', 'i_evalue_sel', 'coverage_profile',
+            'mandatory_weight', 'accessory_weight', 'exchangeable_weight',
+            'out_of_cluster']
+    check_nums(self, params, defaults, flo1, float, soft.name, 0, 1)
+    flo2 = ['redundancy_penalty']
+    check_nums(self, params, defaults, flo2, float, soft.name)
+    check_default(self, params, defaults, soft.name, (flo1 + flo2 + ['models']))
     return defaults
 
 
@@ -1427,7 +1449,7 @@ def check_canu(self, params, soft):
 
 def check_unicycler(self, params, soft):
     defaults = {
-        'hybrid': [True, False],
+        'hybrid': [None, 'pacbio', 'nanopore'],
         'min_bridge_qual': 25.0,
         'start_gene_cov': 95.0,
         'start_gene_id': 90.0,
@@ -1889,6 +1911,16 @@ def check_plass(self, params, soft):
         except ValueError:
             sys.exit('[plass] Prams "%s" invalid format (nucl:#,aa:#)' % p)
 
+    for p in ['forward_frames', 'reverse_frames']:
+        if p not in params:
+            params[p] = defaults[p]
+        else:
+            if not isinstance(params[p], str):
+                sys.exit('[plass] Prams "%s" invalid format (not a string)' % p)
+            vals = params[p].split(',')
+            if [v for v in vals if not v.isdigit() or int(v) not in [1, 2, 3]]:
+                sys.exit('[plass] Prams "%s" not ","-separated "1","2","3"' % p)
+    let_go = ['kmer_per_seq_scale', 'forward_frames', 'reverse_frames']
     ints = ['a', 'split_memory_limit', 'k', 'min_aln_len', 'kmer_per_seq',
             'hash_shift', 'min_length', 'max_length', 'max_gaps',
             'id_offset', 'max_seq_len']
@@ -1899,9 +1931,60 @@ def check_plass(self, params, soft):
     check_nums(self, params, defaults, int2, int, soft.name, 2, 21)
     floats = ['e', 'c', 'min_seq_id', 'protein_filter_threshold']
     check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
-    check_default(self, params, defaults, soft.name, (
-            ints + int1 + int2 + floats + ['kmer_per_seq_scale']))
+    check_default(self, params, defaults, soft.name,
+                  (ints + int1 + int2 + floats + let_go))
     return defaults
+
+
+def check_pirate(self, params, soft):
+    defaults = {
+        'steps': '50,60,70,80,90,95,98',
+        'features':	['CDS', 'mRNA'],
+        'nucl': [False, True],
+        'align': [False, True],
+        'rplots': [False, True],
+        'diamond': [False, True],
+        'para_off': [False, True],
+        'hsp_prop': [False, True],
+        'cd_core_off': [True, False],
+        'z': [1, 2, 0],
+        'perc': 98,
+        'cd_low': 98,
+        'cd_step': 0.5,
+        'evalue': 1e-6,
+        'flat': 1.5,
+    }
+    p = 'steps'
+    if p not in params:
+        params[p] = defaults[p]
+    else:
+        if not isinstance(params[p], str):
+            sys.exit('[plass] Prams "%s" invalid format (not a string)' % p)
+        vals = params[p].split(',')
+        if [v for v in vals if not v.isdigit() or int(v) not in range(101)]:
+            sys.exit('[plass] Prams "%s" not ","-separated integers' % p)
+    int1 = ['perc', 'cd_low']
+    check_nums(self, params, defaults, int1, int, soft.name, 0, 100)
+    flo1 = ['flat']
+    check_nums(self, params, defaults, flo1, float, soft.name)
+    flo2 = ['cd_step', 'evalue']
+    check_nums(self, params, defaults, flo2, float, soft.name, 0, 1)
+    check_default(self, params, defaults, soft.name, (int1 + flo1 + flo2))
+    return defaults
+
+
+# def check_circlator(self, params, soft):
+#     defaults = {
+#         '': [],
+#         '':,
+#     }
+#     ints = []
+#     check_nums(self, params, defaults, ints, int, soft.name)
+#     floats = []
+#     check_nums(self, params, defaults, floats, float, soft.name)
+#     check_default(self, params, defaults, soft.name, (ints + floats))
+#     defaults[''] = '<>'
+#     return defaults
 
 
 # def check_circlator(self, params, soft):
