@@ -6,14 +6,13 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 import sys
-from os.path import basename
-
 from metagenomix._io_utils import io_update, to_do, tech_specificity
 from metagenomix.parameters import tech_params
 
 
 def quast_data(
         self,
+        tech: str,
         pool: str,
         group_samples: dict
 ) -> tuple:
@@ -30,6 +29,8 @@ def quast_data(
             Parameters
         .config
             Configurations
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
     pool : str
         Name of the co-assembly pool
     group_samples : dict
@@ -44,9 +45,11 @@ def quast_data(
     """
     contigs, labels = [], []
     for group, assembly_outputs in sorted(self.inputs[pool].items()):
+        if group[0] != tech:
+            continue
         contigs.append(assembly_outputs[1])
         if self.soft.params['label']:
-            samples = group_samples[group]
+            samples = group_samples[group[1]]
             vals = self.config.meta.loc[samples, self.soft.params['label']]
             labels.append('__'.join(sorted(set(vals))))
     return contigs, labels
@@ -54,6 +57,7 @@ def quast_data(
 
 def quast_cmd(
         self,
+        tech: str,
         pool: str,
         group_samples: dict,
         out_dir: str
@@ -69,6 +73,8 @@ def quast_cmd(
             Parameters
         .config
             Configurations
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
     pool : str
         Name of the co-assembly pool
     group_samples : dict
@@ -83,7 +89,7 @@ def quast_cmd(
     contigs : list
         Paths to the contigs assembly files
     """
-    contigs, labels = quast_data(self, pool, group_samples)
+    contigs, labels = quast_data(self, tech, pool, group_samples)
 
     cmd = 'metaquast.py'
     cmd += ' %s' % ' '.join(contigs)
@@ -127,18 +133,20 @@ def quast(self) -> None:
         .config
             Configurations
     """
-    for pool, group_samples in self.pools.items():
+    for pool, group_sams in self.pools.items():
 
-        out_dir = '%s/%s' % (self.dir, pool)
-        if self.soft.params['label']:
-            out_dir += '_%s' % self.soft.params['label']
-        self.outputs['dirs'].append(out_dir)
-        self.outputs['outs'][pool] = out_dir
+        for tech in [x[0] for x in self.inputs[pool]]:
+            tech_pool = '%s_%s' % (tech, pool)
+            out_dir = '%s/%s/%s' % (self.dir, tech, pool)
+            if self.soft.params['label']:
+                out_dir += '_%s' % self.soft.params['label']
+            self.outputs['dirs'].append(out_dir)
+            self.outputs['outs'][pool] = out_dir
 
-        if self.config.force or not to_do('%s/report.html' % out_dir):
-            cmd, contigs = quast_cmd(self, pool, group_samples, out_dir)
-            self.outputs['cmds'].setdefault(pool, []).append(cmd)
-            io_update(self, i_f=contigs, o_d=out_dir, key=pool)
+            if self.config.force or not to_do('%s/report.html' % out_dir):
+                cmd, contigs = quast_cmd(self, tech, pool, group_sams, out_dir)
+                self.outputs['cmds'].setdefault(tech_pool, []).append(cmd)
+                io_update(self, i_f=contigs, o_d=out_dir, key=tech_pool)
 
 
 def spades_cmd(
@@ -160,7 +168,7 @@ def spades_cmd(
     techs_inputs : dict
         Dict of the technology:paths to the input fasta/fastq.gz files
     techs : list
-        Technologies to use for the hybrid assembly
+        Technologies to use for the (hybrid) assembly
     tmp : str
         Temporary folder for SPAdes
     out : str
@@ -298,7 +306,7 @@ def spades(self) -> None:
         scaffolds = '%s/scaffolds.fasta' % out
         log = '%s/spades.log' % out
         outs = [before_rr, contigs, first_pe, scaffolds, log]
-        self.outputs['outs'][group] = outs
+        self.outputs['outs'][(hybrid, group)] = outs
 
         if self.config.force or to_do(contigs):
             cmd, inputs = spades_cmd(
@@ -402,7 +410,7 @@ def megahit(self) -> None:
         self.outputs['dirs'].append(out)
 
         contigs = '%s/%s.contigs.fa' % (out, group)
-        self.outputs['outs'][group] = [out, contigs]
+        self.outputs['outs'][('illumina', group)] = [out, contigs]
 
         if self.config.force or to_do(contigs):
             cmd = megahit_cmd(self, inputs, group, tmp, out)
@@ -473,6 +481,8 @@ def plass_cmd(
 def plass(self) -> None:
     """Create command lines for Plass.
 
+    Parameters
+    ----------
     self : Commands class instance
         .dir : str
             Path to pipeline output folder for Plass
@@ -684,7 +694,7 @@ def canu(self) -> None:
             if tech == 'illumina':
                 continue
 
-            out = '%s/%s/%s' % (self.dir, self.pool, group)
+            out = '%s/%s/%s/%s' % (self.dir, tech, self.pool, group)
             self.outputs['dirs'].append(out)
 
             report = '%s/%s.report' % (out, group)
@@ -701,7 +711,7 @@ def canu(self) -> None:
 def unicycler_cmd(
         self,
         techs_inputs: dict,
-        tmp: str,
+        key: str,
         out: str,
         techs: list
 ) -> tuple:
@@ -714,8 +724,8 @@ def unicycler_cmd(
             Parameters
     techs_inputs : dict
         Path to the input fastqs files per technology
-    tmp : str
-        Path to a temporary directory
+    key : str
+        Concatenation of the technology and co-assembly group
     out : str
         Output folder for unicycler
     techs : list
@@ -728,6 +738,7 @@ def unicycler_cmd(
     inputs : list
         Path to all input fastqs files
     """
+    tmp = '$TMPDIR/%s_%s_%s' % (self.soft.name, self.pool, key)
     cmd = 'unicycler'
     inputs = []
     for tech in techs:
@@ -787,43 +798,34 @@ def unicycler(self) -> None:
     if self.pool in self.pools:
         fastqs = self.inputs[self.pool]
     else:
-        fastqs = self.inputs
+        fastqs = {self.sam: self.inputs[self.sam]}
 
     for sam_group, techs_inputs in fastqs.items():
         if 'illumina' not in techs_inputs:
             sys.exit('[unicycler] Illumina reads are required (skipped)')
 
-        long_techs = [t for t in ['pacbio', 'nanopore'] if techs_inputs.get(t)]
-        if not long_techs and self.soft.params['hybrid']:
-            print('[unicycler] No long reads/hybrid assembly w/ %s' % sam_group)
-
-        techs_pairs = [['illumina']]
+        techs = ['illumina']
         if self.soft.params['hybrid']:
-            techs_pairs += [['illumina', tech] for tech in long_techs]
+            if not techs_inputs.get(self.soft.params['hybrid']):
+                print('[unicycler] No long reads/hybrid assembly:', sam_group)
+            techs += [self.soft.params['hybrid']]
 
-        for techs in techs_pairs:
-            hybrid = '_'.join(techs)
-            key = '%s_%s' % (hybrid, sam_group)
-            print(sam_group)
-            if len(techs) > 1:
-                hybrid = 'hybrid__%s' % hybrid
+        hybrid = '_'.join(techs)
+        tech_group = '%s_%s' % (hybrid, sam_group)
+        if len(techs) > 1:
+            hybrid = 'hybrid__%s' % hybrid
 
-            tmp = '$TMPDIR/%s_%s_%s' % (self.soft.name, self.pool, key)
-            out = '%s/%s/%s/%s' % (self.dir, hybrid, self.pool, sam_group)
-            gfa = '%s/assembly.gfa' % out
-            fasta = '%s/assembly.fasta' % out
-            log = '%s/unicycler.log' % out
-            if self.pool in self.pools:
-                self.outputs['outs'][sam_group] = [gfa, fasta, log]
-            else:
-                self.outputs['outs'] = [gfa, fasta, log]
-            if self.config.force or to_do(fasta):
-                cmd, inputs = unicycler_cmd(self, techs_inputs, tmp, out, techs)
-                self.outputs['cmds'].setdefault(key, []).append(cmd)
-                if self.pool in self.pools:
-                    io_update(self, i_f=inputs, i_d=tmp, o_d=out, key=key)
-                else:
-                    io_update(self, i_f=inputs, i_d=tmp, o_d=out, key=key)
+        out = '%s/%s/%s/%s' % (self.dir, hybrid, self.pool, sam_group)
+
+        gfa = '%s/assembly.gfa' % out
+        fasta = '%s/assembly.fasta' % out
+        log = '%s/unicycler.log' % out
+        self.outputs['outs'][(hybrid, sam_group)] = [gfa, fasta, log]
+        if self.config.force or to_do(fasta):
+            cmd, inputs = unicycler_cmd(
+                self, techs_inputs, tech_group, out, techs)
+            self.outputs['cmds'].setdefault(tech_group, []).append(cmd)
+            io_update(self, i_f=inputs, o_d=out, key=tech_group)
 
 
 def miniasm_cmd(self):
@@ -972,7 +974,7 @@ def necat(self) -> None:
         .dir : str
             Path to pipeline output folder for NECAT
         .pool : str
-            Pool name.
+            Pool name
         .inputs : dict
             Input files
         .outputs : dict
@@ -988,17 +990,17 @@ def necat(self) -> None:
         out = '%s/%s/%s' % (self.dir, self.pool, group)
 
         # get some of the expected outputs files
-        cns_final = '%s/1-consensus/cns_final.fasta' % out
+        final = '%s/1-consensus/cns_final.fasta' % out
         contigs = '%s/4-fsa/contigs.fasta' % out
         bridged = '%s/6-bridge_contigs/bridged_contigs.fasta' % out
-        polished = ''
+        polish = ''
         if self.soft.params['polish_contigs']:
-            polished = '%s/6-bridge_contigs/polished_contigs.fasta' % out
+            polish = '%s/6-bridge_contigs/polished_contigs.fasta' % out
 
         # [machinery] Collect the folder(s) to be created
         self.outputs['dirs'].append(out)
         # [machinery] Collect the outputs files in a standard / step-wise way
-        self.outputs['outs'][group] = [cns_final, contigs, bridged, polished]
+        self.outputs['outs'][(tech, group)] = [final, contigs, bridged, polish]
 
         # if user in command line want to force re-creation of tool's command
         # or if the file "contigs" is to do (i.e. not yet written by the tool)
