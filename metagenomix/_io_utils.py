@@ -42,7 +42,9 @@ def read_yaml(
     return yaml_dict
 
 
-def get_fastq_files(fastqs):
+def get_fastq_files(
+        fastqs: list
+) -> list:
     fastq_gz = [fastq for fastq in fastqs if '.gz' in fastq]
     if len(fastq_gz):
         return fastq_gz
@@ -50,14 +52,19 @@ def get_fastq_files(fastqs):
         return fastqs
 
 
-def get_fastq_paths(fastq_dirs) -> list:
+def get_fastq_paths(
+        fastq_dirs: list
+) -> list:
     fastqs = []
     for fastq_dir in fastq_dirs:
         fastqs.extend(glob.glob(fastq_dir + '/*.fastq*'))
     return fastqs
 
 
-def mkdr(path: str, is_file: bool = False) -> None:
+def mkdr(
+        path: str,
+        is_file: bool = False
+) -> None:
     """Creates a folder is does not exist yet.
 
     Parameters
@@ -73,7 +80,9 @@ def mkdr(path: str, is_file: bool = False) -> None:
         os.makedirs(path, exist_ok=True)
 
 
-def get_pfam_wget_cmd(pfam_dir: str) -> str:
+def get_pfam_wget_cmd(
+        pfam_dir: str
+) -> str:
     """Get the validation (even through downloading) that the HMM file is there.
 
     Parameters
@@ -96,7 +105,9 @@ def get_pfam_wget_cmd(pfam_dir: str) -> str:
     return cmd
 
 
-def get_hmm_dat(pfam_dir: str) -> pd.DataFrame:
+def get_hmm_dat(
+        pfam_dir: str
+) -> pd.DataFrame:
     """Get as table the contents of
     http://ftp.ebi.ac.uk/pub/databases/Pfam/releases/Pfam35.0/Pfam-A.hmm.dat.gz
 
@@ -129,8 +140,12 @@ def get_hmm_dat(pfam_dir: str) -> pd.DataFrame:
     return pfam_pd
 
 
-def get_hmms_dias_cmd(hmm: str, term_pd: pd.DataFrame,
-                      term: str, odir: str) -> tuple:
+def get_hmms_dias_cmd(
+        hmm: str,
+        term_pd: pd.DataFrame,
+        term: str,
+        odir: str
+) -> tuple:
     """Collect the hmm profiles and diamond database for different term targets.
 
     Parameters
@@ -173,7 +188,9 @@ def get_hmms_dias_cmd(hmm: str, term_pd: pd.DataFrame,
     return hmms_dias, cmd
 
 
-def reads_lines(file_fp: str) -> list:
+def reads_lines(
+        file_fp: str
+) -> list:
     """Check if file exists or is empty.
 
     Parameters
@@ -193,7 +210,9 @@ def reads_lines(file_fp: str) -> list:
     return file_lines
 
 
-def min_nlines(input_fp: str) -> bool:
+def min_nlines(
+        input_fp: str
+) -> bool:
     """Check whether the number of lines in the file is above one.
 
     Parameters
@@ -215,41 +234,12 @@ def min_nlines(input_fp: str) -> bool:
     return ret
 
 
-def get_out_dir_(out_dir: str, inputs: dict, sam_pool: str,
-                 group: str = None) -> tuple:
-    """Get the output directory for either the
-
-    Parameters
-    ----------
-    out_dir : str
-    inputs : dict
-    sam_pool : str
-        Name of the current sample or pool.
-    group : str
-
-    Returns
-    -------
-    out_dir : str
-    file_path : str
-    """
-    inputs = inputs[sam_pool]
-    if group:
-        inputs = inputs[group]
-    if out_dir.endswith('after_plass'):
-        file_path = inputs.replace('nuclassembly', 'assembly')
-    elif out_dir.endswith('after_prodigal'):
-        file_path = inputs[1]
-        if 'after_spades' in file_path:
-            out_dir = out_dir.replace('after_', 'after_spades_')
-        elif 'after_plass' in file_path:
-            out_dir = out_dir.replace('after_', 'after_plass_')
-    else:
-        file_path = inputs[1]
-    out_dir = '%s/%s' % (out_dir, sam_pool)
-    return out_dir, file_path
-
-
-def get_out_dir(self, sam_pool, group: str = None) -> tuple:
+def get_out_dir(
+        self,
+        sam_pool: str,
+        tech: str,
+        group: str = ''
+) -> tuple:
     """Get the output directory for either the
 
     Parameters
@@ -261,34 +251,43 @@ def get_out_dir(self, sam_pool, group: str = None) -> tuple:
             Input files
     sam_pool : str
         Name of the current sample or pool.
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
     group : str
+        Group for the current co-assembly
 
     Returns
     -------
     out_dir : str
     file_path : str
     """
-    out_dir = self.dir
     inputs = self.inputs[sam_pool]
-    if group:
-        inputs = inputs[group]
+    if (tech, group) in inputs:
+        inputs = inputs[(tech, group)]
+    elif group in inputs:
+        inputs = inputs[tech]
+
+    out_dir = self.dir
     if self.dir.endswith('after_plass'):
         file_path = inputs.replace('nuclassembly', 'assembly')
     elif self.dir.endswith('after_prodigal'):
-        file_path = inputs[1]
+        file_path = inputs[0]
         if 'after_spades' in file_path:
             out_dir = out_dir.replace('after_', 'after_spades_')
         elif 'after_plass' in file_path:
             out_dir = out_dir.replace('after_', 'after_plass_')
     else:
-        file_path = inputs[1]
-    out_dir = '%s/%s' % (out_dir, sam_pool)
+        file_path = inputs[0]
+
+    out_dir = '%s/%s/%s' % (out_dir, tech, sam_pool)
+    if group:
+        out_dir += '/%s' % group
     return out_dir, file_path
 
 
-def write_hmms(self) -> str:
+def write_hmms(self) -> tuple:
     """Write a file to contain on each line, the paths to the .hmm
-    files to search as part of integron_finder.
+    files to search as part of integronfinder.
 
     Parameters
     ----------
@@ -300,22 +299,35 @@ def write_hmms(self) -> str:
 
     Returns
     -------
+    cmd = str
+        Command to write the HMMs file
     hmms_fp : str
         Path to the file containing the paths to the .hmm files to search.
     """
+    cmd = ''
     hmms_fp = ''
     if self.databases.hmms_dias:
-        mkdr(self.dir)
         hmms_fp = '%s/hmm.txt' % self.dir
-        o = open(hmms_fp, 'w')
+        first = True
         for target, gene_hmms in self.databases.hmms_dias.items():
             for gene, (hmm, _) in gene_hmms.items():
-                o.write('%s\n' % hmm)
-        o.close()
-    return hmms_fp
+                if first:
+                    cmd += 'echo -e "%s" > %s\n' % (hmm, hmms_fp)
+                    first = False
+                else:
+                    cmd += 'echo -e "%s" >> %s\n' % (hmm, hmms_fp)
+    return cmd, hmms_fp
 
 
-def files_to_show_list(self, s, tech, t, ins, seps, fs):
+def files_to_show_list(
+        self,
+        s,
+        tech,
+        t,
+        ins,
+        seps,
+        fs
+) -> None:
     seps.append('│%s' % (' ' * len(t)))
     files = []
     for i in ins:
@@ -328,12 +340,25 @@ def files_to_show_list(self, s, tech, t, ins, seps, fs):
     fs.extend(files)
 
 
-def files_to_show_dict(t, ins, seps, fs):
+def files_to_show_dict(
+        t,
+        ins,
+        seps,
+        fs
+) -> None:
     seps.append('│%s' % (' ' * len(t)))
     fs.extend(['%s (%s)' % (y, x) for x, y in ins.items()])
 
 
-def fill_seps_and_fs(self, inputs, sam, tech, t, seps, fs):
+def fill_seps_and_fs(
+        self,
+        inputs,
+        sam,
+        tech,
+        t,
+        seps,
+        fs
+) -> None:
     ins = inputs[sam][t]
     if isinstance(ins, list) and len(ins):
         files_to_show_list(self, sam, tech, t, ins, seps, fs)
@@ -344,11 +369,20 @@ def fill_seps_and_fs(self, inputs, sam, tech, t, seps, fs):
         no_file_to_show(t, seps)
 
 
-def no_file_to_show(t, seps):
+def no_file_to_show(
+        t,
+        seps
+) -> None:
     seps.append('X%s' % (' ' * len(t)))
 
 
-def files_to_show(self, inputs, techs, sam, tech):
+def files_to_show(
+        self,
+        inputs,
+        techs,
+        sam,
+        tech
+) -> tuple:
     seps, fs = [], []
     techs = techs[:1 + techs.index(tech)]
     for t in techs:
@@ -363,24 +397,34 @@ def files_to_show(self, inputs, techs, sam, tech):
 def get_inputs_to_show(self) -> tuple:
     sams = []
     inputs = {}
-    techs = self.config.techs
+    techs = set()
     if set(self.inputs).issubset(set(self.pools)):
         col = 'pool (group)'
         for pool, group_inputs in self.inputs.items():
             for group, files in group_inputs.items():
-                if set(files).issubset(techs):
+                if set(files).issubset(self.config.techs):
                     pool_group = '%s (%s)' % (pool, group)
                     sams.append(pool_group)
                     inputs[pool_group] = files
+                    techs.update(self.config.techs)
+                elif isinstance(group, tuple):
+                    pool_group = '%s (%s)' % (pool, group[1])
+                    sams.append(pool_group)
+                    if pool_group not in inputs:
+                        inputs[pool_group] = {}
+                    inputs[pool_group][group[0]] = files
+                    techs.add(group[0])
         if not inputs:
             col = 'co-assembly'
-            techs = [y for x in self.inputs.values() for y in x]
+            techs.update([y for x in self.inputs.values() for y in x])
             sams = sorted(self.inputs)
             inputs = dict(self.inputs)
     else:
         col = 'sample'
         sams = sorted(self.inputs.keys())
         inputs = dict(self.inputs)
+        techs.update(self.config.techs)
+    techs = sorted(techs)
     return inputs, techs, sams, col
 
 
@@ -392,6 +436,8 @@ def show_inputs(self):
             ('-' * 30), self.soft.name, self.soft.prev, ('-' * 30)))
         print('%s%s %s' % (c, ' ' * (mlen-len(c)), ' '.join(techs)))
         for sam in sams:
+            if sam not in inputs:
+                continue
             show_sam = True
             s = '%s%s' % (sam, ' ' * (mlen-len(sam)))
             for tdx, tech in enumerate(techs[::-1]):
@@ -456,7 +502,13 @@ def outputs_back(io) -> list:
     return sorted(outbound)
 
 
-def get_scratch_cmds(self, key, soft, cur_cmds, cmds):
+def get_scratch_cmds(
+        self,
+        key,
+        soft,
+        cur_cmds,
+        cmds
+) -> dict:
     if key in soft.io:
         roundtrip = get_roundtrip(soft.io[key])
         scratch_cmds = ['\n# Move to SCRATCH_FOLDER'] + roundtrip['to']
@@ -468,7 +520,14 @@ def get_scratch_cmds(self, key, soft, cur_cmds, cmds):
         cmds[key] = cur_cmds
 
 
-def per_group_scratch(self, pool, soft, sam_cmds, cmds, commands):
+def per_group_scratch(
+        self,
+        pool,
+        soft,
+        sam_cmds,
+        cmds,
+        commands
+) -> None:
     if pool in sam_cmds:
         get_scratch_cmds(self, pool, soft, sam_cmds, cmds)
     else:
@@ -477,7 +536,11 @@ def per_group_scratch(self, pool, soft, sam_cmds, cmds, commands):
             get_scratch_cmds(self, (pool, group), soft, group_cmds, cmds)
 
 
-def scratching(self, soft, commands) -> dict:
+def scratching(
+        self,
+        soft,
+        commands
+) -> dict:
     if soft.params['scratch'] and self.config.jobs:
         cmds = {}
         # Use commands.pools to unpack the commands well
@@ -493,8 +556,14 @@ def scratching(self, soft, commands) -> dict:
         return soft.cmds
 
 
-def io_update(self, i_f=None, i_d=None, o_f=None, o_d=None, key=None):
-
+def io_update(
+        self,
+        i_f=None,
+        i_d=None,
+        o_f=None,
+        o_d=None,
+        key=None
+):
     for (IO_fd, val) in [
         (('I', 'f'), i_f),
         (('I', 'd'), i_d),
@@ -515,7 +584,10 @@ def io_update(self, i_f=None, i_d=None, o_f=None, o_d=None, key=None):
                 self.outputs['io'][IO_fd].add(val)
 
 
-def to_do(file: str = None, folder: str = None) -> bool:
+def to_do(
+        file: str = None,
+        folder: str = None
+) -> bool:
     if file and isfile(file.replace('${SCRATCH_FOLDER}', '')):
         return False
     if folder and isdir(folder.replace('${SCRATCH_FOLDER}', '')):
@@ -567,7 +639,10 @@ def tech_specificity(
     return False
 
 
-def caller(self, namespace):
+def caller(
+        self,
+        namespace
+):
     """Calls as function the part of the software name that follows the first
     underscore.
     For example, software name "search_diamond" would call function`diamond()`.
