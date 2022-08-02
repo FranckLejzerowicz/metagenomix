@@ -259,7 +259,9 @@ def get_out_dir(
     Returns
     -------
     out_dir : str
+        Path to the output folder
     file_path : str
+        Path to the output file
     """
     inputs = self.inputs[sam_pool]
     if (tech, group) in inputs:
@@ -321,47 +323,49 @@ def write_hmms(self) -> tuple:
 
 def files_to_show_list(
         self,
-        s,
-        tech,
-        t,
-        ins,
-        seps,
-        fs
+        s: str,
+        tech: str,
+        t: str,
+        seps: list,
+        fs: set,
+        ins
 ) -> None:
+    fastq_mv = self.config.fastq_mv
     seps.append('│%s' % (' ' * len(t)))
-    files = []
     for i in ins:
         if '/%s/' % tech in i:
-            files.append(i)
-        elif s in self.config.fastq_mv and i in self.config.fastq_mv[s][tech]:
-            files.append(i)
+            fs.add(i)
+        elif s in fastq_mv and i in fastq_mv[s][(tech, s)]:
+            fs.add(i)
         elif isinstance(i, tuple) and '/%s/' % tech in i[0]:
-            files.append('%s (%s)' % i)
-    fs.extend(files)
+            fs.add('%s (%s)' % i)
 
 
 def files_to_show_dict(
-        t,
-        ins,
-        seps,
-        fs
+        t: str,
+        ins: dict,
+        seps: list,
+        fs: set
 ) -> None:
     seps.append('│%s' % (' ' * len(t)))
-    fs.extend(['%s (%s)' % (y, x) for x, y in ins.items()])
+    fs.update(['%s (%s)' % (y, x) for x, y in ins.items()])
 
 
 def fill_seps_and_fs(
         self,
-        inputs,
-        sam,
-        tech,
-        t,
-        seps,
-        fs
+        inputs: dict,
+        sam: str,
+        tech: str,
+        t: str,
+        seps: list,
+        fs: set
 ) -> None:
-    ins = inputs[sam][t]
+    if (t, sam) in inputs[sam]:
+        ins = inputs[sam][(t, sam)]
+    elif t in inputs[sam]:
+        ins = inputs[sam][t]
     if isinstance(ins, list) and len(ins):
-        files_to_show_list(self, sam, tech, t, ins, seps, fs)
+        files_to_show_list(self, sam, tech, t, seps, fs, ins)
     elif isinstance(ins, dict) and [x for x in ins.values()
                                     if '/%s/' % tech in x]:
         files_to_show_dict(t, ins, seps, fs)
@@ -370,23 +374,25 @@ def fill_seps_and_fs(
 
 
 def no_file_to_show(
-        t,
-        seps
+        t: str,
+        seps: list
 ) -> None:
     seps.append('X%s' % (' ' * len(t)))
 
 
 def files_to_show(
         self,
-        inputs,
-        techs,
-        sam,
-        tech
+        inputs: dict,
+        techs: list,
+        sam: str,
+        tech: str
 ) -> tuple:
-    seps, fs = [], []
+    seps, fs = [], set()
     techs = techs[:1 + techs.index(tech)]
     for t in techs:
-        if t in inputs[sam]:
+        if (t, sam) in inputs[sam]:
+            fill_seps_and_fs(self, inputs, sam, tech, t, seps, fs)
+        elif t in inputs[sam]:
             fill_seps_and_fs(self, inputs, sam, tech, t, seps, fs)
         else:
             no_file_to_show(t, seps)
@@ -599,6 +605,7 @@ def tech_specificity(
         self,
         data,
         tech: str,
+        sam: str,
         specificity: list = []
 ) -> bool:
     """Returns a boolean that is True if the current technology can not be
@@ -623,6 +630,8 @@ def tech_specificity(
             All outputs
     tech : str
         Technology: 'illumina', 'pacbio', or 'nanopore'
+    sam : str
+        Sample name
     data : str
         Path to the input files or other input data structure
     specificity : list
@@ -634,7 +643,7 @@ def tech_specificity(
         Whether the technology is possibly processed using this tool
     """
     if not data or (specificity and tech not in specificity):
-        self.outputs['outs'].setdefault(tech, []).extend(data)
+        self.outputs['outs'].setdefault((tech, sam), []).extend(data)
         return True
     return False
 
