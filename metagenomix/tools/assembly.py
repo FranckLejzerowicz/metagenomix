@@ -6,7 +6,7 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 import sys
-from metagenomix._io_utils import io_update, to_do, tech_specificity
+from metagenomix._io_utils import io_update, to_do
 from metagenomix.parameters import tech_params
 
 
@@ -500,13 +500,16 @@ def plass(self) -> None:
             Configurations
     """
     for (tech, sam), fastqs in self.inputs[self.sam].items():
-        if tech_specificity(self, fastqs, tech, sam, ['illumina']):
+        if tech != 'illumina':
             continue
-        out = '%s/%s' % (self.dir, self.sam)
+        out = '%s/%s/%s' % (self.dir, tech, self.sam)
         self.outputs['dirs'].append(out)
 
-        contigs = '%s/plass_%sassembly.fasta' % (out, self.soft.params['type'])
-        self.outputs['outs'].setdefault(tech, []).append(contigs)
+        if self.soft.params['type'] == 'nuclassemble':
+            contigs = '%s/nucl_contigs.fasta' % out
+        else:
+            contigs = '%s/prot_contigs.fasta' % out
+        self.outputs['outs'][(tech, sam)] = contigs
 
         if self.config.force or to_do(contigs):
             tmp_dir = '$TMPDIR/plass_%s' % self.sam
