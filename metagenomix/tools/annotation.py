@@ -11,7 +11,7 @@ import sys
 
 from os.path import basename, dirname, splitext
 from metagenomix._io_utils import (caller, get_out_dir, write_hmms,
-                                   io_update, to_do)
+                                   io_update, to_do, get_genomes_fastas)
 from metagenomix.parameters import tech_params
 
 
@@ -104,8 +104,9 @@ def prodigal_cmd(
     cmd = 'prodigal'
     cmd += ' -i %s' % contig_fa
     cmd += ' -a %s' % outputs[0]
-    cmd += ' -s %s' % outputs[1]
-    cmd += ' -o %s' % outputs[2]
+    cmd += ' -d %s' % outputs[1]
+    cmd += ' -s %s' % outputs[2]
+    cmd += ' -o %s' % outputs[3]
     for param in ['f', 'p']:
         cmd += ' -%s %s' % (param, params[param])
     for boolean in ['c', 'm', 'n', 'q']:
@@ -134,9 +135,10 @@ def prodigal_outputs(
         Paths to the Prodigal output files
     """
     proteins = '%s/protein.translations.fasta' % out
+    nucleotides = '%s/nucleotide.sequences.fasta' % out
     genes = '%s/potential.starts.fasta' % out
     gbk = '%s/gene.coords.%s' % (out, self.soft.params['f'])
-    outputs = [proteins, genes, gbk]
+    outputs = [proteins, nucleotides, genes, gbk]
     return outputs
 
 
@@ -167,9 +169,7 @@ def get_prodigal(
     """
     self.outputs['dirs'].append(out)
     outputs = prodigal_outputs(self, out)
-
     self.outputs['outs'][(tech, sam_group)] = outputs
-
     tech_sam_group = '_'.join([tech, sam_group])
     if self.config.force or to_do(outputs[0]):
         cmd = prodigal_cmd(self, contig_fp, outputs, tech)
@@ -981,41 +981,6 @@ def ccmap_cmd(
     if params['preserve_tmpdir']:
         cmd += ' --preserve-tmpdir'
     return cmd
-
-
-def get_genomes_fastas(
-        self,
-        tech: str,
-        group: str
-) -> dict:
-    """Get the input fasta files for a step that takes as input
-    either the contigs of an assembly, or the genomes of a binning.
-
-    Parameters
-    ----------
-    self : Commands class instance
-        .prev : str
-            Previous software in the pipeline
-        .pool : str
-            Co-assembly pool name
-        .inputs : dict
-            Input files
-    tech : str
-        Technology: 'illumina', 'pacbio', or 'nanopore'
-    group : str
-        Name of a co-assembly pool's group
-
-    Returns
-    -------
-    fasta_d : dict
-        Path(s) to the fasta files for an assembly or a series of MAGs
-    """
-    fastas_d = {}
-    if self.soft.prev == 'spades':
-        fastas_d = {'': [self.inputs[self.pool][(tech, group)][1]]}
-    elif self.soft.prev == 'drep':
-        fastas_d = self.inputs[self.pool][(tech, group)]
-    return fastas_d
 
 
 def get_generic_on_fasta(
