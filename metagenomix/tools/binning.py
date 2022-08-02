@@ -118,6 +118,36 @@ def quantify_cmd(
     return cmd
 
 
+def get_fastqs(
+        self,
+        group: str,
+) -> dict:
+    """Collect the illumina reads for the samples of the current pool group.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .pool : str
+            Pool name
+        .pools : str
+            All Pools and their samples
+        .status
+            Tool status
+    group : str
+        Current pool group
+
+    Returns
+    -------
+    fastqs : dict
+        Paths to fastqs files per sample
+    """
+    fastqs = {}
+    for sam in self.pools[self.pool][group]:
+        if self.config.fastq_mv[sam].get(('illumina', sam)):
+            fastqs[sam] = self.config.fastq_mv[sam][('illumina', sam)]
+    return fastqs
+
+
 def quantify(self):
     """Quantify the bins obtained using metaWRAP.
 
@@ -127,7 +157,7 @@ def quantify(self):
         .dir : str
             Path to pipeline output folder for metaWRAP
         .pool : str
-            Pool name.
+            Pool name
         .inputs : dict
             Input files
         .outputs : dict
@@ -146,9 +176,7 @@ def quantify(self):
         bins = inputs[-1]
         assembler = self.softs['metawrap_binning'].prev
         contigs = self.softs[assembler].outputs[self.pool][(tech, group)][1]
-        fastqs = {
-            sam: self.config.fastq_mv[sam]['illumina'] for sam in self.pools[
-            self.pool][group] if self.config.fastq_mv[sam].get('illumina', [])}
+        fastqs = get_fastqs(self, group)
         if not fastqs:
             print('[metawrap_blobology] No illumina reads for group %s' % group)
             continue
@@ -482,10 +510,7 @@ def blobology(self):
 
         assembler = self.softs['metawrap_binning'].prev
         contigs = self.softs[assembler].outputs[self.pool][(tech, group)][1]
-
-        fastqs = {
-            sam: self.config.fastq_mv[sam]['illumina'] for sam in self.pools[
-            self.pool][group] if self.config.fastq_mv[sam].get('illumina', [])}
+        fastqs = get_fastqs(self, group)
         if not fastqs:
             print('[metawrap_blobology] No illumina reads for group %s' % group)
             continue
@@ -509,7 +534,7 @@ def blobology(self):
 
 def reassembly_bins_cmd(
         self,
-        sam: str,
+        fastq: list,
         out: str,
         bins: str
 ) -> str:
@@ -520,8 +545,8 @@ def reassembly_bins_cmd(
     self : Commands class instance
         .soft.params
             Parameters
-    sam : str
-        Sample name
+    fastq : list
+        Paths to the input fastq files
     out : str
         Path to the metaWRAP bin reassembly output folder
     bins : str
@@ -532,7 +557,7 @@ def reassembly_bins_cmd(
     cmd : str
         metaWRAP bin reassembly command
     """
-    fqs, fqs_cmd = get_fqs(self.config.fastq[sam])
+    fqs, fqs_cmd = get_fqs(fastq)
     cmd = 'metawrap reassemble_bins'
     cmd += ' -o %s' % out
     for idx, fq in enumerate(fqs):
@@ -553,10 +578,10 @@ def reassembly_bins_cmd(
 
 def reassembly_cmd(
         self,
+        fastq: list,
         bins: str,
         tech: str,
         group: str,
-        sam: str,
         out: str
 ) -> str:
     """Collect metaWRAP bin reassembly command
@@ -572,14 +597,14 @@ def reassembly_cmd(
             Configurations
         .status
             Tool status
+    fastq : list
+        Paths to the input fastq files
     bins : str
         Path to the input bins folder
     tech : str
         Technology: 'illumina', 'pacbio', or 'nanopore'
     group : str
         Group for the current co-assembly and
-    sam : str
-        Sample name
     out : str
         Path to the metaWRAP bin reassembly output folder
 
@@ -600,7 +625,7 @@ def reassembly_cmd(
         cmd += 'mkdir %s\n' % mode_dir
         cmd += 'mv %s/reassembled_bins/*%s.fa %s/.\n' % (out, mode, mode_dir)
     if cmd:
-        cmd = reassembly_bins_cmd(self, sam, out, bins) + cmd
+        cmd = reassembly_bins_cmd(self, fastq, out, bins) + cmd
     return cmd
 
 
@@ -632,17 +657,16 @@ def reassemble(self):
         if to_do(folder=bins):
             self.soft.status.add('Run %s (%s)' % (self.soft.prev, tech_group))
 
-        for sam in self.pools[self.pool][group]:
-
-            fastqs = self.config.fastq_mv[sam].get('illumina', [])
-            if not fastqs:
+        fastqs = get_fastqs(self, group)
+        for sam, fastq in fastqs.items():
+            if not fastq:
                 print('[metawrap_reassemble] No illumina reads for %s' % sam)
                 continue
 
             out = '%s/%s/%s/%s' % (self.dir, self.pool, group, sam)
             self.outputs['dirs'].append(out)
 
-            cmd = reassembly_cmd(self, bins, tech, group, sam, out)
+            cmd = reassembly_cmd(self, fastq, bins, tech, group, out)
             if cmd:
                 self.outputs['cmds'].setdefault(tech_group, []).append(cmd)
                 io_update(self, i_f=self.config.fastq[sam], i_d=bins,
@@ -832,7 +856,7 @@ def binning(self):
         tech_group = '_'.join([tech, group])
 
         fastqs = [fastq for sam in self.pools[self.pool][group] for fastq
-                  in self.config.fastq_mv[sam].get('illumina', [])]
+                  in self.config.fastq_mv[sam].get(('illumina', sam), [])]
         if not fastqs:
             print('[metawrap_binning] No illumina reads for group %s' % group)
             continue
