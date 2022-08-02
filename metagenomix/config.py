@@ -123,8 +123,8 @@ class AnalysesConfig(object):
 
     def init_fastq(self, sam):
         if sam not in self.fastq:
-            self.fastq[sam] = dict((x, []) for x in self.techs)
-            self.fastq_mv[sam] = dict((x, []) for x in self.techs)
+            self.fastq[sam] = dict(((tech, sam), []) for tech in self.techs)
+            self.fastq_mv[sam] = dict(((tech, sam), []) for tech in self.techs)
 
     def fill_fastq(self, fastq_paths: list):
         """Populate a `fastq` dict with for each sample (keys) the list of
@@ -165,8 +165,9 @@ class AnalysesConfig(object):
         for sam, fastqs in self.fill_fastq(self.techs_fastqs[tech]).items():
             self.init_fastq(sam)
             fqs = get_fastq_files(fastqs)
-            self.fastq[sam][tech] = fqs
-            self.fastq_mv[sam][tech] = ['${SCRATCH_FOLDER}%s' % x for x in fqs]
+            key = (tech, sam)
+            self.fastq[sam][key] = fqs
+            self.fastq_mv[sam][key] = ['${SCRATCH_FOLDER}%s' % x for x in fqs]
 
     def get_techs(self):
         for tech_dir in [x for x in self.__dict__.keys() if x.endswith('dirs')]:
@@ -193,7 +194,7 @@ class AnalysesConfig(object):
             for sam in self.fastq:
                 print('%s%s' % (sam, ' '*(max_sam_len - len(sam))), end='')
                 for tech in self.techs:
-                    n = len(self.fastq[sam][tech])
+                    n = len(self.fastq[sam][(tech, sam)])
                     print(' %s%s' % (n, ' '*(len(tech) - len(str(n)))), end='')
                 print()
 
@@ -202,7 +203,7 @@ class AnalysesConfig(object):
         for sam in self.fastq:
             if 'illumina' not in self.fastq[sam]:
                 continue
-            r1_r2 = self.fastq[sam]['illumina']
+            r1_r2 = self.fastq[sam][('illumina', sam)]
             self.r[sam] = []
             if len(r1_r2) == 2:
                 r1, r2 = r1_r2
