@@ -42,7 +42,7 @@ def get_simka_input(
     out = '%s/%s/samples_files.txt' % (self.dir, tech)
     cmd = ''
     for sdx, sam in enumerate(self.inputs):
-        fs = self.inputs[sam][tech]
+        fs = self.inputs[sam][(tech, sam)]
         if not fs:
             continue
         if sdx:
