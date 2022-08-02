@@ -12,7 +12,7 @@ from metagenomix._io_utils import io_update, to_do
 
 
 def metaphlan(self) -> None:
-    """
+    """Run MetaPhlAn.
 
     Parameters
     ----------
@@ -73,7 +73,11 @@ def get_read_count(self) -> str:
     return reads
 
 
-def analyses(self, bowtie2out: str, reads: str) -> None:
+def analyses(
+        self,
+        bowtie2out: str,
+        reads: str
+) -> None:
     """Get the taxonomic analyses Metaphlan command.
 
     Parameters
@@ -131,7 +135,11 @@ def analyses(self, bowtie2out: str, reads: str) -> None:
                     io_update(self, o_f=ab_out)
 
 
-def profiling(self, bowtie2out: str, tmpdir: str) -> tuple:
+def profiling(
+        self,
+        bowtie2out: str,
+        tmpdir: str
+) -> tuple:
     """Get the taxonomic profiling metaphlan command.
 
     Parameters
@@ -248,7 +256,14 @@ def get_profile(self) -> list:
     return profiles_dbs_outs
 
 
-def get_cmd(self, profile: str, db: str, out: str, base: str, ali: str):
+def get_cmd(
+        self,
+        profile: str,
+        db: str,
+        out: str,
+        base: str,
+        ali: str
+) -> str:
     """Get the humann command line.
 
     Parameters
@@ -304,7 +319,10 @@ def get_cmd(self, profile: str, db: str, out: str, base: str, ali: str):
     return cmd
 
 
-def renorm(input_fp: str, relab_fp: str) -> str:
+def renorm(
+        input_fp: str,
+        relab_fp: str
+) -> str:
     """Normalize the reads counts into proportions.
 
     Parameters
@@ -326,7 +344,10 @@ def renorm(input_fp: str, relab_fp: str) -> str:
     return cmd
 
 
-def get_ali(self, out: str):
+def get_ali(
+        self,
+        out: str
+) -> str:
     """
 
     Parameters
@@ -352,7 +373,13 @@ def get_ali(self, out: str):
     return ali
 
 
-def get_outputs(self, profile: str, db: str, out: str, ali: str) -> tuple:
+def get_outputs(
+        self,
+        profile: str,
+        db: str,
+        out: str,
+        ali: str
+) -> tuple:
     """Get the profiling output files at genus, pathway and coverage levels.
 
     Parameters
@@ -429,7 +456,24 @@ def humann(self) -> None:
                                      pwy_relab, cov])
 
 
-def get_sample_to_marker(self, sam_dir, markers_dir):
+def get_sample_to_marker(
+        self,
+        sam_dir: str,
+        markers_dir: str
+) -> None:
+    """
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .outputs : dict
+            All outputs
+        .config
+            Configurations
+    sam_dir : str
+    markers_dir : str
+    """
+
     sam_dir_ = sam_dir.replace('${SCRATCH_FOLDER}', '')
     if self.config.force or len(glob.glob('%s/*.sam.bz2' % sam_dir_)):
         cmd = 'sample2markers.py'
@@ -439,7 +483,23 @@ def get_sample_to_marker(self, sam_dir, markers_dir):
         self.outputs['cmds'].append(cmd)
 
 
-def extract_markers(self, st, strain_dir, db_dir):
+def extract_markers(
+        self,
+        st: str,
+        strain_dir: str,
+        db_dir: str
+) -> None:
+    """Extract markers for the current species strains
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .config
+            Configurations
+    st : str
+    strain_dir : str
+    db_dir : str
+    """
     if self.config.force or to_do('%s/%s.fna' % (strain_dir, st)):
         cmd = 'extract_markers.py'
         cmd += ' -c %s' % st
@@ -448,7 +508,7 @@ def extract_markers(self, st, strain_dir, db_dir):
 
 
 def strainphlan(self) -> None:
-    """Create command lines for strainphlan.
+    """Create command lines for StrainPhlAn.
 
     Parameters
     ----------
