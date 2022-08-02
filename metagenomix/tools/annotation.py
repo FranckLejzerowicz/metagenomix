@@ -116,7 +116,7 @@ def prodigal_cmd(
 
 def prodigal_outputs(
         self,
-        out_dir: str
+        out: str
 ) -> list:
     """Get the output files of Prodigal.
 
@@ -125,7 +125,7 @@ def prodigal_outputs(
     self : Commands class instance
         .soft.params : dict
             Parameters
-    out_dir : str
+    out : str
         Path to the output folder
 
     Returns
@@ -133,9 +133,9 @@ def prodigal_outputs(
     outputs : list
         Paths to the Prodigal output files
     """
-    proteins = '%s/protein.translations.fasta' % out_dir
-    genes = '%s/potential.starts.fasta' % out_dir
-    gbk = '%s/gene.coords.%s' % (out_dir, self.soft.params['f'])
+    proteins = '%s/protein.translations.fasta' % out
+    genes = '%s/potential.starts.fasta' % out
+    gbk = '%s/gene.coords.%s' % (out, self.soft.params['f'])
     outputs = [proteins, genes, gbk]
     return outputs
 
@@ -143,9 +143,9 @@ def prodigal_outputs(
 def get_prodigal(
         self,
         contig_fp: str,
-        out_dir: str,
+        out: str,
         tech: str,
-        group: str = '',
+        sam_group: str,
 ):
     """Get the prodigal command and fill the pipeline data structures.
 
@@ -158,23 +158,23 @@ def get_prodigal(
             Configurations
     contig_fp : str
         Path to the input contigs file
-    out_dir : str
+    out : str
         Path to the output folder
     tech : str
         Technology: 'illumina', 'pacbio', or 'nanopore'
-    group : str
-        Group for the current co-assembly
+    sam_group : str
+        Sample name or group for the current co-assembly
     """
-    self.outputs['dirs'].append(out_dir)
-    outputs = prodigal_outputs(self, out_dir)
+    self.outputs['dirs'].append(out)
+    outputs = prodigal_outputs(self, out)
 
-    self.outputs['outs'][(tech, group)] = outputs
+    self.outputs['outs'][(tech, sam_group)] = outputs
 
-    tech_group = '_'.join([tech, group])
+    tech_sam_group = '_'.join([tech, sam_group])
     if self.config.force or to_do(outputs[0]):
         cmd = prodigal_cmd(self, contig_fp, outputs, tech)
-        self.outputs['cmds'].setdefault(tech_group, []).append(cmd)
-        io_update(self, i_f=contig_fp, o_f=outputs, o_d=out_dir, key=tech_group)
+        self.outputs['cmds'].setdefault(tech_sam_group, []).append(cmd)
+        io_update(self, i_f=contig_fp, o_f=outputs, o_d=out, key=tech_sam_group)
 
 
 def prodigal(self) -> None:
@@ -196,13 +196,13 @@ def prodigal(self) -> None:
     """
     if self.pool in self.pools:
         for (tech, group), inputs in self.inputs[self.pool].items():
-            out_dir = '%s/%s/%s/%s' % (self.dir, tech, self.pool, group)
-            get_prodigal(self, inputs[1], out_dir, tech, group)
+            out = '%s/%s/%s/%s' % (self.dir, tech, self.pool, group)
+            get_prodigal(self, inputs[1], out, tech, group)
     else:
         tech_contigs = get_input(self)
         for tech, contigs in tech_contigs.items():
-            out_dir = '%s/%s/%s' % (self.dir, tech, self.sam)
-            get_prodigal(self, contigs, out_dir, tech)
+            out = '%s/%s/%s' % (self.dir, tech, self.sam)
+            get_prodigal(self, contigs, out, tech, self.sam)
 
 
 def macsyfinder_cmd(
@@ -277,7 +277,7 @@ def get_macsyfinder(
         fp: str,
         out_dir: str,
         tech: str,
-        group: str = '',
+        sam_group: str,
 ) -> None:
     """Get the MacSyFinder command and fill the pipeline data structures.
 
@@ -294,17 +294,17 @@ def get_macsyfinder(
         Path to the output folder
     tech : str
         Technology: 'illumina', 'pacbio', or 'nanopore'
-    group : str
-        Group for the current co-assembly
+    sam_group : str
+        Sample name or group for the current co-assembly
     """
     self.outputs['dirs'].append(out_dir)
     models = self.databases.paths['macsyfinder']
     cmd, outs = macsyfinder_cmd(self, fp, out_dir, models, tech)
-    self.outputs['outs'][(tech, group)] = outs
+    self.outputs['outs'][(tech, sam_group)] = outs
     if cmd:
-        tech_group = '_'.join([tech, group])
-        self.outputs['cmds'].setdefault(tech_group, []).append(cmd)
-        io_update(self, i_f=fp, i_d=models, o_d=out_dir, key=tech_group)
+        tech_sam_group = '_'.join([tech, sam_group])
+        self.outputs['cmds'].setdefault(tech_sam_group, []).append(cmd)
+        io_update(self, i_f=fp, i_d=models, o_d=out_dir, key=tech_sam_group)
 
 
 def macsyfinder(self) -> None:
@@ -334,7 +334,7 @@ def macsyfinder(self) -> None:
         tech_proteins = get_input(self)
         for tech, _ in tech_proteins.items():
             out_dir, fp = get_out_dir(self, self.sam, tech)
-            get_macsyfinder(self, fp, out_dir, tech)
+            get_macsyfinder(self, fp, out_dir, tech, self.sam)
 
 
 def integronfinder_cmd(
@@ -404,7 +404,7 @@ def get_integronfinder(
         fp: str,
         out_dir: str,
         tech: str,
-        group: str = '',
+        sam_group: str,
 ) -> None:
     """Get the MacSyFinder command and fill the pipeline data structures.
 
@@ -421,17 +421,17 @@ def get_integronfinder(
         Path to the output folder
     tech : str
         Technology: 'illumina', 'pacbio', or 'nanopore'
-    group : str
-        Group for the current co-assembly
+    sam_group : str
+        Sample name or group for the current co-assembly
     """
     self.outputs['dirs'].append(out_dir)
-    self.outputs['outs'].setdefault(self.pool, []).append(out_dir)
+    self.outputs['outs'].setdefault((tech, self.pool), []).append(out_dir)
     out = '%s/Results_Integron_Finder_mysequences/mysequences.summary' % out_dir
     if self.config.force or to_do(out):
-        tech_group = '_'.join([tech, group])
-        cmd = integronfinder_cmd(self, fp, out_dir, tech, group)
-        self.outputs['cmds'].setdefault(tech_group, []).append(cmd)
-        io_update(self, i_f=fp, o_d=out_dir, key=tech_group)
+        tech_sam_group = '_'.join([tech, sam_group])
+        cmd = integronfinder_cmd(self, fp, out_dir, tech, sam_group)
+        self.outputs['cmds'].setdefault(tech_sam_group, []).append(cmd)
+        io_update(self, i_f=fp, o_d=out_dir, key=tech_sam_group)
 
 
 def integronfinder(self) -> None:
@@ -461,7 +461,7 @@ def integronfinder(self) -> None:
         tech_proteins = get_input(self)
         for tech, _ in tech_proteins.items():
             out_dir, fp = get_out_dir(self, self.sam, tech)
-            get_integronfinder(self, fp, out_dir, tech)
+            get_integronfinder(self, fp, out_dir, tech, self.sam)
 
 
 # def custom_cmd(
@@ -518,7 +518,7 @@ def search_cmd(
         out_dir: str,
         fp: str,
         tech: str,
-        group: str
+        sam_group: str
 ) -> list:
     """Dispatch the command line creation for hmmer or diamond and
     for the different reference databases.
@@ -540,8 +540,8 @@ def search_cmd(
         Path to the input fasta file
     tech : str
         Technology: 'illumina', 'pacbio', or 'nanopore'
-    group : str
-        Group for the current co-assembly
+    sam_group : str
+        Sample name or group for the current co-assembly
 
     Returns
     -------
@@ -550,7 +550,7 @@ def search_cmd(
     """
     outs = []
     params = tech_params(self, tech)
-    tmp_dir = '$TMPDIR/%s_%s_%s_%s' % (self.soft.name, self.sam, tech, group)
+    tmp = '$TMPDIR/%s_%s_%s_%s' % (self.soft.name, self.sam, tech, sam_group)
     module_call = caller(self, __name__)
     for db, db_paths in params['databases'].items():
         for db_path in db_paths:
@@ -560,10 +560,10 @@ def search_cmd(
             out = '%s/%s.tsv' % (db_out_dir, db_base)
             outs.append(db_out_dir)
             if self.config.force or to_do(out):
-                tech_group = '_'.join([tech, group])
-                cmd = module_call(params, fp, db_path, out, tmp_dir)
-                io_update(self, i_f=fp, o_d=db_out_dir, key=tech_group)
-                self.outputs['cmds'].setdefault(tech_group, []).append(cmd)
+                tech_sam_group = '_'.join([tech, sam_group])
+                cmd = module_call(params, fp, db_path, out, tmp)
+                io_update(self, i_f=fp, o_d=db_out_dir, key=tech_sam_group)
+                self.outputs['cmds'].setdefault(tech_sam_group, []).append(cmd)
     return outs
 
 
@@ -666,7 +666,7 @@ def get_search(
         fp: str,
         out_dir: str,
         tech: str,
-        group: str = ''
+        sam_group: str
 ) -> None:
     """Get the DIAMOND or HMMER search command
     and fill the pipeline data structures.
@@ -684,12 +684,12 @@ def get_search(
         Path to the input fasta file
     tech : str
         Technology: 'illumina', 'pacbio', or 'nanopore'
-    group : str
-        Group for the current co-assembly
+    sam_group : str
+        Sample name or group for the current co-assembly
     """
-    outs = search_cmd(self, out_dir, fp, tech, group)
+    outs = search_cmd(self, out_dir, fp, tech, sam_group)
     if outs:
-        self.outputs['outs'].setdefault((tech, group), []).extend(outs)
+        self.outputs['outs'].setdefault((tech, sam_group), []).extend(outs)
 
 
 def search(self) -> None:
@@ -724,7 +724,7 @@ def search(self) -> None:
         tech_proteins = get_input(self)
         for tech, _ in tech_proteins.items():
             out_dir, fp = get_out_dir(self, self.sam, tech)
-            get_search(self, fp, out_dir, tech)
+            get_search(self, fp, out_dir, tech, self.sam)
 
 
 def prokka_cmd(
@@ -1022,7 +1022,7 @@ def get_generic_on_fasta(
         self,
         fasta: str,
         tech: str,
-        group: str = ''
+        sam_group: str
 ) -> None:
     """Get the Barrnap or CCmap command
     and fill the pipeline data structures.
@@ -1046,16 +1046,16 @@ def get_generic_on_fasta(
         Path to the input fasta file
     tech : str
         Technology: 'illumina', 'pacbio', or 'nanopore'
-    group : str
-        Name of a co-assembly pool's group
+    sam_group : str
+        Sample name or name of a co-assembly pool's group
     """
-    out_dir = '%s/%s/%s' % (self.dir, tech, self.sam)
-    if group:
-        out_dir += '/%s' % group
+    out_dir = '%s/%s/%s' % (self.dir, tech, self.pool)
+    if self.pool != sam_group:
+        out_dir += '/%s' % sam_group
     self.outputs['dirs'].append(out_dir)
 
     out = '%s/%s.fas' % (out_dir, splitext(basename(fasta))[0])
-    self.outputs['outs'].setdefault((tech, group), []).append(out)
+    self.outputs['outs'].setdefault((tech, sam_group), []).append(out)
 
     if self.soft.name == 'barrnap':
         condition = not to_do(out)
@@ -1067,9 +1067,9 @@ def get_generic_on_fasta(
     if self.config.force or not condition:
         soft_cmd = '%s_cmd' % self.soft.name
         cmd = globals()[soft_cmd](self, out, fasta, tech)
-        tech_group = '_'.join([tech, group])
-        self.outputs['cmds'].setdefault(tech_group, []).append(cmd)
-        io_update(self, i_f=fasta, o_d=out, key=tech_group)
+        tech_sam_group = '_'.join([tech, sam_group])
+        self.outputs['cmds'].setdefault(tech_sam_group, []).append(cmd)
+        io_update(self, i_f=fasta, o_d=out, key=tech_sam_group)
 
 
 def generic_on_fasta(self) -> None:
@@ -1101,7 +1101,7 @@ def generic_on_fasta(self) -> None:
     else:
         tech_inputs = get_input(self)
         for tech, fasta in tech_inputs.items():
-            get_generic_on_fasta(self, fasta, tech)
+            get_generic_on_fasta(self, fasta, tech, self.sam)
 
 
 def barrnap(self) -> None:
