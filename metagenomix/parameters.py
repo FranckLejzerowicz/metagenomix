@@ -165,8 +165,14 @@ def check_type_sys_exit(tool, param, no_dict, tech=None):
     sys.exit(m)
 
 
-def check_default(self, params, defaults, tool, let_go: list = [],
-                  multi: list = []):
+def check_default(
+        self,
+        params,
+        defaults,
+        tool,
+        let_go: list = [],
+        multi: list = []
+):
     """Verifies that the parameters given by the used for the current tool
     and that are to be checked (i.e., not in the `let_go` list) are valid.
     This mean that they must be one (or sevreral) of the values matching the
@@ -490,7 +496,7 @@ def check_antismash(self, params, soft):
 
 def check_quast(self, params, soft):
     defaults = {
-        'min_contig': 1000,
+        'min_contig': 500,
         'min_alignment': 65,
         'min_identity': 95.0,
         'circos': [False, True],
@@ -498,27 +504,26 @@ def check_quast(self, params, soft):
         'rna_finding': [False, True],
         'conserved_genes_finding': [False, True],
         'space_efficient': [False, True],
-        'ambiguity_usage': ['all', 'none', 'one'],
-        'fast': [True, False],  # activates all below
-        'no_check': [True, False],
-        'no_plots': [True, False],
-        'no_html': [True, False],
-        'no_icarus': [True, False],
-        'no_snps': [True, False],
-        'no_gc': [True, False],
-        'no_sv': [True, False],
-        'no_read_stats': [True, False],
+        'fast': [False, True],  # activates all below
+        'no_check': [False, True],
+        'no_plots': [False, True],
+        'no_html': [False, True],
+        'no_icarus': [False, True],
+        'no_snps': [False, True],
+        'no_gc': [False, True],
+        'no_sv': [False, True],
+        'no_read_stats': [False, True],
+        'ambiguity_usage': ['one', 'none', 'all'],
     }
     ints = ['min_contig', 'min_alignment']
-    floats = ['min_identity']
     check_nums(self, params, defaults, ints, int, soft.name)
-    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
+    floats = ['min_identity']
+    check_nums(self, params, defaults, floats, float, soft.name, 80, 100)
     if 'label' in params:
-        label = params['label']
-        if label not in set(self.config.meta):
+        if params['label'] not in set(self.config.meta):
             sys.exit('[quast] Params "label" must be a valid metadata column')
-    check_default(self, params, defaults, soft.name,
-                  (ints + floats + ['label']))
+    let_go = ints + floats + ['label']
+    check_default(self, params, defaults, soft.name, let_go)
     defaults['label'] = '<an existing metadata column>'
     return defaults
 
@@ -1903,13 +1908,13 @@ def check_plass(self, params, soft):
         params[p] = defaults[p]
     else:
         if 'nucl:' not in params[p] or ',aa:' not in params[p]:
-            sys.exit('[plass] Prams "%s" invalid format (nucl:#,aa:#)' % p)
+            sys.exit('[plass] Params "%s" invalid format (nucl:#,aa:#)' % p)
         vals = params[p].split(',aa:')
         try:
             float(vals[-1])
             float(vals[0].split('nucl:')[-1])
         except ValueError:
-            sys.exit('[plass] Prams "%s" invalid format (nucl:#,aa:#)' % p)
+            sys.exit('[plass] Params "%s" invalid format (nucl:#,aa:#)' % p)
 
     for p in ['forward_frames', 'reverse_frames']:
         if p not in params:
@@ -1974,23 +1979,52 @@ def check_pirate(self, params, soft):
 
 
 # def check_circlator(self, params, soft):
+#     # list here all the parameters and their default values
 #     defaults = {
-#         '': [],
-#         '':,
+#         '<PARAM_1>': 10,
+#         '<PARAM_2>': 0.6,
+#         '<PARAM_3>': [True, False],
+#         '<PARAM_4>': 'something,requiring,manual,check',
+#         ...
 #     }
-#     ints = []
+#
+#     # list the names of the parameters that have unbounded integers as values
+#     ints = [<UNBOUNDED INTEGER-VALUE PARAMETER NAMES (from "defaults" DICT)>]
 #     check_nums(self, params, defaults, ints, int, soft.name)
-#     floats = []
+#
+#     # list the names of the parameters that have unbounded floats as values
+#     floats = [<UNBOUNDED FLOAT-VALUE PARAMETER NAMES (from "defaults" DICT)>]
 #     check_nums(self, params, defaults, floats, float, soft.name)
-#     check_default(self, params, defaults, soft.name, (ints + floats))
-#     defaults[''] = '<>'
+#
+#     # list the names of the parameters that have bounded integers as values
+#     ints2 = [<BOUNDED INTEGER-VALUE PARAMETER NAMES (from "defaults" DICT)>]
+#     # same as above but replace <m> and <M> by min and max integer values
+#     check_nums(self, params, defaults, ints2, int, soft.name, <m>, <M>)
+#
+#     # list the names of the parameters that have bounded floats as values
+#     floats2 = [<BOUNDED FLOAT-VALUE PARAMETER NAMES (from "defaults" DICT)>]
+#     # same as above but replace <m> and <M> by min and max float values
+#     check_nums(self, params, defaults, floats2, float, soft.name, <m>, <M>)
+#
+#     # make manual checks (see examples above - it will depend on the tool...)
+#     manu = [<MANUALLY-CHECKED PARAMETER NAMES (from "defaults" DICT)>]
+#
+#     # make a list with all the above-checked parameters
+#     let_go = ints + floats + ints2 + floats2 + manu
+#
+#     # add the "let_go" list at the end
+#     check_default(self, params, defaults, soft.name, let_go)
+#     # if the parameter value can be a list, get these params and add it too:
+#     # multi = [<PARAMETERS THAT CAN BE A LIST>]
+#     # check_default(self, params, defaults, soft.name, let_go, multi)
+#
+#     # Finally add to "defaults" dict those params that need not to be checked
+#     defaults['<PARAM_NAME>'] = '<SOME USEFUL DESCRIPTION (for --show-params)>'
 #     return defaults
 
 
-# def check_circlator(self, params, soft):
+# def check_ToolName(self, params, soft):
 #     defaults = {
-#         '': [],
-#         '':,
 #     }
 #     ints = []
 #     check_nums(self, params, defaults, ints, int, soft.name)
