@@ -112,9 +112,10 @@ def get_edit_cmd(
     tech : str
         Technology: 'illumina', 'pacbio', or 'nanopore'
     """
-    fastqs_fps = self.inputs[self.sam][tech]
+    fastqs_fps = self.inputs[self.sam][(tech, self.sam)]
     fastq_fp = fastqs_fps[num - 1]
-    line = get_fastq_header(self.config.fastq[self.sam][tech][num - 1])
+    line = get_fastq_header(
+        self.config.fastq[self.sam][(tech, self.sam)][num - 1])
     line_split = line.split()
     if not line_split[0].endswith('/%s' % num):
         if len(line_split) > 1:
@@ -138,7 +139,7 @@ def edit(self) -> None:
     """
     tech = 'illumina'
     for r in [1, 2]:
-        if len(self.config.fastq[self.sam][tech]) < r:
+        if len(self.config.fastq[self.sam][(tech, self.sam)]) < r:
             continue
         get_edit_cmd(self, r, tech)
 
@@ -211,13 +212,13 @@ def count(self) -> None:
             Configurations
     """
     outs = {}
-    for tech, fastxs in self.inputs[self.sam].items():
-        if tech_specificity(self, fastxs, tech):
+    for (tech, sam), fastxs in self.inputs[self.sam].items():
+        if tech_specificity(self, fastxs, tech, sam):
             continue
         out_dir = '%s/%s' % (self.dir, tech)
         self.outputs['dirs'].append(out_dir)
         out = '%s/%s_read_count.tsv' % (out_dir, self.sam)
-        outs[tech] = out
+        outs[(tech, self.sam)] = out
         if self.config.force or to_do(out):
             for idx, fastx in enumerate(fastxs):
                 cmd = count_cmd(self, idx, fastx, out)
@@ -246,13 +247,13 @@ def fastqc(self) -> None:
             Configurations
     """
     outs = {}
-    for tech, fastxs in self.inputs[self.sam].items():
-        if tech_specificity(self, fastxs, tech):
+    for (tech, sam), fastxs in self.inputs[self.sam].items():
+        if tech_specificity(self, fastxs, tech, sam):
             continue
         out_dir = '%s/%s/%s' % (self.dir, tech, self.sam)
         self.outputs['dirs'].append(out_dir)
         out = ['%s_fastqc.html' % x.rsplit('.fastq', 1)[0] for x in fastxs]
-        outs[tech] = out
+        outs[(tech, self.sam)] = out
         if self.config.force or not sum([to_do(x) for x in out]):
             cmd = 'fastqc %s -o %s' % (' '.join(fastxs), out_dir)
             self.outputs['cmds'][tech] = [cmd]
@@ -399,13 +400,13 @@ def fastp(self) -> None:
         .config
             Configurations
     """
-    for tech, fastqs in self.inputs[self.sam].items():
-        if tech_specificity(self, fastqs, tech):
+    for (tech, sam), fastqs in self.inputs[self.sam].items():
+        if tech_specificity(self, fastqs, tech, sam):
             continue
         out_dir = '%s/%s/%s' % (self.dir, tech, self.sam)
         self.outputs['dirs'].append(out_dir)
         cmd, outs = fastp_cmd(self, tech, fastqs, out_dir)
-        self.outputs['outs'].setdefault(tech, []).extend(outs)
+        self.outputs['outs'].setdefault((tech, self.sam), []).extend(outs)
         if self.config.force or sum([to_do(x) for x in outs]):
             self.outputs['cmds'][tech] = [cmd]
             io_update(self, i_f=fastqs, o_d=out_dir, key=tech)
@@ -487,14 +488,14 @@ def cutadapt(self) -> None:
         .config
             Configurations
     """
-    for tech, fastqs in self.inputs[self.sam].items():
-        if tech_specificity(self, fastqs, tech, ['illumina']):
+    for (tech, sam), fastqs in self.inputs[self.sam].items():
+        if tech_specificity(self, fastqs, tech, sam, ['illumina']):
             continue
         out_dir = '%s/%s/%s' % (self.dir, tech, self.sam)
         self.outputs['dirs'].append(out_dir)
 
         cmd, outs = cutadapt_cmd(self, tech, fastqs, out_dir)
-        self.outputs['outs'].setdefault(tech, []).extend(outs)
+        self.outputs['outs'].setdefault((tech, self.sam), []).extend(outs)
 
         if self.config.force or sum([to_do(x) for x in outs]):
             self.outputs['cmds'][tech] = [cmd]
@@ -611,8 +612,8 @@ def atropos(self) -> None:
         .config
             Configurations
     """
-    for tech, fastqs in self.inputs[self.sam].items():
-        if tech_specificity(self, fastqs, tech, ['illumina']):
+    for (tech, sam), fastqs in self.inputs[self.sam].items():
+        if tech_specificity(self, fastqs, tech, sam, ['illumina']):
             continue
         out_dir = '%s/%s/%s' % (self.dir, tech, self.sam)
         self.outputs['dirs'].append(out_dir)
@@ -621,7 +622,7 @@ def atropos(self) -> None:
         if self.config.force or sum([to_do(x) for x in outputs]):
             self.outputs['cmds'][tech] = [cmd]
             io_update(self, i_f=fastqs, o_f=outputs, key=tech)
-        self.outputs['outs'].setdefault(tech, []).extend(outputs)
+        self.outputs['outs'].setdefault((tech, self.sam), []).extend(outputs)
 
 
 def kneaddata_cmd(
@@ -677,12 +678,12 @@ def kneaddata_cmd(
     for typ in ['paired', 'unmatched']:
         for r in ['1', '2']:
             out = '%s/%s_kneaddata_%s_%s.fastq' % (out_dir, rad, typ, r)
-            renamed = out.replace('.R1', '')
-            self.outputs['outs'].setdefault(tech, []).append(renamed)
-            if out == renamed:
+            rename = out.replace('.R1', '')
+            self.outputs['outs'].setdefault((tech, self.sam), []).append(rename)
+            if out == rename:
                 continue
-            outputs.append(renamed)
-            cmd += 'mv %s %s\n' % (out, renamed)
+            outputs.append(rename)
+            cmd += 'mv %s %s\n' % (out, rename)
     if params['purge']:
         cmd += 'rm %s/%s*\n' % (out_dir, rad)
     else:
@@ -710,8 +711,8 @@ def kneaddata(self) -> None:
         .config
             Configurations
     """
-    for tech, fastqs in self.inputs[self.sam].items():
-        if tech_specificity(self, fastqs, tech, ['illumina']):
+    for (tech, sam), fastqs in self.inputs[self.sam].items():
+        if tech_specificity(self, fastqs, tech, sam, ['illumina']):
             continue
         out_dir = '%s/%s/%s' % (self.dir, tech, self.sam)
         self.outputs['dirs'].append(out_dir)
@@ -797,8 +798,8 @@ def filtering(self):
         .config
             Configurations
     """
-    for tech, fastqs_ in self.inputs[self.sam].items():
-        if tech_specificity(self, fastqs_, tech):
+    for (tech, sam), fastqs_ in self.inputs[self.sam].items():
+        if tech_specificity(self, fastqs_, tech, sam):
             continue
         fastqs = fastqs_
         cmds = ''
@@ -824,7 +825,7 @@ def filtering(self):
             for fastq in fastqs:
                 cmds += '\ngzip %s' % fastq
         fastqs_gz = ['%s.gz' % x for x in fastqs]
-        self.outputs['outs'].setdefault(tech, []).extend(fastqs_gz)
+        self.outputs['outs'].setdefault((tech, self.sam), []).extend(fastqs_gz)
         if cmds:
             self.outputs['cmds'][tech] = [cmds]
             io_update(self, i_f=fastqs_, o_f=fastqs_gz, key=tech)
