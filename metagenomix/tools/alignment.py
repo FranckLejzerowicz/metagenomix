@@ -237,15 +237,15 @@ def bowtie2(self) -> None:
         .soft.params
             Parameters for humann
     """
-    for tech, fastxs in self.inputs[self.sam].items():
-        if tech_specificity(self, fastxs, tech):
+    for (tech, sam), fastxs in self.inputs[self.sam].items():
+        if tech_specificity(self, fastxs, tech, sam):
             continue
         out = '%s/%s/%s' % (self.dir, tech, self.sam)
-        self.outputs['outs'][tech] = dict()
+        self.outputs['outs'][(tech, self.sam)] = dict()
         for db, db_path in self.soft.params['databases'].items():
             db_out = '%s/%s/%s' % (out, db, self.soft.params['pairing'])
             cmd, sam = get_bowtie2_cmd(self, tech, fastxs, db_path, db_out)
-            self.outputs['outs'][tech][(db, 'bowtie2')] = sam
+            self.outputs['outs'][(tech, self.sam)][(db, 'bowtie2')] = sam
             if self.config.force or to_do(sam):
                 cmd = get_alignment_cmd(fastxs, cmd, sam)
                 self.outputs['cmds'].setdefault(tech, []).append(cmd)
@@ -278,7 +278,7 @@ def no_merging(
     """
     nfiles = len(fastqs)
     if nfiles != 2:
-        self.outputs['outs'].setdefault(tech, []).extend(fastqs)
+        self.outputs['outs'].setdefault((tech, self.sam), []).extend(fastqs)
         return True
     return False
 
@@ -339,8 +339,8 @@ def flash(self) -> None:
         .config
             Configurations
     """
-    for tech, fastqs in self.inputs[self.sam].items():
-        if tech_specificity(self, fastqs, tech, ['illumina']):
+    for (tech, sam), fastqs in self.inputs[self.sam].items():
+        if tech_specificity(self, fastqs, tech, sam, ['illumina']):
             continue
         if no_merging(self, tech, fastqs):
             continue
@@ -353,7 +353,7 @@ def flash(self) -> None:
         nc1 = '%s.notCombined_1.fastq.gz' % rad
         nc2 = '%s.notCombined_2.fastq.gz' % rad
         out_fps = [ext, nc1, nc2]
-        self.outputs['outs'].setdefault(tech, []).extend(out_fps)
+        self.outputs['outs'].setdefault((tech, self.sam), []).extend(out_fps)
 
         if self.config.force or sum([to_do(x) for x in out_fps]):
             cmd = flash_cmd(self, tech, fastqs, out)
@@ -431,8 +431,8 @@ def ngmerge(self) -> None:
         .config
             Configurations
     """
-    for tech, fastqs in self.inputs[self.sam].items():
-        if tech_specificity(self, fastqs, tech, ['illumina']):
+    for (tech, sam), fastqs in self.inputs[self.sam].items():
+        if tech_specificity(self, fastqs, tech, sam, ['illumina']):
             continue
         if no_merging(self, tech, fastqs):
             continue
@@ -451,7 +451,7 @@ def ngmerge(self) -> None:
         nc1 = '%s.notCombined_1.fastq.gz' % rad
         nc2 = '%s.notCombined_2.fastq.gz' % rad
         out_fps = [ext, nc1, nc2]
-        self.outputs['outs'].setdefault(tech, []).extend(out_fps)
+        self.outputs['outs'].setdefault((tech, self.sam), []).extend(out_fps)
 
         if self.config.force or sum([to_do(x) for x in out_fps]):
             cmd = ngmerge_cmd(self, tech, fastqs, ext, log, fail)
@@ -534,8 +534,8 @@ def pear(self) -> None:
         .config
             Configurations
     """
-    for tech, fastqs in self.inputs[self.sam].items():
-        if tech_specificity(self, fastqs, tech, ['illumina']):
+    for (tech, sam), fastqs in self.inputs[self.sam].items():
+        if tech_specificity(self, fastqs, tech, sam, ['illumina']):
             continue
         if no_merging(self, tech, fastqs):
             continue
@@ -553,7 +553,7 @@ def pear(self) -> None:
         nc2 = '%s.notCombined_2.fastq.gz' % rad
         out_fps = [ext, nc1, nc2]
         na = '%s.discarded.fastq.gz' % rad
-        self.outputs['outs'].setdefault(tech, []).extend(out_fps)
+        self.outputs['outs'].setdefault((tech, self.sam), []).extend(out_fps)
 
         if self.config.force or sum([to_do(x) for x in out_fps]):
             cmd = pear_cmd(self, tech, fastqs, rad, out_fps, out_fps_, na)
@@ -648,8 +648,8 @@ def bbmerge(self) -> None:
         .config
             Configurations
     """
-    for tech, fastqs in self.inputs[self.sam].items():
-        if tech_specificity(self, fastqs, tech, ['illumina']):
+    for (tech, sam), fastqs in self.inputs[self.sam].items():
+        if tech_specificity(self, fastqs, tech, sam, ['illumina']):
             continue
         if no_merging(self, tech, fastqs):
             continue
@@ -666,7 +666,7 @@ def bbmerge(self) -> None:
         ihist = '%s.insert_length.hist' % rad
         out_fps = [ext, nc1, nc2]
         outs_cmd = out_fps + [ins, kmer, ihist]
-        self.outputs['outs'].setdefault(tech, []).extend(out_fps)
+        self.outputs['outs'].setdefault((tech, self.sam), []).extend(out_fps)
 
         if self.config.force or sum([to_do(x) for x in out_fps]):
             cmd = bbmerge_cmd(self, tech, fastqs, outs_cmd)
