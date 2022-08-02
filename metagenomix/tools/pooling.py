@@ -117,8 +117,8 @@ def collect_paths_to_merge(
     """
     paths_to_merge = {}
     for sam in sams:
-        if tech in self.inputs[sam] and self.inputs[sam][tech]:
-            fastqs = self.inputs[sam][tech]
+        if (tech, sam) in self.inputs[sam] and self.inputs[sam][(tech, sam)]:
+            fastqs = self.inputs[sam][(tech, sam)]
             extension_paths(paths_to_merge, fastqs)
     return paths_to_merge
 
@@ -181,12 +181,10 @@ def get_fasta_pools(
     paths_to_merge = collect_paths_to_merge(self, tech, sams)
     if self.soft.params['pool_single_and_merged']:
         combine_single(paths_to_merge)
-
     fasta_fps = []
     for extension, paths in sorted(paths_to_merge.items()):
         fasta = pool_fasta(self, tech, out, extension, paths, pool, group)
         fasta_fps.append(fasta)
-
     return fasta_fps
 
 
