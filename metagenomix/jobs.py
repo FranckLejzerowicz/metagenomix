@@ -259,6 +259,5 @@ class CreateScripts(object):
             print('  ', database_software)
             print('# ========== #')
             for name, main in name_main.items():
-                print()
                 print('>', name)
                 print('sh', main)
