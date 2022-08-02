@@ -459,6 +459,81 @@ def show_inputs(self):
             print()
 
 
+def get_genomes_fastas(
+        self,
+        tech: str,
+        group: str
+) -> dict:
+    """Get the input fasta files for a step that takes as input
+    either the contigs of an assembly, or the genomes of a binning.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .prev : str
+            Previous software in the pipeline
+        .pool : str
+            Co-assembly pool name
+        .inputs : dict
+            Input files
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    group : str
+        Name of a co-assembly pool's group
+
+    Returns
+    -------
+    fasta_d : dict
+        Path(s) to the fasta files for an assembly or a series of MAGs
+    """
+    assemblers = [
+        'plass', 'spades', 'spades_metaviral', 'spades_plasmid', 'spades_bio',
+        'flye', 'canu', 'necat', 'megahit', 'unicycler']
+    fastas_d = {}
+    if self.soft.prev in assemblers:
+        fastas_d = {'': [self.inputs[self.pool][(tech, group)][1]]}
+    elif self.soft.prev == 'drep':
+        fastas_d = self.inputs[self.pool][(tech, group)]
+    elif self.soft.prev == 'plass':
+        print(self.inputs[self.pool])
+        print(selfinputsselfpool)
+        fastas_d = self.inputs[self.pool][(tech, group)]
+    elif self.soft.prev == 'prodigal':
+        fastas_d = {'prot': self.inputs[self.pool][(tech, group)][0],
+                    'nucl': self.inputs[self.pool][(tech, group)][1]}
+    return fastas_d
+
+
+def not_paired(
+        self,
+        tech: str,
+        fastqs: list,
+) -> bool:
+    """Checks whether there are two input files, which is what is needed for
+    merging. Otherwise, stop there and show a useful error message.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .outputs : dict
+            All outputs
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    fastqs : list
+        Paths to the input files
+
+    Returns
+    -------
+    bool
+        Whether the input files are not possibly pooled or not
+    """
+    nfiles = len(fastqs)
+    if nfiles != 2:
+        self.outputs['outs'].setdefault((tech, self.sam), []).extend(fastqs)
+        return True
+    return False
+
+
 def get_roundtrip(io) -> dict:
     roundtrip = {'to': inputs_to_scratch(io), 'from': outputs_back(io)}
     return roundtrip
