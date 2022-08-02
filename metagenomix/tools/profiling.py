@@ -747,8 +747,8 @@ def woltka_aligments(
     """
     alignments = {}
     for sample, sam_inputs in self.inputs.items():
-        if sam_inputs[(tech, self.sam)]:
-            for (db, aligner), sam in sam_inputs[(tech, self.sam)].items():
+        if sam_inputs[(tech, sample)]:
+            for (db, aligner), sam in sam_inputs[(tech, sample)].items():
                 tech_aligner = tech + '_' + aligner
                 if sam and db == 'wol':
                     if aligner not in alignments:
