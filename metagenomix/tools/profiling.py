@@ -92,7 +92,8 @@ def shogun_redistribute(
         cmd += ' -l %s' % level
         cmd += ' -o %s' % redist
         redist_cmds.append(cmd)
-        self.outputs['outs'].setdefault((db, aligner, tech), []).append(redist)
+        self.outputs['outs'][(tech, self.sam)].setdefault(
+            (db, aligner, tech), []).append(redist)
         io_update(self, o_f=redist, key=tech)
     redist_out = '%s.redist.strain.tsv' % splitext(tax_norm)[0]
     shogun_append_cmd(self, tech, redist_cmds, redist_out)
@@ -380,8 +381,8 @@ def align(
     ali_cmds.append(cmd)
     if not cmd.startswith('shogun'):
         io_update(self, i_f=ali, key=tech)
-
-    self.outputs['outs'][tech].setdefault((db, aligner), []).append(ali)
+    self.outputs['outs'][(tech, self.sam)].setdefault(
+        (db, aligner), []).append(ali)
     io_update(self, o_d=out_dir, key=tech)
 
     return ali
@@ -507,7 +508,8 @@ def get_paths(
 
     tab = '%s/%s.tsv' % (out_dir, tax_fun)
     norm = '%s/%s_norm.tsv' % (out_dir, tax_fun)
-    self.outputs['outs'][tech].setdefault((db, aligner), []).extend([tab, norm])
+    self.outputs['outs'][(tech, self.sam)].setdefault((db, aligner), []).extend(
+        [tab, norm])
     io_update(self, i_d=out_dir, o_f=[tab, norm], key=tech)
     return tab, norm
 
@@ -559,7 +561,8 @@ def shogun_coverage(
     db_path = '%s/shogun' % self.databases.paths[db]
     if aligner == 'burst':
         cov_tab = '%s/coverage.tsv' % out
-        self.outputs['outs'][tech].setdefault((db, aligner), []).append(cov_tab)
+        self.outputs['outs'][(tech, self.sam)].setdefault(
+            (db, aligner), []).append(cov_tab)
         if self.config.force or to_do(cov_tab):
             shogun_coverage_cmd(self, tech, ali, db_path, 'strain', cov_tab)
             io_update(self, o_f=cov_tab, key=tech)
@@ -693,7 +696,7 @@ def shogun(self) -> None:
     for tech, inputs in self.inputs[self.sam].items():
         if tech_specificity(self, inputs, tech):
             continue
-        self.outputs['outs'][tech] = {}
+        self.outputs['outs'][(tech, self.sam)] = {}
         params = tech_params(self, tech)
         combine_cmds, ali_cmds = [], []
 
@@ -704,7 +707,7 @@ def shogun(self) -> None:
         if self.soft.prev == 'bowtie2':
             for (db, aligner), sam in inputs.items():
                 ali = format_sam(sam, ali_cmds, self.sam)
-                self.outputs['outs'][tech].setdefault(
+                self.outputs['outs'][(tech, self.sam)].setdefault(
                     (db, 'bowtie2'), []).append(ali)
                 shogun_taxonomy(self, tech, out, 'bowtie2', ali, db)
 
@@ -1715,7 +1718,7 @@ def midas_species(
         self.outputs['cmds'].setdefault(tech, []).append(
             get_midas_cmd(self, tech, inputs, focus_dir, analysis))
         io_update(self, i_f=inputs, o_d=species_out, key=tech)
-    self.outputs['outs'].setdefault(tech, []).append(species_out)
+    self.outputs['outs'].setdefault((tech, self.sam), []).append(species_out)
     self.outputs['dirs'].append(species_out)
 
 
@@ -1754,7 +1757,7 @@ def midas_genes(
         self.outputs['cmds'].setdefault(tech, []).append(
             get_midas_cmd(self, tech, inputs, focus_dir, analysis, select))
         io_update(self, o_d=genes_out, key=tech)
-    self.outputs['outs'].setdefault(tech, []).append(genes_out)
+    self.outputs['outs'].setdefault((tech, self.sam), []).append(genes_out)
     self.outputs['dirs'].append(genes_out)
 
 
@@ -1793,7 +1796,7 @@ def midas_snps(
         self.outputs['cmds'].setdefault(tech, []).append(
             get_midas_cmd(self, tech, inputs, focus_dir, analysis, select))
         io_update(self, o_d=snps_out, key=tech)
-    self.outputs['outs'].setdefault(tech, []).append(snps_out)
+    self.outputs['outs'].setdefault((tech, self.sam), []).append(snps_out)
     self.outputs['dirs'].append(snps_out)
 
 
@@ -1852,8 +1855,8 @@ def midas(self) -> None:
         .config
             Configurations
     """
-    for tech, inputs in self.inputs[self.sam].items():
-        if tech_specificity(self, inputs, tech):
+    for (tech, sam), inputs in self.inputs[self.sam].items():
+        if tech_specificity(self, inputs, tech, sam):
             continue
         params = tech_params(self, tech)
         for focus, species_list in params['focus'].items():
@@ -2007,8 +2010,8 @@ def kraken2(self) -> None:
         .config
             Configurations
     """
-    for tech, inputs in self.inputs[self.sam].items():
-        if tech_specificity(self, inputs, tech):
+    for (tech, sam), inputs in self.inputs[self.sam].items():
+        if tech_specificity(self, inputs, tech, sam):
             continue
         params = tech_params(self, tech)
         for db in params['databases']:
@@ -2017,7 +2020,8 @@ def kraken2(self) -> None:
             if self.config.force or to_do('%s/result.tsv' % out):
                 db_path = get_kraken2_db(self, db)
                 cmd = get_kraken2_cmd(self, tech, inputs, out, db_path)
-                self.outputs['outs'].setdefault(tech, []).append((out, db))
+                self.outputs['outs'].setdefault((tech, self.sam), []).append(
+                    (out, db))
                 self.outputs['cmds'].setdefault(tech, []).append(cmd)
                 io_update(self, i_f=inputs, o_d=out, key=tech)
 
@@ -2136,8 +2140,8 @@ def bracken(self) -> None:
     """
     if self.soft.prev != 'kraken2':
         sys.exit('[bracken] Can only be run after kraken2')
-    for tech, inputs in self.inputs[self.sam].items():
-        if tech_specificity(self, inputs, tech):
+    for (tech, sam), inputs in self.inputs[self.sam].items():
+        if tech_specificity(self, inputs, tech, sam):
             continue
         params = tech_params(self, tech)
         for (k2, db) in inputs:
@@ -2147,7 +2151,8 @@ def bracken(self) -> None:
             if self.config.force or to_do('%s/results.tsv' % out_dir):
                 report = '%s/report.tsv' % k2
                 cmd = bracken_cmd(self, tech, db_path, report, out_dir)
-                self.outputs['outs'].setdefault(tech, []).extend(out_dir)
+                self.outputs['outs'].setdefault((tech, self.sam), []).extend(
+                    out_dir)
                 self.outputs['cmds'].setdefault(tech, []).append(cmd)
                 io_update(self, i_f=report, o_d=out_dir, key=tech)
 
@@ -2239,4 +2244,5 @@ def metaxa2(self) -> None:
             io_update(self, o_f=redist_tax)
         if cmd:
             self.outputs['cmds'].append(cmd)
-        self.outputs['outs'].extend([summary, taxonomy, reltax, redist_tax])
+        self.outputs['outs'].setdefault((tech, self.sam), []).extend(
+            [summary, taxonomy, reltax, redist_tax])
