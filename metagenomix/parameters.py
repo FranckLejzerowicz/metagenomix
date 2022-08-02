@@ -2033,3 +2033,33 @@ def check_pirate(self, params, soft):
 #     check_default(self, params, defaults, soft.name, (ints + floats))
 #     defaults[''] = '<>'
 #     return defaults
+
+
+def check_deeparg(self, params, soft):
+    defaults = {
+        'min_prob': 0.8,
+        'arg_alignment_overlap': 0.8,
+        'arg_alignment_evalue': 1e-10,
+        'arg_alignment_identity': 50,
+        'arg_num_alignments_per_entry': 1000,
+        'model_version': ['v2'],
+        'deeparg_identity': 80,
+        'deeparg_probability': 0.8,
+        'deeparg_evalue': 1e-10,
+        'gene_coverage': 1,
+        'bowtie_16s_identity': 0.8
+    }
+    ints = ['arg_num_alignments_per_entry']
+    check_nums(self, params, defaults, ints, int, soft.name)
+    ints1 = ['arg_alignment_identity', 'deeparg_identity']
+    check_nums(self, params, defaults, ints1, int, soft.name, 0, 100)
+    floats = ['min_prob', 'arg_alignment_overlap', 'arg_alignment_evalue',
+              'deeparg_probability', 'deeparg_evalue', 'gene_coverage',
+              'bowtie_16s_identity']
+    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
+    let_go = ints + ints1 + floats
+    check_default(self, params, defaults, soft.name, let_go)
+    defaults['model'] = '<Model to use (SS: for reads, LS: for genes)>'
+    defaults['database'] = '<Path to the installed deepARG database folder>'
+
+    return defaults
