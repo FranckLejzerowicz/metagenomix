@@ -693,8 +693,8 @@ def shogun(self) -> None:
         .config
             Configurations
     """
-    for tech, inputs in self.inputs[self.sam].items():
-        if tech_specificity(self, inputs, tech):
+    for (tech, sam), inputs in self.inputs[self.sam].items():
+        if tech_specificity(self, inputs, tech, sam):
             continue
         self.outputs['outs'][(tech, self.sam)] = {}
         params = tech_params(self, tech)
