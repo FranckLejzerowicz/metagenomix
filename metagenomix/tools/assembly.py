@@ -497,8 +497,8 @@ def plass(self) -> None:
         .config
             Configurations
     """
-    for tech, fastqs in self.inputs[self.sam].items():
-        if tech_specificity(self, fastqs, tech, ['illumina']):
+    for (tech, sam), fastqs in self.inputs[self.sam].items():
+        if tech_specificity(self, fastqs, tech, sam, ['illumina']):
             continue
         out = '%s/%s' % (self.dir, self.sam)
         self.outputs['dirs'].append(out)
@@ -828,21 +828,21 @@ def unicycler(self) -> None:
             io_update(self, i_f=inputs, o_d=out, key=tech_group)
 
 
-def miniasm_cmd(self):
-    cmd = '\nminimap2'
-    cmd += ' -x ava-pb'
-    cmd += ' -t8 pb-reads.fq pb-reads.fq'
-    cmd += ' | gzip -1 > reads.paf.gz'
-    cmd += ' > reads.paf.gz'
-    cmd += '\nminiasm'
-    cmd += ' -f reads.fq'
-    cmd += ' reads.paf.gz'
-    cmd += ' > reads.gfa'
-
-
-def miniasm(self):
-    cmd = miniasm_cmd(self)
-    pass
+# def miniasm_cmd(self):
+#     cmd = '\nminimap2'
+#     cmd += ' -x ava-pb'
+#     cmd += ' -t8 pb-reads.fq pb-reads.fq'
+#     cmd += ' | gzip -1 > reads.paf.gz'
+#     cmd += ' > reads.paf.gz'
+#     cmd += '\nminiasm'
+#     cmd += ' -f reads.fq'
+#     cmd += ' reads.paf.gz'
+#     cmd += ' > reads.gfa'
+#
+#
+# def miniasm(self):
+#     cmd = miniasm_cmd(self)
+#     pass
 
 
 def necat_cmd(
