@@ -565,7 +565,7 @@ def bbmerge_cmd(
         self,
         tech: str,
         fastqs: list,
-        outs_cmd: list
+        os: list
 ) -> str:
     """Get the bbmerge.sh merging command.
 
@@ -578,7 +578,7 @@ def bbmerge_cmd(
         Technology: 'illumina', 'pacbio', or 'nanopore'
     fastqs : list
         Paths to the input files
-    outs_cmd : list
+    os : list
         Paths to the output files
 
     Returns
@@ -588,14 +588,8 @@ def bbmerge_cmd(
     """
     params = tech_params(self, tech)
     cmd = 'bbmerge.sh'
-    cmd += ' in1=%s' % fastqs[0]
-    cmd += ' in2=%s' % fastqs[1]
-    cmd += ' out=%s' % outs_cmd[0]
-    cmd += ' outu1=%s' % outs_cmd[1]
-    cmd += ' outu2=%s' % outs_cmd[2]
-    cmd += ' outinsert=%s' % outs_cmd[3]
-    cmd += ' outc=%s' % outs_cmd[4]
-    cmd += ' ihist=%s' % outs_cmd[5]
+    cmd += ' in1=%s in2=%s' % tuple(fastqs)
+    cmd += ' out=%s outu1=%s outu2=%s outinsert=%s outc=%s ihist=%s' % tuple(os)
     if params['strictness']:
         cmd += ' %s=t' % params['strictness']
     else:
@@ -630,7 +624,7 @@ def bbmerge_cmd(
 
 
 def bbmerge(self) -> None:
-    """Create command lines for BBmerge
+    """BBmerge is a tool that merge the ends ...
 
     Parameters
     ----------
@@ -648,15 +642,20 @@ def bbmerge(self) -> None:
         .config
             Configurations
     """
+    # iterate over the inputs
     for (tech, sam), fastqs in self.inputs[self.sam].items():
         if tech_specificity(self, fastqs, tech, sam, ['illumina']):
             continue
         if no_merging(self, tech, fastqs):
             continue
 
+        # make the output directory
         out = '%s/%s/%s' % (self.dir, tech, self.sam)
         self.outputs['dirs'].append(out)
 
+        # get the expected names of some of the ouptuts:
+        # - those you want to collect in 'outs' because they will be future inpt
+        # - at least one that will help knowing whether the software already run
         rad = out + '/' + self.sam
         ext = '%s.extendedFrags.fastq.gz' % rad
         nc1 = '%s.notCombined_1.fastq.gz' % rad
@@ -668,7 +667,10 @@ def bbmerge(self) -> None:
         outs_cmd = out_fps + [ins, kmer, ihist]
         self.outputs['outs'].setdefault((tech, self.sam), []).extend(out_fps)
 
+        # check if the tool already run (or if --force) to allow getting command
         if self.config.force or sum([to_do(x) for x in out_fps]):
+            # collect the commmand line
             cmd = bbmerge_cmd(self, tech, fastqs, outs_cmd)
+            # add is to the 'cmds'
             self.outputs['cmds'][tech] = [cmd]
             io_update(self, i_f=fastqs, o_d=out, key=tech)
