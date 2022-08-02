@@ -156,7 +156,6 @@ def spades_cmd(
         tmp: str,
         out: str,
         log: str,
-        mode: str
 ) -> tuple:
     """Create command lines for SPAdes.
 
@@ -175,8 +174,6 @@ def spades_cmd(
         Path to the output folder
     log : str
         Path to the output log file
-    mode : str
-        Spades mode indicated after the underscore of the tool
 
     Returns
     -------
@@ -187,6 +184,7 @@ def spades_cmd(
     """
     cmd = 'mkdir -p %s\n' % tmp
     cmd += 'spades.py'
+    cmd += ' -o %s' % out
     cmd += ' -k %s' % ','.join(map(str, self.soft.params['k']))
     cmd += ' --memory %s' % self.soft.params['mem']
     cmd += ' --threads %s' % self.soft.params['cpus']
@@ -201,6 +199,7 @@ def spades_cmd(
     elif self.soft.params['only_error_correction']:
         cmd += ' --only-error-correction'
 
+    mode = self.soft.name.split('_')[-1]
     if mode == 'bio':
         cmd += ' --bio'
     elif mode == 'plasmid':
@@ -209,7 +208,6 @@ def spades_cmd(
         cmd += ' --metaviral'
 
     inputs = []
-    cmd += ' -o %s' % out
     if self.soft.params['continue'] and not to_do(log):
         cmd += ' --continue'
     else:
@@ -239,7 +237,7 @@ def spades_cmd(
     return cmd, inputs
 
 
-def hybridize(
+def hybridize_tech(
         self,
         techs_inputs: dict
 ) -> tuple:
@@ -291,28 +289,32 @@ def spades(self) -> None:
         .config
             Configurations
     """
-    mode = self.soft.name.split('_')[-1]
+    # iterate over inputs
     for group, techs_inputs in self.inputs[self.pool].items():
-        techs, hybrid = hybridize(self, techs_inputs)
-        mode_group = '%s/%s/%s' % (mode, hybrid, group)
+        techs, hybrid = hybridize_tech(self, techs_inputs)
 
-        tmp = '$TMPDIR/%s_%s_%s' % (self.soft.name, mode_group, self.pool)
-        out = '%s/%s/%s/%s/%s' % (self.dir, mode, hybrid, self.pool, group)
+        # make output folder path
+        tmp = '$TMPDIR/%s_%s_%s_%s' % (self.soft.name, hybrid, group, self.pool)
+        out = '%s/%s/%s/%s' % (self.dir, hybrid, self.pool, group)
+        # collect as folder to create under 'dirs'
         self.outputs['dirs'].append(out)
 
+        # get expected output files
         before_rr = '%s/before_rr.fasta' % out
         contigs = '%s/contigs.fasta' % out
         first_pe = '%s/first_pe_contigs.fasta' % out
         scaffolds = '%s/scaffolds.fasta' % out
         log = '%s/spades.log' % out
         outs = [before_rr, contigs, first_pe, scaffolds, log]
+        # collect as output (input for next tool) under 'outs'
         self.outputs['outs'][(hybrid, group)] = outs
 
+        # check
         if self.config.force or to_do(contigs):
             cmd, inputs = spades_cmd(
-                self, techs_inputs, techs, tmp, out, log, mode)
-            self.outputs['cmds'].setdefault(mode_group, []).append(cmd)
-            io_update(self, i_f=inputs, i_d=out, o_d=out, key=mode_group)
+                self, techs_inputs, techs, tmp, out, log)
+            self.outputs['cmds'].setdefault(group, []).append(cmd)
+            io_update(self, i_f=inputs, i_d=out, o_d=out, key=group)
 
 
 def megahit_cmd(
