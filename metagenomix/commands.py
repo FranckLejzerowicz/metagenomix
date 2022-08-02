@@ -19,6 +19,8 @@ from metagenomix.tools.phlans import *
 from metagenomix.tools.assembly import *
 from metagenomix.tools.annotation import *
 from metagenomix.tools.binning import *
+from metagenomix.tools.plasmids import *
+from metagenomix.tools.viruses import *
 from metagenomix.tools.genomics import *
 from metagenomix.tools.metamarker import *
 
