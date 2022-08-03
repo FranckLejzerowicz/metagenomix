@@ -387,7 +387,6 @@ def integronfinder_cmd(
     if self.databases.hmms_dias:
         cmd += ' --func-annot'
         cmd += ' --path-func-annot %s' % hmms
-        io_update(self, i_f=hmms, key='_'.join([tech, group]))
     if params['prot_file']:
         cmd += ' --prot-file %s' % params['prot_file']
     if params['attc_model']:
