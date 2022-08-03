@@ -803,10 +803,12 @@ def filtering(self):
             continue
         fastqs = fastqs_
         cmds = ''
+        out_dirs = []
         databases = self.soft.params['databases']
         for ddx, (db, db_path) in enumerate(databases.items()):
             inputs = list(fastqs)
             out_dir = '%s/%s/%s_%s/%s' % (self.dir, tech, ddx, db, self.sam)
+            out_dirs.append(out_dir)
             self.outputs['dirs'].append(out_dir)
             if len(inputs) == 1:
                 out1 = '%s/%s.fastq' % (out_dir, self.sam)
@@ -828,4 +830,4 @@ def filtering(self):
         self.outputs['outs'].setdefault((tech, self.sam), []).extend(fastqs_gz)
         if cmds:
             self.outputs['cmds'][tech] = [cmds]
-            io_update(self, i_f=fastqs_, o_f=fastqs_gz, key=tech)
+            io_update(self, i_f=fastqs_, i_d=out_dirs, o_f=fastqs_gz, key=tech)
