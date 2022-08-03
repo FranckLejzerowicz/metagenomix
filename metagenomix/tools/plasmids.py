@@ -8,6 +8,7 @@
 
 import glob
 import sys
+from os.path import basename
 from metagenomix._io_utils import io_update, to_do
 
 
@@ -64,10 +65,7 @@ def plasforest(self) -> None:
         .config
             Configurations
     """
-    assemblers = [
-        'plass', 'spades', 'spades_metaviral', 'spades_plasmid', 'spades_bio',
-        'flye', 'canu', 'necat', 'megahit', 'unicycler']
-    if self.soft.prev not in assemblers:
+    if self.soft.prev not in self.config.tools['assembling']:
         sys.exit('[plasforest] can only be run after assembly (on contigs)')
 
     for (tech, group), spades_outs in self.inputs[self.pool].items():
@@ -84,12 +82,12 @@ def plasforest(self) -> None:
             io_update(self, i_f=spades_outs[1], o_d=out_dir, key=tech_group)
 
 
-
 def plasmidfinder_cmd(
         self,
         key: str,
-        out: str,
-        inputs
+        fp: str,
+        base: str,
+        base_out: str
 ) -> str:
     """Collect PlasmidFinder command.
 
@@ -102,23 +100,26 @@ def plasmidfinder_cmd(
             PlasmidFinder parameters
     key : str
         Concatenation of the technology and/or co-assembly pool group name
-    out : str
-        Path to the output folder
-    inputs : str or list
-        Path(s) to the input file(s)
+    base : str
+        Basename for the current sample/MAG
+    base_out : str
+        Path to the output folder for the current sample/MAG
+    fp : str
+        Path to the input file
 
     Returns
     -------
     cmd : str
         PlasmidFinder command
     """
-    tmp_dir = '$TMPDIR/plasmidfinder_%s_%s' % (self.pool, key)
-    cmd = 'plasmidfinder.py'
-    if isinstance(inputs, list):
-        cmd += ' --infile %s' % ' '.join(inputs)
+    tmp_dir = '$TMPDIR/plasmidfinder_%s_%s_%s' % (self.pool, key, base)
+    cmd = 'mkdir -p %s\n' % tmp_dir
+    cmd += 'plasmidfinder.py'
+    if len(fp) == 2:
+        cmd += ' --infile %s' % ' '.join(fp)
     else:
-        cmd += ' --infile %s' % inputs
-    cmd += ' --outputPath %s' % out
+        cmd += ' --infile %s' % fp[0]
+    cmd += ' --outputPath %s' % base_out
     cmd += ' --tmp_dir %s' % tmp_dir
     cmd += ' --methodPath %s' % self.soft.params['methodPath']
     cmd += ' --databasePath %s' % self.soft.params['databasePath']
@@ -135,10 +136,10 @@ def plasmidfinder_cmd(
 
 def plasmidfinder_io(
         self,
-        tech_group: str,
+        tech: str,
+        sam_group: str,
         path: str,
-        ext: str,
-        assemblers: list
+        ext: str
 ) -> tuple:
     """
 
@@ -153,44 +154,45 @@ def plasmidfinder_io(
             Configurations
         .sam
             Sample name
-    tech_group : str or tuple
-        Technology and/or co-assembly pool group name
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    sam_group : str
+        Sample name or name of a co-assembly pool's group
     path : str or list
         Path(s) to the input file/folder(s)
     ext : str
         Extension of the input fasta file
-    assemblers : list
-        All the assembler software in usr in the pipeline
 
     Returns
     -------
-    fps : list
-        Path(s) to the input file(s)
+    fps : dict
+        Path(s) to the input file(s) per basename
     out : str
         Path to the output folder
     """
-    if tech_group in self.config.techs or self.soft.prev in assemblers:
-        fps = path
-        out = '%s/%s/%s' % (self.dir, tech_group, self.sam)
+    out = self.dir
+    if tech:
+        out += '/' + tech
+    if sam_group == self.sam:
+        fps = {sam_group: path}
+    elif self.soft.prev in self.config.tools['assembling']:
+        fps = {sam_group: path}
     else:
+        out += '/%s' % sam_group
         if self.config.dev:
-            fps = ['%s/a.%s' % (path, ext), '%s/b.%s' % (path, ext)]
+            fps = ['%s/a%s' % (path, ext), '%s/b%s' % (path, ext)]
         else:
-            fps = glob.glob('%s/*.%s' % (path, ext))
-        if isinstance(tech_group, str):
-            out = '%s/%s' % (self.dir, tech_group)
-            if 'reassembled_bins' in path:
-                out += '/' + path.split('/')[-1]
-        else:
-            out = '%s/%s' % (self.dir, '/'.join(tech_group))
+            fps = glob.glob('%s/*%s' % (path, ext))
+        if 'reassembled_bins' in path:
+            out += '/%s' % '/'.join(path.split('/')[-2:])
+        fps = {basename(x).split(ext)[0].split('.fastq')[0]: [x] for x in fps}
     return fps, out
 
 
 def genome_dirs(
         self,
         inputs: dict,
-        sam_group: str,
-        assemblers: list
+        sam_group: str
 ) -> tuple:
     """
 
@@ -211,34 +213,26 @@ def genome_dirs(
         Path(s) to the input file(s)/folder(s) per tech or (tech/hybrid, group)
     sam_group : str
         Sample name or pool group
-    assemblers : list
-        All the assembler software in use in the pipeline
 
     Returns
     -------
     dirs : list
     ext : str
     """
-    ext = 'fa'
+    ext = '.fa'
     if sam_group == self.sam:
         dirs = [inputs]
-        print(1)
-    elif self.soft.prev in assemblers:
-        dirs = [[inputs[sam_group][1]]]
-        print(2)
+    elif self.soft.prev in self.config.tools['assembling']:
+        dirs = [[inputs[1]]]
     elif self.soft.prev == 'drep':
-        dirs = [inputs[sam_group]]
-        print(3)
+        dirs = [inputs]
     elif self.soft.prev == 'metawrap_refine':
-        dirs = [inputs[sam_group][-1]]
-        print(4)
+        dirs = [inputs[-1]]
     elif self.soft.prev == 'metawrap_reassemble':
-        dirs = inputs[sam_group]
-        print(5)
+        dirs = inputs
     elif self.soft.prev == 'yamb':
-        ext = 'fna'
-        dirs = glob.glob('%s/bins-yamb-pp-*' % inputs[sam_group])
-        print(6)
+        ext = '.fna'
+        dirs = glob.glob('%s/bins-yamb-pp-*' % inputs)
     else:
         sys.exit('[%s] Not after "%s"' % (self.soft.name, self.soft.prev))
     return dirs, ext
@@ -268,51 +262,19 @@ def plasmidfinder(self) -> None:
         .sam
             Sample name
     """
-    print()
-    print('>cutadapt', list(self.softs['cutadapt'].outputs)[-1])
-    print(self.softs['cutadapt'].outputs[list(self.softs['cutadapt'].outputs)[-1]])
-    print()
-    print('>spades', list(self.softs['spades'].outputs)[-1])
-    print(self.softs['spades'].outputs[list(self.softs['spades'].outputs)[-1]])
-    print()
-    print('>metawrap_refine', list(self.softs['metawrap_refine'].outputs)[-1])
-    print(self.softs['metawrap_refine'].outputs[list(self.softs['metawrap_refine'].outputs)[-1]])
-    print()
-    print('>metawrap_reassemble', list(self.softs['metawrap_reassemble'].outputs)[-1])
-    print(self.softs['metawrap_reassemble'].outputs[list(self.softs['metawrap_reassemble'].outputs)[-1]])
-    print()
-    print('>drep', list(self.softs['drep'].outputs)[-1])
-    print(self.softs['drep'].outputs[list(self.softs['drep'].outputs)[-1]])
-
-    assemblers = [
-        'plass', 'spades', 'spades_metaviral', 'spades_plasmid', 'spades_bio',
-        'flye', 'canu', 'necat', 'megahit', 'unicycler']
-    print()
-    print()
-    print()
-    for (tech, group), inputs in self.inputs[self.pool].items():
-        if tech == 'illumina':
-            continue
-        tech_group = '_'.join([tech, group])
-        print()
-        print('tech, group:', (tech, group), tech_group)
-        paths, ext = genome_dirs(self, inputs, group, assemblers)
+    for (tech, sam_group), inputs in self.inputs[self.pool].items():
+        key = '_'.join([tech, sam_group])
+        paths, ext = genome_dirs(self, inputs, sam_group)
         for path in paths:
-            print('*** path\t:', path)
-            fps, out = plasmidfinder_io(self, tech_group, path, ext, assemblers)
-            self.outputs['outs'].setdefault(tech_group, []).append(out)
-            self.outputs['dirs'].append(out)
-            print("*** fps\t\t:", fps)
-            print("*** out\t\t:", out)
+            fps, out = plasmidfinder_io(self, tech, sam_group, path, ext)
+            self.outputs['outs'].setdefault((tech, sam_group), []).append(out)
             cmd = ''
-            if group == self.sam or self.soft.prev in assemblers:
-                if self.config.force or not glob.glob('%s/*' % out):
-                    cmd += plasmidfinder_cmd(self, tech_group, out, fps)
-                    self.outputs['cmds'].setdefault(tech_group, []).append(cmd)
-            else:
-                for fp in fps:
-                    if self.config.force or not glob.glob('%s/*' % out):
-                        cmd += plasmidfinder_cmd(self, tech_group, out, fp)
+            for base, fp in fps.items():
+                base_out = out + '/%s' % base
+                json = '%s/data.json' % base_out
+                self.outputs['dirs'].append(base_out)
+                if self.config.force or not to_do(json):
+                    cmd += plasmidfinder_cmd(self, key, fp, base, base_out)
+                    io_update(self, i_f=fp, o_d=base_out, key=key)
             if cmd:
-                self.outputs['cmds'].setdefault(tech_group, []).append(cmd)
-                io_update(self, i_f=fps, o_d=out, key=tech_group)
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
