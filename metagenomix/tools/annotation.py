@@ -270,7 +270,7 @@ def macsyfinder_cmd(
             cmd += ' --res-extract-suffix _out.tsv'
             cmd += ' --worker %s' % params['cpus']
             cmd += ' --sequence-db %s' % input_fp
-            cmd += ' --models-dir %s/data/models' % models
+            cmd += ' --models-dir %s/models' % models
             cmd += ' --models %s all' % model
             cmd += ' --verbosity\n'
     return cmd, outs
