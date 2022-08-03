@@ -206,7 +206,7 @@ def short(self) -> None:
         # - those you want to collect in 'outs': will be used as future inputs
         # - at least one: will help to know whether the software already run
         prefix = out + '/' + self.sam
-        arg = '%s.ARG' % prefix
+        arg = '%s.mapping.ARG' % prefix
         pot_arg = '%s.potential.ARG' % prefix
         outs = [arg, pot_arg]
         self.outputs['outs'].setdefault((tech, self.sam), []).extend(outs)
