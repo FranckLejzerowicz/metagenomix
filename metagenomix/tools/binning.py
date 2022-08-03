@@ -753,7 +753,7 @@ def refine(self):
             continue
         if n_bins == len(bin_folders):
             self.outputs['cmds'].setdefault(tech_group, []).append(cmd)
-        io_update(self, i_d=bin_folders, o_d=[stats, bins], key=tech_group)
+        io_update(self, i_d=bin_folders, o_f=stats, o_d=bins, key=tech_group)
 
 
 def get_binners(
