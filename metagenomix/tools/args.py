@@ -89,7 +89,10 @@ def get_predict(
     for typ, fastas in fastas_dict.items():
         for fasta in fastas:
             base = splitext(basename(fasta))[0]
-            prefix = '%s/%s_%s_%s' % (out, typ, sam_group, base)
+            if typ:
+                prefix = '%s/%s_%s_%s' % (out, typ, sam_group, base)
+            else:
+                prefix = '%s/%s_%s' % (out, sam_group, base)
             arg = '%s.ARG' % prefix
             self.outputs['outs'].setdefault((tech, sam_group), []).extend(arg)
 
