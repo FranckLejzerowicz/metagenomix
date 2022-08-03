@@ -90,7 +90,6 @@ def simka_cmd(self, params: dict, sim_in: str, out_dir: str,
         if not self.config.force:
             print(to_do('%s/mat_abundance_braycurtis.csv' % out_dir))
             print(to_do('%s/mat_abundance_braycurtis.csv.gz' % out_dir))
-            print(sdkfjb)
             if not to_do('%s/mat_abundance_braycurtis.csv' % out_dir):
                 return ''
             elif not to_do('%s/mat_abundance_braycurtis.csv.gz' % out_dir):
@@ -282,6 +281,7 @@ def simka(self) -> None:
                     self.outputs['cmds'].setdefault(tech, []).append(cmd)
                     io_update(self, o_d=out_dir, key=tech)
                 else:
+                    print(iwdfjboj)
                     io_update(self, i_d=out_dir, key=tech)
 
 
