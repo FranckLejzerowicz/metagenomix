@@ -88,7 +88,7 @@ class Workflow(object):
         if workflow_issue:
             sys.exit('[pipeline] Please fix duplicates... Exiting')
 
-    def run(self) -> None:
+    def visit(self) -> None:
         """
         Parse the list of softwares, collect their sequence in the
         attribute `self.softs`, and collect all the paths of their
@@ -100,9 +100,13 @@ class Workflow(object):
             soft.get_softs(softs)
             self.validate_softs(softs)
             self.softs[softs[-1]] = soft
+
+    def setup(self) -> None:
         self.get_names_idx()
         self.make_graph()
         self.get_paths()
+
+    def parametrize(self) -> None:
         self.set_params()
 
     def validate_softs(self, softs):
@@ -223,8 +227,8 @@ class Workflow(object):
     def show_params(self, soft):
         params_show = dict(x for x in soft.params.items())
         if params_show:
-            print('[Parameters] %s' % soft.name)
-            print('=' * 30)
+            x = '=' * (13 + len(soft.name))
+            print('\n%s\n[%s] Parameters\n%s' % (x, soft.name, x))
             if soft.name.startswith('search'):
                 databases = params_show['databases']
                 del params_show['databases']
@@ -246,5 +250,6 @@ class Workflow(object):
             self.set_scratch(soft)
             self.set_user_params(soft)
         if self.config.show_params:
+            print('  User parameters and defaults:')
             for _, soft in self.softs.items():
                 self.show_params(soft)

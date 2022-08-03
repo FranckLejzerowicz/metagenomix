@@ -250,14 +250,10 @@ class CreateScripts(object):
             self.write_script(soft)
 
     def display(self):
-        if len(self.run['database']) or len(self.run['software']):
-            print()
-            print('< PLEASE CONSIDER CHECKING THE SCRIPTS MANUALLY >')
         for database_software, name_main in self.run.items():
-            print()
-            print('# ========== #')
-            print('  ', database_software)
-            print('# ========== #')
+            if len(self.run[database_software]):
+                print()
+                print('========== %s ========== ' % database_software)
             for name, main in name_main.items():
                 print('>', name)
                 print('sh', main)

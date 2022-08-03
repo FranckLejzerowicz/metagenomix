@@ -24,23 +24,36 @@ def metagenomix(**kwargs):
 
     # Parse the command line arguments and validate computing environment
     config = AnalysesConfig(**kwargs)
+    print('* Reading configurations')
     config.run()
 
     # Validate and get commands to set up the passed databases if need be
     databases = ReferenceDatabases(config)
+    print('* Checking databases')
     databases.run()
 
     # Read and validate the workflow of tools to run as a pipeline
     workflow = Workflow(config, databases)
-    workflow.run()
+    print('* Reading pipeline')
+    workflow.visit()
+    print('* Setting up graph and output paths')
+    workflow.setup()
+    print('* Checking parameters')
+    workflow.parametrize()
 
     # Collect the command line and  the workflow of tools to run as a pipeline
     commands = Commands(config, databases, workflow)
+    print('* Collecting command lines')
     commands.run()
+    print('* Creating output folders')
     commands.make_dirs()
 
     # Make .sh and scheduler (.slm or .pbs) scripts to
     scripting = CreateScripts(config, workflow)
+    # print('* Writing database formatting commands')
     # scripting.database_cmds(databases)  # build the databases
+    print('* Writing pipeline command lines')
     scripting.software_cmds(commands)   # run the analysis pipeline
-    scripting.display()  # show the scripts to run
+    if len(scripting.run['database']) or len(scripting.run['software']):
+        print('< PLEASE CONSIDER CHECKING THE COMMAND LINE SCRIPTS MANUALLY >')
+        scripting.display()  # show the scripts to run

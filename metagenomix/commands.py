@@ -61,7 +61,6 @@ class Commands(object):
     def run(self):
         for sdx, softs in enumerate(self.config.pipeline):
             self.soft = self.softs[softs[-1]]
-            print('[Collecting commands] #%s: %s' % (sdx, self.soft.name))
             self.get_inputs()
             self.get_dir()
             self.generic_command()
