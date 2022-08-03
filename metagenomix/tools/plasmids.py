@@ -58,7 +58,7 @@ def plasforest(self) -> None:
         .dir : str
             Path to pipeline output folder for plasforest
         .prev : str
-            Previous software in
+            Previous software in the pipeline
         .pool : str
             Pool name.
         .inputs : dict
