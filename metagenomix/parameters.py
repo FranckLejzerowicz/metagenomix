@@ -758,17 +758,14 @@ def check_bowtie2(self, params, soft):
     defaults = {
         'pairing': ['paired', 'concat', 'single'],
         'discordant': [True, False],
-        'k': '16', 'np': '1',
-        'mp': '1,1', 'rdg': '0,1', 'rfg': '0,1',
+        'k': 16,
+        'np': 1,
+        'mp': 6,
+        'rdg': '5,3',
+        'rfg': '5,3',
         'score-min': 'L,0,-0.05'
     }
-    for opt in ['k', 'np']:
-        if opt in params and not str(params[opt]).isdigit():
-            sys.exit('[bowtie2] "%s" option invalid' % opt)
-        else:
-            params[opt] = defaults[opt]
-
-    for opt in ['mp', 'rdg', 'rfg']:
+    for opt in ['rdg', 'rfg']:
         if opt in params:
             if len([x.isdigit() for x in str(params[opt]).split(',')]) != 2:
                 sys.exit('[bowtie2] "%s" option invalid' % opt)
@@ -789,8 +786,9 @@ def check_bowtie2(self, params, soft):
         params['score-min'] = defaults['score-min']
 
     let_go = ['k', 'np', 'mp', 'rdg', 'rfg', 'score-min']
+    check_nums(self, params, defaults, ['k', 'mp', 'np'], int, soft.name)
     check_default(self, params, defaults, soft.name, let_go)
-    dbs_existing = check_databases('bowtie2', params, self.databases)
+    dbs_existing = check_databases(soft.name, params, self.databases)
     valid_dbs = {}
     for db in dbs_existing:
         if 'bowtie2' in self.databases.builds[db]:
