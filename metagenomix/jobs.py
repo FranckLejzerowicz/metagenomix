@@ -137,7 +137,7 @@ class CreateScripts(object):
 
     def print_status(self, m, sdx, name, soft):
         gap = (m - len(name) - len(str(sdx)))
-        print('%s [%s]%s\t' % (sdx, name, (' ' * gap)), end=' ')
+        print('\t%s [%s]%s\t' % (sdx, name, (' ' * gap)), end=' ')
         self.show_status(soft)
 
     def software_cmds(self, commands):
