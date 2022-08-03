@@ -220,13 +220,13 @@ def simka_pcoa_cmd(self, mat: str) -> str:
                 sym_cmd += 'gunzip %s\n' % mat
         else:
             mat_fp = mat
-        sym_cmd += '%s/symmetrize_simka_matrix.py' % RESOURCES
+        sym_cmd += '\n%s/symmetrize_simka_matrix.py' % RESOURCES
         sym_cmd += ' -i %s\n' % mat_fp
 
     imp_cmd = ''
     mat_dm = mat_o.replace('.tsv', '_dm.qza')
     if self.config.force or to_do(mat_dm):
-        imp_cmd += 'qiime tools import'
+        imp_cmd += '\nqiime tools import'
         imp_cmd += ' --input-path %s' % mat_o
         imp_cmd += ' --output-path %s' % mat_dm
         imp_cmd += ' --type DistanceMatrix\n'
@@ -237,7 +237,7 @@ def simka_pcoa_cmd(self, mat: str) -> str:
     for ordi in ['pcoa', 'tsne']:
         ordi_fp = mat_dm.replace('.qza', '_%s.qza' % ordi)
         if self.config.force or to_do(ordi_fp):
-            ordi_cmd += 'qiime diversity %s' % ordi
+            ordi_cmd += '\nqiime diversity %s' % ordi
             ordi_cmd += ' --i-distance-matrix %s' % mat_dm
             ordi_cmd += ' --o-%s %s' % (ordi, ordi_fp)
             if ordi == 'tsne':
@@ -248,7 +248,7 @@ def simka_pcoa_cmd(self, mat: str) -> str:
         ordi_dir = ordi_fp.replace('.qza', '')
         ordi_txt = ordi_fp.replace('.qza', '.txt')
         if self.config.force or to_do(ordi_txt):
-            exp_cmd += 'qiime tools export'
+            exp_cmd += '\nqiime tools export'
             exp_cmd += ' --input-path %s' % ordi_fp
             exp_cmd += ' --output-path %s\n' % ordi_dir
             exp_cmd += 'mv %s/ordination.txt %s\n' % (ordi_dir, ordi_txt)
@@ -256,7 +256,7 @@ def simka_pcoa_cmd(self, mat: str) -> str:
 
         emp_fp = ordi_fp.replace('.qza', '_emp.qzv')
         if self.config.force or to_do(emp_fp):
-            emp_cmd += 'qiime emperor plot'
+            emp_cmd += '\nqiime emperor plot'
             emp_cmd += ' --i-pcoa %s' % ordi_fp
             emp_cmd += ' --m-metadata-file %s' % self.config.meta_fp
             emp_cmd += ' --o-visualization %s\n' % emp_fp
