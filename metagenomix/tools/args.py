@@ -60,39 +60,6 @@ def predict_cmd(
     return cmd
 
 
-def predict(self) -> None:
-    """Run deeparg predict module.
-
-    Parameters
-    ----------
-    self : Commands class instance
-        .dir : str
-            Path to pipeline output folder for metaWRAP
-        .pool : str
-            Pool name
-        .pools : dict
-            Pools
-        .inputs : dict
-            Input files
-        .outputs : dict
-            All outputs
-        .soft.params
-            Parameters
-        .config
-            Configurations
-    """
-    if self.pool in self.pools:
-        for (tech, group) in self.inputs[self.pool]:
-            fastas = get_genomes_fastas(self, tech, group)
-            get_predict(self, fastas, tech, group)
-    else:
-        for (tech, sam), contigs in self.inputs[self.sam].items():
-            if self.soft.prev == 'plass' and tech != 'illumina':
-                continue
-            fastas = {basename(contigs).split('_')[0]: contigs}
-            get_predict(self, fastas, tech, sam)
-
-
 def get_predict(
         self,
         fastas: dict,
@@ -134,6 +101,39 @@ def get_predict(
             key = '_'.join([tech, sam_group])
             self.outputs['cmds'][key] = [cmd]
             io_update(self, i_f=fasta, o_d=out, key=key)
+
+
+def predict(self) -> None:
+    """Run deeparg predict module.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for metaWRAP
+        .pool : str
+            Pool name
+        .pools : dict
+            Pools
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    """
+    if self.pool in self.pools:
+        for (tech, group) in self.inputs[self.pool]:
+            fastas = get_genomes_fastas(self, tech, group)
+            get_predict(self, fastas, tech, group)
+    else:
+        for (tech, sam), contigs in self.inputs[self.sam].items():
+            if self.soft.prev == 'plass' and tech != 'illumina':
+                continue
+            fastas = {basename(contigs).split('_')[0]: contigs}
+            get_predict(self, fastas, tech, sam)
 
 
 def short_cmd(
