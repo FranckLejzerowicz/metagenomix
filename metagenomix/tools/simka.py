@@ -40,9 +40,9 @@ def get_simka_input(
     out : str
         Path to the file to write
     """
-    out = '%s/%s/samples_files.txt' % (self.dir, tech)
     cmd = ''
     inputs = []
+    out = '%s/%s/samples_files.txt' % (self.dir, tech)
     for sdx, sam in enumerate(self.inputs):
         fs = self.inputs[sam][(tech, sam)]
         inputs.extend(fs)
@@ -198,18 +198,24 @@ def simka_base_cmd(
     return cmd
 
 
-def simka_pcoa_cmd(self, mat: str) -> str:
-    """Write the Simka command for the pcoa based on the distance matrices.
+def simka_pcoa_cmd(
+        self,
+        mat: str
+) -> str:
+    """Write the Simka command for the pcoa/tsne based on the distance matrices.
 
     Parameters
     ----------
+    self : Commands class instance
+        .config
+            Configurations
     mat : str
         Distance matrix
 
     Returns
     -------
     cmd : str
-        Simka command line.
+        Simka command line
     """
     sym_cmd = ''
     mat_o = '%s_sym.tsv' % mat.split('.csv')[0]
@@ -279,8 +285,6 @@ def simka(self) -> None:
             Input files
         .outputs : dict
             All outputs
-        .soft.params
-            Parameters
         .config
             Configurations
     """
@@ -295,6 +299,7 @@ def simka(self) -> None:
                     cmd = input_cmd + cmd
                     self.outputs['dirs'].append(out_dir)
                     self.outputs['cmds'].setdefault(tech, []).append(cmd)
+                    print(kskdjb)
                     io_update(self, i_f=input_fastqs, o_d=out_dir, key=tech)
                 else:
                     io_update(self, i_d=out_dir, key=tech)
