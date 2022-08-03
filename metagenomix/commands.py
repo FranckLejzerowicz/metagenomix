@@ -81,10 +81,10 @@ class Commands(object):
                 self.inputs = self.config.fastq
         else:
             self.inputs = self.softs[self.soft.prev].outputs
-        print()
-        print('*'*100)
-        print(self.inputs)
-        print('*'*100)
+        # print()
+        # print('*'*100)
+        # print(self.inputs)
+        # print('*'*100)
         show_inputs(self)
 
     def get_dir(self):
@@ -137,41 +137,15 @@ class Commands(object):
         else:
             raise ValueError('No method for software %s' % self.soft.name)
 
-    # def fill_soft_io(self):
-    #     for i, j in itertools.product(*[['I', 'O'], ['d', 'f']]):
-    #         if self.io == set:
-    #             if self.sam not in self.soft.io:
-    #                 self.soft.io[self.sam] = {}
-    #             self.soft.io[self.sam][(i, j)] = self.outputs[
-    #                 'io'].get((i, j), self.io())
-    #         else:
-    #             for k, v in self.outputs['io'].get((i, j), self.io()).items():
-    #                 if (self.sam, k) not in self.soft.io:
-    #                     self.soft.io[(self.sam, k)] = {}
-    #                 self.soft.io[(self.sam, k)][(i, j)] = v
-
     def init_io(self, key):
         if key not in self.soft.io:
             self.soft.io[key] = {}
 
     def fill_soft_io(self):
         for i, j in itertools.product(*[['I', 'O'], ['d', 'f']]):
-            # print()
-            # print("self.outputs['io']")
-            # print(self.outputs['io'])
             for key, io in self.outputs['io'].get((i, j), {}).items():
                 self.init_io((self.sam, key))
                 self.soft.io[(self.sam, key)][(i, j)] = io
-                # else:
-                #     print(tech, io)
-                #     print(self.soft.io)
-                #     for k, v in io.items():
-                #         self.init_io((self.sam, k))
-                #         self.soft.io[(self.sam, k)][(i, j)] = v
-        # print()
-        # print("self.soft.io")
-        # print(self.soft.io)
-        # print(selfsoftio)
 
     def unpack_cmds(self):
         for tech, cmds in self.outputs['cmds'].items():
@@ -179,11 +153,6 @@ class Commands(object):
 
     def extract_data(self):
         if self.outputs.get('cmds'):
-            # REPLACED BY "self.unpack_cmds()":
-            # if self.soft.name in ['drep']:
-            #     self.cmds = self.outputs['cmds']
-            # else:
-            #     self.cmds[self.sam] = self.outputs['cmds']
             self.unpack_cmds()
             self.fill_soft_io()
         if self.soft.name in self.holistics:
@@ -250,7 +219,6 @@ class Commands(object):
                         (self.pool, group), []).append(cmd)
                 io_update(self, i_f=([fasta] + fastqs[sam]),
                           o_f=[bam_out, bam_out_bai])
-        print(sdfkvjjb)
 
     def prep_map__spades_prodigal(self):
         if 'prodigal' not in self.softs or 'mapping' not in self.softs:
