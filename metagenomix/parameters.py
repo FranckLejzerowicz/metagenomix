@@ -209,7 +209,7 @@ def check_binary(self, t, params, defaults, opt):
         isfile_or_isdir = isdir
     if opt in ['binary', 'trimmomatic', 'bowtie2', 'anicalculator']:
         message = 'Param "%s" for path to binary/executable' % opt
-        defaults['binary'] = '<Path to the %s binary>' % t
+        defaults[opt] = '<Path to the %s binary>' % t
         isfile_or_isdir = isfile
     if opt not in params:
         sys.exit('[%s] %s' % (t, message))
@@ -943,8 +943,6 @@ def check_drep(self, params, soft):
         'warn_sim': 0.98,
         'warn_aln': 0.25
     }
-    if 'anicalculator' not in params:
-        sys.exit('[checkm] Param "anicalculator" needed: path to binary folder')
     if 'S_algorithm' not in params:
         params['S_algorithm'] = ['fastANI', 'ANIn']
     ints = ['MASH_sketch', 'primary_chunksize']
@@ -954,6 +952,7 @@ def check_drep(self, params, soft):
     check_default(
         self, params, defaults, soft.name, (ints + flts), ['S_algorithm'])
     check_binary(self, soft.name, params, defaults, 'anicalculator')
+
     return defaults
 
 
