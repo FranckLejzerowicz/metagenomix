@@ -88,7 +88,8 @@ def plasforest(self) -> None:
             tech_group = '_'.join([tech, group])
             cmd = plasforest_cmd(self, out_dir, out_fp, spades_outs[1])
             self.outputs['cmds'].setdefault(tech_group, []).append(cmd)
-            io_update(self, i_f=spades_outs[1], o_f=out_fp, key=tech_group)
+            io_update(self, i_f=spades_outs[1], i_d=out_dir,
+                      o_f=out_fp, key=tech_group)
 
 
 def plasmidfinder_cmd(
