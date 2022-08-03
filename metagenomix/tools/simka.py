@@ -6,7 +6,6 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-import glob
 import pkg_resources
 from os.path import isdir
 
@@ -36,14 +35,17 @@ def get_simka_input(
     -------
     cmd : str
         Command to create the inputs file
+    inputs : list
+        Path(s) to the input fastq files
     out : str
         Path to the file to write
     """
     out = '%s/%s/samples_files.txt' % (self.dir, tech)
     cmd = ''
+    inputs = []
     for sdx, sam in enumerate(self.inputs):
         fs = self.inputs[sam][(tech, sam)]
-        io_update(self, i_f=fs, key=tech)
+        inputs.extend(fs)
         if not fs:
             continue
         if sdx:
@@ -53,11 +55,17 @@ def get_simka_input(
     if cmd:
         cmd += 'envsubst < %s > %s.tmp\n' % (out, out)
         cmd += 'mv %s.tmp %s\n' % (out, out)
-    return cmd, out
+    return cmd, inputs, out
 
 
-def simka_cmd(self, params: dict, sim_in: str, out_dir: str,
-              k: int, n: int) -> str:
+def simka_cmd(
+        self,
+        params: dict,
+        sim_in: str,
+        out_dir: str,
+        k: int,
+        n: int
+) -> str:
     """
 
     Parameters
@@ -88,8 +96,6 @@ def simka_cmd(self, params: dict, sim_in: str, out_dir: str,
         cmd = 'rm -rf %s/simkamin\n' % out_dir
     if params['simkaMin']:
         if not self.config.force:
-            print(to_do('%s/mat_abundance_braycurtis.csv' % out_dir))
-            print(to_do('%s/mat_abundance_braycurtis.csv.gz' % out_dir))
             if not to_do('%s/mat_abundance_braycurtis.csv' % out_dir):
                 return ''
             elif not to_do('%s/mat_abundance_braycurtis.csv.gz' % out_dir):
@@ -100,8 +106,13 @@ def simka_cmd(self, params: dict, sim_in: str, out_dir: str,
     return cmd
 
 
-def simka_min_cmd(params: dict, sim_in: str, out_dir: str,
-                  k: int, n: str) -> str:
+def simka_min_cmd(
+        params: dict,
+        sim_in: str,
+        out_dir: str,
+        k: int,
+        n: str
+) -> str:
     """Write the Simka command for the SimkaMin algorithm.
 
     Parameters
@@ -144,7 +155,12 @@ def simka_min_cmd(params: dict, sim_in: str, out_dir: str,
 
 
 def simka_base_cmd(
-        params: dict, sim_in: str, out_dir: str, k: int, n: str) -> str:
+        params: dict,
+        sim_in: str,
+        out_dir: str,
+        k: int,
+        n: str
+) -> str:
     """Write the Simka command for the Simka base algorithm.
 
     Parameters
@@ -182,69 +198,72 @@ def simka_base_cmd(
     return cmd
 
 
-def simka_pcoa_cmd(mat: str, config) -> str:
+def simka_pcoa_cmd(self, mat: str) -> str:
     """Write the Simka command for the pcoa based on the distance matrices.
 
     Parameters
     ----------
     mat : str
-        Path to the input matrix.
-    config
-        Configurations
+        Distance matrix
 
     Returns
     -------
     cmd : str
         Simka command line.
     """
-    cmd = ''
-    if not config.force and 'sym' in mat:
-        return cmd
-    if mat.endswith('gz'):
-        mat_fp = mat.replace('.csv.gz', '.csv')
-        if to_do(mat_fp):
-            cmd += 'gunzip %s\n' % mat
-    else:
-        mat_fp = mat
+    sym_cmd = ''
+    mat_o = '%s_sym.tsv' % mat.split('.csv')[0]
+    if self.config.force or to_do(mat_o):
+        if mat.endswith('gz'):
+            mat_fp = mat.replace('.csv.gz', '.csv')
+            if to_do(mat_fp):
+                sym_cmd += 'gunzip %s\n' % mat
+        else:
+            mat_fp = mat
+        sym_cmd += '%s/symmetrize_simka_matrix.py' % RESOURCES
+        sym_cmd += ' -i %s\n' % mat_fp
 
-    mat_o = mat_fp.replace('.csv', '_sym.tsv')
-    if config.force or to_do(mat_o):
-        cmd += 'python %s/symmetrize_simka_matrix.py' % RESOURCES
-        cmd += ' -i %s\n' % mat_fp
-
+    imp_cmd = ''
     mat_dm = mat_o.replace('.tsv', '_dm.qza')
-    if config.force or to_do(mat_dm):
-        cmd += 'qiime tools import'
-        cmd += ' --input-path %s' % mat_o
-        cmd += ' --output-path %s' % mat_dm
-        cmd += ' --type DistanceMatrix\n'
+    if self.config.force or to_do(mat_dm):
+        imp_cmd += 'qiime tools import'
+        imp_cmd += ' --input-path %s' % mat_o
+        imp_cmd += ' --output-path %s' % mat_dm
+        imp_cmd += ' --type DistanceMatrix\n'
 
+    ordi_cmd = ''
+    exp_cmd = ''
+    emp_cmd = ''
     for ordi in ['pcoa', 'tsne']:
         ordi_fp = mat_dm.replace('.qza', '_%s.qza' % ordi)
-        if config.force or to_do(ordi_fp):
-            cmd += 'qiime diversity %s' % ordi
-            cmd += ' --i-distance-matrix %s' % mat_dm
-            cmd += ' --o-%s %s' % (ordi, ordi_fp)
+        if self.config.force or to_do(ordi_fp):
+            ordi_cmd += 'qiime diversity %s' % ordi
+            ordi_cmd += ' --i-distance-matrix %s' % mat_dm
+            ordi_cmd += ' --o-%s %s' % (ordi, ordi_fp)
             if ordi == 'tsne':
-                cmd += ' --p-perplexity 25'
-                cmd += ' --p-early-exaggeration 10'
-                cmd += ' --p-learning-rate 200\n'
+                ordi_cmd += ' --p-perplexity 25'
+                ordi_cmd += ' --p-early-exaggeration 10'
+                ordi_cmd += ' --p-learning-rate 200\n'
 
-        mat_ordi_dir = ordi_fp.replace('.qza', '')
-        mat_ordi_txt = ordi_fp.replace('.qza', '.txt')
-        if config.force or to_do(mat_ordi_txt):
-            cmd += 'qiime tools export'
-            cmd += ' --input-path %s' % ordi_fp
-            cmd += ' --output-path %s\n' % mat_ordi_dir
-            cmd += 'mv %s/ordination.txt %s\n' % (mat_ordi_dir, mat_ordi_txt)
-            cmd += 'rm -rf %s\n' % mat_ordi_dir
+        ordi_dir = ordi_fp.replace('.qza', '')
+        ordi_txt = ordi_fp.replace('.qza', '.txt')
+        if self.config.force or to_do(ordi_txt):
+            exp_cmd += 'qiime tools export'
+            exp_cmd += ' --input-path %s' % ordi_fp
+            exp_cmd += ' --output-path %s\n' % ordi_dir
+            exp_cmd += 'mv %s/ordination.txt %s\n' % (ordi_dir, ordi_txt)
+            exp_cmd += 'rm -rf %s\n' % ordi_dir
 
         emp_fp = ordi_fp.replace('.qza', '_emp.qzv')
-        if config.force or to_do(emp_fp):
-            cmd += 'qiime emperor plot'
-            cmd += ' --i-pcoa %s' % ordi_fp
-            cmd += ' --m-metadata-file %s' % config.meta_fp
-            cmd += ' --o-visualization %s' % emp_fp
+        if self.config.force or to_do(emp_fp):
+            emp_cmd += 'qiime emperor plot'
+            emp_cmd += ' --i-pcoa %s' % ordi_fp
+            emp_cmd += ' --m-metadata-file %s' % self.config.meta_fp
+            emp_cmd += ' --o-visualization %s' % emp_fp
+
+    cmd = ''
+    if emp_cmd:
+        cmd = sym_cmd + imp_cmd + ordi_cmd + exp_cmd + emp_cmd
     return cmd
 
 
@@ -267,26 +286,22 @@ def simka(self) -> None:
     """
     for tech in self.config.techs:
         params = tech_params(self, tech)
-        input_cmd, input_file = get_simka_input(self, tech)
+        input_cmd, input_fastqs, input_file = get_simka_input(self, tech)
         for k in map(int, params['kmer']):
             for n in map(int, params['log_reads']):
                 out_dir = '%s/%s/k%s/n%s' % (self.dir, tech, k, n)
-                dm = '%s/mat_abundance_braycurtis.csv' % out_dir
-                gz = dm + '.gz'
-
                 cmd = simka_cmd(self, params, input_file, out_dir, k, n)
                 if cmd:
                     cmd = input_cmd + cmd
                     self.outputs['dirs'].append(out_dir)
                     self.outputs['cmds'].setdefault(tech, []).append(cmd)
-                    io_update(self, o_d=out_dir, key=tech)
+                    io_update(self, i_f=input_fastqs, o_d=out_dir, key=tech)
                 else:
-                    print(iwdfjboj)
                     io_update(self, i_d=out_dir, key=tech)
 
-
-                for mdx, mat in enumerate(glob.glob('%s/mat_*.csv*' % out_dir)):
-                    cmd = simka_pcoa_cmd(mat, self.config)
+                for met in ['abundance_braycurtis', 'presenceAbsence_jaccard']:
+                    mat = '%s/mat_%s.csv.gz' % (out_dir, met)
+                    cmd = simka_pcoa_cmd(self, mat)
                     if cmd:
                         self.outputs['cmds'].setdefault(tech, []).append(cmd)
                         io_update(self, o_d=out_dir, key=tech)
