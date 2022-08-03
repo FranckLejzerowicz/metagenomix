@@ -1196,7 +1196,7 @@ def check_macsyfinder(self, params, soft):
     defaults = {
         'db_type': ['unordered', 'ordered_replicon', 'gembase'],
         'replicon_topology': ['linear', 'circular'],
-        'models': ['TXSS', 'TFF-SF', 'CAS'],
+        'models': ['TXSS', 'TFF-SF', 'Conjugation'],
         'e_value_search': 0.1,
         'i_evalue_sel': 0.001,
         'coverage_profile': 0.5,
