@@ -43,6 +43,7 @@ def get_simka_input(
     cmd = ''
     for sdx, sam in enumerate(self.inputs):
         fs = self.inputs[sam][(tech, sam)]
+        io_update(self, i_f=fs, key=tech)
         if not fs:
             continue
         if sdx:
