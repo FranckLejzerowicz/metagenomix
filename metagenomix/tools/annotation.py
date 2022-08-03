@@ -8,11 +8,14 @@
 
 import glob
 import sys
+import pkg_resources
 
 from os.path import basename, dirname, splitext
 from metagenomix._io_utils import (caller, get_out_dir, write_hmms,
                                    io_update, to_do, get_genomes_fastas)
 from metagenomix.parameters import tech_params
+
+RESOURCES = pkg_resources.resource_filename("metagenomix", "resources")
 
 
 def get_input(
@@ -244,7 +247,8 @@ def macsyfinder_cmd(
     params = tech_params(self, tech)
     if tech in ['illumina', 'pacbio', 'nanopore']:
         input_fp = '%s_edit.fasta' % fp.replace('.fasta', '')
-        cmd += 'header_space_replace.py -i %s -o %s --n\n' % (fp, input_fp)
+        cmd += '%s/header_space_replace.py -i %s -o %s --n\n' % (
+            RESOURCES, fp, input_fp)
 
     outs = []
     for model in params['models']:
