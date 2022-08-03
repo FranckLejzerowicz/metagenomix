@@ -133,11 +133,13 @@ class CreateScripts(object):
                 if stat != 'Done':
                     print('\t-> %s' % stat)
         else:
-            print()
+            print(' -> %s per-sample/co-assembly to run' % (len(soft.cmds)))
 
     def software_cmds(self, commands):
+        m = max(len(x) for x in commands.softs)
         for sdx, (name, soft) in enumerate(commands.softs.items()):
-            print('[Writing commands] #%s: %s' % (sdx, name), end=' ')
+            gap = (m - len(name) - len(str(sdx)))
+            print('%s [%s]%s\t' % (sdx, name, (' ' * gap)), end=' ')
             self.print_status(soft)
             if not len(soft.cmds):
                 continue
