@@ -96,13 +96,10 @@ def simka_cmd(
         cmd = 'rm -rf %s/simkamin\n' % out_dir
     if params['simkaMin']:
         if not self.config.force:
-            print(1)
             if not to_do('%s/mat_abundance_braycurtis.csv' % out_dir):
                 return ''
-            if not to_do('%s/mat_abundance_braycurtis.csv.gz' % out_dir):
+            elif not to_do('%s/mat_abundance_braycurtis.csv.gz' % out_dir):
                 return ''
-            print(8, out_dir)
-        print(3)
         cmd += simka_min_cmd(params, sim_in, out_dir, k, str(n))
     else:
         cmd += simka_base_cmd(params, sim_in, out_dir, k, str(n))
@@ -299,8 +296,6 @@ def simka(self) -> None:
                 out_dir = '%s/%s/k%s/n%s' % (self.dir, tech, k, n)
                 cmd = simka_cmd(self, params, input_file, out_dir, k, n)
                 if cmd:
-                    print(cmd)
-                    print(cmdfd)
                     cmd = input_cmd + cmd
                     self.outputs['dirs'].append(out_dir)
                     self.outputs['cmds'].setdefault(tech, []).append(cmd)
