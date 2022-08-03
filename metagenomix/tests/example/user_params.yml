@@ -1,6 +1,6 @@
-# --------------- count -----------------
-count:
-  cat: zcat
+# """""""""""""""""""""""""""""""""""
+# ALL PARAMS MUST NOT CONTAIN HYPHENS
+# """""""""""""""""""""""""""""""""""
 
 # --------------- simka -----------------
 simka:
@@ -13,15 +13,22 @@ simka:
     start: 4
     end: 7
     size: 3
-  mem_num: 10
+  mem: 10
   mem_dim: gb
   simkaMin: yes
   scratch: 9
 
+fastp:
+  cut_window_size:
+    illumina: 10
+    nanopore: 100
+
 # --------------- humann -----------------
 humann:
   evalue: 0.1
-  identity: 90
+  identity:
+    illumina: 90
+    nanopore: 98
   uniref: uniref90
   query_cov: 80
   subject_cov: 80
@@ -30,7 +37,7 @@ humann:
   nucleotide_db: /path/to/full_chocophlan.v0.1.1/chocophlan
   protein_db: /path/to/uniref90/uniref
   profiles:
-    cla: cla_profile_rep82_7_filt.txt
+    somename: somename_taxa_to_profile.txt
 
 # --------------- flash ------------------
 flash:
@@ -47,11 +54,10 @@ search:
     - tara_mags
     - oceandna
   diamond:
-    k: 10
-    top: 2
+    max_target_seqs: 10
     evalue: 0.001
-    identity: 100
-    query_cov: 80
+    id: 90
+    query_cover: 80
     mode: no
   hmmer:
     Z: 10
@@ -61,15 +67,20 @@ search:
     max: yes
     nobias: yes
     terms:
-#      - metal
-#      - antibiotic
-      - fdshv
-      - fdshvfds
+      - metal
+      - antibiotic
   cpus: 4
 
 # --------------- ioncom -----------------
 ioncom:
   itasser_path: /Users/franck/programs/I-TASSER5.1
+
+# -------------- checkm -----------------
+checkm:
+#  coverage: true
+  data: /cluster/shared/biobases/classification_dbs/checkm_data_2015_01_16
+  min_seq_len: 1000
+  all_reads: false
 
 # --------------- metawrap -----------------
 metawrap:
@@ -90,17 +101,25 @@ metawrap:
 # --------------- metawrap_specific -----------------
 metawrap_blobology:
   env: metawrap-env
-  mem_num: 50
+  mem: 50
   mem_dim: gb
-  chunks: 12
+  chunks: 5
   scratch: scratch
 
 # --------------- kraken2 -----------------
 kraken2:
-  confidence: 0.5
+  confidence: 0.8
   databases:
     - default
     - wol
+
+# --------------- kneaddata -----------------
+kneaddata:
+  trimmomatic: '/some/path/to/trimmomatic'
+  databases:
+    - /databases/bowtie/Homo_sapiens_Bowtie2_v0.1/Homo_sapiens
+    - /databases/bowtie/phiX/phix
+    - /home/flejzerowicz/databases/SILVA_128/SILVA_128_LSUParc_SSUParc_ribosomal_RNA
 
 # --------------- shogun -----------------
 shogun:
@@ -112,7 +131,7 @@ shogun:
     - wol
     - nope
   env: shogun
-  mem_num: 50
+  mem: 50
   mem_dim: gb
   chunks: 6
   scratch: scratch
@@ -126,18 +145,10 @@ bowtie2:
     - nope
   discordant: no
   pairing: paired
-#  pairing: concat
-#  pairing: single
-  k: 16
-  np: 1
-  mp: 1,1
-  rdg: 0,1
-  rfg: 0,1
-  score-min: L,0,-0.05
 
 # --------------- woltka -----------------
-#woltka:
-#  scratch: 10
+woltka:
+  scratch: 10
 
 # --------------- spades -----------------
 spades:
@@ -147,8 +158,44 @@ spades:
     - 3
   meta: yes
   only_assembler: yes
-  mem_num: 20
+  mem: 20
   mem_dim: gb
+  hybrid:
+    - illumina
+    - pacbio
+  continue: true
+
+# --------------- spades_bio -----------------
+spades_bio:
+  k:
+    - 100
+    - 200
+    - 300
+  meta: no
+  only_assembler: yes
+  mem: 100
+  mem_dim: gb
+  chunks: 1
+
+# --------------- spades_metaviral -----------------
+spades_metaviral:
+  k:
+    - 2200
+    - 3300
+    - 4400
+  meta: yes
+  mem: 55
+  mem_dim: gb
+
+# --------------- spades_plasmid -----------------
+spades_plasmid:
+  k:
+    - 22
+    - 33
+    - 44
+  meta: yes
+  mem: 999
+  mem_dim: mb
 
 # --------------- metamarker -----------------
 metamarker:
@@ -157,7 +204,7 @@ metamarker:
 
 # --------------- prodigal -----------------
 prodigal:
-  procedure: meta
+  p: meta
 
 # --------------- midas -----------------
 midas:
@@ -168,13 +215,10 @@ midas:
     prokaryotes: /path/to/prokaryotes_species_list.txt
     chemosynths: /path/to/chemosynths_species_list.txt
 
-# --------------- macsyfinder -----------------
-macsyfinder:
-  env: macsyfinder
-
 # --------------- woltka -----------------
 strainphlan:
   env: phlans
+
 # --------------- atropos -----------------
 atropos:
   env: shogun
@@ -183,21 +227,13 @@ atropos:
 integron_finder:
   pdf: false
   union_integrases: true
-  env: metagenomics
-
-# --------------- kneaddata -----------------
-kneaddata:
-  trimmomatic: '/some/path/to/trimmomatic'
-  databases:
-    - /databases/bowtie/Homo_sapiens_Bowtie2_v0.1/Homo_sapiens
-    - /databases/bowtie/phiX/phix
-    - /home/flejzerowicz/databases/SILVA_128/SILVA_128_LSUParc_SSUParc_ribosomal_RNA
 
 # --------------- filtering -----------------
 filtering:
   databases:
-   - /databases/bowtie/Homo_sapiens_Bowtie2_v0.1/Homo_sapiens
-   - /databases/bowtie/Pan_troglodites_Bowtie2_v0.1/Pan_troglodites
+    Homo_sapiens: /databases/bowtie/Homo_sapiens_Bowtie2_v0.1/Homo_sapiens
+    Pan_troglodites: /databases/bowtie/Pan_troglodites_Bowtie2_v0.1/Pan_troglodites
+
 
 # --------------- quast -----------------
 quast:
@@ -221,4 +257,53 @@ cazy:
 
 # -------------- metaxa2 -----------------
 metaxa2:
+  databases:
+    - default
+    - silva138
   T: 0,50,60,70,80,95,98
+
+# -------------- drep -----------------
+drep:
+  anicalculator: /path/to/my/dbcan/taxa/groups/a.txt
+  S_algorithm:
+    - ANIn
+    - fastANI
+  primary_chunksize: 1000
+  run_tertiary_clustering: true
+  greedy_secondary_clustering: true
+
+# -------------- checkm2 -----------------
+checkm2:
+  path: /cluster/projects/nn8075k/softwares/checkm2/bin/checkm2
+
+# -------------- plasmidfinder ------------------
+plasmidfinder:
+  binary: /a/path
+  kma: /a/path
+  databasePath: /a/path
+
+# -------------- plasforest ------------------
+plasforest:
+  binary: /a/path
+
+# -------------- unicycler -------------------
+unicycler:
+  pilon_path: 'java -Xmx8G -jar $EBROOTPILON/pilon.jar'
+  hybrid: pacbio
+
+# -------------- unicycler -------------------
+canu:
+  pilon_path: 'java -Xmx8G -jar $EBROOTPILON/pilon.jar'
+  method: illumina
+
+# -------------- necat ---------------
+necat:
+  path: /path/to/necat/dir
+
+# -------------- ngmerge ---------------
+ngmerge:
+  path: /path/to/ngmerge/dir
+
+# -------------- deeparg ---------------
+deeparg:
+  database: /some/database/path

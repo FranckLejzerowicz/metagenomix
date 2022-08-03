@@ -1,7 +1,7 @@
 light_coassemble:
   light:
   - - low
-  - - medium
+    - medium
     - high
 depth_coassemble:
   depth:

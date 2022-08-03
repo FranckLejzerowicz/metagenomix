@@ -22,3 +22,7 @@ filtering:
   - Bowtie2/2.4.1-GCC-9.3.0
 quast:
   - QUAST/5.0.2-foss-2018b-Python-2.7.15
+coconet:
+  - GCC/11.2.0
+canu:
+  - canu/2.2-GCCcore-10.3.0
