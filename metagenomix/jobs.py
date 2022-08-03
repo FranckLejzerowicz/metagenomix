@@ -131,7 +131,7 @@ class CreateScripts(object):
             print()
             for stat in soft.status:
                 if stat != 'Done':
-                    print('\t-> %s' % stat)
+                    print('\t\t-> %s' % stat)
         else:
             print(' -> %s per-sample/co-assembly to run' % (len(soft.cmds)))
 
