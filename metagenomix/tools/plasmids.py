@@ -8,7 +8,7 @@
 
 import glob
 import sys
-from os.path import basename
+from os.path import basename, dirname
 from metagenomix._io_utils import io_update, to_do
 
 
@@ -34,7 +34,10 @@ def plasforest_cmd(
     cmd : str
         plasforest command
     """
-    cmd = 'python3 %s' % self.soft.params['binary']
+    binary = self.soft.params['binary']
+    cmd = 'cp %s/plasforest.sav plasforest.sav\n' % dirname(binary)
+    cmd += 'cp %s/*.fasta* .\n' % dirname(binary)
+    cmd += 'python3 %s' % binary
     cmd += ' -i %s' % in_fp
     cmd += ' -o %s' % out_fp
     if self.soft.params['size_of_batch']:
@@ -79,7 +82,7 @@ def plasforest(self) -> None:
             tech_group = '_'.join([tech, group])
             cmd = plasforest_cmd(self, out_fp, spades_outs[1])
             self.outputs['cmds'].setdefault(tech_group, []).append(cmd)
-            io_update(self, i_f=spades_outs[1], o_d=out_dir, key=tech_group)
+            io_update(self, i_f=spades_outs[1], o_f=out_fp, key=tech_group)
 
 
 def plasmidfinder_cmd(
