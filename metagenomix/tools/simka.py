@@ -88,6 +88,9 @@ def simka_cmd(self, params: dict, sim_in: str, out_dir: str,
         cmd = 'rm -rf %s/simkamin\n' % out_dir
     if params['simkaMin']:
         if not self.config.force:
+            print(to_do('%s/mat_abundance_braycurtis.csv' % out_dir))
+            print(to_do('%s/mat_abundance_braycurtis.csv.gz' % out_dir))
+            print(sdkfjb)
             if not to_do('%s/mat_abundance_braycurtis.csv' % out_dir):
                 return ''
             elif not to_do('%s/mat_abundance_braycurtis.csv.gz' % out_dir):
@@ -280,6 +283,7 @@ def simka(self) -> None:
                     io_update(self, o_d=out_dir, key=tech)
                 else:
                     io_update(self, i_d=out_dir, key=tech)
+
 
                 for mdx, mat in enumerate(glob.glob('%s/mat_*.csv*' % out_dir)):
                     cmd = simka_pcoa_cmd(mat, self.config)
