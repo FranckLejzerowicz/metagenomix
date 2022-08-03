@@ -150,7 +150,7 @@ def coconet(self) -> None:
 
         log_fp = '%s/coconet.log' % out_dir
         if self.config.force or to_do(log_fp):
-            cmd = coconet_cmd(self, inputs, bam, out_dir)
+            cmd = coconet_cmd(self, inputs[1], bam, out_dir)
             self.outputs['cmds'].setdefault(group, []).append(cmd)
             io_update(self, i_f=inputs[1], o_d=out_dir, key=group)
 
