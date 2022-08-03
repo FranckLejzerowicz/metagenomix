@@ -99,11 +99,9 @@ def simka_cmd(
             print(1)
             if not to_do('%s/mat_abundance_braycurtis.csv' % out_dir):
                 return ''
-            elif not to_do('%s/mat_abundance_braycurtis.csv.gz' % out_dir):
-                print(2)
+            if not to_do('%s/mat_abundance_braycurtis.csv.gz' % out_dir):
                 return ''
-            else:
-                print(8)
+            print(8, out_dir)
         print(3)
         cmd += simka_min_cmd(params, sim_in, out_dir, k, str(n))
     else:
