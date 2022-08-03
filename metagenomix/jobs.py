@@ -147,7 +147,7 @@ class CreateScripts(object):
             self.write_jobs(name, soft)
             self.write_main(name, soft)
             paths = self.graph.paths[soft.name]
-            print('PATH:', paths)
+            # print('PATH:', paths)
 
     def get_sh(self, name: str, chunk_name: str, soft=None) -> None:
         """
