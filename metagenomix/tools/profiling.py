@@ -700,7 +700,7 @@ def shogun(self) -> None:
         params = tech_params(self, tech)
         combine_cmds, ali_cmds = [], []
 
-        out = '%s/%s/%s' % (self.dir, tech, self.sam)
+        out = '/'.join([self.dir, tech, self.sam])
         self.outputs['dirs'].append(out)
         io_update(self, o_d=out, key=tech)
 
@@ -789,7 +789,7 @@ def woltka_write_map(
         Path to the output woltka samples file.
     """
 
-    out_dir = '%s/%s/%s/%s' % (self.dir, tech, aligner, pairing)
+    out_dir = '/'.join([self.dir, tech, aligner, pairing])
     self.outputs['dirs'].append(out_dir)
 
     cmd = ''
@@ -842,7 +842,7 @@ def woltka_tax_cmd(
         Path to the folder containing the taxonomic maps.
     """
     tech_aligner = tech + '_' + aligner
-    out = '%s/%s/%s/%s' % (self.dir, tech, aligner, pairing)
+    out = '/'.join([self.dir, tech, aligner, pairing])
     tax_out, tax_outmap = '%s/taxa' % out, '%s/taxmap' % out
     tax_outputs = ['phylum', 'family', 'genus', 'species', 'none']
     tax_to_do = []
@@ -1002,7 +1002,7 @@ def woltka_genes(
     """
     tech_aligner = tech + '_' + aligner
     coords = '%s/proteins/coords.txt.xz' % database
-    out_dir = '%s/%s/%s/%s' % (self.dir, tech, aligner, pairing)
+    out_dir = '/'.join([self.dir, tech, aligner, pairing])
     genes = '%s/genes.biom' % out_dir
     if to_do(genes):
         cmd = '\n# per gene\n'
@@ -1077,7 +1077,7 @@ def woltka_uniref(
     tech_aligner = tech + '_' + aligner
     uniref_map = '%s/function/uniref/uniref.map.xz' % database
     uniref_names = '%s/function/uniref/uniref.name.xz' % database
-    out_dir = '%s/%s/%s/%s' % (self.dir, tech, aligner, pairing)
+    out_dir = '/'.join([self.dir, tech, aligner, pairing])
     uniref = '%s/uniref.biom' % out_dir
     if to_do(uniref):
         cmd = '\n# uniref\n'
@@ -1146,7 +1146,7 @@ def woltka_eggnog(
         WOL database path
     """
     tech_aligner = tech + '_' + aligner
-    out_dir = '%s/%s/%s/%s' % (self.dir, tech, aligner, pairing)
+    out_dir = '/'.join([self.dir, tech, aligner, pairing])
     biom = '%s/eggnog/eggnog.biom' % out_dir
     if to_do(biom):
         cmd = 'woltka tools collapse'
@@ -1224,7 +1224,7 @@ def woltka_cazy(
     """
     tech_aligner = tech + '_' + aligner
     cazy_map = '%s/function/cazy/3tools.txt' % database
-    out_dir = '%s/%s/%s/%s' % (self.dir, tech, aligner, pairing)
+    out_dir = '/'.join([self.dir, tech, aligner, pairing])
     biom = '%s/cazy/cazy.biom' % out_dir
     if to_do(biom):
         cmd = 'woltka tools collapse'
@@ -1311,7 +1311,7 @@ def woltka_metacyc(
     files = {}
     files_tax = {}
     tech_aligner = tech + '_' + aligner
-    out_dir = '%s/%s/%s/%s' % (self.dir, tech, aligner, pairing)
+    out_dir = '/'.join([self.dir, tech, aligner, pairing])
     woltka_fun_out = '%s/metacyc' % out_dir
     io_update(self, o_d=woltka_fun_out, key=tech_aligner)
     cmd = ''
@@ -1459,7 +1459,7 @@ def woltka_kegg(
     cmd = ''
     files = []
     tech_aligner = tech + '_' + aligner
-    out_dir = '%s/%s/%s/%s' % (self.dir, tech, aligner, pairing)
+    out_dir = '/'.join([self.dir, tech, aligner, pairing])
     kegg_maps = '%s/kegg_queried' % out_dir
     for (level, name, maps, prev) in ko_names_maps:
         if maps:
@@ -1860,7 +1860,7 @@ def midas(self) -> None:
             continue
         params = tech_params(self, tech)
         for focus, species_list in params['focus'].items():
-            focus_dir = '%s/%s/%s' % (self.dir, focus, self.sam)
+            focus_dir = '/'.join([self.dir, tech, focus, self.sam])
             midas_species(self, tech, inputs, focus_dir, 'species')
             select = set(get_species_select(self, species_list))
             genes = '%s/genes' % focus_dir
@@ -2015,7 +2015,7 @@ def kraken2(self) -> None:
             continue
         params = tech_params(self, tech)
         for db in params['databases']:
-            out = '%s/%s/%s/%s' % (self.dir, tech, self.sam, db)
+            out = '/'.join([self.dir, tech, self.sam, db])
             self.outputs['dirs'].append(out)
             if self.config.force or to_do('%s/result.tsv' % out):
                 db_path = get_kraken2_db(self, db)
@@ -2146,7 +2146,7 @@ def bracken(self) -> None:
         params = tech_params(self, tech)
         for (k2, db) in inputs:
             db_path = get_bracken_db(self, db, params['read_len'])
-            out_dir = '%s/%s/%s/%s' % (self.dir, tech, self.sam, db)
+            out_dir = '/'.join([self.dir, tech, self.sam, db])
             self.outputs['dirs'].append(out_dir)
             if self.config.force or to_do('%s/results.tsv' % out_dir):
                 report = '%s/report.tsv' % k2
