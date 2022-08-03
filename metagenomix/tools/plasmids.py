@@ -14,6 +14,7 @@ from metagenomix._io_utils import io_update, to_do
 
 def plasforest_cmd(
         self,
+        out_dir: str,
         out_fp: str,
         in_fp: str
 ) -> str:
@@ -24,6 +25,8 @@ def plasforest_cmd(
     self : Commands class instance
         .soft.params
             Parameters
+    out_dir : str
+        Path to the output folder
     out_fp : str
         Path to the output file
     in_fp : str
@@ -35,8 +38,9 @@ def plasforest_cmd(
         plasforest command
     """
     binary = self.soft.params['binary']
-    cmd = 'cp %s/plasforest.sav plasforest.sav\n' % dirname(binary)
-    cmd += 'cp %s/*.fasta* .\n' % dirname(binary)
+    cmd = 'cd %s\n' % out_dir
+    cmd += 'cp %s/plasforest.sav %s/.\n' % (dirname(binary), out_dir)
+    cmd += 'cp %s/*.fasta* %s/.\n' % (dirname(binary), out_dir)
     cmd += 'python3 %s' % binary
     cmd += ' -i %s' % in_fp
     cmd += ' -o %s' % out_fp
@@ -46,6 +50,8 @@ def plasforest_cmd(
     for boolean in ['b', 'f', 'r']:
         if self.soft.params[boolean]:
             cmd += ' -%s' % boolean
+    cmd += '\nrm %s/plasforest.sav\n' % out_dir
+    cmd += 'rm %s/*.fasta*\n' % out_dir
     return cmd
 
 
@@ -80,7 +86,7 @@ def plasforest(self) -> None:
 
         if self.config.force or to_do(out_fp):
             tech_group = '_'.join([tech, group])
-            cmd = plasforest_cmd(self, out_fp, spades_outs[1])
+            cmd = plasforest_cmd(self, out_dir, out_fp, spades_outs[1])
             self.outputs['cmds'].setdefault(tech_group, []).append(cmd)
             io_update(self, i_f=spades_outs[1], o_f=out_fp, key=tech_group)
 
