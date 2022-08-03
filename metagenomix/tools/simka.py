@@ -296,10 +296,11 @@ def simka(self) -> None:
                 out_dir = '%s/%s/k%s/n%s' % (self.dir, tech, k, n)
                 cmd = simka_cmd(self, params, input_file, out_dir, k, n)
                 if cmd:
+                    print(cmd)
+                    print(cmdfd)
                     cmd = input_cmd + cmd
                     self.outputs['dirs'].append(out_dir)
                     self.outputs['cmds'].setdefault(tech, []).append(cmd)
-                    print(kskdjb)
                     io_update(self, i_f=input_fastqs, o_d=out_dir, key=tech)
                 else:
                     io_update(self, i_d=out_dir, key=tech)
