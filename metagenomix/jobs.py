@@ -124,7 +124,7 @@ class CreateScripts(object):
                 sys.exit('The collected commands are neither list of dict!')
 
     @staticmethod
-    def print_status(soft):
+    def show_status(soft):
         if soft.status == {'Done'}:
             print('-> Done')
         elif len(soft.status):
@@ -135,12 +135,15 @@ class CreateScripts(object):
         else:
             print(' -> %s per-sample/co-assembly to run' % (len(soft.cmds)))
 
+    def print_status(self, m, sdx, name, soft):
+        gap = (m - len(name) - len(str(sdx)))
+        print('%s [%s]%s\t' % (sdx, name, (' ' * gap)), end=' ')
+        self.show_status(soft)
+
     def software_cmds(self, commands):
         m = max(len(x) for x in commands.softs)
         for sdx, (name, soft) in enumerate(commands.softs.items()):
-            gap = (m - len(name) - len(str(sdx)))
-            print('%s [%s]%s\t' % (sdx, name, (' ' * gap)), end=' ')
-            self.print_status(soft)
+            self.print_status(m, sdx, name, soft)
             if not len(soft.cmds):
                 continue
             self.get_modules(name)
