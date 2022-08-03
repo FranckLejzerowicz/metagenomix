@@ -272,7 +272,7 @@ def classify_or_annotate_out(
     out : str
         Path to the output folder
     """
-    out = '%s/%s/%s/%s' % (self.dir, tech, self.pool, group)
+    out = '/'.join([self.dir, tech, self.pool, group])
     if 'permissive' in bin_dir:
         out += '/permissive'
     elif 'strict' in bin_dir:
@@ -518,7 +518,7 @@ def blobology(self):
         io_update(self, i_f=contigs, i_d=bins, key=tech_group)
         for mode in self.soft.params['blobology']:
             self.outputs['outs'][(tech, group)][mode] = {}
-            out = '%s/%s/%s/%s/%s' % (self.dir, tech, self.pool, group, mode)
+            out = '/'.join([self.dir, tech, self.pool, group, mode])
             sams_fastqs = get_sams_fastqs(mode, fastqs)
             for sam, fastq_fps in sams_fastqs.items():
                 if sam:
@@ -663,7 +663,7 @@ def reassemble(self):
                 print('[metawrap_reassemble] No illumina reads for %s' % sam)
                 continue
 
-            out = '%s/%s/%s/%s' % (self.dir, self.pool, group, sam)
+            out = '/'.join([self.dir, tech, self.pool, group, sam])
             self.outputs['dirs'].append(out)
 
             cmd = reassembly_cmd(self, fastq, bins, tech, group, out)
@@ -735,7 +735,7 @@ def refine(self):
     for (tech, group), inputs in self.inputs[self.pool].items():
         tech_group = '_'.join([tech, group])
 
-        out_dir = '%s/%s/%s/%s' % (self.dir, tech, self.pool, group)
+        out_dir = '/'.join([self.dir, tech, self.pool, group])
         self.outputs['dirs'].append(out_dir)
 
         bin_folders = inputs[:-1]
@@ -862,7 +862,7 @@ def binning(self):
             continue
 
         tmp = '$TMPDIR/mtwrp_%s_%s_%s' % (self.pool, tech, group)
-        out = '%s/%s/%s/%s' % (self.dir, tech, self.pool, group)
+        out = '/'.join([self.dir, tech, self.pool, group])
         self.outputs['dirs'].append(out)
 
         binned = {binner: '%s/%s_bins' % (out, binner)
