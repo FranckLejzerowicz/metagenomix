@@ -260,7 +260,6 @@ def simka(self) -> None:
     for tech in self.config.techs:
         params = tech_params(self, tech)
         input_cmd, input_file = get_simka_input(self, tech)
-        io_update(self, i_f=input_file, key=tech)
         for k in map(int, params['kmer']):
             for n in map(int, params['log_reads']):
                 out_d = '%s/%s/k%s/n%s' % (self.dir, tech, k, n)
