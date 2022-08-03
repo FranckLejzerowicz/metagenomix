@@ -263,15 +263,21 @@ def simka(self) -> None:
         input_cmd, input_file = get_simka_input(self, tech)
         for k in map(int, params['kmer']):
             for n in map(int, params['log_reads']):
-                out_d = '%s/%s/k%s/n%s' % (self.dir, tech, k, n)
-                cmd = simka_cmd(self, params, input_file, out_d, k, n)
+                out_dir = '%s/%s/k%s/n%s' % (self.dir, tech, k, n)
+                dm = '%s/mat_abundance_braycurtis.csv' % out_dir
+                gz = dm + '.gz'
+
+                cmd = simka_cmd(self, params, input_file, out_dir, k, n)
                 if cmd:
                     cmd = input_cmd + cmd
-                    self.outputs['dirs'].append(out_d)
+                    self.outputs['dirs'].append(out_dir)
                     self.outputs['cmds'].setdefault(tech, []).append(cmd)
-                    io_update(self, o_d=out_d, key=tech)
-                for mdx, mat in enumerate(glob.glob('%s/mat_*.csv*' % out_d)):
+                    io_update(self, o_d=out_dir, key=tech)
+                else:
+                    io_update(self, i_d=out_dir, key=tech)
+
+                for mdx, mat in enumerate(glob.glob('%s/mat_*.csv*' % out_dir)):
                     cmd = simka_pcoa_cmd(mat, self.config)
                     if cmd:
                         self.outputs['cmds'].setdefault(tech, []).append(cmd)
-                        io_update(self, o_d=out_d, key=tech)
+                        io_update(self, o_d=out_dir, key=tech)
