@@ -12,6 +12,35 @@ from os.path import dirname
 from metagenomix._io_utils import io_update, to_do
 
 
+def get_bin_folders(
+        self,
+        bin_paths: list
+) -> dict:
+    """Get the paths to the bin folder(s) per binning software/step key.
+
+    Parameters
+    ----------
+    self
+    bin_paths : list
+        Paths to the bin folder(s) of the current binning software/step
+
+    Returns
+    -------
+    bins : dict
+        Paths to the bin folder(s) per binning software/step key
+    """
+    bins = {}
+    if self.soft.prev == 'metawrap_refine':
+        bins['metawrap_refine_bins'] = bin_paths[1]
+    elif self.soft.prev == 'metawrap_reassemble':
+        bins = {}
+        for group_path in bin_paths:
+            bins['metawrap_%s' % group_path.split('/')[-1]] = group_path
+    else:
+        sys.exit('[drep] Not possible after "%s"' % self.soft.prev)
+    return bins
+
+
 def get_drep_bins(self) -> dict:
     """Get the genomes in an iterable format accommodating
     both the output of `metawrap_refine()` and of `metawrap_reassemble()`.
@@ -29,21 +58,15 @@ def get_drep_bins(self) -> dict:
     Returns
     -------
     genomes : nested dict
-        Path to folders with bins to dereplicate per pool and per stringency:
-        "stringent" or "permissive" for metaWRAP, empty for other/no binning
+        Path to folders with bins to dereplicate per technology and per binning:
+        "stringent" or "permissive" after reassembly, empty for others.
     """
     genomes = {}
-    for pool in self.pools:
-        for (tech, group), group_paths in self.inputs[self.pool].items():
-            genomes[(tech, pool)] = {}
-            if self.soft.prev == 'metawrap_refine':
-                genomes[(tech, pool)].setdefault('', []).append(group_paths[1])
-            elif self.soft.prev == 'metawrap_reassemble':
-                for pa in group_paths:
-                    stringency = pa.split('_')[-1]
-                    genomes[(tech, pool)].setdefault(stringency, []).append(pa)
-            else:
-                sys.exit('[drep] Not possible after "%s"' % self.soft.prev)
+    for (tech, group), bin_paths in self.inputs[self.pool].items():
+        genomes[tech] = {}
+        bins_folders = get_bin_folders(self, bin_paths)
+        for binning, bin_folder in bins_folders.items():
+            genomes[tech].setdefault(binning, []).append(bin_folder)
     return genomes
 
 
@@ -154,43 +177,8 @@ def drep_cmd(
     return cmd
 
 
-def get_drep_out(
-        self,
-        tech: str,
-        pool: str,
-        stringency: str,
-        algorithm: str
-) -> str:
-    """Get the the dRep output folder.
-
-    Parameters
-    ----------
-    self : Commands class instance
-        .dir : str
-            Path to pipeline output folder for unicycler
-    tech : str
-        Technology: 'illumina', 'pacbio', or 'nanopore'
-    pool : str
-        Co-assembly pool name
-    stringency : str
-        "stringent" or "permissive" for metaWRAP, or empty for other/no binning
-    algorithm : str
-        Alignment algorithm: 'fastANI', 'ANIn', 'ANImf', 'gANI', or 'goANI'
-
-    Returns
-    -------
-    drep_out : str
-        Path to the output folder
-    """
-    drep_out = '%s/%s/%s' % (self.dir, tech, pool)
-    if stringency:
-        drep_out += '/%s' % stringency
-    drep_out += '/%s' % algorithm
-    return drep_out
-
-
 def drep(self):
-    """Dereplicate the binned genomes to obtain MAGs across samples.
+    """Dereplicate the binned genomes to obtain MAGs across samples using dRep.
 
     Parameters
     ----------
@@ -198,7 +186,7 @@ def drep(self):
         .prev : str
             Previous software in the pipeline
         .dir : str
-            Path to pipeline output folder for unicycler
+            Path to pipeline output folder for dRep
         .pool : str
             Pool name.
         .inputs : dict
@@ -210,22 +198,22 @@ def drep(self):
         .config
             Configurations
     """
-    prev = self.soft.prev
     genomes = get_drep_bins(self)
-    for (tech, pool), pool_paths in genomes.items():
-        self.outputs['outs'][(tech, pool)] = {}
-        for stringency, paths in pool_paths.items():
-            for algorithm in self.soft.params['S_algorithm']:
+    for tech, pool_paths in genomes.items():
+        self.outputs['outs'][tech] = {}
+        for binning, paths in pool_paths.items():
+            for algo in self.soft.params['S_algorithm']:
 
-                drep_out = get_drep_out(self, tech, pool, stringency, algorithm)
+                drep_out = '/'.join([self.dir, tech, self.pool, binning, algo])
                 self.outputs['dirs'].append(drep_out)
 
                 dereps = '%s/dereplicated_genomes' % drep_out
-                mode = tuple([x for x in [stringency, algorithm] if x])
-                self.outputs['outs'][(tech, pool)][mode] = dereps
+                mode = tuple([binning, algo])
+                self.outputs['outs'][tech][mode] = dereps
                 cmd, drep_in, n_bins = get_drep_inputs(self, drep_out, paths)
                 if not n_bins:
-                    self.soft.status.add('Must run %s (%s)' % (prev, self.pool))
+                    self.soft.status.add('Must run %s (%s)' % (self.soft.prev,
+                                                               self.pool))
                     if self.config.dev:
                         n_bins = 30000
 
@@ -234,9 +222,9 @@ def drep(self):
                     self.soft.status.add('Done')
                     continue
 
-                key = '_'.join([tech, pool, stringency, algorithm])
+                key = '_'.join([tech, self.pool, binning, algo])
                 io_update(self, i_d=paths, o_d=drep_out, key=key)
-                cmd = drep_cmd(self, algorithm, drep_in, drep_out, n_bins, cmd)
+                cmd = drep_cmd(self, algo, drep_in, drep_out, n_bins, cmd)
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
 
 
@@ -272,13 +260,13 @@ def get_genomes_out(
 
 
 def checkm(self) -> None:
-    """
+    """Run Checkm genome quality cehck and assignment.
 
     Parameters
     ----------
     self : Commands class instance
         .dir : str
-            Path to pipeline output folder for unicycler
+            Path to pipeline output folder for Checkm
         .pool : str
             Pool name.
         .inputs : dict
