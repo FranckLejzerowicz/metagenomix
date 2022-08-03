@@ -581,11 +581,10 @@ def flye(self) -> None:
     """
     for group, techs_inputs in self.inputs[self.pool].items():
 
-        techs = [t in techs_inputs for t in ['pacbio', 'nanopore']]
-        if not sum(techs):
-            print('[flye] Only for "pacbio" and/or "nanopore" (no input)')
+        if not sum([t in techs_inputs for t in ['pacbio', 'nanopore']]):
+            sys.exit('[flye] Only for "pacbio" and/or "nanopore" (no input)')
 
-        for tech in techs:
+        for tech, inputs in techs_inputs.items():
             if tech == 'illumina':
                 continue
 
@@ -599,7 +598,6 @@ def flye(self) -> None:
             self.outputs['outs'][(tech, group)] = [info, contigs, gfa, gv]
 
             if self.config.force or to_do(contigs):
-                inputs = techs_inputs[tech]
                 cmd = flye_cmd(self, tech, inputs, out)
                 tech_group = '%s_%s' % (tech, group)
                 self.outputs['cmds'].setdefault(tech_group, []).append(cmd)
@@ -695,7 +693,7 @@ def canu(self) -> None:
     for group, techs_inputs in self.inputs[self.pool].items():
 
         if not [t for t in ['pacbio', 'nanopore'] if techs_inputs.get(t)]:
-            sys.exit('[flye] Only for "pacbio" and/or "nanopore" (no input)')
+            sys.exit('[canu] Only for "pacbio" and/or "nanopore" (no input)')
 
         for tech, inputs in techs_inputs.items():
             if tech == 'illumina':
