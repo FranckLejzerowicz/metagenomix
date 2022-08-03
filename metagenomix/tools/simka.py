@@ -98,14 +98,15 @@ def simka_cmd(
         if not self.config.force:
             print(1)
             if not to_do('%s/mat_abundance_braycurtis.csv' % out_dir):
-                print(4)
                 return ''
             elif not to_do('%s/mat_abundance_braycurtis.csv.gz' % out_dir):
                 print(2)
                 return ''
+            else:
+                print(8)
+        print(3)
         cmd += simka_min_cmd(params, sim_in, out_dir, k, str(n))
     else:
-        print(3)
         cmd += simka_base_cmd(params, sim_in, out_dir, k, str(n))
     return cmd
 
