@@ -372,7 +372,7 @@ def integronfinder_cmd(
     params = tech_params(self, tech)
     fp_out = fp.replace('.fasta', '_%s.fasta' % params['min_length'])
     cmd, hmms = write_hmms(self)
-    cmd += 'filter_on_length.py'
+    cmd += '%s/filter_on_length.py' % RESOURCES
     cmd += ' -i %s' % fp
     cmd += ' -o %s' % fp_out
     cmd += ' -t %s\n' % params['min_length']
