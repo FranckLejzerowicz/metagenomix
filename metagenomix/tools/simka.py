@@ -105,6 +105,7 @@ def simka_cmd(
                 return ''
         cmd += simka_min_cmd(params, sim_in, out_dir, k, str(n))
     else:
+        print(3)
         cmd += simka_base_cmd(params, sim_in, out_dir, k, str(n))
     return cmd
 
