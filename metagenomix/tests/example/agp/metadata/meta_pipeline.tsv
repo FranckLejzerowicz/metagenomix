@@ -1,0 +1,5 @@
+sample_name	depth	light	light_coassemble	depth_coassemble
+ERR5948198	10	low	low_medium_high	10_20
+ERR5948199	20	medium	low_medium_high	10_20
+ERR5948211	2000	high	low_medium_high	2000
+ERR5948212	10	low	low_medium_high	10_20

@@ -2,4 +2,5 @@ sample_name	depth	light
 ERR5948198	10	low
 ERR5948199	20	medium
 ERR5948211	2000	high
+ERR5948212	10	low
 nowhere	0	high
