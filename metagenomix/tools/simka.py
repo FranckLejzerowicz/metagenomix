@@ -259,7 +259,7 @@ def simka_pcoa_cmd(self, mat: str) -> str:
             emp_cmd += 'qiime emperor plot'
             emp_cmd += ' --i-pcoa %s' % ordi_fp
             emp_cmd += ' --m-metadata-file %s' % self.config.meta_fp
-            emp_cmd += ' --o-visualization %s' % emp_fp
+            emp_cmd += ' --o-visualization %s\n' % emp_fp
 
     cmd = ''
     if emp_cmd:
