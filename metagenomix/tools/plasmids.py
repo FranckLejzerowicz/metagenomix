@@ -182,7 +182,7 @@ def plasmidfinder_io(
         else:
             fps = glob.glob('%s/*%s' % (path, ext))
         if 'reassembled_bins' in path:
-            outs.append(path.split('/')[-2:])
+            outs.extend(path.split('/')[-2:])
         fps = {basename(x).split(ext)[0].split('.fastq')[0]: [x] for x in fps}
     out = '/'.join(outs)
     return fps, out
