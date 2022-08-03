@@ -758,7 +758,6 @@ def refine(self):
 
 def get_binners(
         self,
-        out: str,
         binned: dict
 ) -> list:
     """Get the binning tools that were not run yet.
@@ -770,8 +769,6 @@ def get_binners(
             Parameters
         .config
             Configurations
-    out : str
-        Path to the output folder
     binned : dict
         Path to the output folder per binner tool
 
@@ -782,8 +779,9 @@ def get_binners(
     """
     binners = []
     for binner, bins in binned.items():
-        first_bin = '%s/bin.0.fa' % bins
-        if self.config.force or to_do(first_bin):
+        bin_0 = '%s/bin.0.fa' % bins
+        bin_1 = '%s/bin.1.fa' % bins
+        if self.config.force or (to_do(bin_0) and to_do(bin_1)):
             binners.append(binner)
     return binners
 
@@ -816,7 +814,7 @@ def binning_cmd(
     cmd : str
         metaWRAP binning comand
     """
-    binners = get_binners(self, out, binned)
+    binners = get_binners(self, binned)
     cmd = ''
     if binners:
         fqs, fqs_cmd = get_fqs(fastq)
