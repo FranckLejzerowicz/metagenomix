@@ -24,6 +24,7 @@ class AnalysesConfig(object):
     def __init__(self, **kwargs) -> None:
         self.__dict__.update(kwargs)
         self.meta = pd.DataFrame()
+        self.tools = {}
         self.pooling_groups = []
         self.conda_envs = {}
         self.modules = {}
@@ -42,6 +43,7 @@ class AnalysesConfig(object):
         self.check_xhpc_install()
         self.get_conda_envs()
         self.set_metadata()
+        self.get_tools()
         self.get_techs()
         self.set_fastqs()
         self.show_fastqs()
@@ -80,6 +82,14 @@ class AnalysesConfig(object):
         if not isfile(self.meta_fp):
             raise IOError('No file "%s"' % self.meta_fp)
         self.meta = read_metadata(self.meta_fp)
+
+    def get_tools(self):
+        with open('%s/tools.txt' % RESOURCES) as f:
+            for line in f:
+                tool_duties = line.strip().split()
+                self.tools[tool_duties[0]] = tool_duties[1:]
+                for duty in tool_duties[1:]:
+                    self.tools.setdefault(duty, []).append(tool_duties[0])
 
     def set_coassembly(self):
         """Create a metadata variable for the groups on which to co-assemble."""
