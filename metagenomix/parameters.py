@@ -207,8 +207,8 @@ def check_binary(self, t, params, defaults, opt):
         message = 'Param "path" for path to binaries folder missing'
         defaults['path'] = '<Path to folder containing the %s binary>' % t
         isfile_or_isdir = isdir
-    if opt in ['binary', 'trimmomatic', 'bowtie2']:
-        message = 'Param "binary" for path to binary/executable'
+    if opt in ['binary', 'trimmomatic', 'bowtie2', 'anicalculator']:
+        message = 'Param "%s" for path to binary/executable' % opt
         defaults['binary'] = '<Path to the %s binary>' % t
         isfile_or_isdir = isfile
     if opt not in params:
@@ -955,7 +955,7 @@ def check_drep(self, params, soft):
     check_nums(self, params, defaults, flts, float, soft.name, 0, 1)
     check_default(
         self, params, defaults, soft.name, (ints + flts), ['S_algorithm'])
-    check_binary(self, soft.name, params, defaults, 'path')
+    check_binary(self, soft.name, params, defaults, 'anicalculator')
     return defaults
 
 
