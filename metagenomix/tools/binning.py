@@ -781,9 +781,9 @@ def get_binners(
         Binner tools used for the metaWRAP binning
     """
     binners = []
-    work_files = '%s/work_files' % out
     for binner, bins in binned.items():
-        if self.config.force or to_do(folder=bins) or to_do(folder=work_files):
+        first_bin = '%s/bin.0.fa' % bins
+        if self.config.force or to_do(first_bin):
             binners.append(binner)
     return binners
 
@@ -817,9 +817,10 @@ def binning_cmd(
         metaWRAP binning comand
     """
     binners = get_binners(self, out, binned)
+    cmd = ''
     if binners:
         fqs, fqs_cmd = get_fqs(fastq)
-        cmd = 'metawrap binning'
+        cmd += 'metawrap binning'
         cmd += ' -o %s' % out
         cmd += ' -a %s' % contigs
         cmd += ' -t %s' % self.soft.params['cpus']
@@ -830,7 +831,7 @@ def binning_cmd(
         cmd += ' %s\n' % ' '.join(fqs)
         if fqs_cmd:
             cmd = fqs_cmd + cmd + 'rm %s\n' % ' '.join(fqs)
-        return cmd
+    return cmd
 
 
 def binning(self):
