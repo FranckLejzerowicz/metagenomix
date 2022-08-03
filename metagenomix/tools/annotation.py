@@ -196,12 +196,12 @@ def prodigal(self) -> None:
     """
     if self.pool in self.pools:
         for (tech, group), inputs in self.inputs[self.pool].items():
-            out = '%s/%s/%s/%s' % (self.dir, tech, self.pool, group)
+            out = '/'.join([self.dir, tech, self.pool, group])
             get_prodigal(self, inputs[1], out, tech, group)
     else:
         tech_contigs = get_input(self)
         for tech, contigs in tech_contigs.items():
-            out = '%s/%s/%s' % (self.dir, tech, self.sam)
+            out = '/'.join([self.dir, tech, self.sam])
             get_prodigal(self, contigs, out, tech, self.sam)
 
 
@@ -891,7 +891,7 @@ def prokka(self) -> None:
     """
     if self.pool in self.pools:
         for (tech, group), inputs in self.inputs[self.pool].items():
-            out_dir = '%s/%s/%s/%s' % (self.dir, tech, self.pool, group)
+            out_dir = '/'.join([self.dir, tech, self.pool, group])
             self.outputs['dirs'].append(out_dir)
             self.outputs['outs'].setdefault(group, []).append(out_dir)
 
@@ -1014,7 +1014,7 @@ def get_generic_on_fasta(
     sam_group : str
         Sample name or name of a co-assembly pool's group
     """
-    out_dir = '%s/%s/%s' % (self.dir, tech, self.pool)
+    out_dir = '/'.join([self.dir, tech, self.pool])
     if self.pool != sam_group:
         out_dir += '/%s' % sam_group
     self.outputs['dirs'].append(out_dir)
@@ -1089,88 +1089,6 @@ def ccmap(self) -> None:
     generic_on_fasta(self)
 
 
-def viralverify_cmd(
-        self,
-        contigs: str,
-        out: str
-) -> str:
-    """Collect ViralVerify command.
-
-    Parameters
-    ----------
-    self : Commands class instance
-        .databases : dict
-            Path to the reference databases
-        .outputs : dict
-            All outputs
-    contigs : str
-        Path to the input contigs fasta file
-    out : str
-        Path to the output folder
-
-    Returns
-    -------
-    cmd : str
-        ViralVerify command
-    """
-    cmd = 'export PATH=$PATH:%s' % self.soft.params['path']
-    cmd += '\nviralverify'
-    cmd += ' -f %s' % contigs
-    cmd += ' -o %s' % out
-    if self.soft.params['db']:
-        cmd += ' --db'
-    if self.soft.params['p']:
-        cmd += ' --p'
-    cmd += ' -t %s' % self.soft.params['cpus']
-    cmd += ' -thr %s' % self.soft.params['thr']
-    cmd += ' --hmm %s' % '%s/Pfam-A.hmm' % self.databases.paths.get('pfam')
-    return cmd
-
-
-def viralverify(self) -> None:
-    """Classify the contigs as viral or non-viral.
-
-    Parameters
-    ----------
-    self : Commands class instance
-        .databases : dict
-            Path to the reference databases
-        .dir : str
-            Path to pipeline output folder for filtering
-        .pool : str
-            Co-assembly pool name
-        .inputs : dict
-            Input files
-        .outputs : dict
-            All outputs
-        .soft.params : dict
-            Parameters
-        .config
-            Configurations
-    """
-    if self.soft.prev not in self.config.tools['assembling']:
-        sys.exit('[viralVerify] can only be run after assembly (on contigs)')
-
-    pfam = '%s/Pfam-A.hmm' % self.databases.paths.get('pfam')
-    if not self.config.dev and to_do(pfam):
-        sys.exit('[viralVerify] Needs the Pfam .hmm database in database yaml')
-
-    for (tech, group), inputs in self.inputs[self.pool].items():
-        contigs = inputs[1]
-
-        out = '%s/%s/%s/%s' % (self.dir, tech, self.pool, group)
-        self.outputs['dirs'].append(out)
-
-        out_fp = '%s_result_table.csv' % splitext(contigs)[0]
-        self.outputs['outs'][(tech, group)] = out_fp
-
-        cmd = viralverify_cmd(self, contigs, out)
-        if self.config.force or to_do(out_fp):
-            tech_group = '_'.join([tech, group])
-            self.outputs['cmds'].setdefault(tech_group, []).append(cmd)
-            io_update(self, i_f=contigs, o_d=out, key=tech_group)
-
-
 def antismash_cmd(
         self,
         fa: str,
@@ -1241,7 +1159,7 @@ def antismash(self) -> None:
         sys.exit('[antismash] Possible only after drep (!=%s)' % self.soft.prev)
     for pool in self.pools:
         for algo, folder in self.inputs[pool].items():
-            out_dir = '%s/%s/%s' % (self.dir, pool, algo)
+            out_dir = '/'.join([self.dir, pool, algo])
             io_update(self, o_d=out_dir, key=pool)
             for fa in glob.glob('%s/*.fa' % folder):
                 io_update(self, i_f=fa, key=pool)
@@ -1253,6 +1171,51 @@ def antismash(self) -> None:
                     cmd = antismash_cmd(self, fa, base, out)
                     self.outputs['cmds'].setdefault(
                         (pool, algo), []).append(cmd)
+
+
+def tiara(self) -> None:
+    """
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .prev : str
+            Previous software in the pipeline
+        .dir : str
+            Path to pipeline output folder for tiara
+        .pool : str
+            Pool name.
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    """
+    if self.soft.prev != 'spades':
+        sys.exit('[tiara] can only be run on assembly output')
+    for (tech, group), spades_outs in self.inputs[self.pool].items():
+        out_dir = '/'.join([self.dir, tech, self.pool, group])
+        self.outputs['dirs'].append(out_dir)
+        self.outputs['outs'][group] = out_dir
+        out_fp = '%s/classifications.txt' % out_dir
+        if self.config.force or to_do(out_fp):
+            cmd = 'cd %s\n' % out_dir
+            cmd += 'tiara'
+            cmd += ' --input %s' % spades_outs[1]
+            cmd += ' --output %s' % out_fp
+            cmd += ' --threads %s' % self.soft.params['cpus']
+            for boolean in ['probabilities', 'verbose', 'gzip']:
+                if self.soft.params[boolean]:
+                    cmd += ' --%s' % boolean
+            for param in ['min_len', 'first_stage_kmer', 'second_stage_kmer']:
+                cmd += ' --%s %s' % (param, self.soft.params[param])
+            for param in ['prob_cutoff', 'to_fasta']:
+                cmd += ' --%s %s' % (param, ' '.join(self.soft.params[param]))
+            self.outputs['cmds'].setdefault(group, []).append(cmd)
+            io_update(self, i_f=spades_outs[1], o_d=out_dir, key=group)
 
 
 # def write_dbcan_subset(
