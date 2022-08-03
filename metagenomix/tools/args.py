@@ -6,7 +6,7 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-from os.path import basename
+from os.path import basename, splitext
 from metagenomix._io_utils import (caller, io_update, to_do, tech_specificity,
                                    not_paired, get_genomes_fastas)
 
@@ -62,7 +62,7 @@ def predict_cmd(
 
 def get_predict(
         self,
-        fastas: dict,
+        fastas_dict: dict,
         tech: str,
         sam_group: str
 ) -> None:
@@ -77,30 +77,30 @@ def get_predict(
             Parameters
         .config
             Configurations
-    fastas : dict
+    fastas_dict : dict
         Fasta files per 'nucl' or 'prot' (type of data)
     tech : str
         Technology: 'illumina', 'pacbio', or 'nanopore'
     sam_group : str
     """
-    out = '%s/%s/%s' % (self.dir, tech, sam_group)
+    out = '/'.join([self.dir, tech, sam_group])
     self.outputs['dirs'].append(out)
 
-    for typ, fasta in fastas.items():
-        prefix = '%s/%s_%s' % (out, typ, sam_group)
-        arg = '%s.ARG' % prefix
-        pot_arg = '%s.potential.ARG' % prefix
-        outs = [arg, pot_arg]
-        self.outputs['outs'].setdefault((tech, sam_group), []).extend(outs)
+    for typ, fastas in fastas_dict.items():
+        for fasta in fastas:
+            base = splitext(basename(fasta))[0]
+            prefix = '%s/%s_%s_%s' % (out, typ, sam_group, base)
+            arg = '%s.ARG' % prefix
+            self.outputs['outs'].setdefault((tech, sam_group), []).extend(arg)
 
-        # check if the tool already run (or if --force) to allow getting command
-        if self.config.force or to_do(arg):
-            # collect the command line
-            cmd = predict_cmd(self, typ, fasta, prefix)
-            # add is to the 'cmds'
-            key = '_'.join([tech, sam_group])
-            self.outputs['cmds'][key] = [cmd]
-            io_update(self, i_f=fasta, o_d=out, key=key)
+            # check if tool already run (or if --force) to allow getting command
+            if self.config.force or to_do(arg):
+                # collect the command line
+                cmd = predict_cmd(self, typ, fasta, prefix)
+                # add is to the 'cmds'
+                key = '_'.join([tech, sam_group])
+                self.outputs['cmds'].setdeafult(key, []).append(cmd)
+                io_update(self, i_f=fasta, o_d=out, key=key)
 
 
 def predict(self) -> None:
@@ -126,14 +126,14 @@ def predict(self) -> None:
     """
     if self.pool in self.pools:
         for (tech, group) in self.inputs[self.pool]:
-            fastas = get_genomes_fastas(self, tech, group)
-            get_predict(self, fastas, tech, group)
+            fastas_dict = get_genomes_fastas(self, tech, group)
+            get_predict(self, fastas_dict, tech, group)
     else:
         for (tech, sam), contigs in self.inputs[self.sam].items():
             if self.soft.prev == 'plass' and tech != 'illumina':
                 continue
-            fastas = {basename(contigs).split('_')[0]: contigs}
-            get_predict(self, fastas, tech, sam)
+            fastas_dict = {basename(contigs).split('_')[0]: contigs}
+            get_predict(self, fastas_dict, tech, sam)
 
 
 def short_cmd(

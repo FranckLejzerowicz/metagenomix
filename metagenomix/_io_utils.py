@@ -496,8 +496,8 @@ def get_genomes_fastas(
         print(selfinputsselfpool)
         fastas_d = self.inputs[self.pool][(tech, group)]
     elif self.soft.prev == 'prodigal':
-        fastas_d = {'prot': self.inputs[self.pool][(tech, group)][0],
-                    'nucl': self.inputs[self.pool][(tech, group)][1]}
+        fastas_d = {'prot': [self.inputs[self.pool][(tech, group)][0]],
+                    'nucl': [self.inputs[self.pool][(tech, group)][1]]}
     return fastas_d
 
 
