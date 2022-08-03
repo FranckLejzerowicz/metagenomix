@@ -99,7 +99,7 @@ def get_predict(
                 cmd = predict_cmd(self, typ, fasta, prefix)
                 # add is to the 'cmds'
                 key = '_'.join([tech, sam_group])
-                self.outputs['cmds'].setdeafult(key, []).append(cmd)
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
                 io_update(self, i_f=fasta, o_d=out, key=key)
 
 
