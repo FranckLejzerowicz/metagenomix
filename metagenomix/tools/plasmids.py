@@ -170,22 +170,21 @@ def plasmidfinder_io(
     out : str
         Path to the output folder
     """
-    out = self.dir
-    if tech:
-        out += '/' + tech
+    outs = [self.dir, tech]
     if sam_group == self.sam:
         fps = {sam_group: path}
     elif self.soft.prev in self.config.tools['assembling']:
         fps = {sam_group: path}
     else:
-        out += '/%s' % sam_group
+        outs.append(sam_group)
         if self.config.dev:
             fps = ['%s/a%s' % (path, ext), '%s/b%s' % (path, ext)]
         else:
             fps = glob.glob('%s/*%s' % (path, ext))
         if 'reassembled_bins' in path:
-            out += '/%s' % '/'.join(path.split('/')[-2:])
+            outs.append(path.split('/')[-2:])
         fps = {basename(x).split(ext)[0].split('.fastq')[0]: [x] for x in fps}
+    out = '/'.join(outs)
     return fps, out
 
 
