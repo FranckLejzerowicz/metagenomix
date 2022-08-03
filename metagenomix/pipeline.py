@@ -76,6 +76,7 @@ class Workflow(object):
         self.names_idx = {}
         self.names_idx_rev = {}
         self.skip = {}
+        self.tools = {}
 
     def check_workflow(self):
         counts = Counter([tuple(softs) for softs in self.config.pipeline])
