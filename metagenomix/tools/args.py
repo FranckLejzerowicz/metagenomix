@@ -39,7 +39,7 @@ def predict_cmd(
     cmd = 'deeparg predict'
     cmd += ' --input-file %s' % fasta
     cmd += ' --output-file %s' % out
-    cmd += ' --data-path %s' % self.soft.params['database']
+    cmd += ' --data-path %s' % self.soft.params['db_dir']
 
     for param in [
         'min_prob', 'arg_alignment_overlap', 'arg_alignment_evalue',
