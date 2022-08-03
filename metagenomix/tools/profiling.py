@@ -14,7 +14,7 @@ from metagenomix._io_utils import min_nlines, io_update, to_do, tech_specificity
 from metagenomix.tools.alignment import get_alignment_cmd
 from metagenomix.parameters import tech_params
 
-RESOURCES = pkg_resources.resource_filename('metagenomix', 'resources')
+RESOURCES = pkg_resources.resource_filename('metagenomix', 'resources/scripts')
 
 
 def shogun_append_cmd(
@@ -288,7 +288,7 @@ def get_combine_cmd(
                 combine_cmds.append(to_fasta_cmd)
 
         path_out = '%s/%s' % (out, basename(path))
-        edit_fasta = 'python3 %s/scripts/fasta4shogun.py -i %s -o %s -s %s' % (
+        edit_fasta = '%s/fasta4shogun.py -i %s -o %s -s %s' % (
             RESOURCES, path, path_out, self.sam)
         orient = orients[pdx]
         if orient:
@@ -394,7 +394,7 @@ def format_sam(
         sample: str
 ) -> str:
     sam = '%s_formatted.sam' % splitext(sam_)[0]
-    cmd = 'python3 %s/scripts/sam4shogun.py -i %s -o %s -s %s' % (
+    cmd = '%s/sam4shogun.py -i %s -o %s -s %s' % (
         RESOURCES, sam_, sam, sample)
     ali_cmds.append(cmd)
     return sam
@@ -1542,7 +1542,7 @@ def woltka_kegg(
             if to_do('%s/kegg_info.txt' % kegg_maps):
                 cmd += 'cd %s\n' % kegg_maps
                 cmd += 'cp %s %s/%s\n' % (tsv, kegg_maps, basename(tsv))
-                kegg_query = '%s/wol/kegg_query.py' % RESOURCES
+                kegg_query = '%s/kegg_query.py' % RESOURCES
                 cmd += 'python3 %s %s/%s\n' % (kegg_query, kegg_maps, basename(
                     tsv))
                 io_update(self, o_d=kegg_maps, key=tech_aligner)

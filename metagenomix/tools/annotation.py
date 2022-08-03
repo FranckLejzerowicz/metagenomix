@@ -15,7 +15,7 @@ from metagenomix._io_utils import (caller, get_out_dir, write_hmms,
                                    io_update, to_do, get_genomes_fastas)
 from metagenomix.parameters import tech_params
 
-RESOURCES = pkg_resources.resource_filename("metagenomix", "resources")
+RESOURCES = pkg_resources.resource_filename("metagenomix", "resources/scripts")
 
 
 def get_input(
