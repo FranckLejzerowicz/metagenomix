@@ -1148,10 +1148,7 @@ def viralverify(self) -> None:
         .config
             Configurations
     """
-    assemblers = [
-        'plass', 'spades', 'spades_metaviral', 'spades_plasmid', 'spades_bio',
-        'flye', 'canu', 'necat', 'megahit', 'unicycler']
-    if self.soft.prev not in assemblers:
+    if self.soft.prev not in self.config.tools['assembling']:
         sys.exit('[viralVerify] can only be run after assembly (on contigs)')
 
     pfam = '%s/Pfam-A.hmm' % self.databases.paths.get('pfam')
