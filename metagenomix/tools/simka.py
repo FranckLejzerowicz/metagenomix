@@ -127,7 +127,7 @@ def simka_min_cmd(params: dict, sim_in: str, out_dir: str,
     cmd += ' -max-reads %s' % n
     cmd += ' -kmer-size %s' % str(k)
     cmd += ' -nb-kmers %s' % params['nb_kmers']
-    cmd += ' -min-read-size %s\n' % params['min_read_size']
+    cmd += ' -min-read-size %s' % params['min_read_size']
     if int(params['mem']) == 1:
         mem = '1'
     else:
