@@ -486,11 +486,8 @@ def get_genomes_fastas(
     fasta_d : dict
         Path(s) to the fasta files for an assembly or a series of MAGs
     """
-    assemblers = [
-        'plass', 'spades', 'spades_metaviral', 'spades_plasmid', 'spades_bio',
-        'flye', 'canu', 'necat', 'megahit', 'unicycler']
     fastas_d = {}
-    if self.soft.prev in assemblers:
+    if self.soft.prev in self.config.tools['assembling']:
         fastas_d = {'': [self.inputs[self.pool][(tech, group)][1]]}
     elif self.soft.prev == 'drep':
         fastas_d = self.inputs[self.pool][(tech, group)]
