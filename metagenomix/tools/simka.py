@@ -217,27 +217,32 @@ def simka_pcoa_cmd(mat: str, config) -> str:
         cmd += ' --output-path %s' % mat_dm
         cmd += ' --type DistanceMatrix\n'
 
-    mat_pcoa = mat_dm.replace('.qza', '_pcoa.qza')
-    if config.force or to_do(mat_pcoa):
-        cmd += 'qiime diversity pcoa'
-        cmd += ' --i-distance-matrix %s' % mat_dm
-        cmd += ' --o-pcoa %s\n' % mat_pcoa
+    for ordi in ['pcoa', 'tsne']:
+        ordi_fp = mat_dm.replace('.qza', '_%s.qza' % ordi)
+        if config.force or to_do(ordi_fp):
+            cmd += 'qiime diversity %s' % ordi
+            cmd += ' --i-distance-matrix %s' % mat_dm
+            cmd += ' --o-%s %s' % (ordi, ordi_fp)
+            if ordi == 'tsne':
+                cmd += ' --p-perplexity 25'
+                cmd += ' --p-early-exaggeration 10'
+                cmd += ' --p-learning-rate 200\n'
 
-    mat_pcoa_dir = mat_pcoa.replace('.qza', '')
-    mat_pcoa_txt = mat_pcoa.replace('.qza', '.txt')
-    if config.force or to_do(mat_pcoa_txt):
-        cmd += 'qiime tools export'
-        cmd += ' --input-path %s' % mat_pcoa
-        cmd += ' --output-path %s\n' % mat_pcoa_dir
-        cmd += 'mv %s/ordination.txt %s\n' % (mat_pcoa_dir, mat_pcoa_txt)
-        cmd += 'rm -rf %s\n' % mat_pcoa_dir
+        mat_ordi_dir = ordi_fp.replace('.qza', '')
+        mat_ordi_txt = ordi_fp.replace('.qza', '.txt')
+        if config.force or to_do(mat_ordi_txt):
+            cmd += 'qiime tools export'
+            cmd += ' --input-path %s' % ordi_fp
+            cmd += ' --output-path %s\n' % mat_ordi_dir
+            cmd += 'mv %s/ordination.txt %s\n' % (mat_ordi_dir, mat_ordi_txt)
+            cmd += 'rm -rf %s\n' % mat_ordi_dir
 
-    mat_emp = mat_pcoa.replace('.qza', '_emp.qzv')
-    if config.force or to_do(mat_emp):
-        cmd += 'qiime emperor plot'
-        cmd += ' --i-pcoa %s' % mat_pcoa
-        cmd += ' --m-metadata-file %s' % config.meta_fp
-        cmd += ' --o-visualization %s' % mat_emp
+        emp_fp = ordi_fp.replace('.qza', '_emp.qzv')
+        if config.force or to_do(emp_fp):
+            cmd += 'qiime emperor plot'
+            cmd += ' --i-pcoa %s' % ordi_fp
+            cmd += ' --m-metadata-file %s' % config.meta_fp
+            cmd += ' --o-visualization %s' % emp_fp
     return cmd
 
 
