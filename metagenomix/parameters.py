@@ -2059,7 +2059,7 @@ def check_deeparg(self, params, soft):
     defaults['model'] = '<Model to use (SS: for reads, LS: for genes)>'
     db = 'db_dir'
     if db not in params or (not self.config.dev and not isdir(params[db])):
-        sys.exit('[%s] Params "%s" must be an existing path' % (db, soft.name))
+        sys.exit('[%s] Params "%s" must be an existing path' % (soft.name, db))
     defaults[db] = '<Path to the installed deepARG database folder>'
 
     return defaults

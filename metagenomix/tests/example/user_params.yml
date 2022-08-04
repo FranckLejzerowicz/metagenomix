@@ -306,4 +306,4 @@ ngmerge:
 
 # -------------- deeparg ---------------
 deeparg:
-  database: /some/database/path
+  db_dir: /some/database/path

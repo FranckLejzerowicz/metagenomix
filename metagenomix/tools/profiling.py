@@ -2021,7 +2021,7 @@ def kraken2(self) -> None:
                 db_path = get_kraken2_db(self, db)
                 cmd = get_kraken2_cmd(self, tech, inputs, out, db_path)
                 self.outputs['outs'].setdefault((tech, self.sam), []).append(
-                    (out, db))
+                    (db, out))
                 self.outputs['cmds'].setdefault(tech, []).append(cmd)
                 io_update(self, i_f=inputs, o_d=out, key=tech)
 
