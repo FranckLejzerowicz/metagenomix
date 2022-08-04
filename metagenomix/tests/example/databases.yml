@@ -24,11 +24,12 @@
 formats:
   - blastn
   - bowtie2
+  - bracken
   - burst
   - centrifuge
   - diamond
   - hmmer
-  - kracken2
+  - kraken2
   - minimap2
   - qiime2
   - utree

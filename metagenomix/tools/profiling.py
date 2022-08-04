@@ -2064,6 +2064,7 @@ def get_bracken_db(
     str
         Path tho the Bracken database
     """
+    print(db, self.databases.builds)
     if db == 'default':
         path = self.databases.paths['kraken2']
     elif 'bracken' in self.databases.builds[db]:
@@ -2141,16 +2142,20 @@ def bracken(self) -> None:
     if self.soft.prev != 'kraken2':
         sys.exit('[bracken] Can only be run after kraken2')
     for (tech, sam), inputs in self.inputs[self.sam].items():
+        print((tech, sam))
+        print(inputs)
         if tech_specificity(self, inputs, tech, sam):
             continue
         params = tech_params(self, tech)
-        for (k2, db) in inputs:
+        for (db, k2) in inputs:
             db_path = get_bracken_db(self, db, params['read_len'])
             out_dir = '/'.join([self.dir, tech, self.sam, db])
             self.outputs['dirs'].append(out_dir)
             if self.config.force or to_do('%s/results.tsv' % out_dir):
                 report = '%s/report.tsv' % k2
                 cmd = bracken_cmd(self, tech, db_path, report, out_dir)
+                print(cmd)
+                print(cmdds)
                 self.outputs['outs'].setdefault((tech, self.sam), []).extend(
                     out_dir)
                 self.outputs['cmds'].setdefault(tech, []).append(cmd)
