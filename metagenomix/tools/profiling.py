@@ -2017,11 +2017,10 @@ def kraken2(self) -> None:
         for db in params['databases']:
             out = '/'.join([self.dir, tech, self.sam, db])
             self.outputs['dirs'].append(out)
+            self.outputs['outs'].setdefault((tech, sam), []).append((db, out))
             if self.config.force or to_do('%s/result.tsv' % out):
                 db_path = get_kraken2_db(self, db)
                 cmd = get_kraken2_cmd(self, tech, inputs, out, db_path)
-                self.outputs['outs'].setdefault((tech, self.sam), []).append(
-                    (db, out))
                 self.outputs['cmds'].setdefault(tech, []).append(cmd)
                 io_update(self, i_f=inputs, o_d=out, key=tech)
 
@@ -2064,7 +2063,6 @@ def get_bracken_db(
     str
         Path tho the Bracken database
     """
-    print(db, self.databases.builds)
     if db == 'default':
         path = self.databases.paths['kraken2']
     elif 'bracken' in self.databases.builds[db]:
@@ -2142,24 +2140,19 @@ def bracken(self) -> None:
     if self.soft.prev != 'kraken2':
         sys.exit('[bracken] Can only be run after kraken2')
     for (tech, sam), inputs in self.inputs[self.sam].items():
-        print((tech, sam))
-        print(inputs)
         if tech_specificity(self, inputs, tech, sam):
             continue
         params = tech_params(self, tech)
         for (db, k2) in inputs:
             db_path = get_bracken_db(self, db, params['read_len'])
-            out_dir = '/'.join([self.dir, tech, self.sam, db])
-            self.outputs['dirs'].append(out_dir)
-            if self.config.force or to_do('%s/results.tsv' % out_dir):
+            out = '/'.join([self.dir, tech, self.sam, db])
+            self.outputs['dirs'].append(out)
+            self.outputs['outs'].setdefault((tech, self.sam), []).extend(out)
+            if self.config.force or to_do('%s/results.tsv' % out):
                 report = '%s/report.tsv' % k2
-                cmd = bracken_cmd(self, tech, db_path, report, out_dir)
-                print(cmd)
-                print(cmdds)
-                self.outputs['outs'].setdefault((tech, self.sam), []).extend(
-                    out_dir)
+                cmd = bracken_cmd(self, tech, db_path, report, out)
                 self.outputs['cmds'].setdefault(tech, []).append(cmd)
-                io_update(self, i_f=report, o_d=out_dir, key=tech)
+                io_update(self, i_f=report, o_d=out, key=tech)
 
 
 def metaxa2(self) -> None:
