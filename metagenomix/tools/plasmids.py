@@ -282,7 +282,7 @@ def plasmidfinder(self) -> None:
                 base_out = out + '/%s' % base
                 json = '%s/data.json' % base_out
                 self.outputs['dirs'].append(base_out)
-                if self.config.force or not to_do(json):
+                if self.config.force or to_do(json):
                     cmd += plasmidfinder_cmd(self, key, fp, base, base_out)
                     io_update(self, i_f=fp, o_d=base_out, key=key)
             if cmd:
