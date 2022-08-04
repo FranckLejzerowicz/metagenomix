@@ -2028,7 +2028,6 @@ def kraken2(self) -> None:
 def get_bracken_db(
         self,
         db: str,
-        read_len: int
 ) -> str:
     """Get the path the Bracken database passed by the user.
 
@@ -2060,7 +2059,7 @@ def get_bracken_db(
 
     Returns
     -------
-    str
+    path : str
         Path tho the Bracken database
     """
     if db == 'default':
@@ -2071,10 +2070,9 @@ def get_bracken_db(
         path = 'dummy/bracken/path'
     else:
         sys.exit('[bracken] Database name "%s" not found' % db)
-    db_path = '%s/database%smers.kmer_distrib' % (path, read_len)
-    if not self.config.dev and not isfile(db_path):
-        sys.exit('[bracken] No database for name "%s": %s' % (db, db_path))
-    return db_path
+    if not self.config.dev and not isfile(path):
+        sys.exit('[bracken] No database for name "%s": %s' % (db, path))
+    return path
 
 
 def bracken_cmd(
@@ -2144,7 +2142,7 @@ def bracken(self) -> None:
             continue
         params = tech_params(self, tech)
         for (db, k2) in inputs:
-            db_path = get_bracken_db(self, db, params['read_len'])
+            db_path = get_bracken_db(self, db)
             out = '/'.join([self.dir, tech, self.sam, db])
             self.outputs['dirs'].append(out)
             self.outputs['outs'].setdefault((tech, self.sam), []).extend(out)
