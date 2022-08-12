@@ -8,6 +8,7 @@
 
 import os
 import sys
+import yaml
 import subprocess
 import numpy as np
 from os.path import dirname, splitext
@@ -17,8 +18,10 @@ from metagenomix._io_utils import mkdr, get_roundtrip
 
 class CreateScripts(object):
 
-    def __init__(self, config, workflow):
+    def __init__(self, config, workflow, databases, commands):
         self.config = config
+        self.databases = databases
+        self.commands = commands
         self.graph = workflow.graph
         self.cmd = []
         self.cmds = {}
@@ -73,7 +76,7 @@ class CreateScripts(object):
             self.run['database'][name] = main
         return main
 
-    def write_main(self, name, soft=None) -> None:
+    def write_main(self, name, soft=None, hashed=None) -> None:
         main = self.get_main_sh(name, soft)
         with open(main, 'w') as o:
             if len(self.job_fps):
@@ -84,8 +87,42 @@ class CreateScripts(object):
                     o.write('%s %s\n' % (self.scheduler, job_fp))
                 self.job_fps = []
 
-    def database_cmds(self, databases):
-        for db, cmds in databases.commands.items():
+    def get_provenance_fp(self, name, soft=None) -> str:
+        provenance = '%s/provenance_%s' % (self.sh.rsplit('/', 2)[0], name)
+        if soft:
+            provenance += '_after_%s.txt' % soft.prev
+        else:
+            provenance += '.sh'
+        return provenance
+
+    def write_provenance(self, name, soft=None, hashed=None) -> None:
+        steps = self.graph.paths[soft.name][0]
+        step_max = max([len(x) for x in steps])
+        provenance_fp = self.get_provenance_fp(name, soft)
+        with open(provenance_fp, 'w') as o:
+            o.write("Pipeline steps to this output (and analysis type):\n")
+            for sdx, step in enumerate(steps):
+                types = ', '.join(self.config.tools.get(step, []))
+                o.write('%s\t%s%s\t: %s\n' % (
+                    sdx, step, (' ' * ( step_max - len(step))), types))
+            o.write("\nParameters for these steps' outputs:\n")
+            for sdx, step in enumerate(steps):
+                if step not in self.commands.softs:
+                    o.write('\n ===== %s: %s (no param) =====\n' % (sdx, step))
+                    continue
+                o.write('\n========== %s: %s ==========\n' % (sdx, step))
+                params_show = self.commands.softs[step].params.copy()
+                if 'databases' in params_show:
+                    databases = params_show['databases']
+                    del params_show['databases']
+                    params = {'search': {soft.name.split('_')[-1]: params_show,
+                                         'databases': databases}}
+                    o.write('%s\n' % yaml.dump(params))
+                else:
+                    o.write('%s\n' % yaml.dump(params_show))
+
+    def database_cmds(self):
+        for db, cmds in self.databases.commands.items():
             self.cmds = cmds
             self.get_chunks(self.config.params['chunks'])
             self.write_jobs(db)
@@ -108,13 +145,13 @@ class CreateScripts(object):
         else:
             self.cmds[key] = cmds
 
-    def get_cmds(self, soft, commands):
+    def get_cmds(self, soft):
         self.cmds = {}
         for sam_or_pool, cmds in soft.cmds.items():
             if isinstance(cmds, list):
                 self.scratch(soft, sam_or_pool, cmds)
             elif isinstance(cmds, dict):
-                if sam_or_pool in commands.pools:
+                if sam_or_pool in self.commands.pools:
                     # for group in commands.pools[sam_or_pool]:
                     for group, group_cmds in cmds.items():
                         self.scratch(soft, (sam_or_pool, group), group_cmds)
@@ -140,19 +177,29 @@ class CreateScripts(object):
         print('\t%s [%s]%s\t' % (sdx, name, (' ' * gap)), end=' ')
         self.show_status(soft)
 
-    def software_cmds(self, commands):
-        m = max(len(x) for x in commands.softs)
-        for sdx, (name, soft) in enumerate(commands.softs.items()):
+    def get_hash(self, soft=None) -> str:
+        hashed = None
+        if soft:
+            steps = self.graph.paths[soft.name]
+
+            hash_string = ''.join([str(step) + str(soft.params) for step in
+                                   steps])
+            hashed = abs(hash(hash_string)) % (10 ** 8)
+        return hashed
+
+    def software_cmds(self):
+        m = max(len(x) for x in self.commands.softs)
+        for sdx, (name, soft) in enumerate(self.commands.softs.items()):
             self.print_status(m, sdx, name, soft)
             if not len(soft.cmds):
                 continue
             self.get_modules(name)
-            self.get_cmds(soft, commands)
+            self.get_cmds(soft)
             self.get_chunks(soft.params['chunks'])
             self.write_jobs(name, soft)
-            self.write_main(name, soft)
-            paths = self.graph.paths[soft.name]
-            # print('PATH:', paths)
+            hashed = self.get_hash(soft)
+            self.write_main(name, soft, hashed)
+            self.write_provenance(name, soft, hashed)
 
     def get_sh(self, name: str, chunk_name: str, soft=None) -> None:
         """
