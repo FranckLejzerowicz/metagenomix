@@ -81,6 +81,7 @@ checkm:
   data: /cluster/shared/biobases/classification_dbs/checkm_data_2015_01_16
   min_seq_len: 1000
   all_reads: false
+  coverage: yes
 
 # --------------- metawrap -----------------
 metawrap:
@@ -284,7 +285,7 @@ plasmidfinder:
 
 # -------------- plasforest ------------------
 plasforest:
-  binary: /a/path
+  binary: /path/to/the/plasforest/binary
 
 # -------------- unicycler -------------------
 unicycler:
