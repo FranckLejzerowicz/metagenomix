@@ -721,7 +721,8 @@ def get_bams(
     elif self.config.dev:
         bams = ['/path/to/mapping1.bam', '/path/to/mapping2.bam']
     else:
-        sys.exit('Run "%s %s" for checkm coverage' % (assembl, map_assembl))
+        print('Run "%s %s" for checkm coverage' % (assembl, map_assembl))
+        return []
     return bams
 
 
@@ -757,27 +758,29 @@ def coverage(
     """
     if self.soft.params['coverage']:
         bams = get_bams(self, tech, group)
-        for genome, dirs in folders.items():
-            genome_dir = dirs[0]
-            coverage_dir = genome_out_dir(self, tech, genome_dir, group, genome)
-            if self.soft.name == 'checkm':
-                coverage_dir = add_folder(self, coverage_dir, 'coverage')
+        if bams:
+            for genome, dirs in folders.items():
+                genome_dir = dirs[0]
+                coverage_dir = genome_out_dir(self, tech, genome_dir,
+                                              group, genome)
+                if self.soft.name == 'checkm':
+                    coverage_dir = add_folder(self, coverage_dir, 'coverage')
 
-            self.outputs['dirs'].append(coverage_dir)
-            cov = '%s/coverage.tsv' % coverage_dir
-            outs = {genome: cov}
-            self.outputs['outs'].setdefault((tech, group), {}).update(outs)
+                self.outputs['dirs'].append(coverage_dir)
+                cov = '%s/coverage.tsv' % coverage_dir
+                outs = {genome: cov}
+                self.outputs['outs'].setdefault((tech, group), {}).update(outs)
 
-            key = genome_key(tech, group, genome)
-            if to_do(cov):
-                self.soft.status.add('Run %s (%s)' % (self.soft.prev, key))
+                key = genome_key(tech, group, genome)
+                if to_do(cov):
+                    self.soft.status.add('Run %s (%s)' % (self.soft.prev, key))
 
-            if self.config.force or to_do(cov):
-                cmd = coverage_cmd(self, genome_dir, cov, bams)
-                self.outputs['cmds'].setdefault(key, []).append(cmd)
-                io_update(self, i_f=bams, i_d=genome_dir, o_f=cov, key=key)
-            elif self.soft.name == 'checkm':
-                io_update(self, i_f=cov, key=key)
+                if self.config.force or to_do(cov):
+                    cmd = coverage_cmd(self, genome_dir, cov, bams)
+                    self.outputs['cmds'].setdefault(key, []).append(cmd)
+                    io_update(self, i_f=bams, i_d=genome_dir, o_f=cov, key=key)
+                elif self.soft.name == 'checkm':
+                    io_update(self, i_f=cov, key=key)
 
 
 def qa_cmd(
