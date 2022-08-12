@@ -169,7 +169,7 @@ def quantify(self):
         .status
             Tool status
     """
-    for (tech, group), inputs in self.inputs[self.pool].items():
+    for (tech, group), inputs in self.inputs[self.sam_pool].items():
         tech_group = '_'.join([tech, group])
         self.outputs['outs'][(tech, group)] = {}
 
