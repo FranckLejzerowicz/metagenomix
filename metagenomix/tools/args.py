@@ -5,17 +5,18 @@
 #
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
-
-from os.path import basename, splitext
+import sys
+from os.path import basename, dirname, splitext
+from metagenomix._inputs import group_inputs, genome_key, genome_out_dir
 from metagenomix._io_utils import (caller, io_update, to_do, tech_specificity,
-                                   not_paired, get_genomes_fastas)
+                                   not_paired)
 
 
 def predict_cmd(
         self,
-        typ: str,
         fasta: str,
         out: str,
+        typ: str
 ) -> str:
     """Collect deeparg predict commands.
 
@@ -24,12 +25,12 @@ def predict_cmd(
     self : Commands class instance
         .soft.params
             Parameters
-    typ : str
-        'nucl' or 'prot' for fasta from assemblers or from prodigal/plass
     fasta : str
         Path to the input fasta file
     out : str
         Paths to the output file's prefix
+    typ : str
+        Type of input data: 'nucl' (DNA) or 'prot' (protein)
 
     Returns
     -------
@@ -40,19 +41,13 @@ def predict_cmd(
     cmd += ' --input-file %s' % fasta
     cmd += ' --output-file %s' % out
     cmd += ' --data-path %s' % self.soft.params['db_dir']
-
+    cmd += ' --type %s' % typ
     for param in [
         'min_prob', 'arg_alignment_overlap', 'arg_alignment_evalue',
         'arg_alignment_identity', 'arg_num_alignments_per_entry',
         'model_version'
     ]:
         cmd += ' --%s %s' % (param.replace('_', '-'), self.soft.params[param])
-
-    if typ in ['nucl', 'prot']:
-        cmd += ' --type %s' % typ
-    else:
-        cmd += ' --type nucl'
-
     if self.soft.prev == 'plass':
         cmd += ' --model SS'
     else:
@@ -60,9 +55,39 @@ def predict_cmd(
     return cmd
 
 
+def predict_inputs(
+        self,
+        fasta: str
+) -> dict:
+    """Get input files per sequence type.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .soft.prev : str
+            Previous software in the pipeline
+    fasta : str
+        Path to the input file or folder
+
+    Returns
+    -------
+    typ_seqs : dict
+        Paths to the input fasta file per sequence type
+    """
+    if self.soft.prev == 'prodigal':
+        typ_seqs = {'prot': '%s/protein.translations.fasta' % fasta,
+                    'nucl': '%s/nucleotide.sequences.fasta' % fasta}
+    elif self.soft.prev == 'plass':
+        typ_seqs = {'prot': '%s/prot_contigs.fasta' % dirname(fasta),
+                    'nucl': '%s/nucl_contigs.fasta' % dirname(fasta)}
+    else:
+        sys.exit('[%s] Only avail after prodigal or plass' % self.soft.name)
+    return typ_seqs
+
+
 def get_predict(
         self,
-        fastas_dict: dict,
+        fastas: dict,
         tech: str,
         sam_group: str
 ) -> None:
@@ -77,33 +102,40 @@ def get_predict(
             Parameters
         .config
             Configurations
-    fastas_dict : dict
-        Fasta files per 'nucl' or 'prot' (type of data)
+    fastas : dict
+        Paths to the input fasta files per genome/MAG
     tech : str
         Technology: 'illumina', 'pacbio', or 'nanopore'
     sam_group : str
-    """
-    out = '/'.join([self.dir, tech, sam_group])
-    self.outputs['dirs'].append(out)
 
-    for typ, fastas in fastas_dict.items():
-        for fasta in fastas:
-            base = splitext(basename(fasta))[0]
-            if typ:
-                prefix = '%s/%s_%s_%s' % (out, typ, sam_group, base)
-            else:
-                prefix = '%s/%s_%s' % (out, sam_group, base)
-            arg = '%s.ARG' % prefix
-            self.outputs['outs'].setdefault((tech, sam_group), []).extend(arg)
+    """
+    for genome, fasta in fastas.items():
+
+        out_dir = genome_out_dir(self, tech, fasta[0], sam_group, genome)
+        self.outputs['dirs'].append(out_dir)
+
+        typ_seqs = predict_inputs(self, fasta[0])
+        for typ, seq in typ_seqs.items():
+
+            key = genome_key(tech, sam_group, genome)
+            if to_do(seq):
+                self.soft.status.add('Run %s (%s)' % (self.soft.prev, key))
+
+            base = splitext(basename(seq))[0]
+            prefix = '%s/%s' % (out_dir, base)
+            arg = '%s.mapping.ARG' % prefix
+            pot_arg = '%s.potential.ARG' % prefix
+            outs = [arg, pot_arg]
+            self.outputs['outs'].setdefault((tech, sam_group), []).append(outs)
 
             # check if tool already run (or if --force) to allow getting command
             if self.config.force or to_do(arg):
                 # collect the command line
-                cmd = predict_cmd(self, typ, fasta, prefix)
+                cmd = predict_cmd(self, seq, prefix, typ)
                 # add is to the 'cmds'
-                key = '_'.join([tech, sam_group])
+                key += '_' + typ
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
-                io_update(self, i_f=fasta, o_d=out, key=key)
+                io_update(self, i_f=fasta[0], o_d=out_dir, key=key)
 
 
 def predict(self) -> None:
@@ -127,16 +159,19 @@ def predict(self) -> None:
         .config
             Configurations
     """
-    if self.pool in self.pools:
-        for (tech, group) in self.inputs[self.pool]:
-            fastas_dict = get_genomes_fastas(self, tech, group)
-            get_predict(self, fastas_dict, tech, group)
+    if self.sam_pool in self.pools:
+        for (tech, group), inputs in self.inputs[self.sam_pool].items():
+            fastas = group_inputs(self, inputs)
+            get_predict(self, fastas, tech, group)
+
+    elif self.soft.prev == 'drep':
+        for (tech, bin_algo), inputs in self.inputs[''].items():
+            fastas = group_inputs(self, inputs)
+            get_predict(self, fastas, tech, bin_algo)
     else:
-        for (tech, sam), contigs in self.inputs[self.sam].items():
-            if self.soft.prev == 'plass' and tech != 'illumina':
-                continue
-            fastas_dict = {basename(contigs).split('_')[0]: contigs}
-            get_predict(self, fastas_dict, tech, sam)
+        for (tech, sam), inputs in self.inputs[self.sam_pool].items():
+            fastas = group_inputs(self, inputs)
+            get_predict(self, fastas, tech, sam)
 
 
 def short_cmd(
@@ -192,24 +227,24 @@ def short(self) -> None:
             Configurations
     """
     # iterate over the inputs
-    for (tech, sam), fastqs in self.inputs[self.sam].items():
+    for (tech, sam), fastqs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, fastqs, tech, sam, ['illumina']):
             continue
         if not_paired(self, tech, fastqs):
             continue
 
         # make the output directory
-        out = '%s/%s/%s' % (self.dir, tech, self.sam)
+        out = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
         self.outputs['dirs'].append(out)
 
         # get the expected names of some of the ouptuts:
         # - those you want to collect in 'outs': will be used as future inputs
         # - at least one: will help to know whether the software already run
-        prefix = out + '/' + self.sam
+        prefix = out + '/' + self.sam_pool
         arg = '%s.mapping.ARG' % prefix
         pot_arg = '%s.potential.ARG' % prefix
         outs = [arg, pot_arg]
-        self.outputs['outs'].setdefault((tech, self.sam), []).extend(outs)
+        self.outputs['outs'].setdefault((tech, self.sam_pool), []).extend(outs)
 
         # check if the tool already run (or if --force) to allow getting command
         if self.config.force or to_do(arg):
