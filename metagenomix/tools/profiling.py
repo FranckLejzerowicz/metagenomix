@@ -8,7 +8,7 @@
 import sys
 import glob
 import pkg_resources
-from os.path import basename, dirname, isfile, splitext
+from os.path import basename, dirname, isdir, isfile, splitext
 
 from metagenomix._io_utils import min_nlines, io_update, to_do, tech_specificity
 from metagenomix.tools.alignment import get_alignment_cmd
@@ -2070,7 +2070,7 @@ def get_bracken_db(
         path = 'dummy/bracken/path'
     else:
         sys.exit('[bracken] Database name "%s" not found' % db)
-    if not self.config.dev and not isfile(path):
+    if not self.config.dev and not isdir(path):
         sys.exit('[bracken] No database for name "%s": %s' % (db, path))
     return path
 
