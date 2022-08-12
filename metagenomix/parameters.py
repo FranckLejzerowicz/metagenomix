@@ -367,7 +367,7 @@ def check_search(self, params, soft):
     return defaults
 
 
-def check_ccmap(self, params, soft):
+def check_ccfind(self, params, soft):
     defaults = {
         'preserve_tmpdir': [False, True],
         'terminal_fragment_size': 500,
@@ -388,7 +388,7 @@ def check_barrnap(self, params, soft):
         'evalue': 1e-06,
         'reject': 0.25,
         'lencutoff': 0.8,
-        'incseq': [False, True],
+        'incseq': [True, False],
         'kingdom': ['bac', 'mito', 'arc', 'euk']
     }
     floats = ['evalue', 'reject', 'lencutoff']
@@ -409,7 +409,6 @@ def check_integronfinder(self, params, soft):
         'local_max': [True, False],
         'promoter_attI': [True, False],
         'union_integrases': [False, True],
-        'topology': ['linear', 'circ'],
     }
     for param in ['prot_file', 'attc_model', 'topology_file']:
         if param not in params:
@@ -958,6 +957,8 @@ def check_drep(self, params, soft):
 
 def check_checkm(self, params, soft):
     defaults = {
+        'multi': 10,
+        'unique': 10,
         'min_seq_len': 1500,
         'all_reads': [True, False],
         'min_align': 0.98,
@@ -976,10 +977,12 @@ def check_checkm(self, params, soft):
         'skip_adj_correction': [False, True],
         'skip_pseudogene_correction': [False, True],
         'ignore_thresholds': [False, True],
+        'force_domain': [False, True],
+        'no_refinement': [False, True],
     }
     if 'data' not in params:
         sys.exit('[checkm] Param "data" needed: path for "checkm data setRoot"')
-    ints = ['min_seq_len', 'min_qc']
+    ints = ['min_seq_len', 'min_qc', 'multi', 'unique']
     check_nums(self, params, defaults, ints, int, soft.name)
     floats = ['min_align', 'max_edit_dist', 'aai_strain', 'length']
     check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
@@ -987,6 +990,21 @@ def check_checkm(self, params, soft):
     check_nums(self, params, defaults, floats_, float, soft.name)
     check_default(self, params, defaults, soft.name, (ints + floats + floats_))
     defaults['data'] = '<path to the CheckM reference data>'
+    return defaults
+
+
+def check_checkm2(self, params, soft):
+    defaults = {
+        'lowmem': [False, True],
+        'general': [False, True],
+        'specific': [False, True],
+        'allmodels': [True, False],
+        'genes': [False, True],
+        'force': [True, False],
+        'dbg_cos': [False, True],
+        'dbg_vectors': [False, True]
+    }
+    check_default(self, params, defaults, soft.name)
     return defaults
 
 
@@ -1194,9 +1212,10 @@ def check_midas(self, params, soft):
 
 def check_macsyfinder(self, params, soft):
     defaults = {
-        'db_type': ['unordered', 'ordered_replicon', 'gembase'],
-        'replicon_topology': ['linear', 'circular'],
-        'models': ['TXSS', 'TFF-SF', 'Conjugation'],
+        # 'db_type': ['unordered', 'ordered_replicon', 'gembase'],
+        # 'replicon_topology': ['linear', 'circular'],
+        'models': [
+            'CasFinder', 'CONJScan_plasmids', 'TFFscan', 'TFF-SF', 'TXSScan'],
         'e_value_search': 0.1,
         'i_evalue_sel': 0.001,
         'coverage_profile': 0.5,
@@ -1975,6 +1994,75 @@ def check_pirate(self, params, soft):
     return defaults
 
 
+def check_deeparg(self, params, soft):
+    defaults = {
+        'min_prob': 0.8,
+        'arg_alignment_overlap': 0.8,
+        'arg_alignment_evalue': 1e-10,
+        'arg_alignment_identity': 50,
+        'arg_num_alignments_per_entry': 1000,
+        'model_version': ['v2'],
+        'deeparg_identity': 80,
+        'deeparg_probability': 0.8,
+        'deeparg_evalue': 1e-10,
+        'gene_coverage': 1,
+        'bowtie_16s_identity': 0.8
+    }
+    ints = ['arg_num_alignments_per_entry']
+    check_nums(self, params, defaults, ints, int, soft.name)
+    ints1 = ['arg_alignment_identity', 'deeparg_identity']
+    check_nums(self, params, defaults, ints1, int, soft.name, 0, 100)
+    floats = ['min_prob', 'arg_alignment_overlap', 'arg_alignment_evalue',
+              'deeparg_probability', 'deeparg_evalue', 'gene_coverage',
+              'bowtie_16s_identity']
+    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
+    let_go = ints + ints1 + floats
+    check_default(self, params, defaults, soft.name, let_go)
+    defaults['model'] = '<Model to use (SS: for reads, LS: for genes)>'
+    db = 'db_dir'
+    if db not in params or (not self.config.dev and not isdir(params[db])):
+        sys.exit('[%s] Params "%s" must be an existing path' % (soft.name, db))
+    defaults[db] = '<Path to the installed deepARG database folder>'
+
+    return defaults
+
+
+# def check_deeplasmid(self, params, soft):
+#     defaults = {
+#     }
+#     ints = []
+#     check_nums(self, params, defaults, ints, int, soft.name)
+#     floats = []
+#     check_nums(self, params, defaults, floats, float, soft.name)
+#     check_default(self, params, defaults, soft.name, (ints + floats))
+#     defaults[''] = '<>'
+#     return defaults
+
+
+# def check_ToolName(self, params, soft):
+#     defaults = {
+#     }
+#     ints = []
+#     check_nums(self, params, defaults, ints, int, soft.name)
+#     floats = []
+#     check_nums(self, params, defaults, floats, float, soft.name)
+#     check_default(self, params, defaults, soft.name, (ints + floats))
+#     defaults[''] = '<>'
+#     return defaults
+
+
+# def check_ToolName(self, params, soft):
+#     defaults = {
+#     }
+#     ints = []
+#     check_nums(self, params, defaults, ints, int, soft.name)
+#     floats = []
+#     check_nums(self, params, defaults, floats, float, soft.name)
+#     check_default(self, params, defaults, soft.name, (ints + floats))
+#     defaults[''] = '<>'
+#     return defaults
+
+
 # def check_circlator(self, params, soft):
 #     # list here all the parameters and their default values
 #     defaults = {
@@ -2030,36 +2118,3 @@ def check_pirate(self, params, soft):
 #     check_default(self, params, defaults, soft.name, (ints + floats))
 #     defaults[''] = '<>'
 #     return defaults
-
-
-def check_deeparg(self, params, soft):
-    defaults = {
-        'min_prob': 0.8,
-        'arg_alignment_overlap': 0.8,
-        'arg_alignment_evalue': 1e-10,
-        'arg_alignment_identity': 50,
-        'arg_num_alignments_per_entry': 1000,
-        'model_version': ['v2'],
-        'deeparg_identity': 80,
-        'deeparg_probability': 0.8,
-        'deeparg_evalue': 1e-10,
-        'gene_coverage': 1,
-        'bowtie_16s_identity': 0.8
-    }
-    ints = ['arg_num_alignments_per_entry']
-    check_nums(self, params, defaults, ints, int, soft.name)
-    ints1 = ['arg_alignment_identity', 'deeparg_identity']
-    check_nums(self, params, defaults, ints1, int, soft.name, 0, 100)
-    floats = ['min_prob', 'arg_alignment_overlap', 'arg_alignment_evalue',
-              'deeparg_probability', 'deeparg_evalue', 'gene_coverage',
-              'bowtie_16s_identity']
-    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
-    let_go = ints + ints1 + floats
-    check_default(self, params, defaults, soft.name, let_go)
-    defaults['model'] = '<Model to use (SS: for reads, LS: for genes)>'
-    db = 'db_dir'
-    if db not in params or (not self.config.dev and not isdir(params[db])):
-        sys.exit('[%s] Params "%s" must be an existing path' % (soft.name, db))
-    defaults[db] = '<Path to the installed deepARG database folder>'
-
-    return defaults
