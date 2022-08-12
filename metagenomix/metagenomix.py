@@ -49,11 +49,11 @@ def metagenomix(**kwargs):
     commands.make_dirs()
 
     # Make .sh and scheduler (.slm or .pbs) scripts to
-    scripting = CreateScripts(config, workflow)
+    scripting = CreateScripts(config, workflow, databases, commands)
     # print('* Writing database formatting commands')
-    # scripting.database_cmds(databases)  # build the databases
+    # scripting.database_cmds()  # build the databases
     print('* Writing pipeline command lines')
-    scripting.software_cmds(commands)   # run the analysis pipeline
+    scripting.software_cmds()   # run the analysis pipeline
     if len(scripting.run['database']) or len(scripting.run['software']):
         print('< PLEASE CONSIDER CHECKING THE COMMAND LINE SCRIPTS MANUALLY >')
         scripting.display()  # show the scripts to run
