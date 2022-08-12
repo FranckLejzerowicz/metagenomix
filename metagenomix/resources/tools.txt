@@ -6,10 +6,10 @@ humann	profiling
 metaphlan	profiling
 shogun	profiling
 woltka	profiling
-flash	paired_read_merging
-pear	paired_read_merging
-ngmerge	paired_read_merging
-bbmerge	paired_read_merging
+flash	paired read merging
+pear	paired read merging
+ngmerge	paired read merging
+bbmerge	paired read merging
 pooling	coassembly
 spades	assembling
 quast	assembling
@@ -29,22 +29,30 @@ metawrap_blobology	binning
 metawrap_quantify	binning
 metawrap_classify	binning
 metawrap_annotate	binning
-deeparg	annotation
-prodigal	annotation
-macsyfinder	annotation
+deeparg	annotation (ARGs)
+prodigal	gene prediction
+macsyfinder	protein annotation
 integronfinder	annotation
-search_diamond	annotation
-search_hmmer	annotation
-prokka	annotation
-barrnap	annotation
-ccmap	annotation
-viralverify	annotation
-coconet	annotation
+search_diamond	protein annotation
+search_hmmer	protein annotation
+prokka	annotation (genome)
+barrnap	annotation (rRNA)
+ccmap	annotation (circularity)
+viralverify	annotation (virus)
+coconet	annotation (virus)
 tiara	annotation
 antismash	annotation
-plasforest	plasmid
-plasmidfinder	plasmid
-drep	genomics
-checkm	genomics
-checkm2	genomics
+plasforest	plasmid detection
+plasmidfinder	plasmid detection
+drep	genome dereplication
+checkm	genome quality check
+checkm_tetra	genome quality check
+checkm_tree	genome quality check
+checkm_treeqa	genome quality check
+checkm_lineageset	genome quality check
+checkm_analyze	genome quality check
+checkm_qa	genome quality check
+checkm_coverage	genome quality check
+checkm_unbinned	genome quality check
+checkm2		genome quality check
 mapping	alignment
