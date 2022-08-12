@@ -237,15 +237,15 @@ def bowtie2(self) -> None:
         .soft.params
             Parameters for humann
     """
-    for (tech, sam), fastxs in self.inputs[self.sam].items():
+    for (tech, sam), fastxs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, fastxs, tech, sam):
             continue
-        out = '%s/%s/%s' % (self.dir, tech, self.sam)
-        self.outputs['outs'][(tech, self.sam)] = dict()
+        out = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
+        self.outputs['outs'][(tech, self.sam_pool)] = dict()
         for db, db_path in self.soft.params['databases'].items():
             db_out = '%s/%s/%s' % (out, db, self.soft.params['pairing'])
             cmd, sam = get_bowtie2_cmd(self, tech, fastxs, db_path, db_out)
-            self.outputs['outs'][(tech, self.sam)][(db, 'bowtie2')] = sam
+            self.outputs['outs'][(tech, self.sam_pool)][(db, 'bowtie2')] = sam
             if self.config.force or to_do(sam):
                 cmd = get_alignment_cmd(fastxs, cmd, sam)
                 self.outputs['cmds'].setdefault(tech, []).append(cmd)
@@ -284,7 +284,7 @@ def flash_cmd(
     cmd += ' --max-overlap %s' % params['max_overlap']
     cmd += ' --max-mismatch-density %s' % params['mismatch']
     cmd += ' --output-directory %s' % out
-    cmd += ' --output-prefix %s' % self.sam
+    cmd += ' --output-prefix %s' % self.sam_pool
     cmd += ' --threads %s' % params['cpus']
     cmd += ' --compress'
     return cmd
@@ -309,23 +309,23 @@ def flash(self) -> None:
         .config
             Configurations
     """
-    for (tech, sam), fastqs in self.inputs[self.sam].items():
+    for (tech, sam), fastqs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, fastqs, tech, sam, ['illumina']):
             continue
         if not_paired(self, tech, fastqs):
             continue
 
-        out = '%s/%s/%s' % (self.dir, tech, self.sam)
+        out = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
         self.outputs['dirs'].append(out)
 
-        rad = out + '/' + self.sam
+        rad = out + '/' + self.sam_pool
         ext = '%s.extendedFrags.fastq.gz' % rad
         nc1 = '%s.notCombined_1.fastq.gz' % rad
         nc2 = '%s.notCombined_2.fastq.gz' % rad
-        out_fps = [ext, nc1, nc2]
-        self.outputs['outs'].setdefault((tech, self.sam), []).extend(out_fps)
+        outs = [ext, nc1, nc2]
+        self.outputs['outs'].setdefault((tech, self.sam_pool), []).extend(outs)
 
-        if self.config.force or sum([to_do(x) for x in out_fps]):
+        if self.config.force or sum([to_do(x) for x in outs]):
             cmd = flash_cmd(self, tech, fastqs, out)
             self.outputs['cmds'][tech] = [cmd]
             io_update(self, i_f=fastqs, o_d=out, key=tech)
@@ -401,16 +401,16 @@ def ngmerge(self) -> None:
         .config
             Configurations
     """
-    for (tech, sam), fastqs in self.inputs[self.sam].items():
+    for (tech, sam), fastqs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, fastqs, tech, sam, ['illumina']):
             continue
         if not_paired(self, tech, fastqs):
             continue
 
-        out = '%s/%s/%s' % (self.dir, tech, self.sam)
+        out = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
         self.outputs['dirs'].append(out)
 
-        rad = out + '/' + self.sam
+        rad = out + '/' + self.sam_pool
         if self.soft.params['a']:
             ext = '%s.trim' % rad
             log = '%s_trim' % rad
@@ -420,14 +420,12 @@ def ngmerge(self) -> None:
         fail = '%s.notCombined' % rad
         nc1 = '%s.notCombined_1.fastq.gz' % rad
         nc2 = '%s.notCombined_2.fastq.gz' % rad
-        out_fps = [ext, nc1, nc2]
-        self.outputs['outs'].setdefault((tech, self.sam), []).extend(out_fps)
+        outs = [ext, nc1, nc2]
+        self.outputs['outs'].setdefault((tech, self.sam_pool), []).extend(outs)
 
-        if self.config.force or sum([to_do(x) for x in out_fps]):
+        if self.config.force or sum([to_do(x) for x in outs]):
             cmd = ngmerge_cmd(self, tech, fastqs, ext, log, fail)
-            # self.outputs['cmds'].append(cmd)
             self.outputs['cmds'][tech] = [cmd]
-            # io_update(self, i_f=self.inputs[self.sam], o_d=out)
             io_update(self, i_f=fastqs, o_d=out, key=tech)
 
 
@@ -436,8 +434,8 @@ def pear_cmd(
         tech: str,
         fastqs: list,
         rad: str,
-        out_fps: list,
-        out_fps_: list,
+        outs: list,
+        outs_: list,
         na: str) -> str:
     """Get the PEAR merging command.
 
@@ -452,9 +450,9 @@ def pear_cmd(
         Paths to the input files
     rad : str
         Radical of the path to the output files
-    out_fps : list
+    outs : list
         Paths to the reads merging output files (after renaming)
-    out_fps_ : list
+    outs_ : list
         Paths to the reads merging output files (before renaming)
     na : str
         Path to the unmerged reads output file
@@ -479,7 +477,7 @@ def pear_cmd(
         if params[boolean]:
             cmd += ' --%s' % boolean.replace('_', '-')
     cmd += ' --threads %s\n' % params['cpus']
-    for (src, snk) in zip(out_fps_, out_fps):
+    for (src, snk) in zip(outs_, outs):
         cmd += 'gzip %s\nmv %s %s\n' % (src.replace('.gz', ''), src, snk)
     cmd += 'gzip %s\n' % na.replace('.gz', '')
     return cmd
@@ -504,29 +502,29 @@ def pear(self) -> None:
         .config
             Configurations
     """
-    for (tech, sam), fastqs in self.inputs[self.sam].items():
+    for (tech, sam), fastqs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, fastqs, tech, sam, ['illumina']):
             continue
         if not_paired(self, tech, fastqs):
             continue
 
-        out = '%s/%s/%s' % (self.dir, tech, self.sam)
+        out = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
         self.outputs['dirs'].append(out)
 
-        rad = out + '/' + self.sam
+        rad = out + '/' + self.sam_pool
         ext_ = '%s.assembled.fastq.gz' % rad
         nc1_ = '%s.unassembled.forward.fastq.gz' % rad
         nc2_ = '%s.unassembled.reverse.fastq.gz' % rad
-        out_fps_ = [ext_, nc1_, nc2_]
+        outs_ = [ext_, nc1_, nc2_]
         ext = '%s.extendedFrags.fastq.gz' % rad
         nc1 = '%s.notCombined_1.fastq.gz' % rad
         nc2 = '%s.notCombined_2.fastq.gz' % rad
-        out_fps = [ext, nc1, nc2]
+        outs = [ext, nc1, nc2]
         na = '%s.discarded.fastq.gz' % rad
-        self.outputs['outs'].setdefault((tech, self.sam), []).extend(out_fps)
+        self.outputs['outs'].setdefault((tech, self.sam_pool), []).extend(outs)
 
-        if self.config.force or sum([to_do(x) for x in out_fps]):
-            cmd = pear_cmd(self, tech, fastqs, rad, out_fps, out_fps_, na)
+        if self.config.force or sum([to_do(x) for x in outs]):
+            cmd = pear_cmd(self, tech, fastqs, rad, outs, outs_, na)
             self.outputs['cmds'][tech] = [cmd]
             io_update(self, i_f=fastqs, o_d=out, key=tech)
 
@@ -613,32 +611,32 @@ def bbmerge(self) -> None:
             Configurations
     """
     # iterate over the inputs
-    for (tech, sam), fastqs in self.inputs[self.sam].items():
+    for (tech, sam), fastqs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, fastqs, tech, sam, ['illumina']):
             continue
         if not_paired(self, tech, fastqs):
             continue
 
         # make the output directory
-        out = '%s/%s/%s' % (self.dir, tech, self.sam)
+        out = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
         self.outputs['dirs'].append(out)
 
         # get the expected names of some of the ouptuts:
         # - those you want to collect in 'outs' because they will be future inpt
         # - at least one that will help knowing whether the software already run
-        rad = out + '/' + self.sam
+        rad = out + '/' + self.sam_pool
         ext = '%s.extendedFrags.fastq.gz' % rad
         nc1 = '%s.notCombined_1.fastq.gz' % rad
         nc2 = '%s.notCombined_2.fastq.gz' % rad
         ins = '%s.inserts.txt' % rad
         kmer = '%s.kmer_cardinality.txt' % rad
         ihist = '%s.insert_length.hist' % rad
-        out_fps = [ext, nc1, nc2]
-        outs_cmd = out_fps + [ins, kmer, ihist]
-        self.outputs['outs'].setdefault((tech, self.sam), []).extend(out_fps)
+        outs = [ext, nc1, nc2]
+        outs_cmd = outs + [ins, kmer, ihist]
+        self.outputs['outs'].setdefault((tech, self.sam_pool), []).extend(outs)
 
         # check if the tool already run (or if --force) to allow getting command
-        if self.config.force or sum([to_do(x) for x in out_fps]):
+        if self.config.force or sum([to_do(x) for x in outs]):
             # collect the commmand line
             cmd = bbmerge_cmd(self, tech, fastqs, outs_cmd)
             # add is to the 'cmds'
