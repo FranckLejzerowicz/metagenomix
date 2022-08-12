@@ -6,17 +6,19 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-import glob
 import sys
-from os.path import basename, dirname
+from os.path import dirname
+
+from metagenomix._inputs import (sample_inputs, group_inputs,
+                                 genome_key, genome_out_dir)
 from metagenomix._io_utils import io_update, to_do
 
 
 def plasforest_cmd(
         self,
-        out_dir: str,
+        in_fp: str,
         out_fp: str,
-        in_fp: str
+        out_dir: str
 ) -> str:
     """Collect plasforest command.
 
@@ -25,12 +27,12 @@ def plasforest_cmd(
     self : Commands class instance
         .soft.params
             Parameters
-    out_dir : str
-        Path to the output folder
-    out_fp : str
-        Path to the output file
     in_fp : str
         Path to the input file
+    out_fp : str
+        Path to the output file
+    out_dir : str
+        Path to the output folder
 
     Returns
     -------
@@ -55,14 +57,131 @@ def plasforest_cmd(
     return cmd
 
 
-def plasforest(self) -> None:
-    """Classify assembly contigs as plasmids or not.
+def get_plasforest(
+        self,
+        tech: str,
+        fastas: dict,
+        sam_group: str
+) -> None:
+    """
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .config
+            Configurations
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    fastas : dict
+        Paths to the input fasta files per genome/MAG
+    sam_group : str
+        Sample or co-assembly name
+    """
+    for genome, fasta in fastas.items():
+
+        out_dir = genome_out_dir(self, tech, fasta[0], sam_group, genome)
+        self.outputs['dirs'].append(out_dir)
+
+        out_fp = '%s/plasmids.csv' % out_dir
+        self.outputs['outs'].setdefault((tech, sam_group), []).append(out_fp)
+
+        if self.config.force or to_do(out_fp):
+            key = genome_key(tech, sam_group, genome)
+            cmd = plasforest_cmd(self, fasta[0], out_fp, out_dir)
+            self.outputs['cmds'].setdefault(key, []).append(cmd)
+            io_update(self, i_f=fasta[0], i_d=out_dir, o_f=out_fp, key=key)
+
+
+def plasmidfinder_cmd(
+        self,
+        fasta: str,
+        out_dir: str,
+        key: str
+) -> str:
+    """Collect PlasmidFinder command.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .pool : str
+            Pool name.
+        .soft.params
+            PlasmidFinder parameters
+    fasta : str
+        Path to the input file
+    out_dir : str
+        Path to the output folder for the current sample/MAG
+    key : str
+        Concatenation of the technology and/or co-assembly pool group name
+
+    Returns
+    -------
+    cmd : str
+        PlasmidFinder command
+    """
+    tmp_dir = '$TMPDIR/plasmidfinder_%s' % key
+    cmd = 'mkdir -p %s\n' % tmp_dir
+    cmd += 'plasmidfinder.py'
+    if len(fasta) == 2:
+        cmd += ' --infile %s' % ' '.join(fasta)
+    else:
+        cmd += ' --infile %s' % fasta[0]
+    cmd += ' --outputPath %s' % out_dir
+    cmd += ' --tmp_dir %s' % tmp_dir
+    cmd += ' --methodPath %s' % self.soft.params['methodPath']
+    cmd += ' --databasePath %s' % self.soft.params['databasePath']
+    if 'databases' in self.soft.params:
+        cmd += ' --databases %s' % self.soft.params['databases']
+    cmd += ' --mincov %s' % self.soft.params['mincov']
+    cmd += ' --threshold %s' % self.soft.params['threshold']
+    if self.soft.params['extented_output']:
+        cmd += ' --extented_output'
+    cmd += '\nrm -rf %s\n' % tmp_dir
+    return cmd
+
+
+def get_plasmidfinder(
+        self,
+        tech: str,
+        fastas: dict,
+        sam_group: str
+) -> None:
+    """
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .config
+            Configurations
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    fastas : dict
+        Paths to the input fasta files per genome/MAG
+    sam_group : str
+        Sample or co-assembly name
+    """
+    for genome, fasta in fastas.items():
+
+        out_dir = genome_out_dir(self, tech, fasta[0], sam_group, genome)
+        self.outputs['dirs'].append(out_dir)
+        self.outputs['outs'].setdefault((tech, sam_group), []).append(out_dir)
+
+        json_fp = '%s/data.json' % out_dir
+        if self.config.force or to_do(json_fp):
+            key = genome_key(tech, sam_group, genome)
+            cmd = plasmidfinder_cmd(self, fasta, out_dir, key)
+            self.outputs['cmds'].setdefault(key, []).append(cmd)
+            io_update(self, i_f=fasta, i_d=out_dir, o_d=out_dir, key=key)
+
+
+def dispatch(self) -> None:
+    """Classify assembly contigs or genomes/MAGs as plasmids or not.
 
     Parameters
     ----------
     self : Commands class instance
         .dir : str
-            Path to pipeline output folder for plasforest
+            Path to pipeline output folder
         .prev : str
             Previous software in the pipeline
         .pool : str
@@ -74,177 +193,25 @@ def plasforest(self) -> None:
         .config
             Configurations
     """
-    if self.soft.prev not in self.config.tools['assembling']:
-        sys.exit('[plasforest] can only be run after assembly (on contigs)')
+    __plasmid_tool__ = getattr(sys.modules[__name__], 'get_%s' % self.soft.name)
 
-    for (tech, group), spades_outs in self.inputs[self.pool].items():
-        out_dir = '%s/%s/%s/%s' % (self.dir, tech, self.pool, group)
-        self.outputs['dirs'].append(out_dir)
+    if self.sam_pool in self.pools:
+        for (tech, group), inputs in self.inputs[self.sam_pool].items():
+            fastas = group_inputs(self, inputs)
+            __plasmid_tool__(self, tech, fastas, group)
 
-        self.outputs['outs'][(tech, group)] = out_dir
-        out_fp = '%s/plasmids.csv' % out_dir
+    elif set(self.inputs) == {''}:
+        for (tech, mags), inputs in self.inputs[''].items():
+            fastas = group_inputs(self, inputs)
+            __plasmid_tool__(self, tech, fastas, mags)
 
-        if self.config.force or to_do(out_fp):
-            tech_group = '_'.join([tech, group])
-            cmd = plasforest_cmd(self, out_dir, out_fp, spades_outs[1])
-            self.outputs['cmds'].setdefault(tech_group, []).append(cmd)
-            io_update(self, i_f=spades_outs[1], i_d=out_dir,
-                      o_f=out_fp, key=tech_group)
-
-
-def plasmidfinder_cmd(
-        self,
-        key: str,
-        fp: str,
-        base: str,
-        base_out: str
-) -> str:
-    """Collect PlasmidFinder command.
-
-    Parameters
-    ----------
-    self : Commands class instance
-        .pool : str
-            Pool name.
-        .soft.params
-            PlasmidFinder parameters
-    key : str
-        Concatenation of the technology and/or co-assembly pool group name
-    base : str
-        Basename for the current sample/MAG
-    base_out : str
-        Path to the output folder for the current sample/MAG
-    fp : str
-        Path to the input file
-
-    Returns
-    -------
-    cmd : str
-        PlasmidFinder command
-    """
-    tmp_dir = '$TMPDIR/plasmidfinder_%s_%s_%s' % (self.pool, key, base)
-    cmd = 'mkdir -p %s\n' % tmp_dir
-    cmd += 'plasmidfinder.py'
-    if len(fp) == 2:
-        cmd += ' --infile %s' % ' '.join(fp)
     else:
-        cmd += ' --infile %s' % fp[0]
-    cmd += ' --outputPath %s' % base_out
-    cmd += ' --tmp_dir %s' % tmp_dir
-    cmd += ' --methodPath %s' % self.soft.params['methodPath']
-    cmd += ' --databasePath %s' % self.soft.params['databasePath']
-    if 'databases' in self.soft.params:
-        cmd += ' --databases %s' % self.soft.params['databases']
-    cmd += ' --mincov %s' % self.soft.params['mincov']
-    cmd += ' --threshold %s' % self.soft.params['threshold']
-    if self.soft.params['extented_output']:
-        cmd += ' --extented_output'
-    cmd += '\nrm -rf %s\n' % tmp_dir
-    # cmd += ' --speciesinfo_json %s' % speciesinfo_json
-    return cmd
-
-
-def plasmidfinder_io(
-        self,
-        tech: str,
-        sam_group: str,
-        path: str,
-        ext: str
-) -> tuple:
-    """
-
-    Parameters
-    ----------
-    self : Commands class instance
-        .dir : str
-            Path to pipeline output folder for PlasmidFinder
-        .prev : str
-            Previous software in the pipeline
-        .config
-            Configurations
-        .sam
-            Sample name
-    tech : str
-        Technology: 'illumina', 'pacbio', or 'nanopore'
-    sam_group : str
-        Sample name or name of a co-assembly pool's group
-    path : str or list
-        Path(s) to the input file/folder(s)
-    ext : str
-        Extension of the input fasta file
-
-    Returns
-    -------
-    fps : dict
-        Path(s) to the input file(s) per basename
-    out : str
-        Path to the output folder
-    """
-    outs = [self.dir, tech]
-    if sam_group == self.sam:
-        fps = {sam_group: path}
-    elif self.soft.prev in self.config.tools['assembling']:
-        fps = {sam_group: path}
-    else:
-        outs.append(sam_group)
-        if self.config.dev:
-            fps = ['%s/a%s' % (path, ext), '%s/b%s' % (path, ext)]
+        if self.soft.name == 'plasmidfinder':
+            tech_fastas = sample_inputs(self, raw=True)
         else:
-            fps = glob.glob('%s/*%s' % (path, ext))
-        if 'reassembled_bins' in path:
-            outs.extend(path.split('/')[-2:])
-        fps = {basename(x).split(ext)[0].split('.fastq')[0]: [x] for x in fps}
-    out = '/'.join(outs)
-    return fps, out
-
-
-def genome_dirs(
-        self,
-        inputs: dict,
-        sam_group: str
-) -> tuple:
-    """
-
-    Parameters
-    ----------
-    self : Commands class instance
-        .name : str
-            Name of the current software in the pipeline
-        .prev : str
-            Previous software in the pipeline
-        .pool : str
-            Pool name.
-        .inputs : dict
-            Input files
-        .sam
-            Sample name
-    inputs : dict
-        Path(s) to the input file(s)/folder(s) per tech or (tech/hybrid, group)
-    sam_group : str
-        Sample name or pool group
-
-    Returns
-    -------
-    dirs : list
-    ext : str
-    """
-    ext = '.fa'
-    if sam_group == self.sam:
-        dirs = [inputs]
-    elif self.soft.prev in self.config.tools['assembling']:
-        dirs = [[inputs[1]]]
-    elif self.soft.prev == 'drep':
-        dirs = [inputs]
-    elif self.soft.prev == 'metawrap_refine':
-        dirs = [inputs[-1]]
-    elif self.soft.prev == 'metawrap_reassemble':
-        dirs = inputs
-    elif self.soft.prev == 'yamb':
-        ext = '.fna'
-        dirs = glob.glob('%s/bins-yamb-pp-*' % inputs)
-    else:
-        sys.exit('[%s] Not after "%s"' % (self.soft.name, self.soft.prev))
-    return dirs, ext
+            tech_fastas = sample_inputs(self)
+        for tech, fastas in tech_fastas.items():
+            __plasmid_tool__(self, tech, fastas, self.sam_pool)
 
 
 def plasmidfinder(self) -> None:
@@ -271,19 +238,30 @@ def plasmidfinder(self) -> None:
         .sam
             Sample name
     """
-    for (tech, sam_group), inputs in self.inputs[self.pool].items():
-        key = '_'.join([tech, sam_group])
-        paths, ext = genome_dirs(self, inputs, sam_group)
-        for path in paths:
-            fps, out = plasmidfinder_io(self, tech, sam_group, path, ext)
-            self.outputs['outs'].setdefault((tech, sam_group), []).append(out)
-            cmd = ''
-            for base, fp in fps.items():
-                base_out = out + '/%s' % base
-                json = '%s/data.json' % base_out
-                self.outputs['dirs'].append(base_out)
-                if self.config.force or to_do(json):
-                    cmd += plasmidfinder_cmd(self, key, fp, base, base_out)
-                    io_update(self, i_f=fp, o_d=base_out, key=key)
-            if cmd:
-                self.outputs['cmds'].setdefault(key, []).append(cmd)
+    dispatch(self)
+
+
+def plasforest(self) -> None:
+    """Classify assembly contigs as plasmids or not using PlasForest.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .name : str
+            Name of the current software in the pipeline
+        .dir : str
+            Path to pipeline output folder for PlasForest
+        .prev : str
+            Previous software in the pipeline
+        .pool : str
+            Pool name.
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .config
+            Configurations
+        .sam
+            Sample name
+    """
+    dispatch(self)
