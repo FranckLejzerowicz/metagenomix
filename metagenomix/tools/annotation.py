@@ -9,65 +9,21 @@
 import glob
 import sys
 import pkg_resources
+from os.path import basename, isdir, splitext
 
-from os.path import basename, dirname, splitext
-from metagenomix._io_utils import (caller, get_out_dir, write_hmms,
-                                   io_update, to_do, get_genomes_fastas)
+from metagenomix._inputs import (sample_inputs, group_inputs,
+                                 genome_key, genome_out_dir)
+from metagenomix._io_utils import caller, io_update, to_do
 from metagenomix.parameters import tech_params
 
 RESOURCES = pkg_resources.resource_filename("metagenomix", "resources/scripts")
 
 
-def get_input(
-        self,
-        index: int = 0
-) -> dict:
-    """Get input files for Prodigal or an annotation tool taking Prodigal
-    output as input.
-
-    Parameters
-    ----------
-    self : Commands class instance
-        .dir : str
-            Path to software's output folder
-        .sam : str
-            Sample name
-        .inputs : dict
-            Input files
-        .outputs : dict
-            All outputs
-        .soft.params : dict
-            Parameters
-        .config
-            Configurations
-    index : int
-        Index in the list of input files (i.e. outputs from the previous step)
-
-    Returns
-    -------
-    inputs : dict
-        Path to the assembly contig file per technology
-    """
-    tool = self.soft.name
-    if tool == 'prodigal':
-        if self.soft.prev == 'plass' and 'illumina' in self.inputs[self.sam]:
-            if self.softs['plass'].params['type'] == 'assembly':
-                sys.exit('[%s] Can only predict for plass nuclassembly' % tool)
-            inputs = {'illumina': self.inputs[self.sam]['illumina']}
-        else:
-            inputs = {t: self.inputs[self.sam][t][index] for t in [
-                'pacbio', 'nanopore'] if self.inputs[self.sam].get(t)}
-    else:
-        inputs = {t: self.inputs[self.sam][t][index] for t in [
-            'illumina', 'pacbio', 'nanopore'] if self.inputs[self.sam].get(t)}
-    return inputs
-
-
 def prodigal_cmd(
         self,
-        contig_fp: str,
-        outputs: list,
-        tech: str
+        tech: str,
+        fasta_fp: str,
+        out: str
 ) -> str:
     """Create command lines for Prodigal.
 
@@ -86,12 +42,12 @@ def prodigal_cmd(
             Parameters
         .config
             Configurations
-    contig_fp : str
-        Path to the input contigs file
-    outputs : list
-        Paths to the output files
     tech : str
         Technology: 'illumina', 'pacbio', or 'nanopore'
+    fasta_fp : str
+        Path to the input fasta file
+    out : str
+        Path to the output folder
 
     Returns
     --------
@@ -100,16 +56,16 @@ def prodigal_cmd(
     """
     params = tech_params(self, tech)
     cmd = ''
-    contig_fa = contig_fp
-    if contig_fp.endswith('fastq.gz'):
-        contig_fa = contig_fp.replace('fastq.gz', 'fasta')
-        cmd += 'seqtk seq -a %s > %s\n' % (contig_fp, contig_fa)
+    contig_fa = fasta_fp
+    if fasta_fp.endswith('fastq.gz'):
+        contig_fa = fasta_fp.replace('fastq.gz', 'fasta')
+        cmd += 'seqtk seq -a %s > %s\n' % (fasta_fp, contig_fa)
     cmd = 'prodigal'
     cmd += ' -i %s' % contig_fa
-    cmd += ' -a %s' % outputs[0]
-    cmd += ' -d %s' % outputs[1]
-    cmd += ' -s %s' % outputs[2]
-    cmd += ' -o %s' % outputs[3]
+    cmd += ' -a %s/protein.translations.fasta' % out
+    cmd += ' -d %s/nucleotide.sequences.fasta' % out
+    cmd += ' -s %s/potential.starts.fasta' % out
+    cmd += ' -o %s/gene.coords.%s' % (out, params['f'])
     for param in ['f', 'p']:
         cmd += ' -%s %s' % (param, params[param])
     for boolean in ['c', 'm', 'n', 'q']:
@@ -118,40 +74,13 @@ def prodigal_cmd(
     return cmd
 
 
-def prodigal_outputs(
-        self,
-        out: str
-) -> list:
-    """Get the output files of Prodigal.
-
-    Parameters
-    ----------
-    self : Commands class instance
-        .soft.params : dict
-            Parameters
-    out : str
-        Path to the output folder
-
-    Returns
-    -------
-    outputs : list
-        Paths to the Prodigal output files
-    """
-    proteins = '%s/protein.translations.fasta' % out
-    nucleotides = '%s/nucleotide.sequences.fasta' % out
-    genes = '%s/potential.starts.fasta' % out
-    gbk = '%s/gene.coords.%s' % (out, self.soft.params['f'])
-    outputs = [proteins, nucleotides, genes, gbk]
-    return outputs
-
-
 def get_prodigal(
         self,
-        contig_fp: str,
-        out: str,
         tech: str,
+        fastas: dict,
+        out_dir: str,
         sam_group: str,
-):
+) -> None:
     """Get the prodigal command and fill the pipeline data structures.
 
     Parameters
@@ -161,23 +90,30 @@ def get_prodigal(
             All outputs
         .config
             Configurations
-    contig_fp : str
-        Path to the input contigs file
-    out : str
-        Path to the output folder
     tech : str
         Technology: 'illumina', 'pacbio', or 'nanopore'
+    fastas : dict
+        Paths to the input fasta file per sample name / data source
+    out_dir : str
+        Paths to the output folder
     sam_group : str
         Sample name or group for the current co-assembly
     """
-    self.outputs['dirs'].append(out)
-    outputs = prodigal_outputs(self, out)
-    self.outputs['outs'][(tech, sam_group)] = outputs
-    tech_sam_group = '_'.join([tech, sam_group])
-    if self.config.force or to_do(outputs[0]):
-        cmd = prodigal_cmd(self, contig_fp, outputs, tech)
-        self.outputs['cmds'].setdefault(tech_sam_group, []).append(cmd)
-        io_update(self, i_f=contig_fp, o_f=outputs, o_d=out, key=tech_sam_group)
+    for genome, fasta in fastas.items():
+
+        out = out_dir
+        key = '_'.join([tech, sam_group])
+        if genome:
+            out += '/' + genome
+            key += '_' + genome
+        self.outputs['dirs'].append(out)
+        self.outputs['outs'].setdefault((tech, sam_group), []).append(out)
+
+        proteins = '%s/protein.translations.fasta' % out
+        if self.config.force or to_do(proteins):
+            cmd = prodigal_cmd(self, tech, fasta[0], out)
+            self.outputs['cmds'].setdefault(key, []).append(cmd)
+            io_update(self, i_f=fasta[0], o_d=out, key=key)
 
 
 def prodigal(self) -> None:
@@ -197,23 +133,31 @@ def prodigal(self) -> None:
         .config
             Configurations
     """
-    if self.pool in self.pools:
-        for (tech, group), inputs in self.inputs[self.pool].items():
-            out = '/'.join([self.dir, tech, self.pool, group])
-            get_prodigal(self, inputs[1], out, tech, group)
+    if self.sam_pool in self.pools:
+        for (tech, group), inputs in self.inputs[self.sam_pool].items():
+            fastas = group_inputs(self, inputs)
+            out_dir = '/'.join([self.dir, tech, self.sam_pool, group])
+            get_prodigal(self, tech, fastas, out_dir, group)
+
+    elif set(self.inputs) == {''}:
+        for (tech, mags), inputs in self.inputs[''].items():
+            fastas = group_inputs(self, inputs)
+            out_dir = '/'.join([self.dir, tech, mags])
+            get_prodigal(self, tech, fastas, out_dir, mags)
+
     else:
-        tech_contigs = get_input(self)
-        for tech, contigs in tech_contigs.items():
-            out = '/'.join([self.dir, tech, self.sam])
-            get_prodigal(self, contigs, out, tech, self.sam)
+        tech_fastas = sample_inputs(self, ['pacbio', 'nanopore'])
+        for tech, fastas in tech_fastas.items():
+            out_dir = '/'.join([self.dir, tech, self.sam_pool])
+            get_prodigal(self, tech, fastas, out_dir, self.sam_pool)
 
 
 def macsyfinder_cmd(
         self,
-        fp: str,
-        out_dir: str,
-        models: str,
         tech: str,
+        proteins: str,
+        out_dir: str,
+        models_dir: str
 ) -> tuple:
     """Collect command for MacSyFinder.
 
@@ -226,51 +170,62 @@ def macsyfinder_cmd(
             Parameters
         .config
             Configurations
-    fp : str
-        Path to the input fasta file
+    tech : str
+        Technology: 'illumina', 'pacbio', 'nanopore', or hybrif naming
+    proteins : str
+        Path to the input proteins fasta file
     out_dir : str
         Path to the output folder
-    models : str
+    models_dir : str
         Path to the models folder
-    tech : str
-        Technology: 'illumina', 'pacbio', or 'nanopore'
 
     Returns
     -------
     cmd : str
         MacSyFinder command
-    outs : list
-        Path to the output folders
+    outs : dict
+        Paths to the output folder per model
     """
     cmd = ''
-    input_fp = fp
+    proteins_fp = proteins
     params = tech_params(self, tech)
     if tech in ['illumina', 'pacbio', 'nanopore']:
-        input_fp = '%s_edit.fasta' % fp.replace('.fasta', '')
+        proteins_fp = '%s_edit.fasta' % proteins.replace('.fasta', '')
         cmd += '%s/header_space_replace.py -i %s -o %s --n\n' % (
-            RESOURCES, fp, input_fp)
+            RESOURCES, proteins, proteins_fp)
 
-    outs = []
+    outs = {}
     for model in params['models']:
         model_dir = '%s/%s' % (out_dir, model)
-        outs.append(model_dir)
+        if not self.config.dev and not isdir(model_dir):
+            continue
+        outs[model] = model_dir
         self.outputs['dirs'].append(model_dir)
         res = '%s/macsyfinder.log' % model_dir
         if self.config.force or to_do(res):
             cmd += 'macsyfinder'
+
+            if self.soft.prev == 'plass':
+                cmd += ' --db-type unordered'
+            elif '_spades_' in out_dir:
+                cmd += ' --db-type ordered_replicon'
+                cmd += ' --replicon-topology linear'
+            elif '_drep_' in out_dir or '_metawrap' in out_dir:
+                cmd += ' --db-type ordered_replicon'
+                cmd += ' --replicon-topology circular'
+
             for param in [
-                'db_type', 'replicon_topology', 'e_value_search',
-                'i_evalue_sel', 'coverage_profile', 'mandatory_weight',
-                'accessory_weight', 'exchangeable_weight', 'redundancy_penalty',
-                'out_of_cluster'
+                'e_value_search', 'i_evalue_sel', 'coverage_profile',
+                'mandatory_weight', 'accessory_weight', 'exchangeable_weight',
+                'redundancy_penalty', 'out_of_cluster'
             ]:
                 cmd += ' --%s %s' % (param.replace('_', '-'), params[param])
             cmd += ' --out-dir %s' % model_dir
             cmd += ' --res-search-suffix _hmm.tsv'
             cmd += ' --res-extract-suffix _out.tsv'
             cmd += ' --worker %s' % params['cpus']
-            cmd += ' --sequence-db %s' % input_fp
-            cmd += ' --models-dir %s/models' % models
+            cmd += ' --sequence-db %s' % proteins_fp
+            cmd += ' --models-dir %s/models' % models_dir
             cmd += ' --models %s all' % model
             cmd += ' --verbosity\n'
     return cmd, outs
@@ -278,9 +233,8 @@ def macsyfinder_cmd(
 
 def get_macsyfinder(
         self,
-        fp: str,
-        out_dir: str,
         tech: str,
+        fastas: dict,
         sam_group: str,
 ) -> None:
     """Get the MacSyFinder command and fill the pipeline data structures.
@@ -292,23 +246,29 @@ def get_macsyfinder(
             Databases
         .outputs : dict
             All outputs
-    fp : str
-        Path to the input fasta file
-    out_dir : str
-        Path to the output folder
     tech : str
         Technology: 'illumina', 'pacbio', or 'nanopore'
+    fastas : dict
+        Paths to the input fasta files per genome/MAG
     sam_group : str
         Sample name or group for the current co-assembly
     """
-    self.outputs['dirs'].append(out_dir)
-    models = self.databases.paths['macsyfinder']
-    cmd, outs = macsyfinder_cmd(self, fp, out_dir, models, tech)
-    self.outputs['outs'][(tech, sam_group)] = outs
-    if cmd:
-        tech_sam_group = '_'.join([tech, sam_group])
-        self.outputs['cmds'].setdefault(tech_sam_group, []).append(cmd)
-        io_update(self, i_f=fp, i_d=models, o_d=out_dir, key=tech_sam_group)
+    for genome, fasta in fastas.items():
+
+        key = genome_key(tech, sam_group, genome)
+        out_dir = genome_out_dir(self, tech, fasta[0], sam_group, genome)
+        self.outputs['dirs'].append(out_dir)
+
+        proteins = fasta[0]
+        if self.soft.prev == 'prodigal':
+            proteins = '%s/protein.translations.fasta' % fasta[0]
+
+        models_dir = self.databases.paths['macsyfinder']
+        cmd, outs = macsyfinder_cmd(self, tech, proteins, out_dir, models_dir)
+        self.outputs['outs'].setdefault((tech, sam_group), []).append(outs)
+        if cmd:
+            self.outputs['cmds'].setdefault(key, []).append(cmd)
+            io_update(self, i_f=proteins, i_d=models_dir, o_d=out_dir, key=key)
 
 
 def macsyfinder(self) -> None:
@@ -330,23 +290,70 @@ def macsyfinder(self) -> None:
         .config
             Configurations
     """
-    if self.pool in self.pools:
-        for (tech, group) in self.inputs[self.pool]:
-            out_dir, fp = get_out_dir(self, self.pool, tech, group)
-            get_macsyfinder(self, fp, out_dir, tech, group)
+    if self.sam_pool in self.pools:
+        if self.soft.prev != 'prodigal':
+            sys.exit('[macsyfinder] Runs on protein data (plass, prodigal...)')
+        for (tech, group), inputs in self.inputs[self.sam_pool].items():
+            fastas = group_inputs(self, inputs)
+            get_macsyfinder(self, tech, fastas, group)
+
+    elif set(self.inputs) == {''}:
+        for (tech, mags), inputs in self.inputs[''].items():
+            fastas = group_inputs(self, inputs)
+            get_macsyfinder(self, tech, fastas, mags)
+
     else:
-        tech_proteins = get_input(self)
-        for tech, _ in tech_proteins.items():
-            out_dir, fp = get_out_dir(self, self.sam, tech)
-            get_macsyfinder(self, fp, out_dir, tech, self.sam)
+        prev = self.soft.prev
+        if prev not in ['plass', 'prodigal']:
+            sys.exit('[macsyfinder] Runs on protein data (plass, prodigal...)')
+        tech_fastas = sample_inputs(self)
+        for tech, fastas in tech_fastas.items():
+            get_macsyfinder(self, tech, fastas, self.sam_pool)
+
+
+def write_hmms_cmd(self) -> tuple:
+    """Write a file to contain on each line, the paths to the .hmm
+    files to search as part of integronfinder.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to the output directory.
+        .databases.hmms_dias : dict
+            .hmm files per name of profile.
+
+    Returns
+    -------
+    cmd = str
+        Command to write the HMMs file
+    hmms_fp : str
+        Path to the file containing the paths to the .hmm files to search.
+    """
+    cmd = ''
+    hmms_fp = ''
+    if self.databases.hmms_dias:
+        hmms_fp = '%s/hmm.txt' % self.dir
+        first = True
+        for i, (target, gen_hmm) in enumerate(self.databases.hmms_dias.items()):
+            if self.config.dev and i == 1:
+                break
+            for j, (hmm, _) in enumerate(gen_hmm.values()):
+                if self.config.dev and j == 1:
+                    break
+                if first:
+                    cmd += 'echo -e "%s" > %s\n' % (hmm, hmms_fp)
+                    first = False
+                else:
+                    cmd += 'echo -e "%s" >> %s\n' % (hmm, hmms_fp)
+    return cmd, hmms_fp
 
 
 def integronfinder_cmd(
         self,
-        fp: str,
-        o_dir: str,
         tech: str,
-        group: str
+        fastx: str,
+        out: str,
 ) -> str:
     """Collect command for integron_finder.
 
@@ -355,14 +362,12 @@ def integronfinder_cmd(
     self : Commands class instance
         .databases : dict
             Path to the reference databases
-    fp : str
-        Path to the input fasta file
-    o_dir : str
-        Path to the output folder
     tech : str
         Technology: 'illumina', 'pacbio', or 'nanopore'
-    group : str
-        Group for the current co-assembly
+    fastx : str
+        Path to the input fasta/fastq(.gz) file
+    out : str
+        Path to the output folder
 
     Returns
     -------
@@ -370,19 +375,31 @@ def integronfinder_cmd(
         integron_finder command
     """
     params = tech_params(self, tech)
-    fp_out = fp.replace('.fasta', '_%s.fasta' % params['min_length'])
-    cmd, hmms = write_hmms(self)
-    cmd += '%s/filter_on_length.py' % RESOURCES
-    cmd += ' -i %s' % fp
-    cmd += ' -o %s' % fp_out
+
+    cmd = ''
+    fasta = fastx
+    if fastx.endswith('fastq.gz') or fastx.endswith('fastq'):
+        fasta = fastx.replace('fastq.gz', 'fasta')
+        cmd += 'seqtk seq -a %s > %s\n' % (fastx, fasta)
+
+    fasta_out = '%s_min%snt.fasta' % (splitext(fasta)[0], params['min_length'])
+    hmms_cmd, hmms = write_hmms_cmd(self)
+    if hmms_cmd:
+        cmd += hmms_cmd
+
+    cmd += '\n%s/filter_on_length.py' % RESOURCES
+    cmd += ' -i %s' % fasta
+    cmd += ' -o %s' % fasta_out
     cmd += ' -t %s\n' % params['min_length']
+
     cmd += 'integron_finder'
-    for boolean in ['local_max', 'promoter_attI', 'mute', 'pdf',
-                    'gbk', 'union_integrases']:
+    for boolean in [
+        'local_max', 'promoter_attI', 'mute', 'pdf', 'gbk', 'union_integrases'
+    ]:
         if params[boolean]:
             cmd += ' --%s' % boolean.replace('_', '-')
     cmd += ' --verbose'
-    cmd += ' --outdir %s' % o_dir
+    cmd += ' --outdir %s' % out
     cmd += ' --cpu %s' % params['cpus']
     if self.databases.hmms_dias:
         cmd += ' --func-annot'
@@ -397,19 +414,23 @@ def integronfinder_cmd(
     if params['topology_file']:
         cmd += ' --topology-file %s' % params['topology_file']
     else:
-        cmd += ' --%s' % params['topology']
-    cmd += ' %s' % fp_out
+        if self.soft.prev == 'plass':
+            cmd += ' --topology linear'
+        elif '_spades_' in out:
+            cmd += ' --topology linear'
+        elif '_drep_' in out or '_metawrap' in out:
+            cmd += ' --topology circ'
+    cmd += ' %s' % fasta_out
     return cmd
 
 
 def get_integronfinder(
         self,
-        fp: str,
-        out_dir: str,
         tech: str,
+        fastas: dict,
         sam_group: str,
 ) -> None:
-    """Get the MacSyFinder command and fill the pipeline data structures.
+    """Get the integron_finder command and fill the pipeline data structures.
 
     Parameters
     ----------
@@ -418,23 +439,29 @@ def get_integronfinder(
             Databases
         .outputs : dict
             All outputs
-    fp : str
-        Path to the input fasta file
-    out_dir : str
-        Path to the output folder
     tech : str
         Technology: 'illumina', 'pacbio', or 'nanopore'
+    fastas : dict
+        Paths to the input fasta files per genome/MAG
     sam_group : str
         Sample name or group for the current co-assembly
     """
-    self.outputs['dirs'].append(out_dir)
-    self.outputs['outs'].setdefault((tech, self.pool), []).append(out_dir)
-    out = '%s/Results_Integron_Finder_mysequences/mysequences.summary' % out_dir
-    if self.config.force or to_do(out):
-        tech_sam_group = '_'.join([tech, sam_group])
-        cmd = integronfinder_cmd(self, fp, out_dir, tech, sam_group)
-        self.outputs['cmds'].setdefault(tech_sam_group, []).append(cmd)
-        io_update(self, i_f=fp, o_d=out_dir, key=tech_sam_group)
+    for genome, fasta_ in fastas.items():
+
+        key = genome_key(tech, sam_group, genome)
+        out = genome_out_dir(self, tech, fasta_[0], sam_group, genome)
+        self.outputs['dirs'].append(out)
+        self.outputs['outs'].setdefault((tech, sam_group), []).append(out)
+
+        fasta = fasta_[0]
+        if self.soft.prev == 'prodigal':
+            fasta = '%s/nucleotide.sequences.fasta' % fasta_[0]
+
+        fpo = '%s/Results_Integron_Finder_mysequences/mysequences.summary' % out
+        if self.config.force or to_do(fpo):
+            cmd = integronfinder_cmd(self, tech, fasta, out)
+            self.outputs['cmds'].setdefault(key, []).append(cmd)
+            io_update(self, i_f=fasta, o_d=out, key=key)
 
 
 def integronfinder(self) -> None:
@@ -456,15 +483,20 @@ def integronfinder(self) -> None:
         .config
             Configurations
     """
-    if self.pool in self.pools:
-        for (tech, group) in self.inputs[self.pool]:
-            out_dir, fp = get_out_dir(self, self.pool, tech, group)
-            get_integronfinder(self, fp, out_dir, tech, group)
+    if self.sam_pool in self.pools:
+        for (tech, group), inputs in self.inputs[self.sam_pool].items():
+            fastas = group_inputs(self, inputs)
+            get_integronfinder(self, tech, fastas, group)
+
+    elif set(self.inputs) == {''}:
+        for (tech, mags), inputs in self.inputs[''].items():
+            fastas = group_inputs(self, inputs)
+            get_integronfinder(self, tech, fastas, mags)
+
     else:
-        tech_proteins = get_input(self)
-        for tech, _ in tech_proteins.items():
-            out_dir, fp = get_out_dir(self, self.sam, tech)
-            get_integronfinder(self, fp, out_dir, tech, self.sam)
+        tech_fastas = sample_inputs(self)
+        for tech, fastas in tech_fastas.items():
+            get_integronfinder(self, tech, fastas, self.sam_pool)
 
 
 # def custom_cmd(
@@ -480,7 +512,7 @@ def integronfinder(self) -> None:
 #         for gene, (hmm, dia) in gene_hmm_dia.items():
 #             sam_dir = '%s/%s' % (out_dir, gene)
 #             self.outputs['dirs'].append(sam_dir)
-#             out = '%s/%s.tsv' % (sam_dir, self.sam)
+#             out = '%s/%s.tsv' % (sam_dir, self.sam_pool)
 #             if to_do(out):
 #                 if dia_hmm == 'hmm':
 #                     stdout = '%s_hmmer.out' % splitext(out)[0]
@@ -493,7 +525,7 @@ def integronfinder(self) -> None:
 #                     cmd += ' %s %s' % (hmm, input_file)
 #                 else:
 #                     io_update(self, i_f=dia, o_f=out, key=target)
-#                     tmp = '%s/%s_tmp' % (sam_dir, self.sam)
+#                     tmp = '%s/%s_tmp' % (sam_dir, self.sam_pool)
 #                     cmd = 'mkdir -p %s\n' % tmp
 #                     cmd += 'diamond blastp'
 #                     cmd += ' -d %s' % dia
@@ -518,11 +550,11 @@ def integronfinder(self) -> None:
 
 def search_cmd(
         self,
-        out_dir: str,
-        fp: str,
         tech: str,
-        sam_group: str
-) -> list:
+        proteins: str,
+        out_dir: str,
+        key: str
+) -> dict:
     """Dispatch the command line creation for hmmer or diamond and
     for the different reference databases.
 
@@ -537,36 +569,37 @@ def search_cmd(
             Parameters
         .config
             Configurations
-    out_dir : str
-        Path to the main output folder
-    fp : str
-        Path to the input fasta file
     tech : str
         Technology: 'illumina', 'pacbio', or 'nanopore'
-    sam_group : str
-        Sample name or group for the current co-assembly
+    proteins : str
+        Path to the input proteins fasta file
+    out_dir : str
+        Path to the main output folder
+    key : str
+        Concatenation of variables names for the current analytic level
 
     Returns
     -------
-    outs : list
-        Paths to the output files
+    outs : dict
+        Paths to the output folder per database
     """
-    outs = []
+    outs = {}
     params = tech_params(self, tech)
-    tmp = '$TMPDIR/%s_%s_%s_%s' % (self.soft.name, self.sam, tech, sam_group)
+    tmp = '$TMPDIR/%s_%s_%s' % (self.soft.name, self.sam_pool, key)
     module_call = caller(self, __name__)
     for db, db_paths in params['databases'].items():
         for db_path in db_paths:
             db_base = splitext(basename(db_path))[0]
             db_out_dir = '%s/%s' % (out_dir, db_base)
             self.outputs['dirs'].append(db_out_dir)
+
             out = '%s/%s.tsv' % (db_out_dir, db_base)
-            outs.append(db_out_dir)
+            outs.setdefault((db, db_base), []).append(db_out_dir)
+
             if self.config.force or to_do(out):
-                tech_sam_group = '_'.join([tech, sam_group])
-                cmd = module_call(params, fp, db_path, out, tmp)
-                io_update(self, i_f=fp, o_d=db_out_dir, key=tech_sam_group)
-                self.outputs['cmds'].setdefault(tech_sam_group, []).append(cmd)
+                cmd = module_call(params, proteins, db_path, out, tmp)
+                io_update(self, i_f=proteins, o_d=db_out_dir, key=key)
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
     return outs
 
 
@@ -666,9 +699,8 @@ def hmmer(
 
 def get_search(
         self,
-        fp: str,
-        out_dir: str,
         tech: str,
+        fastas: dict,
         sam_group: str
 ) -> None:
     """Get the DIAMOND or HMMER search command
@@ -681,18 +713,26 @@ def get_search(
             Databases
         .outputs : dict
             All outputs
-    out_dir : str
-        Path to the output folder
-    fp : str
-        Path to the input fasta file
     tech : str
         Technology: 'illumina', 'pacbio', or 'nanopore'
+    fastas : dict
+        Paths to the input fasta file per sample name / data source
     sam_group : str
         Sample name or group for the current co-assembly
     """
-    outs = search_cmd(self, out_dir, fp, tech, sam_group)
-    if outs:
-        self.outputs['outs'].setdefault((tech, sam_group), []).extend(outs)
+    for genome, fasta in fastas.items():
+
+        key = genome_key(tech, sam_group, genome)
+        out_dir = genome_out_dir(self, tech, fasta[0], sam_group, genome)
+        self.outputs['dirs'].append(out_dir)
+
+        proteins = fasta[0]
+        if self.soft.prev == 'prodigal':
+            proteins = '%s/protein.translations.fasta' % fasta[0]
+
+        outs = search_cmd(self, tech, proteins, out_dir, key)
+        if outs:
+            self.outputs['outs'].setdefault((tech, sam_group), {}).update(outs)
 
 
 def search(self) -> None:
@@ -719,15 +759,28 @@ def search(self) -> None:
     # This function splits the name of the software and calls as function (
     # from this module) the part of the software name that follows the first
     # underscore, e.g. software "search_diamond" would call `diamond()`
-    if self.pool in self.pools:
-        for (tech, group) in self.inputs[self.pool]:
-            out_dir, fp = get_out_dir(self, self.pool, tech, group)
-            get_search(self, fp, out_dir, tech, group)
+    name = self.soft.name
+    if self.sam_pool in self.pools:
+        if self.soft.prev != 'prodigal':
+            sys.exit('[%s] Runs on protein data (plass, prodigal...)' % name)
+        for (tech, group), inputs in self.inputs[self.sam_pool].items():
+            fastas = group_inputs(self, inputs)
+            get_search(self, tech, fastas, group)
+
+    elif set(self.inputs) == {''}:
+        if self.soft.prev != 'prodigal':
+            sys.exit('[%s] Runs on protein data (plass, prodigal...)' % name)
+        for (tech, mags), inputs in self.inputs[''].items():
+            fastas = group_inputs(self, inputs)
+            get_search(self, tech, fastas, mags)
+
     else:
-        tech_proteins = get_input(self)
-        for tech, _ in tech_proteins.items():
-            out_dir, fp = get_out_dir(self, self.sam, tech)
-            get_search(self, fp, out_dir, tech, self.sam)
+        prev = self.soft.prev
+        if prev not in ['plass', 'prodigal']:
+            sys.exit('[%s] Runs on protein data (plass, prodigal...)' % name)
+        tech_fastas = sample_inputs(self)
+        for tech, fastas in tech_fastas.items():
+            get_search(self, tech, fastas, self.sam_pool)
 
 
 def prokka_cmd(
@@ -868,7 +921,7 @@ def get_prokka(
             pref += '_%s' % splitext(basename(config['proteins']))[0]
         file_out = '%s/%s.out' % (out_dir, pref)
         if self.config.force or to_do(file_out):
-            cmd += prokka_cmd(self, inputs[1], out_dir, pref, config, cols)
+            cmd += prokka_cmd(self, inputs[0], out_dir, pref, config, cols)
     return cmd
 
 
@@ -892,9 +945,9 @@ def prokka(self) -> None:
         .config
             Configurations
     """
-    if self.pool in self.pools:
-        for (tech, group), inputs in self.inputs[self.pool].items():
-            out_dir = '/'.join([self.dir, tech, self.pool, group])
+    if self.sam_pool in self.pools:
+        for (tech, group), inputs in self.inputs[self.sam_pool].items():
+            out_dir = '/'.join([self.dir, tech, self.sam_pool, group])
             self.outputs['dirs'].append(out_dir)
             self.outputs['outs'].setdefault(group, []).append(out_dir)
 
@@ -902,14 +955,14 @@ def prokka(self) -> None:
             if cmd:
                 tech_group = '_'.join([tech, group])
                 self.outputs['cmds'].setdefault(tech_group, []).append(cmd)
-                io_update(self, i_f=inputs[1], o_d=out_dir, key=tech_group)
+                io_update(self, i_f=inputs[0], o_d=out_dir, key=tech_group)
 
 
 def barrnap_cmd(
         self,
-        out: str,
-        fasta: str,
         tech: str,
+        fastx: str,
+        out: str
 ) -> str:
     """Collect the command line for Barrnap.
 
@@ -918,12 +971,12 @@ def barrnap_cmd(
     self : Commands class instance
         .soft.params : dict
             Parameters
-    out : str
-        Path to the output file
-    fasta : str
-        Path to the input fasta file
     tech : str
         Technology: 'illumina', 'pacbio', or 'nanopore'
+    fastx : str
+        Path to the input fasta file
+    out : str
+        Path to the output file
 
     Returns
     -------
@@ -931,7 +984,12 @@ def barrnap_cmd(
         Barrnap command
     """
     params = tech_params(self, tech)
-    cmd = 'barrnap'
+    cmd = ''
+    fasta = fastx
+    if fastx.endswith('fastq.gz') or fasta.endswith('fastq'):
+        fasta = fasta.replace('fastq.gz', 'fasta').replace('fastq', 'fasta')
+        cmd += 'seqtk seq -a %s > %s\n' % (fastx, fasta)
+    cmd += 'barrnap'
     cmd += ' --kingdom %s' % params['kingdom']
     cmd += ' --threads %s' % params['cpus']
     cmd += ' --reject %s' % params['reject']
@@ -944,13 +1002,13 @@ def barrnap_cmd(
     return cmd
 
 
-def ccmap_cmd(
+def ccfind_cmd(
         self,
-        out: str,
-        fasta: str,
         tech: str,
+        fastx: str,
+        out_dir: str
 ) -> str:
-    """Collect the command line for CCmap.
+    """Collect the command line for ccfind.
 
     Parameters
     ----------
@@ -959,23 +1017,26 @@ def ccmap_cmd(
             Parameters
         .config
             Configurations
-    out : str
-        Path to the output file
-    fasta : str
-        Path to the input fasta file
     tech : str
         Technology: 'illumina', 'pacbio', or 'nanopore'
+    fastx : str
+        Path to the input fasta file
+    out_dir : str
+        Path to the output folder
 
     Returns
     -------
     cmd : str
-        CCMap command
+        ccfind command
     """
     params = tech_params(self, tech)
-    out_dir = dirname(out)
     cmd = ''
     if self.config.force:
         cmd += 'if [ -d "%s" ]; then rm -rf %s; fi\n' % (out_dir, out_dir)
+    fasta = fastx
+    if fastx.endswith('fastq.gz') or fasta.endswith('fastq'):
+        fasta = fasta.replace('fastq.gz', 'fasta').replace('fastq', 'fasta')
+        cmd += 'seqtk seq -a %s > %s\n' % (fastx, fasta)
     cmd += 'ccfind %s %s' % (fasta, out_dir)
     cmd += ' --terminal-fragment-size %s' % params['terminal_fragment_size']
     cmd += ' --min-percent-identity %s' % params['min_percent_identity']
@@ -986,20 +1047,19 @@ def ccmap_cmd(
     return cmd
 
 
-def get_generic_on_fasta(
+def get_ccfind(
         self,
-        fasta: str,
         tech: str,
+        fastas: dict,
         sam_group: str
 ) -> None:
-    """Get the Barrnap or CCmap command
-    and fill the pipeline data structures.
+    """Get the ccfind command and fill the pipeline data structures.
 
     Parameters
     ----------
     self : Commands class instance
         .dir : str
-            Path to pipeline output folder for prokka
+            Path to pipeline output folder for ccfind
         .pool : str
             Co-assembly pool name
         .inputs : dict
@@ -1010,39 +1070,80 @@ def get_generic_on_fasta(
             Parameters
         .config
             Configurations
-    fasta : str
-        Path to the input fasta file
     tech : str
         Technology: 'illumina', 'pacbio', or 'nanopore'
+    fastas : dict
+        Path(s) to the input fasta file(s) per genome/MAGs
     sam_group : str
         Sample name or name of a co-assembly pool's group
     """
-    out_dir = '/'.join([self.dir, tech, self.pool])
-    if self.pool != sam_group:
-        out_dir += '/%s' % sam_group
-    self.outputs['dirs'].append(out_dir)
+    for genome, fasta in fastas.items():
 
-    out = '%s/%s.fas' % (out_dir, splitext(basename(fasta))[0])
-    self.outputs['outs'].setdefault((tech, sam_group), []).append(out)
+        out_dir = genome_out_dir(self, tech, fasta[0], sam_group, genome)
+        self.outputs['dirs'].append(out_dir)
+        self.outputs['outs'].setdefault((tech, sam_group), []).append(out_dir)
 
-    if self.soft.name == 'barrnap':
-        condition = not to_do(out)
-    elif self.soft.name == 'ccmap':
-        condition = not to_do(folder=dirname(out))
-    else:
-        print(error)
-
-    if self.config.force or not condition:
-        soft_cmd = '%s_cmd' % self.soft.name
-        cmd = globals()[soft_cmd](self, out, fasta, tech)
-        tech_sam_group = '_'.join([tech, sam_group])
-        self.outputs['cmds'].setdefault(tech_sam_group, []).append(cmd)
-        io_update(self, i_f=fasta, o_d=out, key=tech_sam_group)
+        out = '%s/circ.detected.list' % out_dir
+        if self.config.force or not to_do(out):
+            cmd = ccfind_cmd(self, tech, fasta[0], out_dir)
+            key = genome_key(tech, sam_group, genome)
+            self.outputs['cmds'].setdefault(key, []).append(cmd)
+            io_update(self, i_f=fasta[0], o_d=out_dir, key=key)
 
 
-def generic_on_fasta(self) -> None:
-    """Run either Barrnap or CCmap on the fasta files resulting from
-    the assembly or genome dereplication step.
+def get_barrnap(
+        self,
+        tech: str,
+        fastas: dict,
+        sam_group: str
+) -> None:
+    """Get the Barrnap command and fill the pipeline data structures.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for Barrnap
+        .pool : str
+            Co-assembly pool name
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params : dict
+            Parameters
+        .config
+            Configurations
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    fastas : dict
+        Path(s) to the input fasta file(s) per genome/MAGs
+    sam_group : str
+        Sample name or name of a co-assembly pool's group
+    """
+    for genome, fasta in fastas.items():
+
+        key = genome_key(tech, sam_group, genome)
+
+        out_dir = genome_out_dir(self, tech, fasta[0], sam_group, genome)
+        self.outputs['dirs'].append(out_dir)
+
+        out = '%s/rrna_seqs.fas' % out_dir
+        self.outputs['outs'].setdefault((tech, sam_group), []).append(out)
+
+        if to_do(fasta[0]):
+            self.soft.status.add('Run %s (%s)' % (self.soft.prev, key))
+
+        if self.config.force or not to_do(out):
+            cmd = barrnap_cmd(self, tech, fasta[0], out)
+            self.outputs['cmds'].setdefault(key, []).append(cmd)
+            io_update(self, i_f=fasta[0], o_d=out_dir, key=key)
+
+
+def dispatch(self) -> None:
+    """Run either Barrnap or CCmap on the per-sample fastq files,
+    or on the fasta resulting from
+    the assembly, on per co-assembly MAGs for the genome dereplication step.
 
     Parameters
     ----------
@@ -1060,36 +1161,36 @@ def generic_on_fasta(self) -> None:
         .config
             Configurations
     """
-    if self.pool in self.pools:
-        for (tech, group) in self.inputs[self.pool]:
-            fastas_d = get_genomes_fastas(self, tech, group)
-            for _, fastas in fastas_d.items():
-                for fasta in fastas:
-                    get_generic_on_fasta(self, fasta, tech, group)
+    __plasmid_tool__ = getattr(sys.modules[__name__], 'get_%s' % self.soft.name)
+
+    if self.sam_pool in self.pools:
+        for (tech, group), inputs in self.inputs[self.sam_pool].items():
+            fastas = group_inputs(self, inputs)
+            __plasmid_tool__(self, tech, fastas, group)
     else:
-        tech_inputs = get_input(self)
-        for tech, fasta in tech_inputs.items():
-            get_generic_on_fasta(self, fasta, tech, self.sam)
+        tech_fastas = sample_inputs(self, ['pacbio', 'nanopore'])
+        for tech, fastas in tech_fastas.items():
+            __plasmid_tool__(self, tech, fastas, self.sam_pool)
 
 
 def barrnap(self) -> None:
-    """Dispatch the collection of Barrnap commands using generic function.
+    """Dispatch the collection of barrnap commands using generic function.
 
     Parameters
     ----------
     self : Commands class instance
     """
-    generic_on_fasta(self)
+    dispatch(self)
 
 
-def ccmap(self) -> None:
-    """Dispatch the collection of CCmap commands using generic function.
+def ccfind(self) -> None:
+    """Dispatch the collection of ccfind commands using generic function.
 
     Parameters
     ----------
     self : Commands class instance
     """
-    generic_on_fasta(self)
+    dispatch(self)
 
 
 def antismash_cmd(
@@ -1199,15 +1300,15 @@ def tiara(self) -> None:
     """
     if self.soft.prev != 'spades':
         sys.exit('[tiara] can only be run on assembly output')
-    for (tech, group), spades_outs in self.inputs[self.pool].items():
-        out_dir = '/'.join([self.dir, tech, self.pool, group])
+    for (tech, group), spades_outs in self.inputs[self.sam_pool].items():
+        out_dir = '/'.join([self.dir, tech, self.sam_pool, group])
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'][group] = out_dir
         out_fp = '%s/classifications.txt' % out_dir
         if self.config.force or to_do(out_fp):
             cmd = 'cd %s\n' % out_dir
             cmd += 'tiara'
-            cmd += ' --input %s' % spades_outs[1]
+            cmd += ' --input %s' % spades_outs[0]
             cmd += ' --output %s' % out_fp
             cmd += ' --threads %s' % self.soft.params['cpus']
             for boolean in ['probabilities', 'verbose', 'gzip']:
@@ -1218,7 +1319,7 @@ def tiara(self) -> None:
             for param in ['prob_cutoff', 'to_fasta']:
                 cmd += ' --%s %s' % (param, ' '.join(self.soft.params[param]))
             self.outputs['cmds'].setdefault(group, []).append(cmd)
-            io_update(self, i_f=spades_outs[1], o_d=out_dir, key=group)
+            io_update(self, i_f=spades_outs[0], o_d=out_dir, key=group)
 
 
 # def write_dbcan_subset(
@@ -1367,9 +1468,9 @@ def tiara(self) -> None:
 #     i_tasser = self.soft.params['itasser']
 #     ion_com = '%s/IonCom_standalone' % self.databases.paths['ioncom']
 #
-#     if self.pool in self.pools:
-#         for group in self.pools[self.pool]:
-#             o_dir, fp = get_out_dir(self, self.pool, group)
+#     if self.sam_pool in self.pools:
+#         for group in self.pools[self.sam_pool]:
+#             o_dir, fp = get_out_dir(self, self.sam_pool, group)
 #             cmd = prepare_ioncom_inputs(self, ion_com, fp)
 #             self.outputs['cmds'].setdefault(group, []).append(cmd)
 #             output = '%s/output' % ion_com
@@ -1383,7 +1484,7 @@ def tiara(self) -> None:
 #             cmd += 'done'
 #             self.outputs['cmds'].setdefault(group, []).append(cmd)
 #             self.outputs['dir'].append(o_dir)
-#             self.outputs['outs'].setdefault(self.pool, []).append(o_dir)
+#             self.outputs['outs'].setdefault(self.sam_pool, []).append(o_dir)
 #             io_update(self, i_f=fp, i_d=[ion_com, i_tasser, i_tasser_libs],
 #                       o_d=o_dir, key=group)
 #
