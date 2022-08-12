@@ -19,7 +19,7 @@ import pkg_resources
 from os.path import isdir, isfile, splitext
 from metagenomix._io_utils import (
     read_yaml, get_fastq_header, get_cat_zcat, edit_fastq_cmd, mkdr, get_chunks,
-    get_pfam_file, get_hmm_dat, get_pfams_cmd, reads_lines)
+    get_pfam_file, get_hmm_dat, get_pfams_cmd)
 
 RESOURCES = pkg_resources.resource_filename('metagenomix', 'resources')
 FOLDER = pkg_resources.resource_filename('metagenomix', 'tests/unittests')
@@ -221,14 +221,6 @@ class TestIOUtils(unittest.TestCase):
         for (fp, _) in arefiles:
             os.remove(fp)
         os.rmdir('./n')
-
-    def test_reads_lines(self):
-
-        ret = reads_lines(self.empty_fp)
-        self.assertEqual(ret, [])
-        ret = reads_lines(self.to_format)
-        self.assertEqual(ret, ['# WHATEVER', '#=GF AA  X', '#=GF BB  X', '//',
-                               '# SOEVER', '#=GF BB  Y', '#=GF CC  Y', '//'])
 
     def tearDown(self) -> None:
         os.remove(self.fastq_fp)
