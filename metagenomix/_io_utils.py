@@ -215,7 +215,7 @@ def min_nlines(
 def not_paired(
         self,
         tech: str,
-        fastqs: list,
+        fqs: list,
 ) -> bool:
     """Checks whether there are two input files, which is what is needed for
     merging. Otherwise, stop there and show a useful error message.
@@ -227,7 +227,7 @@ def not_paired(
             All outputs
     tech : str
         Technology: 'illumina', 'pacbio', or 'nanopore'
-    fastqs : list
+    fqs : list
         Paths to the input files
 
     Returns
@@ -235,9 +235,9 @@ def not_paired(
     bool
         Whether the input files are not possibly pooled or not
     """
-    nfiles = len(fastqs)
+    nfiles = len(fqs)
     if nfiles != 2:
-        self.outputs['outs'].setdefault((tech, self.sam), []).extend(fastqs)
+        self.outputs['outs'].setdefault((tech, self.sam_pool), []).extend(fqs)
         return True
     return False
 
