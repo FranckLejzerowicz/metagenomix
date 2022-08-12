@@ -8,7 +8,7 @@
 
 import sys
 from os.path import basename, splitext
-from metagenomix._io_utils import (io_update, to_do)
+from metagenomix._io_utils import io_update, to_do
 
 
 def viralverify_cmd(
@@ -77,82 +77,21 @@ def viralverify(self) -> None:
     if not self.config.dev and to_do(pfam):
         sys.exit('[viralVerify] Needs the Pfam .hmm database in database yaml')
 
-    for (tech, group), inputs in self.inputs[self.pool].items():
+    for (tech, group), inputs in self.inputs[self.sam_pool].items():
 
-        out = '/'.join([self.dir, tech, self.pool, group])
+        out = '/'.join([self.dir, tech, self.sam_pool, group])
         self.outputs['dirs'].append(out)
 
-        contig = inputs[1]
-        out_fp = '%s/%s_result_table.csv' % (out, splitext(basename(contig))[0])
+        contigs = inputs[0]
+        base = splitext(basename(contigs))[0]
+        out_fp = '%s/%s_result_table.csv' % (out, base)
         self.outputs['outs'][(tech, group)] = out_fp
 
         if self.config.force or to_do(out_fp):
             tech_group = '_'.join([tech, group])
-            cmd = viralverify_cmd(self, contig, out)
+            cmd = viralverify_cmd(self, contigs, out)
             self.outputs['cmds'].setdefault(tech_group, []).append(cmd)
-            io_update(self, i_f=contig, o_d=out, key=tech_group)
-
-
-def coconet(self) -> None:
-    """CoCoNet (Composition and Coverage Network) is a binning method for viral
-    metagenomes. It leverages deep learning to abstract the modeling of the
-    k-mer composition and the coverage for binning contigs assembled form
-    viral metagenomic data. Specifically, our method uses a neural network to
-    learn from the metagenomic data a flexible function for predicting the
-    probability that any pair of contigs originated from the same genome.
-    These probabilities are subsequently combined to infer bins, or clusters
-    representing the species present in the sequenced samples. Our approach
-    was specifically designed for diverse viral metagenomes, such as those
-    found in environmental samples (e.g., oceans, soil, etc.).
-
-    Notes
-    -----
-    https://coconet.readthedocs.io/
-
-    References
-    ----------
-    Cédric G Arisdakessian, Olivia Nigro, Grieg Steward, Guylaine Poisson,
-    Mahdi Belcaid, CoCoNet: An Efficient Deep Learning Tool for Viral
-    Metagenome Binning, Bioinformatics, 2021;, btab213
-    https://doi.org/10.1093/bioinformatics/btab213
-
-    Parameters
-    ----------
-    self : Commands class instance
-        .prev : str
-            Previous software in the pipeline
-        .dir : str
-            Path to pipeline output folder for CoCoNet
-        .pool : str
-            Pool name.
-        .inputs : dict
-            Input files
-        .outputs : dict
-            All outputs
-        .soft.params
-            Parameters
-        .config
-            Configurations
-    """
-    if self.soft.prev not in self.config.tools['assembling']:
-        sys.exit('[coconet] can only be run after assembly')
-
-    bams = {}
-    if 'mapping_spades' in self.softs:
-        bams = self.softs['mapping_spades'].outputs
-
-    for (tech, group), inputs in self.inputs[self.pool].items():
-        bam = bams.get((tech, group), [])
-
-        out_dir = '/'.join([self.dir, tech, self.pool, group])
-        self.outputs['dirs'].append(out_dir)
-        self.outputs['outs'][group] = out_dir
-
-        log_fp = '%s/coconet.log' % out_dir
-        if self.config.force or to_do(log_fp):
-            cmd = coconet_cmd(self, inputs[1], bam, out_dir)
-            self.outputs['cmds'].setdefault(group, []).append(cmd)
-            io_update(self, i_f=inputs[1], o_d=out_dir, key=group)
+            io_update(self, i_f=contigs, o_d=out, key=tech_group)
 
 
 def coconet_cmd(
@@ -206,3 +145,66 @@ def coconet_cmd(
             print(kjsrbf)
         cmd += ' --bam %s\n' % ' '.join(bam)
     return cmd
+
+
+def coconet(self) -> None:
+    """CoCoNet (Composition and Coverage Network) is a binning method for viral
+    metagenomes. It leverages deep learning to abstract the modeling of the
+    k-mer composition and the coverage for binning contigs assembled form
+    viral metagenomic data. Specifically, our method uses a neural network to
+    learn from the metagenomic data a flexible function for predicting the
+    probability that any pair of contigs originated from the same genome.
+    These probabilities are subsequently combined to infer bins, or clusters
+    representing the species present in the sequenced samples. Our approach
+    was specifically designed for diverse viral metagenomes, such as those
+    found in environmental samples (e.g., oceans, soil, etc.).
+
+    Notes
+    -----
+    https://coconet.readthedocs.io/
+
+    References
+    ----------
+    Cédric G Arisdakessian, Olivia Nigro, Grieg Steward, Guylaine Poisson,
+    Mahdi Belcaid, CoCoNet: An Efficient Deep Learning Tool for Viral
+    Metagenome Binning, Bioinformatics, 2021;, btab213
+    https://doi.org/10.1093/bioinformatics/btab213
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .prev : str
+            Previous software in the pipeline
+        .dir : str
+            Path to pipeline output folder for CoCoNet
+        .pool : str
+            Pool name.
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    """
+    if self.soft.prev not in self.config.tools['assembling']:
+        sys.exit('[coconet] can only be run after assembly')
+
+    bams = {}
+    if 'mapping_spades' in self.softs:
+        bams = self.softs['mapping_spades'].outputs
+
+    for (tech, group), inputs in self.inputs[self.sam_pool].items():
+        bam = bams.get((tech, group), [])
+
+        out_dir = '/'.join([self.dir, tech, self.sam_pool, group])
+        self.outputs['dirs'].append(out_dir)
+        self.outputs['outs'][group] = out_dir
+
+        log_fp = '%s/coconet.log' % out_dir
+        if self.config.force or to_do(log_fp):
+            contigs = inputs[0]
+            cmd = coconet_cmd(self, contigs, bam, out_dir)
+            self.outputs['cmds'].setdefault(group, []).append(cmd)
+            io_update(self, i_f=contigs, o_d=out_dir, key=group)
