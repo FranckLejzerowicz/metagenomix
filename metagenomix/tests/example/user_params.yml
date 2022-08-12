@@ -77,7 +77,6 @@ ioncom:
 
 # -------------- checkm -----------------
 checkm:
-#  coverage: true
   data: /cluster/shared/biobases/classification_dbs/checkm_data_2015_01_16
   min_seq_len: 1000
   all_reads: false
@@ -272,10 +271,6 @@ drep:
   primary_chunksize: 1000
   run_tertiary_clustering: true
   greedy_secondary_clustering: true
-
-# -------------- checkm2 -----------------
-checkm2:
-  path: /cluster/projects/nn8075k/softwares/checkm2/bin/checkm2
 
 # -------------- plasmidfinder ------------------
 plasmidfinder:
