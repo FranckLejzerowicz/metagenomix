@@ -112,10 +112,10 @@ def get_edit_cmd(
     tech : str
         Technology: 'illumina', 'pacbio', or 'nanopore'
     """
-    fastqs_fps = self.inputs[self.sam][(tech, self.sam)]
+    fastqs_fps = self.inputs[self.sam_pool][(tech, self.sam_pool)]
     fastq_fp = fastqs_fps[num - 1]
     line = get_fastq_header(
-        self.config.fastq[self.sam][(tech, self.sam)][num - 1])
+        self.config.fastq[self.sam_pool][(tech, self.sam_pool)][num - 1])
     line_split = line.split()
     if not line_split[0].endswith('/%s' % num):
         if len(line_split) > 1:
@@ -139,7 +139,7 @@ def edit(self) -> None:
     """
     tech = 'illumina'
     for r in [1, 2]:
-        if len(self.config.fastq[self.sam][(tech, self.sam)]) < r:
+        if len(self.config.fastq[self.sam_pool][(tech, self.sam_pool)]) < r:
             continue
         get_edit_cmd(self, r, tech)
 
@@ -186,9 +186,9 @@ def count_cmd(
     else:
         raise IOError("Input sequence file invalid %s" % fastx)
     if idx:
-        cmd += 'echo "%s,2,${n%s}" >> %s\n' % (self.sam, idx, out)
+        cmd += 'echo "%s,2,${n%s}" >> %s\n' % (self.sam_pool, idx, out)
     else:
-        cmd += 'echo "%s,1,${n%s}" > %s\n' % (self.sam, idx, out)
+        cmd += 'echo "%s,1,${n%s}" > %s\n' % (self.sam_pool, idx, out)
     return cmd
 
 
@@ -212,13 +212,13 @@ def count(self) -> None:
             Configurations
     """
     outs = {}
-    for (tech, sam), fastxs in self.inputs[self.sam].items():
+    for (tech, sam), fastxs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, fastxs, tech, sam):
             continue
         out_dir = '%s/%s' % (self.dir, tech)
         self.outputs['dirs'].append(out_dir)
-        out = '%s/%s_read_count.tsv' % (out_dir, self.sam)
-        outs[(tech, self.sam)] = out
+        out = '%s/%s_read_count.tsv' % (out_dir, self.sam_pool)
+        outs[(tech, self.sam_pool)] = out
         if self.config.force or to_do(out):
             for idx, fastx in enumerate(fastxs):
                 cmd = count_cmd(self, idx, fastx, out)
@@ -247,13 +247,13 @@ def fastqc(self) -> None:
             Configurations
     """
     outs = {}
-    for (tech, sam), fastxs in self.inputs[self.sam].items():
+    for (tech, sam), fastxs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, fastxs, tech, sam):
             continue
-        out_dir = '%s/%s/%s' % (self.dir, tech, self.sam)
+        out_dir = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
         self.outputs['dirs'].append(out_dir)
         out = ['%s_fastqc.html' % x.rsplit('.fastq', 1)[0] for x in fastxs]
-        outs[(tech, self.sam)] = out
+        outs[(tech, self.sam_pool)] = out
         if self.config.force or not sum([to_do(x) for x in out]):
             cmd = 'fastqc %s -o %s' % (' '.join(fastxs), out_dir)
             self.outputs['cmds'][tech] = [cmd]
@@ -296,18 +296,18 @@ def fastp_cmd(
     for fdx, fastq in enumerate(fastqs):
         if fdx:
             i, o = 'I', 'O'
-            out = '%s/%s_2.fastq' % (out_dir, self.sam)
+            out = '%s/%s_2.fastq' % (out_dir, self.sam_pool)
         else:
             i, o = 'i', 'o'
-            out = '%s/%s_1.fastq' % (out_dir, self.sam)
+            out = '%s/%s_1.fastq' % (out_dir, self.sam_pool)
         if fastq.endswith('.gz'):
             out += '.gz'
         outs.append(out)
         cmd += '  -%s %s -%s %s' % (i, fastq, o, out)
     cmd += ' --thread %s' % params['cpus']
-    cmd += ' --report_title="%s"' % self.sam
-    cmd += ' --json=%s/%s.json' % (out_dir, self.sam)
-    cmd += ' --html=%s/%s.html' % (out_dir, self.sam)
+    cmd += ' --report_title="%s"' % self.sam_pool
+    cmd += ' --json=%s/%s.json' % (out_dir, self.sam_pool)
+    cmd += ' --html=%s/%s.html' % (out_dir, self.sam_pool)
 
     if params['split_by_lines']:
         cmd += ' --split_by_lines'
@@ -400,13 +400,13 @@ def fastp(self) -> None:
         .config
             Configurations
     """
-    for (tech, sam), fastqs in self.inputs[self.sam].items():
+    for (tech, sam), fastqs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, fastqs, tech, sam):
             continue
-        out_dir = '%s/%s/%s' % (self.dir, tech, self.sam)
+        out_dir = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
         self.outputs['dirs'].append(out_dir)
         cmd, outs = fastp_cmd(self, tech, fastqs, out_dir)
-        self.outputs['outs'].setdefault((tech, self.sam), []).extend(outs)
+        self.outputs['outs'].setdefault((tech, self.sam_pool), []).extend(outs)
         if self.config.force or sum([to_do(x) for x in outs]):
             self.outputs['cmds'][tech] = [cmd]
             io_update(self, i_f=fastqs, o_d=out_dir, key=tech)
@@ -458,11 +458,11 @@ def cutadapt_cmd(
     cmd += ' --minimum-length 10'
     cmd += ' --cores %s' % params['cpus']
 
-    r1_o = '%s/%s.R1.fastq.gz' % (out_dir, self.sam)
+    r1_o = '%s/%s.R1.fastq.gz' % (out_dir, self.sam_pool)
     cmd += ' --output %s' % r1_o
     outs = [r1_o]
     if len(fastqs) == 2:
-        r2_o = '%s/%s.R2.fastq.gz' % (out_dir, self.sam)
+        r2_o = '%s/%s.R2.fastq.gz' % (out_dir, self.sam_pool)
         cmd += ' --paired-output %s ' % r2_o
         outs.append(r2_o)
     cmd += ' '.join(fastqs)
@@ -488,14 +488,14 @@ def cutadapt(self) -> None:
         .config
             Configurations
     """
-    for (tech, sam), fastqs in self.inputs[self.sam].items():
+    for (tech, sam), fastqs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, fastqs, tech, sam, ['illumina']):
             continue
-        out_dir = '%s/%s/%s' % (self.dir, tech, self.sam)
+        out_dir = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
         self.outputs['dirs'].append(out_dir)
 
         cmd, outs = cutadapt_cmd(self, tech, fastqs, out_dir)
-        self.outputs['outs'].setdefault((tech, self.sam), []).extend(outs)
+        self.outputs['outs'].setdefault((tech, self.sam_pool), []).extend(outs)
 
         if self.config.force or sum([to_do(x) for x in outs]):
             self.outputs['cmds'][tech] = [cmd]
@@ -525,10 +525,10 @@ def atropos_outs(
         Path to the output files
     """
     if len(fastqs) == 1:
-        outs = ['%s/%s.fastq' % (out_dir, self.sam)]
+        outs = ['%s/%s.fastq' % (out_dir, self.sam_pool)]
     else:
-        outs = ['%s/%s_R1.fastq' % (out_dir, self.sam),
-                '%s/%s_R2.fastq' % (out_dir, self.sam)]
+        outs = ['%s/%s_R1.fastq' % (out_dir, self.sam_pool),
+                '%s/%s_R2.fastq' % (out_dir, self.sam_pool)]
     outs = ['%s.gz' % outs[idx] if x.endswith('.gz') else x
             for idx, x in enumerate(fastqs)]
     return outs
@@ -580,7 +580,7 @@ def atropos_cmd(
     cmd += ' --error-rate %s' % params['error_rate']
     cmd += ' --quality-cutoff %s' % params['quality_cutoff']
     cmd += ' --threads %s' % params['cpus']
-    cmd += ' --report-file %s/%s.log' % (out_dir, self.sam)
+    cmd += ' --report-file %s/%s.log' % (out_dir, self.sam_pool)
     cmd += ' --report-formats %s' % params['report_formats']
     if len(inputs) == 1:
         cmd += ' -se %s' % inputs[0]
@@ -612,17 +612,17 @@ def atropos(self) -> None:
         .config
             Configurations
     """
-    for (tech, sam), fastqs in self.inputs[self.sam].items():
+    for (tech, sam), fastqs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, fastqs, tech, sam, ['illumina']):
             continue
-        out_dir = '%s/%s/%s' % (self.dir, tech, self.sam)
+        out_dir = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
         self.outputs['dirs'].append(out_dir)
-        outputs = atropos_outs(self, fastqs, out_dir)
-        cmd = atropos_cmd(self, tech, fastqs, out_dir, outputs)
-        if self.config.force or sum([to_do(x) for x in outputs]):
+        outs = atropos_outs(self, fastqs, out_dir)
+        cmd = atropos_cmd(self, tech, fastqs, out_dir, outs)
+        if self.config.force or sum([to_do(x) for x in outs]):
             self.outputs['cmds'][tech] = [cmd]
-            io_update(self, i_f=fastqs, o_f=outputs, key=tech)
-        self.outputs['outs'].setdefault((tech, self.sam), []).extend(outputs)
+            io_update(self, i_f=fastqs, o_f=outs, key=tech)
+        self.outputs['outs'].setdefault((tech, self.sam_pool), []).extend(outs)
 
 
 def kneaddata_cmd(
@@ -671,24 +671,24 @@ def kneaddata_cmd(
         cmd += ' --bowtie2 %s' % params['bowtie2']
     cmd += ' --bowtie2-options="--very-sensitive-local -p %s"' % params['cpus']
     cmd += ' --remove-intermediate-output'
-    cmd += ' --log %s/%s.log\n' % (out_dir, self.sam)
+    cmd += ' --log %s/%s.log\n' % (out_dir, self.sam_pool)
     # write these additional output files manipulations commands
     rad = basename(inputs[0]).replace('.fastq.gz', '')
     outputs = []
     for typ in ['paired', 'unmatched']:
-        for r in ['1', '2']:
-            out = '%s/%s_kneaddata_%s_%s.fastq' % (out_dir, rad, typ, r)
-            rename = out.replace('.R1', '')
-            self.outputs['outs'].setdefault((tech, self.sam), []).append(rename)
-            if out == rename:
+        for orient in ['1', '2']:
+            out = '%s/%s_kneaddata_%s_%s.fastq' % (out_dir, rad, typ, orient)
+            r = out.replace('.R1', '')
+            self.outputs['outs'].setdefault((tech, self.sam_pool), []).append(r)
+            if out == r:
                 continue
-            outputs.append(rename)
-            cmd += 'mv %s %s\n' % (out, rename)
+            outputs.append(r)
+            cmd += 'mv %s %s\n' % (out, r)
     if params['purge']:
         cmd += 'rm %s/%s*\n' % (out_dir, rad)
     else:
         cmd += 'tar cpfz %s/%s_kneadfiles.tar.gz %s/%s* --remove-files\n' % (
-            out_dir, self.sam, out_dir, rad)
+            out_dir, self.sam_pool, out_dir, rad)
     return cmd, outputs
 
 
@@ -711,10 +711,10 @@ def kneaddata(self) -> None:
         .config
             Configurations
     """
-    for (tech, sam), fastqs in self.inputs[self.sam].items():
+    for (tech, sam), fastqs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, fastqs, tech, sam, ['illumina']):
             continue
-        out_dir = '%s/%s/%s' % (self.dir, tech, self.sam)
+        out_dir = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
         self.outputs['dirs'].append(out_dir)
         cmd, outputs = kneaddata_cmd(self, tech, fastqs, out_dir)
         if self.config.force or sum([to_do(x) for x in outputs]):
@@ -798,36 +798,37 @@ def filtering(self):
         .config
             Configurations
     """
-    for (tech, sam), fastqs_ in self.inputs[self.sam].items():
+    for (tech, sam), fastqs_ in self.inputs[self.sam_pool].items():
         if tech_specificity(self, fastqs_, tech, sam):
             continue
         fastqs = fastqs_
         cmds = ''
         out_dirs = []
         databases = self.soft.params['databases']
-        for ddx, (db, db_path) in enumerate(databases.items()):
+        for dx, (db, db_path) in enumerate(databases.items()):
             inputs = list(fastqs)
-            out_dir = '%s/%s/%s_%s/%s' % (self.dir, tech, ddx, db, self.sam)
+            out_dir = '%s/%s/%s_%s/%s' % (self.dir, tech, dx, db, self.sam_pool)
             out_dirs.append(out_dir)
             self.outputs['dirs'].append(out_dir)
             if len(inputs) == 1:
-                out1 = '%s/%s.fastq' % (out_dir, self.sam)
+                out1 = '%s/%s.fastq' % (out_dir, self.sam_pool)
             else:
-                out1 = '%s/%s_R1.fastq' % (out_dir, self.sam)
-            out2 = '%s/%s_R2.fastq' % (out_dir, self.sam)
+                out1 = '%s/%s_R1.fastq' % (out_dir, self.sam_pool)
+            out2 = '%s/%s_R2.fastq' % (out_dir, self.sam_pool)
             if inputs[0].endswith('.gz'):
                 out1 += '.gz'
                 out2 += '.gz'
             cmd, fastqs = filtering_cmd(self, tech, db_path, inputs, out1, out2)
             if self.config.force or to_do(out1):
                 cmds += cmd
-                if ddx:
+                if dx:
                     cmds += '\nrm %s' % ' '.join(inputs)
         if fastqs[0].endswith('.fastq'):
             for fastq in fastqs:
                 cmds += '\ngzip %s' % fastq
         fastqs_gz = ['%s.gz' % x for x in fastqs]
-        self.outputs['outs'].setdefault((tech, self.sam), []).extend(fastqs_gz)
+        self.outputs['outs'].setdefault(
+            (tech, self.sam_pool), []).extend(fastqs_gz)
         if cmds:
             self.outputs['cmds'][tech] = [cmds]
             io_update(self, i_f=fastqs_, i_d=out_dirs, o_f=fastqs_gz, key=tech)
