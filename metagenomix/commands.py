@@ -6,10 +6,11 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
+import yaml
 import itertools
 from os.path import abspath
 
-from metagenomix._io_utils import show_inputs
+from metagenomix._inputs import show_inputs
 from metagenomix.tools.pooling import pooling
 from metagenomix.tools.preprocess import *
 from metagenomix.tools.alignment import *
@@ -31,17 +32,19 @@ class Commands(object):
     def __init__(self, config, databases, workflow):
         self.config = config
         self.databases = databases
+        self.graph = workflow.graph
         self.softs = workflow.softs
         self.outputs = {}
         self.cmds = {}
         self.args = {}
         self.pools = {}
-        self.pool = None
+        # self.pool = None
         self.longs = None
         self.inputs = None
         self.method = None
         self.soft = None
-        self.sam = None
+        # self.sam = None
+        self.sam_pool = None
         self.dir = ''
         self.out = []
         self.struc = list
@@ -60,10 +63,25 @@ class Commands(object):
 
     def run(self):
         for sdx, softs in enumerate(self.config.pipeline):
+            # print()
+            # print('*' * 30)
+            # print('>>>', softs)
+            # print('*' * 30)
+            # print()
             self.soft = self.softs[softs[-1]]
             self.get_inputs()
+            # print()
+            # print('-' * 100)
+            # print(self.inputs)
+            # print('-' * 100)
             self.get_dir()
             self.generic_command()
+            # print(' * ' * 75)
+            # print(yaml.dump(self.softs[self.soft.name].cmds))
+            # print(' * ' * 75)
+            # print('- ' * 50)
+            # print(self.soft.outputs)
+            # print('- ' * 50)
 
     def make_dirs(self):
         for name, soft in self.softs.items():
@@ -80,10 +98,6 @@ class Commands(object):
                 self.inputs = self.config.fastq
         else:
             self.inputs = self.softs[self.soft.prev].outputs
-        # print()
-        # print('*'*100)
-        # print(self.inputs)
-        # print('*'*100)
         show_inputs(self)
 
     def get_dir(self):
@@ -99,7 +113,8 @@ class Commands(object):
             self.struc = dict
 
     def generic_command(self):
-        self.sam = ''
+        self.sam_pool = ''
+        # self.sam = ''
         self.is_pool()
         self.soft.io = {}
         if self.soft.name in self.holistics:
@@ -108,8 +123,9 @@ class Commands(object):
             self.pooling()
         else:
             for sam_or_pool in sorted(self.inputs):
-                self.sam = sam_or_pool
-                self.pool = sam_or_pool
+                self.sam_pool = sam_or_pool
+                # self.sam = sam_or_pool
+                # self.pool = sam_or_pool
                 self.prep_job()
         self.register_command()
 
@@ -143,12 +159,12 @@ class Commands(object):
     def fill_soft_io(self):
         for i, j in itertools.product(*[['I', 'O'], ['d', 'f']]):
             for key, io in self.outputs['io'].get((i, j), {}).items():
-                self.init_io((self.sam, key))
-                self.soft.io[(self.sam, key)][(i, j)] = io
+                self.init_io((self.sam_pool, key))
+                self.soft.io[(self.sam_pool, key)][(i, j)] = io
 
     def unpack_cmds(self):
         for tech, cmds in self.outputs['cmds'].items():
-            self.cmds[(self.sam, tech)] = cmds
+            self.cmds[(self.sam_pool, tech)] = cmds
 
     def extract_data(self):
         if self.outputs.get('cmds'):
@@ -157,7 +173,7 @@ class Commands(object):
         if self.soft.name in self.holistics:
             self.soft.outputs = self.outputs['outs']
         else:
-            self.soft.outputs[self.pool] = self.outputs['outs']
+            self.soft.outputs[self.sam_pool] = self.outputs['outs']
 
     def prep_job(self):
         self.init_outputs()     # initialize data structure collection
