@@ -32,10 +32,10 @@ def metaphlan(self) -> None:
         .config
             Configurations
     """
-    tmpdir = '$TMPDIR/metaphlan_%s' % self.sam
+    tmpdir = '$TMPDIR/metaphlan_%s' % self.sam_pool
     tmp_cmd = ['mkdir -p %s\n' % tmpdir]
 
-    bowtie2out = '%s/bowtie2/%s.bowtie2.bz2' % (self.dir, self.sam)
+    bowtie2out = '%s/bowtie2/%s.bowtie2.bz2' % (self.dir, self.sam_pool)
 
     outs = profiling(self, bowtie2out, tmpdir)
     self.outputs['outs'] = [bowtie2out] + list(outs)
@@ -65,8 +65,9 @@ def get_read_count(self) -> str:
     """
     reads = ''
     reads_fps = self.softs['count'].outputs
-    if self.sam in reads_fps and not to_do(reads_fps[self.sam][0]):
-        with open(reads_fps[self.sam][0].replace('${SCRATCH_FOLDER}', '')) as f:
+    if self.sam_pool in reads_fps and not to_do(reads_fps[self.sam_pool][0]):
+        reads_fp = reads_fps[self.sam_pool][0].replace('${SCRATCH_FOLDER}', '')
+        with open(reads_fp) as f:
             for line in f:
                 reads = line[-1].strip().split(',')[-1]
                 break
@@ -107,13 +108,13 @@ def analyses(
                      'clade_specific_strain_tracker']:
         out = '%s/%s' % (self.dir, analysis)
         for tax_lev in tax_levs:
-            rad = '%s/%s_t-%s' % (out, self.sam, tax_lev)
+            rad = '%s/%s_t-%s' % (out, self.sam_pool, tax_lev)
             cmd = 'metaphlan'
             cmd += ' %s' % bowtie2out
             cmd += ' -t %s' % analysis
             cmd += ' --tax_lev %s' % tax_lev
             cmd += ' --input_type bowtie2out'
-            cmd += ' --sample_id %s' % self.sam
+            cmd += ' --sample_id %s' % self.sam_pool
             cmd += ' --sample_id_key sample_name'
             cmd += ' --nproc %s' % self.soft.params['cpus']
             if reads and analysis == 'marker_ab_table':
@@ -171,9 +172,8 @@ def profiling(
     profile_out : str
         Metaphlan taxonomic profile output
     """
-    sam_out = '%s/sams/%s.sam.bz2' % (self.dir, self.sam)
-    profile_out = '%s/profiles/%s.tsv' % (self.dir, self.sam)
-
+    sam_out = '%s/sams/%s.sam.bz2' % (self.dir, self.sam_pool)
+    profile_out = '%s/profiles/%s.tsv' % (self.dir, self.sam_pool)
     if not to_do(profile_out):
         io_update(self, i_f=bowtie2out)
     else:
@@ -184,8 +184,8 @@ def profiling(
             cmd += ' %s' % bowtie2out
             cmd += ' --input_type bowtie2out'
         else:
-            io_update(self, i_f=self.inputs[self.sam])
-            cmd += ' %s' % ','.join(self.inputs[self.sam])
+            io_update(self, i_f=self.inputs[self.sam_pool])
+            cmd += ' %s' % ','.join(self.inputs[self.sam_pool])
             cmd += ' --input_type fastq'
             cmd += ' --samout %s' % sam_out
             cmd += ' --bowtie2out %s' % bowtie2out
@@ -193,7 +193,7 @@ def profiling(
         cmd += ' --tmp_dir %s' % tmpdir
         cmd += ' --output_file %s' % profile_out
         cmd += ' --nproc %s' % self.soft.params['cpus']
-        cmd += ' --sample_id_key %s' % self.sam
+        cmd += ' --sample_id_key %s' % self.sam_pool
         self.outputs['cmds'].append(cmd)
 
     return sam_out, profile_out
@@ -235,9 +235,9 @@ def get_profile(self) -> list:
         for profile_name, profile_fp in params['profiles'].items():
             # `profile_fp` must be "path/to/<sample>/profile_file.txt"
             profile_sams = {x.split('/')[-2]: x for x in glob.glob(profile_fp)}
-            if self.sam in profile_sams:
-                profiles.append(profile_sams[self.sam])
-                io_update(self, i_f=profile_sams[self.sam])
+            if self.sam_pool in profile_sams:
+                profiles.append(profile_sams[self.sam_pool])
+                io_update(self, i_f=profile_sams[self.sam_pool])
                 dbs.append('')
                 outs.append(
                     self.dir + '/profile_%s_%s_id%s_e%s_qC%s_sC%s_bypss%s' % (
@@ -291,7 +291,7 @@ def get_cmd(
     cmd : str
         humann command line.
     """
-    cmd = 'cat %s > %s\n' % (' '.join(self.inputs[self.sam]), base)
+    cmd = 'cat %s > %s\n' % (' '.join(self.inputs[self.sam_pool]), base)
     cmd += 'humann'
     cmd += ' --input %s' % base
     cmd += ' --output %s' % out
@@ -346,7 +346,7 @@ def renorm(
 
 def get_ali(
         self,
-        out: str
+        o: str
 ) -> str:
     """
 
@@ -357,7 +357,7 @@ def get_ali(
             Sample name
         .outputs : dict
             All outputs
-    out : str
+    o : str
 
 
     Returns
@@ -365,11 +365,11 @@ def get_ali(
     ali : str
         Path to the alignment .sam file
     """
-    ali = '%s/%s_tmp/%s_bowtie2_aligned.sam' % (out, self.sam, self.sam)
+    ali = '%s/%s_tmp/%s_bowtie2_aligned.sam' % (o, self.sam_pool, self.sam_pool)
     if not self.config.force and not to_do(ali):
         io_update(self, i_f=ali)
     else:
-        io_update(self, o_f=ali, o_d=out)
+        io_update(self, o_f=ali, o_d=o)
     return ali
 
 
@@ -409,10 +409,10 @@ def get_outputs(
     cov : str
         Path to the pathway coverage profile output file
     """
-    base = '%s/%s.fastq.gz' % (out, self.sam)
-    gen = '%s/%s_genefamilies.tsv' % (out, self.sam)
-    pwy = '%s/%s_pathabundance.tsv' % (out, self.sam)
-    cov = '%s/%s_pathcoverage.tsv' % (out, self.sam)
+    base = '%s/%s.fastq.gz' % (out, self.sam_pool)
+    gen = '%s/%s_genefamilies.tsv' % (out, self.sam_pool)
+    pwy = '%s/%s_pathabundance.tsv' % (out, self.sam_pool)
+    cov = '%s/%s_pathcoverage.tsv' % (out, self.sam_pool)
     if not self.config.force and not sum([to_do(x) for x in [gen, pwy, cov]]):
         io_update(self, i_f=[gen, pwy])
     else:
@@ -445,8 +445,8 @@ def humann(self) -> None:
     for profile, db, out in zip(*get_profile(self)):
         ali = get_ali(self, out)
         gen, pwy, cov = get_outputs(self, ali, profile, db, out)
-        gen_relab = '%s/%s_genefamilies_relab.tsv' % (out, self.sam)
-        pwy_relab = '%s/%s_pathabundance_relab.tsv' % (out, self.sam)
+        gen_relab = '%s/%s_genefamilies_relab.tsv' % (out, self.sam_pool)
+        pwy_relab = '%s/%s_pathabundance_relab.tsv' % (out, self.sam_pool)
         if self.config.force or to_do(gen_relab) or to_do(pwy_relab):
             self.outputs['cmds'].append(renorm(gen, gen_relab))
             self.outputs['cmds'].append(renorm(pwy, pwy_relab))
