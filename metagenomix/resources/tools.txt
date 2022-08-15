@@ -1,3 +1,4 @@
+filtering	filtering
 fastp	preprocessing
 cutadapt	preprocessing
 bowtie2	alignment
@@ -30,18 +31,11 @@ metawrap_quantify	binning
 metawrap_classify	binning
 metawrap_annotate	binning
 deeparg	annotation (ARGs)
-prodigal	gene prediction
-macsyfinder	protein annotation
 integronfinder	annotation
 search_diamond	protein annotation
 search_hmmer	protein annotation
-prokka	annotation (genome)
-barrnap	annotation (rRNA)
-ccmap	annotation (circularity)
 viralverify	annotation (virus)
 coconet	annotation (virus)
-tiara	annotation
-antismash	annotation
 plasforest	plasmid detection
 plasmidfinder	plasmid detection
 drep	genome dereplication
@@ -56,3 +50,11 @@ checkm_coverage	genome quality check
 checkm_unbinned	genome quality check
 checkm2		genome quality check
 mapping	alignment
+
+prodigal	annotation (protein prediction)
+prokka	annotation (genome)
+barrnap	annotation (rRNA)
+ccmap	annotation (circularity)
+macsyfinder	annotation (macromolecular systems, pathways)
+tiara	annotation (eukaryotic sequences)
+antismash	annotation (antibiotics and secondary metabolite)

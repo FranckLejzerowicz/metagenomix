@@ -825,7 +825,7 @@ def filtering(self):
                     cmds += '\nrm %s' % ' '.join(inputs)
         if fastqs[0].endswith('.fastq'):
             for fastq in fastqs:
-                cmds += '\ngzip %s' % fastq
+                cmds += '\ngzip -f %s' % fastq
         fastqs_gz = ['%s.gz' % x for x in fastqs]
         self.outputs['outs'].setdefault(
             (tech, self.sam_pool), []).extend(fastqs_gz)
