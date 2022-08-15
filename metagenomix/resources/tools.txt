@@ -50,7 +50,6 @@ checkm_coverage	genome quality check
 checkm_unbinned	genome quality check
 checkm2		genome quality check
 mapping	alignment
-
 prodigal	annotation (protein prediction)
 prokka	annotation (genome)
 barrnap	annotation (rRNA)
