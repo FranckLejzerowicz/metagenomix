@@ -84,12 +84,12 @@ class AnalysesConfig(object):
         self.meta = read_metadata(self.meta_fp)
 
     def get_tools(self):
+        self.tools['fastq'] = 'raw data'
         with open('%s/tools.txt' % RESOURCES) as f:
             for line in f:
-                tool_duties = line.strip().split()
-                self.tools[tool_duties[0]] = tool_duties[1:]
-                for duty in tool_duties[1:]:
-                    self.tools.setdefault(duty, []).append(tool_duties[0])
+                tool, category = line.strip().split('\t')
+                self.tools[tool] = category
+                self.tools.setdefault(category, []).append(tool)
 
     def set_coassembly(self):
         """Create a metadata variable for the groups on which to co-assemble."""
