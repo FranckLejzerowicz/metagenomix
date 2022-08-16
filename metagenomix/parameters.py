@@ -951,7 +951,6 @@ def check_drep(self, params, soft):
     check_default(
         self, params, defaults, soft.name, (ints + flts), ['S_algorithm'])
     check_binary(self, soft.name, params, defaults, 'anicalculator')
-
     return defaults
 
 
@@ -2027,16 +2026,114 @@ def check_deeparg(self, params, soft):
     return defaults
 
 
-# def check_deeplasmid(self, params, soft):
-#     defaults = {
-#     }
-#     ints = []
-#     check_nums(self, params, defaults, ints, int, soft.name)
-#     floats = []
-#     check_nums(self, params, defaults, floats, float, soft.name)
-#     check_default(self, params, defaults, soft.name, (ints + floats))
-#     defaults[''] = '<>'
-#     return defaults
+def check_lorikeet(self, params, soft):
+    defaults = {
+        'method': ['trimmed_mean', 'mean', 'metabat'],
+        'min_read_aligned_length': 0,
+        'min_read_percent_identity': 0.0,
+        'min_read_aligned_percent': 0.0,
+        'min_read_aligned_length_pair': 0,
+        'min_read_percent_identity_pair': 0.0,
+        'min_read_aligned_percent_pair': 0.0,
+        'min_covered_fraction': 0.0,
+        'contig_end_exclusion': 0,
+        'trim_min': 0.0,
+        'trim_max': 1.0,
+        'discard_improper_pairs': [False, True],
+        'discard_supplementary': [False, True],
+        'include_secondary': [False, True],
+        'discard_unmapped': [False, True],
+        'high_memory': [False, True],
+        'splitbams': [False, True],
+        'mapper': [
+            "minimap2-sr", "bwa-mem", "ngmlr-ont", "ngmlr-pb",
+            "minimap2-ont", "minimap2-pb", "minimap2-no-preset"],
+        'longread_mapper': [
+            "minimap2-ont", "minimap2-sr", "bwa-mem", "ngmlr-ont",
+            "ngmlr-pb", "minimap2-pb", "minimap2-no-preset"],
+        'minimap2_params': [""],
+        'minimap2_reference_is_index': [False, True],
+        'bwa_params': [""],
+        'ngmlr_params': [""],
+        'kmer_sizes': 25,
+        'ploidy': 1,
+        'calculate_fst': [False, True],
+        'calculate_dnds': [False, True],
+        'features_vcf': [False, True],
+        'qual_by_depth_filter': 20,
+        'qual_threshold': 150,
+        'depth_per_sample_filter': 5,
+        'min_base_quality': 10,
+        'min_mapq': 60,
+        'base_quality_score_threshold': 18,
+        'max_input_depth': 200000,
+        'min_contig_size': 2500,
+        'do_not_call_svs': [False, True],
+        'min_sv_qual': 3,
+        'phred_scaled_global_read_mismapping_rate': 45,
+        'pair_hmm_gap_continuation_penalty': 10,
+        'pcr_indel_model': ['conservative'],
+        'heterozygosity': 0.001,
+        'heterozygosity_stdev': 0.01,
+        'indel_heterozygosity': 0.000125,
+        'standard_min_confidence_threshold_for_calling': 30.0,
+        'use_posteriors_to_calculate_qual': [False, True],
+        'annotate_with_num_discovered_alleles': [False, True],
+        'active_probability_threshold': 0.002,
+        'min_assembly_region_size': 50,
+        'max_assembly_region_size': 300,
+        'assembly_region_padding': 100,
+        'dont_increase_kmer_sizes_for_cycles': [False, True],
+        'allow_non_unique_kmers_in_ref': [False, True],
+        'do_not_run_physical_phasing': [False, True],
+        'recover_all_dangling_branches': [False, True],
+        'min_dangling_branch_length': 4,
+        'min_prune_factor': 2,
+        'use_adaptive_pruning': [False, True],
+        'graph_output': [False, True],
+        'num_pruning_samples': 1,
+        'dont_use_soft_clipped_bases': [False, True],
+        'initial_error_rate_for_pruning': 0.001,
+        'pruning_log_odds_threshold': 1.0,
+        'max_unpruned_variants': 100,
+        'max_prob_propagation_distance': 50,
+        'max_mnp_distance': 0,
+        'disable_optimizations': [False, True],
+        'disable_avx': [False, True],
+        'parallel_genomes': 4,
+    }
+    if 'method' not in params:
+        params['method'] = ['trimmed_mean', 'mean', 'metabat']
+    ints = [
+        'min_read_aligned_length', 'min_read_aligned_length_pair',
+        'contig_end_exclusion', 'kmer_sizes', 'ploidy', 'qual_by_depth_filter',
+        'qual_threshold', 'depth_per_sample_filter', 'min_base_quality',
+        'min_mapq', 'base_quality_score_threshold', 'max_input_depth',
+        'min_contig_size', 'min_sv_qual',
+        'phred_scaled_global_read_mismapping_rate',
+        'pair_hmm_gap_continuation_penalty', 'min_assembly_region_size',
+        'max_assembly_region_size', 'assembly_region_padding',
+        'min_dangling_branch_length', 'min_prune_factor', 'num_pruning_samples',
+        'max_unpruned_variants', 'max_prob_propagation_distance',
+        'max_mnp_distance', 'parallel_genomes'
+    ]
+    check_nums(self, params, defaults, ints, int, soft.name)
+    flo1 = [
+        'heterozygosity', 'heterozygosity_stdev', 'indel_heterozygosity',
+        'standard_min_confidence_threshold_for_calling',
+        'initial_error_rate_for_pruning'
+    ]
+    check_nums(self, params, defaults, flo1, float, soft.name)
+    flo2 = [
+        'min_read_percent_identity', 'min_read_aligned_percent',
+        'min_read_percent_identity_pair', 'min_read_aligned_percent_pair',
+        'min_covered_fraction', 'trim_min', 'trim_max',
+        'active_probability_threshold', 'pruning_log_odds_threshold',
+    ]
+    check_nums(self, params, defaults, flo2, float, soft.name, 0, 1)
+    check_default(
+        self, params, defaults, soft.name, (ints + flo1 + flo2), ['method'])
+    return defaults
 
 
 # def check_ToolName(self, params, soft):
