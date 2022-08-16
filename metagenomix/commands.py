@@ -20,6 +20,7 @@ from metagenomix.tools.phlans import *
 from metagenomix.tools.assembly import *
 from metagenomix.tools.annotation import *
 from metagenomix.tools.binning import *
+from metagenomix.tools.strains import *
 from metagenomix.tools.plasmids import *
 from metagenomix.tools.viruses import *
 from metagenomix.tools.args import *
