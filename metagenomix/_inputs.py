@@ -514,3 +514,66 @@ def get_assembler(self) -> str:
         self.soft.name, '", "'.join(steps), tools))
 
 
+def get_reads(self) -> dict:
+    """Get the output dict structure containing the per-sample reads for the
+    last step performed before assembly.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .graph : dict
+            Path of the pipeline steps to the current software
+        .soft.name : str
+            Current software in the pipeline
+        .softs : dict
+            Software class instances
+        .config
+            Configurations
+
+    Returns
+    -------
+    reads : dict
+        per-sample reads for the last step performed before assembly
+    """
+    steps = self.graph.paths[self.soft.name][0]
+    steps_before_pooling = steps[:steps.index('pooling')]
+    step = 'fastq'
+    for step_before_pooling in steps_before_pooling:
+        if self.config.tools[step_before_pooling] == 'paired read merging':
+            break
+        step = step_before_pooling
+    reads = self.softs[step].outputs
+    return reads
+
+
+def add_folder(
+        self,
+        name: str,
+        out_dir: str,
+        step: str = ''
+) -> str:
+    """Appended the lorikeet output folder name with the check module name
+    if the module is not called explicitly in the pipeline. That is, if
+    the pipeline specifies "drep lorikeet" and not "drep lorikeet_call".
+
+    Parameters
+    ----------
+    self
+    name : str
+        Name of the software
+    out_dir : str
+        Path to the output folder
+    step : str
+        Name of the current check module
+
+    Returns
+    -------
+    out : str
+        Path to the output folder possibly appended with module name
+    """
+    out = out_dir
+    if self.soft.name == name:
+        out += '/%s' % step
+    return out
+
+
