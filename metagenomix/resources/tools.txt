@@ -1,4 +1,4 @@
-filtering	filtering
+filtering	sequence filtering
 fastp	preprocessing
 cutadapt	preprocessing
 bowtie2	alignment
@@ -48,7 +48,7 @@ checkm_analyze	genome quality check
 checkm_qa	genome quality check
 checkm_coverage	genome quality check
 checkm_unbinned	genome quality check
-checkm2		genome quality check
+checkm2	genome quality check
 mapping	alignment
 prodigal	annotation (protein prediction)
 prokka	annotation (genome)
