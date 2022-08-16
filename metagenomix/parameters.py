@@ -2136,16 +2136,24 @@ def check_lorikeet(self, params, soft):
     return defaults
 
 
-# def check_ToolName(self, params, soft):
-#     defaults = {
-#     }
-#     ints = []
-#     check_nums(self, params, defaults, ints, int, soft.name)
-#     floats = []
-#     check_nums(self, params, defaults, floats, float, soft.name)
-#     check_default(self, params, defaults, soft.name, (ints + floats))
-#     defaults[''] = '<>'
-#     return defaults
+def check_metamarc(self, params, soft):
+    defaults = {
+        'coverage': 80,
+        'dedup': [False, True],
+        'evalue': 10,
+        'kmer': 0,
+        'level': ['1', '2', '3'],
+        'multicorrect': [False, True]
+    }
+    if 'level' not in params:
+        params['level'] = defaults['level']
+    check_nums(self, params, defaults, ['evalue', 'kmer'], int, soft.name)
+    check_nums(self, params, defaults, ['coverage'], int, soft.name, 0, 100)
+    check_default(self, params, defaults, soft.name, ['evalue', 'kmer',
+                                                      'coverage'], ['level'])
+    check_binary(self, 'metamarc', params, defaults, 'path')
+    defaults['path'] = '<Path to the meta-marc software folder (from github)>'
+    return defaults
 
 
 # def check_ToolName(self, params, soft):

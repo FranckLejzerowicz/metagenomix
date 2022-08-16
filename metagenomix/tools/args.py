@@ -316,6 +316,126 @@ def karga(self):
     print()
 
 
+def metamarc_cmd(
+        self,
+        tech: str,
+        fasta_folder: list,
+        out_dir: str,
+        genome: str,
+        level: str
+) -> str:
+    """Collect deeparg short_reads_pipeline commands.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .soft.params
+            Parameters
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    fasta_folder : list
+        Paths to the input files
+    out_dir : str
+        Paths to the output folder
+    genome : str
+        MAGs/Genomes folder name or empty string (for assembly contigs)
+    level : str
+        Model level
+
+    Returns
+    -------
+    cmd : str
+        deeparg short_reads_pipeline commands
+    """
+
+    path = self.soft.params['path']
+    cmd = 'cd %s\n' % out_dir
+    cmd += 'cp -r %s .\n' % path
+    cmd += 'cp -r %s/../hmmer-3.1b2 .\n' % path
+    cmd += 'cp -r %s/../hmmer-3.1b2 .\n' % path
+    cmd += 'cd bin\n'
+
+    cmd = './mmarc'
+    if genome:
+        if len(fasta_folder) == 1:
+            cmd += ' --input %s' % fasta_folder[0]
+        if len(fasta_folder) == 2:
+            cmd += ' --i1 %s --i2 %s' % tuple(fasta_folder)
+        if tech == 'illumina':
+            cmd += ' --dedup'
+        cmd += ' --multicorrect'
+
+    cmd += ' --threads %s' % self.soft.params['cpus']
+    cmd += ' --output %s' % out_dir
+    cmd += ' --filename output'
+    cmd += ' --skewness %s/skewness.txt' % out_dir
+    cmd += ' --graphs %s/graphs' % out_dir
+    cmd += ' --level %s' % level
+
+    for boolean in ['dedup', 'multicorrect']:
+        if self.soft.params[boolean]:
+            cmd += ' --%s' % boolean
+
+    for param in ['coverage', 'evalue', 'kmer', 'level']:
+        cmd += ' --%s %s' % (param.replace('_', '-'), self.soft.params[param])
+
+    cmd += '\ncd ..\n'
+    cmd += 'rm -rf bin\n'
+    cmd += 'rm -rf ../hmmer-3.1b2\n'
+    return cmd
+
+
+def get_metamarc(
+        self,
+        fastas_folders: dict,
+        tech: str,
+        sam_group: str
+) -> None:
+    """
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    fastas_folders : dict
+        Paths to the input fasta files per genome/MAG
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    sam_group : str
+        Name of the current sample or co-assembly group
+    """
+    for genome, dirs in fastas_folders.items():
+
+        fasta_folder = dirs[0]
+        out_dir = genome_out_dir(self, tech, fasta_folder, sam_group, genome)
+        self.outputs['dirs'].append(out_dir)
+        self.outputs['outs'].setdefault((tech, sam_group), []).append(out_dir)
+
+        key = genome_key(tech, sam_group, genome)
+        if genome:
+            condition = to_do(folder=fasta_folder)
+        else:
+            condition = to_do(fasta_folder)
+        if condition:
+            self.soft.status.add('Run %s (%s)' % (self.soft.prev, key))
+
+        for level in self.soft.params['level']:
+            out = '%s/model_level_%s' % (out_dir, level)
+            skewness = '%s/skewness.txt' % out
+            # check if tool already run (or if --force) to allow getting command
+            if self.config.force or to_do(skewness):
+                # collect the command line
+                cmd = metamarc_cmd(self, tech, fasta_folder, out, genome, level)
+                # add is to the 'cmds'
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
+                io_update(self, i_f=fasta_folder, o_d=out_dir, key=key)
+
+
 def metamarc(self):
     """Meta-MARC is a set of profile Hidden Markov Models develoepd for the
     purpose of screening and profiling resistance genes in DNA-based
@@ -343,4 +463,16 @@ def metamarc(self):
     ----------
     self
     """
-    print()
+    if self.sam_pool in self.pools:
+        for (tech, group), inputs in self.inputs[self.sam_pool].items():
+            fastas_folders = group_inputs(self, inputs)
+            get_metamarc(self, fastas_folders, tech, group)
+
+    elif self.soft.prev == 'drep':
+        for (tech, bin_algo), inputs in self.inputs[''].items():
+            folders = group_inputs(self, inputs)
+            get_metamarc(self, folders, tech, bin_algo)
+    else:
+        for (tech, sam), inputs in self.inputs[self.sam_pool].items():
+            fastas = group_inputs(self, inputs)
+            get_metamarc(self, fastas, tech, sam)

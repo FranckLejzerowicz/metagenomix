@@ -303,3 +303,7 @@ ngmerge:
 # -------------- deeparg ---------------
 deeparg:
   db_dir: /some/database/path
+
+# --------------- metamarc --------------
+metamarc:
+  path: /some/path/to/bin
