@@ -8,10 +8,9 @@
 
 import glob
 import sys
-
 from metagenomix._io_utils import caller, io_update, to_do
 from metagenomix._inputs import (group_inputs, genome_key, genome_out_dir,
-                                 get_extension, get_assembler)
+                                 get_extension, get_assembler, add_folder)
 
 
 def get_bin_folders(
@@ -184,6 +183,18 @@ def drep_cmd(
 def drep(self):
     """Dereplicate the binned genomes to obtain MAGs across samples using dRep.
 
+    References
+    ----------
+    Olm, Matthew R., et al. "dRep: a tool for fast and accurate genomic
+    comparisons that enables improved genome recovery from metagenomes
+    through de-replication." The ISME journal 11.12 (2017): 2864-2868.
+
+    Notes
+    -----
+    GitHub  : https://github.com/MrOlm/drep
+    Docs    : https://drep.readthedocs.io/en/latest
+    Paper   : https://doi.org/10.1038/ismej.2017.126
+
     Parameters
     ----------
     self : Commands class instance
@@ -231,34 +242,6 @@ def drep(self):
                 io_update(self, i_d=paths, o_d=drep_out, key=key)
                 cmd = drep_cmd(self, algo, drep_in, drep_out, n_bins, cmd)
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
-
-
-def add_folder(
-        self,
-        out_dir: str,
-        step: str = ''
-) -> str:
-    """Appended the checkm output folder name with the check module name
-    if the module is not called explicitly in the pipeline. That is, if
-    the pipeline specifies "drep checkm" and not "drep checkm_unbinned".
-
-    Parameters
-    ----------
-    self
-    out_dir : str
-        Path to the output folder
-    step : str
-        Name of the current check module
-
-    Returns
-    -------
-    out : str
-        Path to the output folder possibly appended with module name
-    """
-    out = out_dir
-    if self.soft.name == 'checkm':
-        out += '/%s' % step
-    return out
 
 
 def tree_cmd(
@@ -324,7 +307,7 @@ def tree(
     for genome, dirs in folders.items():
         genomes_dir = dirs[0]
         out_dir = genome_out_dir(self, tech, genomes_dir, group, genome)
-        tree_dir = add_folder(self, out_dir, 'lineage_tree')
+        tree_dir = add_folder(self, 'checkm', out_dir, 'lineage_tree')
 
         self.outputs['dirs'].append(tree_dir)
         # outs = dirs + [tree_dir]
@@ -424,8 +407,8 @@ def treeqa(
         out_dir = genome_out_dir(self, tech, tree_dir, group, genome)
         qa_dir = out_dir
         if self.soft.name == 'checkm':
-            qa_dir = add_folder(self, out_dir, 'lineage_tree_qa')
-            tree_dir = add_folder(self, out_dir, 'lineage_tree')
+            qa_dir = add_folder(self, 'checkm', out_dir, 'lineage_tree_qa')
+            tree_dir = add_folder(self, 'checkm', out_dir, 'lineage_tree')
         elif self.soft.prev != 'checkm_tree':
             sys.exit('[%s] Run "checkm_tree" first' % self.soft.name)
 
@@ -518,8 +501,8 @@ def lineageset(
         out_dir = genome_out_dir(self, tech, tree_dir, group, genome)
         lineage_dir = out_dir
         if self.soft.name == 'checkm':
-            tree_dir = add_folder(self, out_dir, 'lineage_tree')
-            lineage_dir = add_folder(self, out_dir, 'lineage_set')
+            tree_dir = add_folder(self, 'checkm', out_dir, 'lineage_tree')
+            lineage_dir = add_folder(self, 'checkm', out_dir, 'lineage_set')
         elif self.soft.prev != 'checkm_tree':
             sys.exit('[%s] Run "checkm_tree" first' % self.soft.name)
 
@@ -615,8 +598,10 @@ def analyze(
         genomes_dir = dirs[0]
         analyze_dir = genome_out_dir(self, tech, dirs[-1], group, genome)
         if self.soft.name == 'checkm':
-            analyze_dir = add_folder(self, analyze_dir, 'lineage_analyze')
-            lineage_dir = add_folder(self, analyze_dir, 'lineage_set')
+            analyze_dir = add_folder(
+                self, 'checkm', analyze_dir, 'lineage_analyze')
+            lineage_dir = add_folder(
+                self, 'checkm', analyze_dir, 'lineage_set')
         else:
             if self.soft.prev != 'checkm_lineageset':
                 sys.exit('[%s] Run "checkm_lineageset" first' % self.soft.name)
@@ -764,7 +749,8 @@ def coverage(
                 coverage_dir = genome_out_dir(self, tech, genome_dir,
                                               group, genome)
                 if self.soft.name == 'checkm':
-                    coverage_dir = add_folder(self, coverage_dir, 'coverage')
+                    coverage_dir = add_folder(
+                        self, 'checkm', coverage_dir, 'coverage')
 
                 self.outputs['dirs'].append(coverage_dir)
                 cov = '%s/coverage.tsv' % coverage_dir
@@ -933,10 +919,11 @@ def qa(
         analyze_dir = dirs[-1]
         qa_dir = genome_out_dir(self, tech, analyze_dir, group, genome)
         if self.soft.name == 'checkm':
-            cov = '%s/coverage.tsv' % add_folder(self, analyze_dir, 'coverage')
-            analyze_dir = add_folder(self, qa_dir, 'lineage_analyze')
-            lineage_dir = add_folder(self, qa_dir, 'lineage_set')
-            qa_dir = add_folder(self, qa_dir, 'lineage_qa')
+            cov = '%s/coverage.tsv' % add_folder(
+                self, 'checkm', analyze_dir, 'coverage')
+            analyze_dir = add_folder(self, 'checkm', qa_dir, 'lineage_analyze')
+            lineage_dir = add_folder(self, 'checkm', qa_dir, 'lineage_set')
+            qa_dir = add_folder(self, 'checkm', qa_dir, 'lineage_qa')
         else:
             if self.soft.prev != 'checkm_analyze':
                 sys.exit('[%s] Run "checkm_analyze" first' % self.soft.name)
@@ -1041,7 +1028,7 @@ def unbinned(
         genomes_dir = dirs[0]
         unbinned_dir = genome_out_dir(self, tech, genomes_dir, group, genome)
         if self.soft.name == 'checkm':
-            unbinned_dir = add_folder(self, unbinned_dir, 'unbinned')
+            unbinned_dir = add_folder(self, 'checkm', unbinned_dir, 'unbinned')
 
         self.outputs['dirs'].append(unbinned_dir)
         outs = {genome: unbinned_dir}
@@ -1099,11 +1086,11 @@ def tetra(
     Parameters
     ----------
     self : Commands class instance
-        .prev : str
+        .soft.prev : str
             Previous software in the pipeline
         .dir : str
             Path to pipeline output folder for checkm tetra
-        .pool : str
+        .sam_pool : str
             Pool name.
         .inputs : dict
             Input files
@@ -1153,9 +1140,11 @@ def checkm_(
     Parameters
     ----------
     self : Commands class instance
+        .soft.prev : str
+            Previous software in the pipeline
         .dir : str
-            Path to pipeline output folder for Checkm
-        .pool : str
+            Path to pipeline output folder for checkm tetra
+        .sam_pool : str
             Pool name.
         .inputs : dict
             Input files
@@ -1179,14 +1168,40 @@ def checkm_(
 
 
 def checkm(self) -> None:
-    """Run all checkm genome quality checks and assignments.
+    """CheckM provides a set of tools for assessing the quality of genomes
+    recovered from isolates, single cells, or metagenomes. It provides robust
+    estimates of genome completeness and contamination by using collocated sets
+    of genes that are ubiquitous and single-copy within a phylogenetic lineage.
+    Assessment of genome quality can also be examined using plots depicting key
+    genomic characteristics (e.g., GC, coding density) which highlight sequences
+    outside the expected distributions of a typical genome. CheckM also provides
+    tools for identifying genome bins that are likely candidates for merging
+    based on marker set compatibility, similarity in genomic characteristics,
+    and proximity within a reference genome tree.
+
+    References
+    ----------
+    Parks, Donovan H., et al. "CheckM: assessing the quality of microbial
+    genomes recovered from isolates, single cells, and metagenomes." Genome
+    research 25.7 (2015): 1043-1055.
+
+    Notes
+    -----
+    GitHub  : https://github.com/Ecogenomics/CheckM
+    Website : ecogenomics.github.io/checkm
+    Docs    : https://github.com/Ecogenomics/CheckM/wiki
+    Paper   : https://doi.org/10.1101/gr.186072.114
 
     Parameters
     ----------
     self : Commands class instance
+        .soft.name : str
+            Current software in the pipeline
+        .soft.prev : str
+            Previous software in the pipeline
         .dir : str
-            Path to pipeline output folder for Checkm
-        .pool : str
+            Path to pipeline output folder for checkm tetra
+        .sam_pool : str
             Pool name.
         .inputs : dict
             Input files
@@ -1297,7 +1312,40 @@ def get_checkm2(
 
 
 def checkm2(self) -> None:
-    """Run checkm2 genome quality checks and assignments.
+    """Rapid assessment of genome bin quality using machine learning.
+
+    Unlike CheckM1, CheckM2 has universally trained machine learning models
+    it applies regardless of taxonomic lineage to predict the completeness
+    and contamination of genomic bins. This allows it to incorporate many
+    lineages in its training set that have few - or even just one -
+    high-quality genomic representatives, by putting it in the context of all
+    other organisms in the training set. As a result of this machine learning
+    framework, CheckM2 is also highly accurate on organisms with reduced genomes
+    or unusual biology, such as the Nanoarchaeota or Patescibacteria.
+
+    CheckM2 uses two distinct machine learning models to predict genome
+    completeness. The 'general' gradient boost model is able to generalize
+    well and is intended to be used on organisms not well represented in
+    GenBank or RefSeq (roughly, when an organism is novel at the level of
+    order, class or phylum). The 'specific' neural network model is more
+    accurate when predicting completeness of organisms more closely related
+    to the reference training set (roughly, when an organism belongs to a
+    known species, genus or family). CheckM2 uses a cosine similarity
+    calculation to automatically determine the appropriate completeness model
+    for each input genome, but you can also force the use of a particular
+    completeness model, or get the prediction outputs for both. There is only
+    one contamination model (based on gradient boost) which is applied
+    regardless of taxonomic novelty and works well across all cases.
+
+    References
+    ----------
+    Chklovski, Alex, et al. "CheckM2: a rapid, scalable and accurate tool for
+    assessing microbial genome quality using machine learning." bioRxiv (2022).
+
+    Notes
+    -----
+    GitHub  : https://github.com/chklovski/CheckM2
+    Paper   : https://doi.org/10.1101/2022.07.11.499243
 
     Parameters
     ----------
@@ -1324,4 +1372,3 @@ def checkm2(self) -> None:
         for (tech, bin_algo), inputs in self.inputs[''].items():
             folders = group_inputs(self, inputs, True)
             get_checkm2(self, tech, folders, bin_algo)
-
