@@ -223,7 +223,7 @@ def count(self) -> None:
             for idx, fastx in enumerate(fastxs):
                 cmd = count_cmd(self, idx, fastx, out)
                 self.outputs['cmds'].setdefault(tech, []).append(cmd)
-            io_update(self, i_f=fastxs, o_f=out, key=tech)
+            io_update(self, i_f=fastxs, i_d=out_dir, o_f=out, key=tech)
     self.outputs['outs'] = outs
 
 
