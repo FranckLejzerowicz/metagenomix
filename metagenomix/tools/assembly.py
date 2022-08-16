@@ -5,8 +5,8 @@
 #
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
-import sys
 
+import sys
 from metagenomix._io_utils import io_update, to_do
 from metagenomix.parameters import tech_params
 
@@ -114,7 +114,23 @@ def quast_cmd(
 
 
 def quast(self) -> None:
-    """Create command lines for QUAST.
+    """QUAST stands for QUality ASsessment Tool. It evaluates
+    genome/metagenome assemblies by computing various metrics. The current
+    QUAST toolkit includes the general QUAST tool for genome assemblies,
+    MetaQUAST, the extension for metagenomic datasets, QUAST-LG,
+    the extension for large genomes (e.g., mammalians), and Icarus,
+    the interactive visualizer for these tools.
+
+    References
+    ----------
+    Gurevich, Alexey, et al. "QUAST: quality assessment tool for genome
+    assemblies." Bioinformatics 29.8 (2013): 1072-1075.
+
+    Notes
+    -----
+    GitHub  : https://github.com/ablab/quast
+    Docs    : http://quast.sourceforge.net/
+    Paper   : https://doi.org/10.1093/bioinformatics/btt086
 
     Parameters
     ----------
@@ -272,7 +288,22 @@ def hybridize_tech(
 
 
 def spades(self) -> None:
-    """Create command lines for SPAdes.
+    """SPAdes - St. Petersburg genome assembler - is an assembly toolkit
+    containing various assembly pipelines.
+
+    References
+    ----------
+    Prjibelski, Andrey, et al. "Using SPAdes de novo assembler." Current
+    protocols in bioinformatics 70.1 (2020): e102.
+    Bankevich, Anton, et al. "SPAdes: a new genome assembly algorithm and its
+    applications to single-cell sequencing." Journal of computational biology
+    19.5 (2012): 455-477.
+
+    Notes
+    -----
+    GitHub  : https://github.com/ablab/spades
+    Docs    : https://cab.spbu.ru/software/spades/
+    Paper   : https://doi.org/10.1002/cpbi.102
 
     Parameters
     ----------
@@ -382,7 +413,21 @@ def megahit_cmd(
 
 
 def megahit(self) -> None:
-    """Create command lines for MEGAHIT.
+    """MEGAHIT is an ultra-fast and memory-efficient NGS assembler. It is
+    optimized for metagenomes, but also works well on generic single genome
+    assembly (small or mammalian size) and single-cell assembly.
+
+    References
+    ----------
+    Li, Dinghua, et al. "MEGAHIT: an ultra-fast single-node solution for
+    large and complex metagenomics assembly via succinct de Bruijn graph."
+    Bioinformatics 31.10 (2015): 1674-1676.
+
+    Notes
+    -----
+    GitHub  : https://github.com/voutcn/megahit
+    Docs    : https://github.com/voutcn/megahit/wiki
+    Paper   : https://doi.org/10.1093/bioinformatics/btv033
 
     Parameters
     ----------
@@ -480,7 +525,26 @@ def plass_cmd(
 
 
 def plass(self) -> None:
-    """Create command lines for Plass.
+    """Plass (Protein-Level ASSembler) is a software to assemble short read
+    sequencing data on a protein level. The main purpose of Plass is the
+    assembly of complex metagenomic datasets. It assembles 10 times more
+    protein residues in soil metagenomes than Megahit. Plass is GPL-licensed
+    open source software that is implemented in C++ and available for Linux
+    and macOS. The software is designed to run on multiple cores. Plass was
+    used to create a Soil Reference Catalog (SRC) and a Marine Eukaryotic
+    Reference Catalog (MERC).
+
+    References
+    ----------
+    Steinegger, Martin, Milot Mirdita, and Johannes Söding. "Protein-level
+    assembly increases protein sequence recovery from metagenomic samples
+    manyfold." Nature methods 16.7 (2019): 603-606.
+
+    Notes
+    -----
+    GitHub  : https://github.com/soedinglab/plass
+    Docs    : https://ngs-docs.github.io/2018-cicese-metatranscriptomics/plass-paladin/
+    Paper   : https://doi.org/10.1038/s41592-019-0437-4
 
     Parameters
     ----------
@@ -560,7 +624,25 @@ def flye_cmd(
 
 
 def flye(self) -> None:
-    """Create command lines for Flye.
+    """Flye is a de novo assembler for single-molecule sequencing reads,
+    such as those produced by PacBio and Oxford Nanopore Technologies. It is
+    designed for a wide range of datasets, from small bacterial projects to
+    large mammalian-scale assemblies. The package represents a complete
+    pipeline: it takes raw PacBio / ONT reads as input and outputs polished
+    contigs. Flye also has a special mode for metagenome assembly.
+    Currently, Flye will produce collapsed assemblies of diploid genomes,
+    represented by a single mosaic haplotype. To recover two phased
+    haplotypes consider applying HapDup after the assembly.
+
+    References
+    ----------
+    Kolmogorov, Mikhail, et al. "metaFlye: scalable long-read metagenome
+    assembly using repeat graphs." Nature Methods 17.11 (2020): 1103-1110.
+
+    Notes
+    -----
+    GitHub  : https://github.com/fenderglass/Flye
+    Paper   : https://doi.org/10.1038/s41592-020-00971-x
 
     Parameters
     ----------
@@ -671,7 +753,21 @@ def canu_cmd(
 
 
 def canu(self) -> None:
-    """Create command lines for CANU.
+    """Canu is a fork of the Celera Assembler designed for high-noise
+    single-molecule sequencing (such as the PacBio RSII or Oxford Nanopore
+    MinION).
+
+    References
+    ----------
+    Koren, Sergey, et al. "Canu: scalable and accurate long-read assembly via
+    adaptive k-mer weighting and repeat separation." Genome research 27.5
+    (2017): 722-736.
+
+    Notes
+    -----
+    GitHub  : https://github.com/marbl/canu
+    Docs    : https://canu.readthedocs.io/en/latest/
+    Paper   : https://doi.org/10.1101/gr.215087.116
 
     Parameters
     ----------
@@ -781,7 +877,24 @@ def unicycler_cmd(
 
 
 def unicycler(self) -> None:
-    """Create command lines for unicycler.
+    """Unicycler is an assembly pipeline for bacterial genomes. It can
+    assemble Illumina-only read sets where it functions as a
+    SPAdes-optimiser. It can also assembly long-read-only sets (PacBio or
+    Nanopore) where it runs a miniasm+Racon pipeline. For the best possible
+    assemblies, give it both Illumina reads and long reads, and it will
+    conduct a short-read-first hybrid assembly.
+
+    References
+    ----------
+    Wick, Ryan R., et al. "Unicycler: resolving bacterial genome assemblies
+    from short and long sequencing reads." PLoS computational biology 13.6
+    (2017): e1005595.
+
+    Notes
+    -----
+    GitHub  : https://github.com/rrwick/Unicycler
+    Docs    : https://github.com/rrwick/Unicycler/wiki
+    Paper   : https://doi.org/10.1371/journal.pcbi.1005595
 
     Parameters
     ----------
@@ -971,7 +1084,20 @@ def necat_config(
 
 
 def necat(self) -> None:
-    """Perform nanopore assembly using NECAT.
+    """NECAT is an error correction and de-novo assembly tool for Nanopore
+    long noisy reads.
+
+    References
+    ----------
+    Chen, Ying, et al. "Efficient assembly of nanopore reads via highly
+    accurate and intact error correction." Nature Communications 12.1
+    (2021): 1-10.
+
+    Notes
+    -----
+    GitHub  : https://github.com/xiaochuanle/necat
+    Docs    : http://www.tgsbioinformatics.com/necat
+    Paper   : https://doi.org/10.1038/s41467-020-20236-7
 
     Parameters
     ----------

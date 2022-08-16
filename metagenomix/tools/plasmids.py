@@ -8,7 +8,6 @@
 
 import sys
 from os.path import dirname
-
 from metagenomix._inputs import (sample_inputs, group_inputs,
                                  genome_key, genome_out_dir)
 from metagenomix._io_utils import io_update, to_do
@@ -215,53 +214,108 @@ def dispatch(self) -> None:
 
 
 def plasmidfinder(self) -> None:
-    """Detect plasmids in fasta files of contigs or binned/dereplicated MAGs
-    using PlasmidFinder.
+    """PlasmidFinder is a tool for the identification and typing of Plasmid
+    Replicons in Whole-Genome Sequencing (WGS).
+
+    References
+    ----------
+    Carattoli, Alessandra, and Henrik Hasman. "PlasmidFinder and in silico
+    pMLST: identification and typing of plasmid replicons in whole-genome
+    sequencing (WGS)." Horizontal gene transfer. Humana, New York, NY,
+    2020. 285-294.
+
+    Notes
+    -----
+    BitBucket   : https://bitbucket.org/genomicepidemiology/plasmidfinder
+    Paper       : https://doi.org/10.1007/978-1-4939-9877-7_20
 
     Parameters
     ----------
     self : Commands class instance
-        .name : str
+        .soft.name : str
             Name of the current software in the pipeline
         .dir : str
             Path to pipeline output folder for PlasmidFinder
-        .prev : str
+        .soft.prev : str
             Previous software in the pipeline
-        .pool : str
-            Pool name.
         .inputs : dict
             Input files
         .outputs : dict
             All outputs
         .config
             Configurations
-        .sam
-            Sample name
+        .sam_pool
+            Sample of co-assembly group name
     """
     dispatch(self)
 
 
 def plasforest(self) -> None:
-    """Classify assembly contigs as plasmids or not using PlasForest.
+    """A random forest classifier of contigs to identify contigs of plasmid
+    origin in contig and scaffold genomes.
+
+    References
+    ----------
+    Pradier, Léa, et al. "PlasForest: a homology-based random forest
+    classifier for plasmid detection in genomic datasets." BMC bioinformatics
+    22.1 (2021): 1-17.
+
+    Notes
+    -----
+    GitHub  : https://github.com/leaemiliepradier/PlasForest
+    Paper   : https://doi.org/10.1186/s12859-021-04270-w
 
     Parameters
     ----------
     self : Commands class instance
-        .name : str
+        .soft.name : str
             Name of the current software in the pipeline
         .dir : str
             Path to pipeline output folder for PlasForest
-        .prev : str
+        .soft.prev : str
             Previous software in the pipeline
-        .pool : str
-            Pool name.
         .inputs : dict
             Input files
         .outputs : dict
             All outputs
         .config
             Configurations
-        .sam
-            Sample name
+        .sam_pool
+            Sample of co-assembly group name
     """
     dispatch(self)
+
+
+def mobsuite(self) -> None:
+    """MOB-suite: Software tools for clustering, reconstruction and typing of
+    plasmids from draft assemblies.
+
+    Plasmids are mobile genetic elements (MGEs), which allow for rapid
+    evolution and adaption of bacteria to new niches through horizontal
+    transmission of novel traits to different genetic backgrounds. The
+    MOB-suite is designed to be a modular set of tools for the typing and
+    reconstruction of plasmid sequences from WGS assemblies.
+
+    The MOB-suite depends on a series of databases which are too large to be
+    hosted in git-hub. They can be downloaded or updated by running mob_init
+    or if running any of the tools for the first time, the databases will
+    download and initialize automatically if you do not specify an alternate
+    database location. However, they are quite large so the first run will
+    take a long time depending on your connection and speed of your computer.
+
+    References
+    ----------
+    Robertson, James, and John HE Nash. "MOB-suite: software tools for
+    clustering, reconstruction and typing of plasmids from draft assemblies."
+    Microbial genomics 4.8 (2018).
+
+    Notes
+    -----
+    GitHub  : https://github.com/phac-nml/mob-suite
+    Paper   : https://doi.org/10.1099/mgen.0.000206
+
+    Parameters
+    ----------
+    self
+    """
+    print()

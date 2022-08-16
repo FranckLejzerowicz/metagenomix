@@ -21,13 +21,7 @@ def lorikeet_cmd(
         key: str,
         step: str
 ) -> str:
-    """Collect lorikeet command:
-    lorikeet call:
-        Call variants using local reassembly across multiple genomes and samples
-    lorikeet consensus:
-        Generate consensus genomes for each provided sample and genome
-    lorikeet genotype:
-        Resolves strain-level genotypes and abundance from metagenomes
+    """Collect lorikeet call, lorikeet consensus, or lorikeet genotype command.
 
     Parameters
     ----------
@@ -134,7 +128,7 @@ def call(
         reads: dict,
         group: str
 ) -> None:
-    """Call variants using local reassembly across multiple genomes and samples
+    """Call variants using local reassembly across multiple genomes and samples.
 
     Parameters
     ----------
@@ -172,7 +166,7 @@ def consensus(
         reads: dict,
         group: str
 ) -> None:
-    """Generate consensus genomes for each provided sample and genome
+    """Generate consensus genomes for each provided sample and genome.
 
     Parameters
     ----------
@@ -210,7 +204,7 @@ def genotype(
         reads: dict,
         group: str
 ) -> None:
-    """Resolves strain-level genotypes and abundance from metagenomes
+    """Resolves strain-level genotypes and abundance from metagenomes.
 
     Parameters
     ----------

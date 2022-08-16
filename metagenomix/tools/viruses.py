@@ -50,22 +50,51 @@ def viralverify_cmd(
 
 
 def viralverify(self) -> None:
-    """Classify the contigs as viral or non-viral.
+    """viralVerify classifies contigs (output of metaviralSPAdes or other
+    assemblers) as viral, non-viral or uncertain, based on gene content. Also
+    for non-viral contigs it can optionally provide plasmid/non-plasmid
+    classification.
+
+    viralVerify predicts genes in the contig using Prodigal in the
+    metagenomic mode, runs hmmsearch on the predicted proteins and classifies
+    the contig as vrial or non-viral by applying the Naive Bayes classifier
+    (NBC). For the set of predicted HMMs, viralVerify uses trained NBC to
+    classify this set to be viral or chromosomal.
+
+    To improve results in the case of metagenomes with possible host
+    contamination, we recommend users to filter out reads that align to the
+    host genome prior to assembly. Since viralVerify is based on gene
+    classification, it can be used on contigs on any length, and short
+    viruses can be detected as long as they contain a recognizable
+    virus-specific gene. To help analyze the rapidly growing amount of novel
+    data, we have added a script that allows users to construct their own
+    training database from a set of viral, chromosomal and plasmid contigs,
+    as well as custom HMM database.
+
+    References
+    ----------
+    Antipov, Dmitry, et al. "Metaviral SPAdes: assembly of viruses from
+    metagenomic data." Bioinformatics 36.14 (2020): 4126-4129.
+
+    Notes
+    -----
+    GitHub  : https://github.com/ablab/viralVerify
+    Paper   : https://doi.org/10.1093/bioinformatics/btaa490
 
     Parameters
     ----------
     self : Commands class instance
-        .databases : dict
-            Path to the reference databases
+        .soft.prev : str
+            Previous software in the pipeline
         .dir : str
-            Path to pipeline output folder for filtering
-        .pool : str
-            Co-assembly pool name
+            Path to pipeline output folder for CoCoNet
+        .soft.sam_pool : str
+            Sample or co-assembly group name.
         .inputs : dict
             Input files
         .outputs : dict
             All outputs
-        .soft.params : dict
+        .soft.params
             Parameters
         .config
             Configurations
@@ -92,6 +121,42 @@ def viralverify(self) -> None:
             cmd = viralverify_cmd(self, contigs, out)
             self.outputs['cmds'].setdefault(tech_group, []).append(cmd)
             io_update(self, i_f=contigs, o_d=out, key=tech_group)
+
+
+def threecac(self) -> None:
+    """3CAC is a three-class classifier designed to classify contigs in mixed
+    metagenome assemblies as phages, plasmids, chromosomes, or uncertain.
+
+    References
+    ----------
+    Pu, Lianrong, and Ron Shamir. "3CAC: improving the classification of
+    phages and plasmids from metagenomic assemblies using assembly graphs."
+    bioRxiv (2021).
+
+    Notes
+    -----
+    GitHub  : https://github.com/Shamir-Lab/3CAC
+    Paper   : https://doi.org/10.1101/2021.11.05.467408
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .soft.prev : str
+            Previous software in the pipeline
+        .dir : str
+            Path to pipeline output folder for CoCoNet
+        .soft.sam_pool : str
+            Sample or co-assembly group name.
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    """
+    print()
 
 
 def coconet_cmd(
@@ -159,26 +224,26 @@ def coconet(self) -> None:
     was specifically designed for diverse viral metagenomes, such as those
     found in environmental samples (e.g., oceans, soil, etc.).
 
-    Notes
-    -----
-    https://coconet.readthedocs.io/
-
     References
     ----------
-    Cédric G Arisdakessian, Olivia Nigro, Grieg Steward, Guylaine Poisson,
-    Mahdi Belcaid, CoCoNet: An Efficient Deep Learning Tool for Viral
-    Metagenome Binning, Bioinformatics, 2021;, btab213
-    https://doi.org/10.1093/bioinformatics/btab213
+    Arisdakessian, Cédric G., et al. "CoCoNet: an efficient deep learning
+    tool for viral metagenome binning." Bioinformatics 37.18 (2021): 2803-2810.
+
+    Notes
+    -----
+    GitHub  : https://github.com/Puumanamana/CoCoNet
+    Docs    : https://coconet.readthedocs.io/
+    Paper   : https://doi.org/10.1093/bioinformatics/btab213
 
     Parameters
     ----------
     self : Commands class instance
-        .prev : str
+        .soft.prev : str
             Previous software in the pipeline
         .dir : str
             Path to pipeline output folder for CoCoNet
-        .pool : str
-            Pool name.
+        .soft.sam_pool : str
+            Sample or co-assembly group name.
         .inputs : dict
             Input files
         .outputs : dict

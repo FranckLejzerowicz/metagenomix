@@ -11,43 +11,6 @@ from os.path import dirname
 from metagenomix._io_utils import io_update, to_do
 
 
-def metaphlan(self) -> None:
-    """Run MetaPhlAn.
-
-    Parameters
-    ----------
-    self : Commands class instance
-        .dir : str
-            Path to pipeline output folder for humann
-        .sam : str
-            Sample name
-        .inputs : dict
-            Input files
-        .outputs : dict
-            All outputs
-        .soft.params
-            Parameters for humann
-        .databases
-            All databases
-        .config
-            Configurations
-    """
-    tmpdir = '$TMPDIR/metaphlan_%s' % self.sam_pool
-    tmp_cmd = ['mkdir -p %s\n' % tmpdir]
-
-    bowtie2out = '%s/bowtie2/%s.bowtie2.bz2' % (self.dir, self.sam_pool)
-
-    outs = profiling(self, bowtie2out, tmpdir)
-    self.outputs['outs'] = [bowtie2out] + list(outs)
-    self.outputs['dir'] = [dirname(x) for x in self.outputs['outs']]
-
-    reads = get_read_count(self)
-    if reads:
-        analyses(self, bowtie2out, reads)
-    if self.outputs['cmds']:
-        self.outputs['cmds'] = tmp_cmd + self.outputs['cmds']
-
-
 def get_read_count(self) -> str:
     """Get the number of reads in the current sample,
     or an empty string if the counting did not happen yet.
@@ -197,6 +160,76 @@ def profiling(
         self.outputs['cmds'].append(cmd)
 
     return sam_out, profile_out
+
+
+def metaphlan(self) -> None:
+    """MetaPhlAn is a computational tool for profiling the composition of
+    microbial communities (Bacteria, Archaea and Eukaryotes) from metagenomic
+    shotgun sequencing data (i.e. not 16S) with species-level. With the newly
+    added StrainPhlAn module, it is now possible to perform accurate
+    strain-level microbial profiling.
+    MetaPhlAn relies on ~1.1M unique clade-specific marker genes (the latest
+    marker information file mpa_v296_CHOCOPhlAn_201901_marker_info.txt.bz2
+    can be found here) identified from ~100,000 reference genomes (~99,
+    500 bacterial and archaeal and ~500 eukaryotic).
+    What's new in version 3:
+    - New MetaPhlAn marker genes extracted with a newer version of ChocoPhlAn
+      based on UniRef
+    - Estimation of metagenome composed by unknown microbes with parameter
+      --unknown_estimation
+    - Automatic retrieval and installation of the latest MetaPhlAn database
+      with parameter --index latest
+    - Virus profiling with --add_viruses
+    - Calculation of metagenome size for improved estimation of reads mapped
+      to a given clade
+    - Inclusion of NCBI taxonomy ID in the ouput file
+    - CAMI (Taxonomic) Profiling Output Format included
+    - Removal of reads with low MAPQ values
+
+    References
+    ----------
+    Beghini, Francesco, et al. "Integrating taxonomic, functional,
+    and strain-level profiling of diverse microbial communities with
+    bioBakery 3." Elife 10 (2021): e65088.
+
+    Notes
+    -----
+    GitHub  : https://github.com/biobakery/MetaPhlAn/tree/3.0/
+    Docs    : http://segatalab.cibio.unitn.it/tools/metaphlan/index.html
+    Paper   : https://doi.org/10.7554/eLife.65088
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for humann
+        .sam : str
+            Sample name
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters for humann
+        .databases
+            All databases
+        .config
+            Configurations
+    """
+    tmpdir = '$TMPDIR/metaphlan_%s' % self.sam_pool
+    tmp_cmd = ['mkdir -p %s\n' % tmpdir]
+
+    bowtie2out = '%s/bowtie2/%s.bowtie2.bz2' % (self.dir, self.sam_pool)
+
+    outs = profiling(self, bowtie2out, tmpdir)
+    self.outputs['outs'] = [bowtie2out] + list(outs)
+    self.outputs['dir'] = [dirname(x) for x in self.outputs['outs']]
+
+    reads = get_read_count(self)
+    if reads:
+        analyses(self, bowtie2out, reads)
+    if self.outputs['cmds']:
+        self.outputs['cmds'] = tmp_cmd + self.outputs['cmds']
 
 
 def get_profile(self) -> list:
@@ -424,6 +457,16 @@ def get_outputs(
 def humann(self) -> None:
     """Create command lines for humann for the current database's species focus.
 
+    References
+    ----------
+
+
+    Notes
+    -----
+    GitHub  :
+    Docs    :
+    Paper   :
+
     Parameters
     ----------
     self : Commands class instance
@@ -508,7 +551,25 @@ def extract_markers(
 
 
 def strainphlan(self) -> None:
-    """Create command lines for StrainPhlAn.
+    """StrainPhlAn is a computational tool for tracking individual strains
+    across a large set of samples. The input of StrainPhlAn is a set of
+    metagenomic samples and for each species, the output is a multiple
+    sequence alignment (MSA) file of all species strains reconstructed
+    directly from the samples. From this MSA, StrainPhlAn calls (PhyloPhlAn
+    3)[http://segatalab.cibio.unitn.it/tools/phylophlan3/index.html] to build
+    the phylogenetic tree showing the strain evolution of the sample strains.
+
+    References
+    ----------
+    Beghini, Francesco, et al. "Integrating taxonomic, functional,
+    and strain-level profiling of diverse microbial communities with
+    bioBakery 3." Elife 10 (2021): e65088.
+
+    Notes
+    -----
+    Docs    : https://github.com/biobakery/MetaPhlAn/wiki/StrainPhlAn-3
+    Website : http://segatalab.cibio.unitn.it/tools/phylophlan3/index.html
+    Paper   : https://doi.org/10.7554/eLife.65088
 
     Parameters
     ----------

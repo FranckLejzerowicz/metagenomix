@@ -8,7 +8,6 @@
 
 import sys
 import glob
-
 from metagenomix._io_utils import caller, io_update, to_do
 
 
@@ -878,7 +877,31 @@ def binning(self):
 
 
 def metawrap(self) -> None:
-    """Create command lines for metaWRAP
+    """MetaWRAP - a flexible pipeline for genome-resolved metagenomic data
+    analysis.
+    MetaWRAP aims to be an easy-to-use metagenomic wrapper suite that
+    accomplishes the core tasks of metagenomic analysis from start to finish:
+    read quality control, assembly, visualization, taxonomic profiling,
+    extracting draft genomes (binning), and functional annotation. Additionally,
+    metaWRAP takes bin extraction and analysis to the next level (see module
+    overview below). While there is no single best approach for processing
+    metagenomic data, metaWRAP is meant to be a fast and simple approach
+    before you delve deeper into parameterization of your analysis. MetaWRAP
+    can be applied to a variety of environments, including gut, water, and soil
+    microbiomes (see metaWRAP paper for benchmarks). Each individual module of
+    metaWRAP is a standalone program, which means you can use only the modules
+    you are interested in for your data.
+
+    References
+    ----------
+    Uritskiy, Gherman V., Jocelyne DiRuggiero, and James Taylor. "MetaWRAP—a
+    flexible pipeline for genome-resolved metagenomic data analysis."
+    Microbiome 6.1 (2018): 1-13.
+
+    Notes
+    -----
+    GitHub  : https://github.com/bxlab/metaWRAP
+    Paper   : https://doi.org/10.1186/s40168-018-0541-1
 
     Parameters
     ----------

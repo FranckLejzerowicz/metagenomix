@@ -274,7 +274,20 @@ def simka_pcoa_cmd(
 
 
 def simka(self) -> None:
-    """Create command lines for Simka.
+    """Simka is a de novo comparative metagenomics tool. Simka represents
+    each dataset as a k-mer spectrum and compute several classical ecological
+    distances between them.
+
+    References
+    ----------
+    Benoit, Gaëtan, et al. "Multiple comparative metagenomics using multiset
+    k-mer counting." PeerJ Computer Science 2 (2016): e94.
+
+    Notes
+    -----
+    GitHub  : https://github.com/GATB/simka
+    Docs    : https://gatb.inria.fr/software/simka
+    Paper   : https://doi.org/10.7717/peerj-cs.94
 
     Parameters
     ----------

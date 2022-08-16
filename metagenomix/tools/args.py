@@ -5,6 +5,7 @@
 #
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
+
 import sys
 from os.path import basename, dirname, splitext
 from metagenomix._inputs import group_inputs, genome_key, genome_out_dir
@@ -256,7 +257,21 @@ def short(self) -> None:
 
 
 def deeparg(self) -> None:
-    """Create command lines for metaWRAP
+    """A deep learning based approach to predict Antibiotic Resistance Genes
+    (ARGs) from metagenomes. It provides two models,deepARG-SS and deepARG-LS.
+
+    References
+    ----------
+    Arango-Argoty, Gustavo, et al. "DeepARG: a deep learning approach for
+    predicting antibiotic resistance genes from metagenomic data." Microbiome
+    6.1 (2018): 1-15.
+
+    Notes
+    -----
+    BitBucket   : https://bitbucket.org/gusphdproj/deeparg-ss/src/master/
+    Website     : https://bench.cs.vt.edu/deeparg
+    Docs        : https://readthedocs.org/projects/deeparg/
+    Paper       : https://doi.org/10.1186/s40168-018-0401-z
 
     Parameters
     ----------
@@ -267,3 +282,65 @@ def deeparg(self) -> None:
     # the last underscore-separated field (which is in this module)
     module_call = caller(self, __name__)
     module_call(self)
+
+
+def karga(self):
+    """K-mer-based antibiotic gene resistance analyzer, a multi-platform Java
+    toolkit for identifying ARGs from metagenomic short read data. KARGA does
+    not perform alignment; it uses an efficient double-lookup strategy,
+    statistical filtering on false positives, and provides individual read
+    classification as well as covering of the database resistome. On simulated
+    data, KARGA’s antibiotic resistance class recall is 99.89% for error/
+    mutation rates within 10%, and of 83.37% for error/mutation rates between
+    10% and 25%, while it is 99.92% on ARGs with rearrangements. On empirical
+    data, KARGA provides higher hit score (≥1.5-fold) than AMRPlusPlus, DeepARG,
+    and MetaMARC. KARGA has also faster runtimes than all other tools (2x faster
+    than AMRPlusPlus, 7x than DeepARG, and over 100x than MetaMARC).
+
+    References
+    ----------
+    M. Prosperi and S. Marini, "KARGA: Multi-platform Toolkit for k-mer-based
+    Antibiotic Resistance Gene Analysis of High-throughput Sequencing Data,"
+    2021 IEEE EMBS International Conference on Biomedical and Health Informatics
+    (BHI), 2021, pp. 1-4, doi: 10.1109/BHI50953.2021.9508479.
+
+    Notes
+    -----
+    GitHub  : https://github.com/DataIntellSystLab/KARGA
+    Paper   : https://ieeexplore.ieee.org/document/9508479
+
+    Parameters
+    ----------
+    self
+    """
+    print()
+
+
+def metamarc(self):
+    """Meta-MARC is a set of profile Hidden Markov Models develoepd for the
+    purpose of screening and profiling resistance genes in DNA-based
+    metagenomic data. This tool was developed for the characterization of
+    various resistance classes, mechanisms, and gene/operon groups from raw
+    sequencing data much in the way that microbiome tools profile the
+    bacterial taxonomy of metagenomic samples. Meta-MARC is not intended to
+    be used as a final annotation or all-in-one tool; this software simply
+    offers the user another view of complex metagenomic data. Users are
+    encouraged to perform further statistical testing on their data to
+    validate results obtained from Meta-MARC.
+
+    References
+    ----------
+    Lakin, Steven M., et al. "Hierarchical Hidden Markov models enable
+    accurate and diverse detection of antimicrobial resistance sequences."
+    Communications biology 2.1 (2019): 1-11.
+
+    Notes
+    -----
+    GitHub  : https://github.com/lakinsm/meta-marc
+    Paper   : https://doi.org/10.1038/s42003-019-0545-9
+
+    Parameters
+    ----------
+    self
+    """
+    print()

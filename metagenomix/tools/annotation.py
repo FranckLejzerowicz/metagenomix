@@ -117,8 +117,21 @@ def get_prodigal(
 
 
 def prodigal(self) -> None:
-    """Create command lines for Prodigal.
+    """Fast, reliable protein-coding gene prediction for prokaryotic genomes.
 
+    References
+    ----------
+    Hyatt, Doug, et al. "Prodigal: prokaryotic gene recognition and
+    translation initiation site identification." BMC bioinformatics 11.1 (
+    2010): 1-11.
+
+    Notes
+    -----
+    GitHub  : https://github.com/hyattpd/Prodigal
+    Paper   : https://doi.org/10.1186/1471-2105-11-119
+
+    Parameters
+    ----------
     self : Commands class instance
         .dir : str
             Path to pipeline output folder for prodigal
@@ -272,7 +285,20 @@ def get_macsyfinder(
 
 
 def macsyfinder(self) -> None:
-    """Detect different types of secretion systems using MacSyFinder.
+    """MacSyFinder - Detection of macromolecular systems in protein datasets
+    using systems modelling and similarity search.
+
+    References
+    ----------
+    Abby, Sophie S., et al. "MacSyFinder: a program to mine genomes for
+    molecular systems with an application to CRISPR-Cas systems." PloS one
+    9.10 (2014): e110726.
+
+    Notes
+    -----
+    GitHub  : https://github.com/gem-pasteur/macsyfinder
+    Docs    : https://macsyfinder.readthedocs.io/en/latest/
+    Paper   : https://doi.org/10.1371/journal.pone.0110726
 
     Parameters
     ----------
@@ -292,7 +318,7 @@ def macsyfinder(self) -> None:
     """
     if self.sam_pool in self.pools:
         if self.soft.prev != 'prodigal':
-            sys.exit('[macsyfinder] Runs on protein data (plass, prodigal...)')
+            sys.exit('[macsyfinder] Runs on protein data (prodigal only)')
         for (tech, group), inputs in self.inputs[self.sam_pool].items():
             fastas = group_inputs(self, inputs)
             get_macsyfinder(self, tech, fastas, group)
@@ -305,7 +331,7 @@ def macsyfinder(self) -> None:
     else:
         prev = self.soft.prev
         if prev not in ['plass', 'prodigal']:
-            sys.exit('[macsyfinder] Runs on protein data (plass, prodigal...)')
+            sys.exit('[macsyfinder] Runs on protein data (plass or prodigal)')
         tech_fastas = sample_inputs(self)
         for tech, fastas in tech_fastas.items():
             get_macsyfinder(self, tech, fastas, self.sam_pool)
@@ -465,7 +491,28 @@ def get_integronfinder(
 
 
 def integronfinder(self) -> None:
-    """Finder integrons, integration sites and cassettes with integron_finder.
+    """Finds integrons in DNA sequences.
+
+    Integrons are major genetic element, notorious for their major
+    implication in the spread of antibiotic resistance genes. More generally,
+    integrons are gene-capturing platform, whose broader evolutionary role
+    remains poorly understood. IntegronFinder is able to detect with high
+    accuracy integron in DNA sequences. It is accurate because it combines
+    the use of HMM profiles for the detection of the essential protein,
+    the site-specific integron integrase, and the use of Covariance Models
+    for the detection of the recombination site, the attC site.
+
+    References
+    ----------
+    Cury, Jean, et al. "Identification and analysis of integrons and cassette
+    arrays in bacterial genomes." Nucleic acids research 44.10 (2016):
+    4539-4550.
+
+    Notes
+    -----
+    GitHub  : https://github.com/gem-pasteur/Integron_Finder
+    Docs    : https://integronfinder.readthedocs.io/en/latest/
+    Paper   : https://doi.org/10.1093/nar/gkw319
 
     Parameters
     ----------
@@ -926,8 +973,22 @@ def get_prokka(
 
 
 def prokka(self) -> None:
-    """Perform prokaryotic genome annotation using Prokka and possibly,
-    for specific prokaryotic taxa as per the user-defined config file.
+    """Prokka: rapid prokaryotic genome annotation.
+    Whole genome annotation is the process of identifying features of
+    interest in a set of genomic DNA sequences, and labelling them with
+    useful information. Prokka is a software tool to annotate bacterial,
+    archaeal and viral genomes quickly and produce standards-compliant
+    output files,
+
+    References
+    ----------
+    Seemann, Torsten. "Prokka: rapid prokaryotic genome annotation."
+    Bioinformatics 30.14 (2014): 2068-2069.
+
+    Notes
+    -----
+    GitHub  : https://github.com/tseemann/prokka
+    Paper   : https://doi.org/10.1093/bioinformatics/btu153
 
     Parameters
     ----------
@@ -1141,9 +1202,9 @@ def get_barrnap(
 
 
 def dispatch(self) -> None:
-    """Run either Barrnap or CCmap on the per-sample fastq files,
-    or on the fasta resulting from
-    the assembly, on per co-assembly MAGs for the genome dereplication step.
+    """Run either barrnap or ccfind on the per-sample fastq files,
+    or on the fasta resulting from the assembly, on per co-assembly MAGs for
+    the genome dereplication step.
 
     Parameters
     ----------
@@ -1176,6 +1237,24 @@ def dispatch(self) -> None:
 def barrnap(self) -> None:
     """Dispatch the collection of barrnap commands using generic function.
 
+    Barrnap predicts the location of ribosomal RNA genes in genomes. It
+    supports bacteria (5S,23S,16S), archaea (5S,5.8S,23S,16S), metazoan
+    mitochondria (12S,16S) and eukaryotes (5S,5.8S,28S,18S).
+    It takes FASTA DNA sequence as input, and write GFF3 as output. It uses
+    the new nhmmer tool that comes with HMMER 3.1 for HMM searching in
+    RNA:DNA style. Multithreading is supported and one can expect roughly
+    linear speed-ups with more CPUs.
+
+    References
+    ----------
+    Seemann T
+    barrnap 0.9 : rapid ribosomal RNA prediction
+    https://github.com/tseemann/barrnap
+
+    Notes
+    -----
+    GitHub  : https://github.com/tseemann/barrnap
+
     Parameters
     ----------
     self : Commands class instance
@@ -1185,6 +1264,25 @@ def barrnap(self) -> None:
 
 def ccfind(self) -> None:
     """Dispatch the collection of ccfind commands using generic function.
+
+    ccfind - Circular Complete genome FINDer.
+    ccfind is a general tool to detect circular complete genomes with clues
+    of terminal redundancy, originally designed for identification
+    of complete virus genomes from metagenome assembly. It can be used for
+    any contig/genome, but cutoff values should be carefully considered.
+    It should be noted that terminal redundancy (circularity) does not
+    necessarily mean completion of the sequence. Partial genomes might be
+    detected as circular contigs for some reasons (e.g., sequence repeats).
+
+    References
+    ----------
+    Nishimura, Yosuke, et al. "Environmental viral genomes shed new light on
+    virus-host interactions in the ocean." MSphere 2.2 (2017): e00359-16.
+
+    Notes
+    -----
+    GitHub  : https://github.com/yosuken/ccfind
+    Paper   : https://doi.org/10.1128/mSphere.00359-16
 
     Parameters
     ----------
@@ -1239,7 +1337,22 @@ def antismash_cmd(
 
 
 def antismash(self) -> None:
-    """Perform metabolomic profiling of dereplicated genomes using Antismash.
+    """Antibiotics and Secondary Metabolite Analysis SHell.
+    antiSMASH allows the rapid genome-wide identification, annotation and
+    analysis of secondary metabolite biosynthesis gene clusters in bacterial
+    and fungal genomes. It integrates and cross-links with a large number of
+    in silico secondary metabolite analysis tools that have been published
+    earlier.
+
+    References
+    ----------
+    Blin, Kai, et al. "antiSMASH 6.0: improving cluster detection and
+    comparison capabilities." Nucleic Acids Research 49.W1 (2021): W29-W35.
+
+    Notes
+    -----
+    GitHub  : https://github.com/antismash
+    Paper   : https://doi.org/10.1093/nar/gkab335
 
     Parameters
     ----------
@@ -1278,17 +1391,28 @@ def antismash(self) -> None:
 
 
 def tiara(self) -> None:
-    """
+    """Deep-learning-based approach for identification of eukaryotic
+    sequences in the metagenomic data powered by PyTorch. The sequences are
+    classified in two stages:
+    - In the first stage, the sequences are classified to classes: archaea,
+      bacteria, prokarya, eukarya, organelle and unknown.
+    - In the second stage, the sequences labeled as organelle in the first
+      stage are classified to either mitochondria, plastid or unknown.
+
+    Notes
+    -----
+    GitHub  : https://github.com/ibe-uw/tiara
+    Paper   : https://doi.org/10.1093/bioinformatics/btab672
 
     Parameters
     ----------
     self : Commands class instance
-        .prev : str
+        .soft.prev : str
             Previous software in the pipeline
         .dir : str
             Path to pipeline output folder for tiara
-        .pool : str
-            Pool name.
+        .sam_pool : str
+            Co-assembly name
         .inputs : dict
             Input files
         .outputs : dict

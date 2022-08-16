@@ -223,12 +223,23 @@ def bowtie2(self) -> None:
      bowtie2 and potentially, re-run if the output was existing but
      possibly aborted.
 
+    References
+    ----------
+    Langmead, B., & Salzberg, S. L. (2012). Fast gapped-read alignment with
+    Bowtie 2. Nature methods, 9(4), 357-359.
+
+    Notes
+    -----
+    GitHub  : https://github.com/BenLangmead/bowtie2
+    Docs    : http://bowtie-bio.sourceforge.net/bowtie2/index.shtml
+    Paper   : https://doi.org/10.1038/nmeth.1923
+
     Parameters
     ----------
     self : Commands class instance
         .dir : str
             Path to pipeline output folder for humann
-        .sam : str
+        .sam_pool : str
             Sample name
         .inputs : dict
             Input files
@@ -236,6 +247,8 @@ def bowtie2(self) -> None:
             All outputs
         .soft.params
             Parameters for humann
+        .config
+            Configurations
     """
     for (tech, sam), fastxs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, fastxs, tech, sam):
@@ -291,7 +304,26 @@ def flash_cmd(
 
 
 def flash(self) -> None:
-    """Create command lines for FLASh merging
+    """FLASH (Fast Length Adjustment of SHort reads) is a very fast and
+    accurate software tool to merge paired-end reads from next-generation
+    sequencing experiments. FLASH is designed to merge pairs of reads when
+    the original DNA fragments are shorter than twice the length of reads.
+    The resulting longer reads can significantly improve genome assemblies.
+    They can also improve transcriptome assembly when FLASH is used to merge
+    RNA-seq data.
+
+    References
+    ----------
+    Magoč, Tanja, and Steven L. Salzberg. "FLASH: fast length adjustment of
+    short reads to improve genome assemblies." Bioinformatics 27.21 (2011):
+    2957-2963.
+
+    Notes
+    -----
+    SourceForge : https://sourceforge.net/projects/flashpage/files/
+    GitHub      : https://github.com/genome-vendor/FLASH
+    Docs        : https://ccb.jhu.edu/software/FLASH/
+    Paper       : https://doi.org/10.1093/bioinformatics/btr507
 
     Parameters
     ----------
@@ -383,7 +415,30 @@ def ngmerge_cmd(
 
 
 def ngmerge(self) -> None:
-    """Create command lines for NGmerge
+    """NGmerge operates on paired-end high-throughput sequence reads in two
+    distinct modes.
+    - In the default stitch mode, NGmerge combines paired-end reads that
+      overlap into a single read that spans the full length of the original
+      DNA fragment (Fig. 1A). The ends of the merged read are defined by the
+      5' ends of the original reads. Reads that fail the stitching process
+      (due to a lack of sufficient overlap, or excessive sequencing errors)
+      are placed into secondary output files, if the user requires them.
+    - The alternative adapter-removal mode returns the original reads as
+      pairs, removing the 3' overhangs of those reads whose valid stitched
+      alignment has this characteristic (Fig. 1B). Reads whose alignments do
+      not have such overhangs (or do not align at all) will also be printed
+      to the output files, unmodified.
+
+    References
+    ----------
+    Gaspar, John M. "NGmerge: merging paired-end reads via novel
+    empirically-derived models of sequencing errors." BMC bioinformatics 19.1
+    (2018): 1-9.
+
+    Notes
+    -----
+    GitHub  : https://github.com/harvardinformatics/NGmerge
+    Paper   : https://doi.org/10.1186/s12859-018-2579-2
 
     Parameters
     ----------
@@ -484,7 +539,24 @@ def pear_cmd(
 
 
 def pear(self) -> None:
-    """Create command lines for PEAR
+    """PEAR assembles Illumina paired-end reads if the DNA fragment sizes are
+    smaller than twice the length of reads. PEAR can assemble 95% of reads
+    with 35-bp mean overlap with a false-positive rate of 0.004. PEAR also
+    works with multiplexed data sets where the true underlying DNA fragment
+    size varies. PEAR has an extremely low false-positive rate of 0.0003 on
+    data sets where no overlap exists between the two reads (i.e. when DNA
+    fragment sizes are larger than twice the read length).
+
+    References
+    ----------
+    Zhang, Jiajie, et al. "PEAR: a fast and accurate Illumina Paired-End
+    reAd mergeR." Bioinformatics 30.5 (2014): 614-620.
+
+    Notes
+    -----
+    GitHub  : https://github.com/tseemann/PEAR
+    Docs    : http://www.exelixis-lab.org/web/software/pear
+    Paper   : https://doi.org/10.1093/bioinformatics/btt593
 
     Parameters
     ----------
@@ -592,7 +664,29 @@ def bbmerge_cmd(
 
 
 def bbmerge(self) -> None:
-    """BBmerge is a tool that merge the ends ...
+    """BBMerge is designed to merge two overlapping paired reads into a
+    single read. For example, a 2x150bp read pair with an insert size of
+    270bp would result in a single 270bp read. This is useful in amplicon
+    studies, as clustering and consensus are far easier with single reads
+    than paired reads, and also in assembly, where longer reads allow the
+    use of longer kmers (for kmer-based assemblers) or fewer comparisons
+    (for overlap-based assemblers). And in either case, the quality of the
+    overlapping bases is improved. BBMerge is also capable of error-correcting
+    the overlapping portion of reads without merging them, as well as merging
+    nonoverlapping reads, if enough coverage is available. BBMerge is the
+    fastest and by far the most accurate overlap-based read merger currently
+    in existence.
+
+    References
+    ----------
+    Bushnell, Brian, Jonathan Rood, and Esther Singer. "BBMerge–accurate
+    paired shotgun read merging via overlap." PloS one 12.10 (2017): e0185056.
+
+    Notes
+    -----
+    SourceForge : https://sourceforge.net/projects/bbmap/
+    Docs        : https://jgi.doe.gov/data-and-tools/software-tools/bbtools/bb-tools-user-guide/bbmerge-guide/
+    Paper       : https://doi.org/10.1371/journal.pone.0185056
 
     Parameters
     ----------
@@ -642,3 +736,30 @@ def bbmerge(self) -> None:
             # add is to the 'cmds'
             self.outputs['cmds'][tech] = [cmd]
             io_update(self, i_f=fastqs, o_d=out, key=tech)
+
+
+def salmon(self) -> None:
+    """Salmon is a tool for wicked-fast transcript quantification from
+    RNA-seq data. It requires a set of target transcripts (either from a
+    reference or de-novo assembly) to quantify. All you need to run Salmon
+    is a FASTA file containing your reference transcripts and a (set of)
+    FASTA/FASTQ file(s) containing your reads. Optionally, Salmon can make
+    use of pre-computed alignments (in the form of a SAM/BAM file) to the
+    transcripts rather than the raw reads.
+
+    References
+    ----------
+    Patro, Rob, et al. "Salmon provides fast and bias-aware quantification of
+    transcript expression." Nature methods 14.4 (2017): 417-419.
+
+    Notes
+    -----
+    GitHub  : https://github.com/COMBINE-lab/salmon
+    Docs    : https://salmon.readthedocs.io/en/latest/salmon.html
+    Paper   : https://doi.org/10.1038/nmeth.4197
+
+    Parameters
+    ----------
+    self
+    """
+    print()

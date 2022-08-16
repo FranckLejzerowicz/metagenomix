@@ -228,7 +228,20 @@ def count(self) -> None:
 
 
 def fastqc(self) -> None:
-    """Check quality based on the FastQC software.
+    """FastQC is a program designed to spot potential problems in high
+    througput sequencing datasets. It runs a set of analyses on one or more
+    raw sequence files in fastq or bam format and produces a report which
+    summarises the results.
+
+    References
+    ----------
+    Andrews, S. (2010). FastQC:  A Quality Control Tool for High Throughput
+    Sequence Data [Online].
+
+    Notes
+    -----
+    GitHub  : https://github.com/s-andrews/FastQC
+    Docs    : https://www.bioinformatics.babraham.ac.uk/projects/fastqc/
 
     Parameters
     ----------
@@ -382,7 +395,19 @@ def fastp_cmd(
 
 
 def fastp(self) -> None:
-    """Filter the fastq files based on the Fastp software.
+    """A tool designed to provide fast all-in-one preprocessing for FastQ
+    files. This tool is developed in C++ with multithreading supported to
+    afford high performance.
+
+    References
+    ----------
+    Chen, Shifu, et al. "fastp: an ultra-fast all-in-one FASTQ preprocessor."
+    Bioinformatics 34.17 (2018): i884-i890.
+
+    Notes
+    -----
+    GitHub  : https://github.com/OpenGene/fastp
+    Paper   : https://doi.org/10.1093/bioinformatics/bty560
 
     Parameters
     ----------
@@ -470,7 +495,31 @@ def cutadapt_cmd(
 
 
 def cutadapt(self) -> None:
-    """Filter the fastq files based on the Cutadapt software.
+    """Cutadapt finds and removes adapter sequences, primers, poly-A tails
+    and other types of unwanted sequence from your high-throughput sequencing
+    reads.
+
+    Cleaning your data in this way is often required: Reads from small-RNA
+    sequencing contain the 3’ sequencing adapter because the read is longer
+    than the molecule that is sequenced. Amplicon reads start with a primer
+    sequence. Poly-A tails are useful for pulling out RNA from your sample,
+    but often you don’t want them to be in your reads.
+
+    Cutadapt helps with these trimming tasks by finding the adapter or primer
+    sequences in an error-tolerant way. It can also modify and filter
+    single-end and paired-end reads in various ways. Adapter sequences can
+    contain IUPAC wildcard characters. Cutadapt can also demultiplex your reads.
+
+    References
+    ----------
+    Martin, Marcel. "Cutadapt removes adapter sequences from high-throughput
+    sequencing reads." EMBnet. journal 17.1 (2011): 10-12.
+
+    Notes
+    -----
+    GitHub  : https://github.com/marcelm/cutadapt
+    Docs    : https://cutadapt.readthedocs.io/en/stable/develop.html
+    Paper   : https://doi.org/10.14806/ej.17.1.200
 
     Parameters
     ----------
@@ -594,7 +643,20 @@ def atropos_cmd(
 
 
 def atropos(self) -> None:
-    """Filter the fastq files based on the Atropos software.
+    """Atropos is tool for specific, sensitive, and speedy trimming of NGS
+    reads. It is a fork of the venerable Cutadapt read trimmer.
+
+    References
+    ----------
+    Didion, John P., Marcel Martin, and Francis S. Collins. "Atropos:
+    specific, sensitive, and speedy trimming of sequencing reads." PeerJ 5 (
+    2017): e3720.
+
+    Notes
+    -----
+    GitHub  : https://github.com/jdidion/atropos
+    Docs    : https://atropos.readthedocs.io/en/1.1/
+    Paper   : https://doi.org/10.7717/peerj.3720
 
     Parameters
     ----------
@@ -693,7 +755,23 @@ def kneaddata_cmd(
 
 
 def kneaddata(self) -> None:
-    """Filter the fastq files based on the BioBakery Kneaddata software.
+    """KneadData is a tool designed to perform quality control on metagenomic
+    and metatranscriptomic sequencing data, especially data from microbiome
+    experiments. In these experiments, samples are typically taken from a
+    host in hopes of learning something about the microbial community on the
+    host. However, sequencing data from such experiments will often contain a
+    high ratio of host to bacterial reads. This tool aims to perform
+    principled in silico separation of bacterial reads from these
+    "contaminant" reads, be they from the host, from bacterial 16S sequences,
+    or other user-defined sources. Additionally, KneadData can be used for
+    other filtering tasks. For example, if one is trying to clean data
+    derived from a human sequencing experiment, KneadData can be used to
+    separate the human and the non-human reads.
+
+    Notes
+    -----
+    GitHub  : https://github.com/biobakery/kneaddata
+    Docs    : https://huttenhower.sph.harvard.edu/kneaddata
 
     Parameters
     ----------

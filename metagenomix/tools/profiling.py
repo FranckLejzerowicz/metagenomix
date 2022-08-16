@@ -5,11 +5,11 @@
 #
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
+
 import sys
 import glob
 import pkg_resources
 from os.path import basename, dirname, isdir, isfile, splitext
-
 from metagenomix._io_utils import min_nlines, io_update, to_do, tech_specificity
 from metagenomix.tools.alignment import get_alignment_cmd
 from metagenomix.parameters import tech_params
@@ -669,11 +669,23 @@ def shogun_functional(
 
 
 def shogun(self) -> None:
-    """Get the SHOGUN commands that consist of the classifications using the
+    """Shallow seq pipeline for optimal shotgun data usage.
+    Get the SHOGUN commands that consist of the classifications using the
     databases built for shogun and the alignment in shogun, or not as this
     may be run after bowtie2, in which case the classifications are performed
     on the alignment obtained before, provided that it was done on a database
     formatted for SHOGUN.
+
+    References
+    ----------
+    Hillmann, Benjamin, et al. "SHOGUN: a modular, accurate and scalable
+    framework for microbiome quantification." Bioinformatics 36.13 (2020):
+    4088-4090.
+
+    Notes
+    -----
+    GitHub  : https://github.com/knights-lab/SHOGUN
+    Paper   : https://doi.org/10.1093/bioinformatics/btaa277
 
     Parameters
     ----------
@@ -1584,7 +1596,23 @@ def woltka_pairing(
 
 
 def woltka(self) -> None:
-    """Prepare the command and collect outputs, io and dirs for Woltka.
+    """Woltka is a versatile program for determining the structure and
+    functional capacity of microbiomes. It mainly works with shotgun
+    metagenomic data. It bridges first-pass sequence aligners with advanced
+    analytical platforms (such as QIIME 2). It takes full advantage of,
+    and is not limited by, the WoL reference database:
+    https://biocore.github.io/wol
+
+    References
+    ----------
+    Zhu, Qiyun, et al. "Phylogeny-Aware Analysis of Metagenome Community
+    Ecology Based on Matched Reference Genomes while Bypassing Taxonomy."
+    Msystems 7.2 (2022): e00167-22.
+
+    Notes
+    -----
+    GitHub  : https://github.com/qiyunzhu/woltka
+    Paper   : https://doi.org/10.1128/msystems.00167-22
 
     Parameters
     ----------
@@ -1835,7 +1863,21 @@ def get_species_select(
 
 
 def midas(self) -> None:
-    """Create command lines for MIDAS for the current database's species focus.
+    """Metagenomic Intra-Species Diversity Analysis System (MIDAS).
+    MIDAS is an integrated pipeline that leverages >30,000 reference genomes
+    to estimate bacterial species abundance and strain-level genomic
+    variation, including gene content and SNPs, from shotgun metagnomes.
+
+    References
+    ----------
+    Nayfach, Stephen, et al. "An integrated metagenomics pipeline for strain
+    profiling reveals novel patterns of bacterial transmission and
+    biogeography." Genome research 26.11 (2016): 1612-1625.
+
+    Notes
+    -----
+    GitHub  : https://github.com/snayfach/MIDAS
+    Paper   : https://doi.org/10.1101/gr.201863.115
 
     Parameters
     ----------
@@ -1990,7 +2032,28 @@ def get_kraken2_cmd(
 
 
 def kraken2(self) -> None:
-    """Create command lines for Kraken2.
+    """Kraken is a taxonomic sequence classifier that assigns taxonomic
+    labels to DNA sequences. Kraken examines the -mers within a query
+    sequence and uses the information within those -mers to query a database.
+    That database maps -mers to the lowest common ancestor (LCA) of all
+    genomes known to contain a given -mer.
+    The first version of Kraken used a large indexed and sorted list of
+    -mer/LCA pairs as its database. While fast, the large memory requirements
+    posed some problems for users, and so Kraken 2 was created to provide a
+    solution to those problems.
+    Kraken 2 differs from Kraken 1 in several important ways:
+    see https://github.com/DerrickWood/kraken2/blob/master/docs/MANUAL.markdown
+
+    References
+    ----------
+    Wood, Derrick E., Jennifer Lu, and Ben Langmead. "Improved metagenomic
+    analysis with Kraken 2." Genome biology 20.1 (2019): 1-13.
+
+    Notes
+    -----
+    GitHub  : https://github.com/DerrickWood/kraken2
+    Docs    : https://ccb.jhu.edu/software/kraken2
+    Paper   : https://doi.org/10.1186/s13059-019-1891-0
 
     Parameters
     ----------
@@ -2116,8 +2179,34 @@ def bracken_cmd(
 
 
 def bracken(self) -> None:
-    """Run Bracken to perform abundance estimation based on the
-    results of Kraken2.
+    """Bracken (Bayesian Reestimation of Abundance with KrakEN) is a highly
+    accurate statistical method that computes the abundance of species in
+    DNA sequences from a metagenomics sample.
+    Bracken (Bayesian Reestimation of Abundance with KrakEN) is a highly
+    accurate statistical method that computes the abundance of species in DNA
+    sequences from a metagenomics sample. Braken uses the taxonomy labels
+    assigned by Kraken, a highly accurate metagenomics classification
+    algorithm, to estimate the number of reads originating from each species
+    present in a sample. Kraken classifies reads to the best matching
+    location in the taxonomic tree, but does not estimate abundances of
+    species. We use the Kraken database itself to derive probabilities that
+    describe how much sequence from each genome is identical to other genomes
+    in the database, and combine this information with the assignments for a
+    particular sample to estimate abundance at the species level, the genus
+    level, or above. Combined with the Kraken classifier, Bracken produces
+    accurate species- and genus-level abundance estimates even when a sample
+    contains two or more near-identical species.
+
+    References
+    ----------
+    Lu, Jennifer, et al. "Bracken: estimating species abundance in
+    metagenomics data." PeerJ Computer Science 3 (2017): e104.
+
+    Notes
+    -----
+    GitHub  : https://github.com/jenniferlu717/Bracken
+    Docs    : http://ccb.jhu.edu/software/bracken/index.shtml
+    Paper   : https://doi.org/10.7717/peerj-cs.104
 
     Parameters
     ----------
@@ -2155,7 +2244,19 @@ def bracken(self) -> None:
 
 
 def metaxa2(self) -> None:
-    """
+    """Improved Identification and Taxonomic Classification of Small and
+    Large Subunit rRNA in Metagenomic Data.
+
+    References
+    ----------
+    Bengtsson‐Palme, Johan, et al. "METAXA2: improved identification and
+    taxonomic classification of small and large subunit rRNA in metagenomic
+    data." Molecular ecology resources 15.6 (2015): 1403-1414.
+
+    Notes
+    -----
+    Docs    : https://microbiology.se/software/metaxa2
+    Paper   : https://doi.org/10.1111/1755-0998.12399
 
     Parameters
     ----------
