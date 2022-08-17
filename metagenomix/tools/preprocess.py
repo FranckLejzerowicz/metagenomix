@@ -687,6 +687,96 @@ def atropos(self) -> None:
         self.outputs['outs'].setdefault((tech, self.sam_pool), []).extend(outs)
 
 
+def hifiadapterfilt_cmd(
+        self,
+        fastqs: list,
+        out_dir: str,
+        sam: str
+) -> str:
+    """Collect the command line for HiFiAdapterFilt.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .sam : str
+            Sample name
+        .soft.params
+            Parameters
+    fastqs : list
+        Path to the input files
+    out_dir : str
+        Path to the output folder
+    sam : str
+        Name of the sample (prefix)
+
+    Returns
+    -------
+    cmd : str
+        HiFiAdapterFilt commands
+    """
+    cmd = 'export PATH=$PATH:%s\n' % self.soft.params['path']
+    cmd += 'export PATH=$PATH:%s/DB\n' % self.soft.params['path']
+    cmd += 'cd %s\n' % out_dir
+    cmd += 'cp %s %s/.\n' % (' '.join(fastqs), out_dir)
+    cmd += 'bash %s/pbadapterfilt.sh' % self.soft.params['path']
+    cmd += ' -p %s' % sam
+    cmd += ' -l %s' % self.soft.params['l']
+    cmd += ' -m %s' % self.soft.params['m']
+    cmd += ' -t %s' % self.soft.params['cpus']
+    cmd += ' -o %s\n' % out_dir
+    for fastq in fastqs:
+        cmd += 'rm %s/%s\n' % (out_dir, basename(fastq))
+    return cmd
+
+
+def hifiadapterfilt(self) -> None:
+    """Convert .bam to .fastq and remove reads with remnant PacBio adapter
+    sequences.
+
+    References
+    ----------
+    Sim, Sheina B., et al. "HiFiAdapterFilt, a memory efficient read
+    processing pipeline, prevents occurrence of adapter sequence in PacBio
+    HiFi reads and their negative impacts on genome assembly." BMC genomics
+    23.1 (2022): 1-7.
+
+    Notes
+    -----
+    GitHub  : https://github.com/sheinasim/HiFiAdapterFilt
+    Paper   : https://doi.org/10.1186/s12864-022-08375-1
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for HiFiAdapterFilt
+        .sam : str
+            Sample name
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    """
+    for (tech, sam), fastqs in self.inputs[self.sam_pool].items():
+        if tech_specificity(self, fastqs, tech, sam, ['pacbio']):
+            continue
+        out_dir = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
+        self.outputs['dirs'].append(out_dir)
+
+        out = '%s/%s.filt.fastq.gz' % (out_dir, sam)
+        self.outputs['outs'].setdefault((tech, self.sam_pool), []).append(out)
+
+        if self.config.force or to_do(out):
+            cmd = hifiadapterfilt_cmd(self, fastqs, out_dir, sam)
+            key = tech + '_' + sam
+            self.outputs['cmds'].setdefault(key, []).append(cmd)
+            io_update(self, i_f=fastqs, o_d=out_dir, key=key)
+
+
 def kneaddata_cmd(
         self,
         tech: str,
