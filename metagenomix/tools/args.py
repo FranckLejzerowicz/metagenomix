@@ -422,7 +422,7 @@ def get_metamarc(
 
 
 def metamarc(self) -> None:
-    """Meta-MARC is a set of profile Hidden Markov Models develoepd for the
+    """Meta-MARC is a set of profile Hidden Markov Models developed for the
     purpose of screening and profiling resistance genes in DNA-based
     metagenomic data. This tool was developed for the characterization of
     various resistance classes, mechanisms, and gene/operon groups from raw
