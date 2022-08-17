@@ -139,20 +139,6 @@ class Commands(object):
                         'io': {('I', 'd'): {}, ('I', 'f'): {},
                                ('O', 'd'): {}, ('O', 'f'): {}}}
 
-    def call_method(self):
-        """Call the command-preparing method from this class (for the tools that
-        are easy to deal with), or from auxillary modules located in the `tools`
-        submodules path."""
-        func = self.soft.name.split('_')[0]
-        if func in globals():
-            globals()[func](self)
-        # ---------------------- TEMPORARY -----------------------
-        # this is for the functions that might be defined here
-        elif func in dir(self) and callable(getattr(self, func)):
-            getattr(self, func)()
-        else:
-            raise ValueError('No method for software %s' % self.soft.name)
-
     def init_io(self, key):
         if key not in self.soft.io:
             self.soft.io[key] = {}
@@ -188,6 +174,20 @@ class Commands(object):
             self.pools[pool] = {}
             self.soft.outputs[pool] = {}
             pooling(self, pool)
+
+    def call_method(self):
+        """Call the command-preparing method from this class (for the tools that
+        are easy to deal with), or from auxillary modules located in the `tools`
+        submodules path."""
+        func = self.soft.name.split('_')[0]
+        if func in globals():
+            globals()[func](self)
+        # ---------------------- TEMPORARY -----------------------
+        # this is for the functions that might be defined here
+        elif func in dir(self) and callable(getattr(self, func)):
+            getattr(self, func)()
+        else:
+            raise ValueError('No method for software %s' % self.soft.name)
 
     # IN PROGRESS
     def mapping(self):
