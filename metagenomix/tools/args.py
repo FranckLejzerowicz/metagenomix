@@ -8,7 +8,8 @@
 
 import sys
 from os.path import basename, dirname, splitext
-from metagenomix._inputs import group_inputs, genome_key, genome_out_dir
+from metagenomix._inputs import (sample_inputs, group_inputs, genome_key,
+                                 genome_out_dir)
 from metagenomix._io_utils import (caller, io_update, to_do, tech_specificity,
                                    not_paired)
 
@@ -150,7 +151,7 @@ def predict(self) -> None:
         .pool : str
             Pool name
         .pools : dict
-            Pools
+            Co-assembly pools and sample per group
         .inputs : dict
             Input files
         .outputs : dict
@@ -170,9 +171,9 @@ def predict(self) -> None:
             fastas = group_inputs(self, inputs)
             get_predict(self, fastas, tech, bin_algo)
     else:
-        for (tech, sam), inputs in self.inputs[self.sam_pool].items():
-            fastas = group_inputs(self, inputs)
-            get_predict(self, fastas, tech, sam)
+        tech_fastas = sample_inputs(self, ['pacbio', 'nanopore'])
+        for tech, fastas in tech_fastas.items():
+            get_predict(self, fastas, tech, self.sam_pool)
 
 
 def short_cmd(
@@ -216,8 +217,8 @@ def short(self) -> None:
     self : Commands class instance
         .dir : str
             Path to pipeline output folder for metaWRAP
-        .pool : str
-            Pool name.
+        .sam_pool : str
+            Sample of co-assembly group name.
         .inputs : dict
             Input files
         .outputs : dict
@@ -276,7 +277,18 @@ def deeparg(self) -> None:
     Parameters
     ----------
     self : Commands class instance
-        Contains all the attributes needed for binning on the current sample
+        .dir : str
+            Path to pipeline output folder for metaWRAP
+        .sam_pool : str
+            Sample of co-assembly group name.
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
     """
     # This function splits the name of the software and calls as function
     # the last underscore-separated field (which is in this module)
@@ -284,7 +296,343 @@ def deeparg(self) -> None:
     module_call(self)
 
 
-def karga(self):
+def mmarc_cmd(
+        self,
+        tech: str,
+        fasta_folder: list,
+        out: str,
+        genome: str,
+        level: str
+) -> str:
+    """Collect mmarc (meta-marc) command.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .soft.params
+            Parameters
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    fasta_folder : list
+        Paths to the input files
+    out : str
+        Paths to the output folder
+    genome : str
+        MAGs/Genomes folder name or empty string (for assembly contigs)
+    level : str
+        Model level
+
+    Returns
+    -------
+    cmd : str
+        mmarc (meta-marc) command
+    """
+    cmd = '\n./mmarc'
+    if genome:
+        cmd += ' --input %s' % fasta_folder[0]
+    else:
+        if len(fasta_folder) == 1:
+            cmd += ' --input %s' % fasta_folder[0]
+        if len(fasta_folder) == 2:
+            cmd += ' --i1 %s --i2 %s' % tuple(fasta_folder)
+        if tech == 'illumina':
+            cmd += ' --dedup'
+        cmd += ' --multicorrect'
+    cmd += ' --threads %s' % self.soft.params['cpus']
+    cmd += ' --output %s' % out
+    cmd += ' --filename output'
+    cmd += ' --skewness %s/skewness.txt' % out
+    cmd += ' --graphs %s/graphs' % out
+    cmd += ' --level %s' % level
+
+    for boolean in ['dedup', 'multicorrect']:
+        if self.soft.params[boolean]:
+            cmd += ' --%s' % boolean
+
+    for param in ['coverage', 'evalue', 'kmer']:
+        cmd += ' --%s %s' % (param.replace('_', '-'), self.soft.params[param])
+
+    return cmd
+
+
+def get_metamarc(
+        self,
+        tech: str,
+        fastas_folders: dict,
+        sam_group: str
+) -> None:
+    """
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .soft.status
+            Current status of the pipeline in terms of available outputs
+        .config
+            Configurations
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    fastas_folders : dict
+        Paths to the input fasta files per genome/MAG
+    sam_group : str
+        Name of the current sample or co-assembly group
+    """
+    for genome, dirs in fastas_folders.items():
+
+        fasta_folder = dirs[0]
+        out_dir = genome_out_dir(self, tech, fasta_folder, sam_group, genome)
+        self.outputs['outs'].setdefault((tech, sam_group), []).append(out_dir)
+
+        key = genome_key(tech, sam_group, genome)
+        if genome:
+            condition = to_do(folder=fasta_folder)
+        else:
+            condition = to_do(fasta_folder)
+        if condition:
+            self.soft.status.add('Run %s (%s)' % (self.soft.prev, key))
+
+        outs, cmd = [], ''
+        for level in self.soft.params['level']:
+            out = '%s/model_level_%s' % (out_dir, level)
+            self.outputs['dirs'].append(out_dir)
+            outs.append(out)
+            skewness = '%s/skewness.txt' % out
+            # check if tool already run (or if --force) to allow getting command
+            if self.config.force or to_do(skewness):
+                # collect the command line
+                cmd += mmarc_cmd(self, tech, fasta_folder, out, genome, level)
+
+        if cmd:
+            path = self.soft.params['path']
+            full_cmd = 'cd %s\n' % out_dir
+            full_cmd += 'cp -r %s %s/.\n' % (path, out_dir)
+            full_cmd += 'cp -r %s/../hmmer-3.1b2 %s/.\n' % (path, out_dir)
+            full_cmd += 'cp -r %s/../hmmer-3.1b2 %s/.\n' % (path, out_dir)
+            full_cmd += 'cd bin\n'
+            full_cmd += cmd
+            full_cmd += '\nrm -rf bin\n'
+            full_cmd += 'rm -rf hmmer-3.1b2\n'
+            # add is to the 'cmds'
+            self.outputs['cmds'].setdefault(key, []).append(full_cmd)
+            io_update(self, i_f=fasta_folder, o_d=outs, key=key)
+
+
+def metamarc(self) -> None:
+    """Meta-MARC is a set of profile Hidden Markov Models develoepd for the
+    purpose of screening and profiling resistance genes in DNA-based
+    metagenomic data. This tool was developed for the characterization of
+    various resistance classes, mechanisms, and gene/operon groups from raw
+    sequencing data much in the way that microbiome tools profile the
+    bacterial taxonomy of metagenomic samples. Meta-MARC is not intended to
+    be used as a final annotation or all-in-one tool; this software simply
+    offers the user another view of complex metagenomic data. Users are
+    encouraged to perform further statistical testing on their data to
+    validate results obtained from Meta-MARC.
+
+    References
+    ----------
+    Lakin, Steven M., et al. "Hierarchical Hidden Markov models enable
+    accurate and diverse detection of antimicrobial resistance sequences."
+    Communications biology 2.1 (2019): 1-11.
+
+    Notes
+    -----
+    GitHub  : https://github.com/lakinsm/meta-marc
+    Paper   : https://doi.org/10.1038/s42003-019-0545-9
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .name : str
+            Name of the current software in the pipeline
+        .dir : str
+            Path to pipeline output folder for metaWRAP
+        .sam_pool : str
+            Sample of co-assembly group name
+        .pools : dict
+            Co-assembly pools and sample per group
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.status
+            Current status of the pipeline in terms of available outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    """
+    if self.sam_pool in self.pools:
+        for (tech, group), inputs in self.inputs[self.sam_pool].items():
+            fastas_folders = group_inputs(self, inputs)
+            get_metamarc(self, tech, fastas_folders, group)
+
+    elif self.soft.prev == 'drep':
+        for (tech, bin_algo), inputs in self.inputs[''].items():
+            folders = group_inputs(self, inputs)
+            get_metamarc(self, tech, folders, bin_algo)
+
+    else:
+        tech_fastas = sample_inputs(self, raw=True)
+        for tech, fastas in tech_fastas.items():
+            get_metamarc(self, tech, fastas, self.sam_pool)
+
+
+def karga_kargva_cmd(
+        self,
+        merged: str,
+        db_path: str
+) -> str:
+    """Collect KARGA or KARGVA command.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .name : str
+            Name of the current software in the pipeline
+        .soft.params
+            Parameters
+    merged : str
+        Path to the input file
+    db_path : str
+        Path to ARG/MGE fasta file with resistance annotation/mutation in header
+
+    Returns
+    -------
+    cmd : str
+        KARGA or KARGVA command
+    """
+    cmd = 'java %s' % self.soft.name.upper()
+    cmd += ' f:%s' % merged
+    cmd += ' d:%s' % db_path
+    for param in ['k', 'i', 's']:
+        if param == 's' and self.soft.name != 'karga':
+            continue
+        if self.soft.params[param]:
+            cmd += ' %s:%s' % (param, self.soft.params[param])
+    cmd += ' -Xmx16GB\n'
+    return cmd
+
+
+def get_karga_kargva(
+        self,
+        tech: str,
+        fastas_folders: dict,
+        sam_group: str
+) -> None:
+    """
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .soft.name : str
+            Name of the current software in the pipeline
+        .soft.prev : str
+            Name of the previous software in the pipeline
+        .outputs : dict
+            All outputs
+        .soft.status
+            Current status of the pipeline in terms of available outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    fastas_folders : dict
+        Paths to the input fasta files per genome/MAG
+    sam_group : str
+        Name of the current sample or co-assembly group
+    """
+    for genome, dirs in fastas_folders.items():
+
+        fastx = dirs[0]
+        out_dir = genome_out_dir(self, tech, fastx, sam_group)
+        self.outputs['outs'].setdefault((tech, sam_group), []).append(out_dir)
+
+        key = genome_key(tech, sam_group)
+        if to_do(fastx):
+            self.soft.status.add('Run %s (%s)' % (self.soft.prev, key))
+
+        merge_cmd = ''
+        if len(dirs) == 1:
+            merged = fastx
+        elif len(dirs) > 1:
+            merged = '%s/%s' % (out_dir, basename(fastx))
+            merge_cmd += 'cat %s > %s\n' % (' '.join(dirs), merged)
+
+        outs, cmd = [], ''
+        for db, db_path in self.soft.params['databases'].items():
+            out = '%s/db_%s' % (out_dir, db)
+            self.outputs['dirs'].append(out_dir)
+            outs.append(out)
+            bas = splitext(basename(merged))[0]
+            fp = '%s/%s_%s_mappedReads.csv' % (out, self.soft.name.upper(), bas)
+            # check if tool already run (or if --force) to allow getting command
+            if self.config.force or to_do(fp):
+                # collect the command line
+                cmd += karga_kargva_cmd(self, merged, db_path)
+
+        if cmd:
+            if self.soft.name == 'karga':
+                ps = ['openjdk-8', 'AMRGene.class', 'KARGA$1.class',
+                      'KARGA.class', 'KARGA.java']
+            elif self.soft.name == 'kargva':
+                ps = ['AMRVariantGene.class', 'KARGVA$1.class', 'KARGVA.class',
+                      'KARGVA.java', 'kargva_db_v5.fasta']
+            path = self.soft.params['path']
+            full_cmd = 'cd %s\n' % out_dir
+            for p in ps:
+                full_cmd += 'cp -r %s/%s %s/.\n' % (path, p, out_dir)
+            full_cmd += merge_cmd + cmd
+            for p in ps:
+                full_cmd += 'rm -rf %s\n' % p
+
+            # add is to the 'cmds'
+            self.outputs['cmds'].setdefault(key, []).append(full_cmd)
+            io_update(self, i_f=dirs, o_d=outs, key=key)
+
+
+def karga_kargva(self) -> None:
+    """Get the input for KARGA or KARGVA
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for metaWRAP
+        .sam_pool : str
+            Sample of co-assembly group name
+        .pools : dict
+            Co-assembly pools and sample per group
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.name : str
+            Name of the current software in the pipeline
+        .soft.prev : str
+            Name of the previous software in the pipeline
+        .soft.status
+            Current status of the pipeline in terms of available outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    """
+    if not self.sam_pool or self.sam_pool in self.pools:
+        sys.exit('[%s] Only run on non-assembled reads' % self.soft.name)
+    else:
+        tech_fastas = sample_inputs(self, raw=True)
+        for tech, fastas in tech_fastas.items():
+            get_karga_kargva(self, tech, fastas, self.sam_pool)
+
+
+def karga(self) -> None:
     """K-mer-based antibiotic gene resistance analyzer, a multi-platform Java
     toolkit for identifying ARGs from metagenomic short read data. KARGA does
     not perform alignment; it uses an efficient double-lookup strategy,
@@ -311,84 +659,135 @@ def karga(self):
 
     Parameters
     ----------
-    self
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for metaWRAP
+        .sam_pool : str
+            Sample of co-assembly group name
+        .pools : dict
+            Co-assembly pools and sample per group
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.name : str
+            Name of the current software in the pipeline
+        .soft.prev : str
+            Name of the previous software in the pipeline
+        .soft.status
+            Current status of the pipeline in terms of available outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
     """
-    print()
+    karga_kargva(self)
 
 
-def metamarc_cmd(
+def kargva(self) -> None:
+    """K-mer-based Antibiotic Resistance Gene Variant Analyzer (KARGVA).
+    KARGVA is a Multi-platform Toolkit for Identification of Antibiotic
+    Resistance from Sequencing Data Conferred by Point Mutations in
+    Bacterial Genes.
+
+    References
+    ----------
+    M. Prosperi and S. Marini, "KARGA: Multi-platform Toolkit for k-mer-based
+    Antibiotic Resistance Gene Analysis of High-throughput Sequencing Data,"
+    2021 IEEE EMBS International Conference on Biomedical and Health Informatics
+    (BHI), 2021, pp. 1-4, doi: 10.1109/BHI50953.2021.9508479.
+
+    Notes
+    -----
+    GitHub  : https://github.com/DataIntellSystLab/KARGVA
+    Paper   : https://ieeexplore.ieee.org/document/9508479
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for metaWRAP
+        .sam_pool : str
+            Sample of co-assembly group name
+        .pools : dict
+            Co-assembly pools and sample per group
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.name : str
+            Name of the current software in the pipeline
+        .soft.prev : str
+            Name of the previous software in the pipeline
+        .soft.status
+            Current status of the pipeline in terms of available outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    """
+    karga_kargva(self)
+
+
+def abricate_cmd(
         self,
         tech: str,
-        fasta_folder: list,
-        out_dir: str,
-        genome: str,
-        level: str
+        inputs: list,
+        out_d: str,
 ) -> str:
-    """Collect deeparg short_reads_pipeline commands.
+    """Collect abricate command.
 
     Parameters
     ----------
     self : Commands class instance
         .soft.params
             Parameters
-    tech : str
-        Technology: 'illumina', 'pacbio', or 'nanopore'
-    fasta_folder : list
+    inputs : list
         Paths to the input files
-    out_dir : str
+    out_d : str
         Paths to the output folder
-    genome : str
-        MAGs/Genomes folder name or empty string (for assembly contigs)
-    level : str
-        Model level
 
     Returns
     -------
     cmd : str
-        deeparg short_reads_pipeline commands
+        abricate command
     """
+    cmd, seqtk_cmd = '', ''
+    for db in self.soft.params['databases']:
 
-    path = self.soft.params['path']
-    cmd = 'cd %s\n' % out_dir
-    cmd += 'cp -r %s .\n' % path
-    cmd += 'cp -r %s/../hmmer-3.1b2 .\n' % path
-    cmd += 'cp -r %s/../hmmer-3.1b2 .\n' % path
-    cmd += 'cd bin\n'
+        cmd += '\nabricate'
 
-    cmd = './mmarc'
-    if genome:
-        if len(fasta_folder) == 1:
-            cmd += ' --input %s' % fasta_folder[0]
-        if len(fasta_folder) == 2:
-            cmd += ' --i1 %s --i2 %s' % tuple(fasta_folder)
-        if tech == 'illumina':
-            cmd += ' --dedup'
-        cmd += ' --multicorrect'
+        if tech in ['nanopore', 'pacbio']:
+            outs = []
+            for idx, inp in enumerate(inputs):
+                out = '%s/%s.fa' % (out_d, idx)
+                outs.append(out)
+                seqtk_cmd += 'seqtk seq -A %s > %s/%s\n' % (inp, out_d, out)
+            out = '%.fasta' % splitext(basename(inputs[0]))[0]
+            seqtk_cmd += 'cat %s > %s/%s\n' % (' '.join(outs), out_d, out)
+        else:
+            out = inputs[0]
 
-    cmd += ' --threads %s' % self.soft.params['cpus']
-    cmd += ' --output %s' % out_dir
-    cmd += ' --filename output'
-    cmd += ' --skewness %s/skewness.txt' % out_dir
-    cmd += ' --graphs %s/graphs' % out_dir
-    cmd += ' --level %s' % level
+        cmd += ' %s' % out
+        cmd += ' --threads %s' % self.soft.params['cpus']
+        cmd += ' --db %s' % db
+        for boolean in ['setupdb', 'noheader', 'csv', 'nopath']:
+            if self.soft.params[boolean]:
+                cmd += ' --%s' % boolean
+        for param in ['minid', 'mincov']:
+            cmd += ' --%s %s' % (param, self.soft.params[param])
+        cmd += ' > %s/%s.txt' % (out_d, db)
 
-    for boolean in ['dedup', 'multicorrect']:
-        if self.soft.params[boolean]:
-            cmd += ' --%s' % boolean
+    if seqtk_cmd:
+        cmd = seqtk_cmd + cmd
 
-    for param in ['coverage', 'evalue', 'kmer', 'level']:
-        cmd += ' --%s %s' % (param.replace('_', '-'), self.soft.params[param])
-
-    cmd += '\ncd ..\n'
-    cmd += 'rm -rf bin\n'
-    cmd += 'rm -rf ../hmmer-3.1b2\n'
     return cmd
 
 
-def get_metamarc(
+def get_abricate(
         self,
-        fastas_folders: dict,
         tech: str,
+        fastas_folders: dict,
         sam_group: str
 ) -> None:
     """
@@ -398,23 +797,25 @@ def get_metamarc(
     self : Commands class instance
         .outputs : dict
             All outputs
+        .soft.status
+            Current status of the pipeline in terms of available outputs
         .soft.params
             Parameters
         .config
             Configurations
-    fastas_folders : dict
-        Paths to the input fasta files per genome/MAG
     tech : str
         Technology: 'illumina', 'pacbio', or 'nanopore'
+    fastas_folders : dict
+        Paths to the input fasta files per genome/MAG
     sam_group : str
         Name of the current sample or co-assembly group
     """
-    for genome, dirs in fastas_folders.items():
+    for genome, inputs in fastas_folders.items():
 
-        fasta_folder = dirs[0]
-        out_dir = genome_out_dir(self, tech, fasta_folder, sam_group, genome)
-        self.outputs['dirs'].append(out_dir)
-        self.outputs['outs'].setdefault((tech, sam_group), []).append(out_dir)
+        fasta_folder = inputs[0]
+        out_d = genome_out_dir(self, tech, fasta_folder, sam_group, genome)
+        self.outputs['dirs'].append(out_d)
+        self.outputs['outs'].setdefault((tech, sam_group), []).append(out_d)
 
         key = genome_key(tech, sam_group, genome)
         if genome:
@@ -424,55 +825,209 @@ def get_metamarc(
         if condition:
             self.soft.status.add('Run %s (%s)' % (self.soft.prev, key))
 
-        for level in self.soft.params['level']:
-            out = '%s/model_level_%s' % (out_dir, level)
-            skewness = '%s/skewness.txt' % out
-            # check if tool already run (or if --force) to allow getting command
-            if self.config.force or to_do(skewness):
-                # collect the command line
-                cmd = metamarc_cmd(self, tech, fasta_folder, out, genome, level)
-                # add is to the 'cmds'
-                self.outputs['cmds'].setdefault(key, []).append(cmd)
-                io_update(self, i_f=fasta_folder, o_d=out_dir, key=key)
+        outs = ['%s/%s.txt' % (out_d, x) for x in self.soft.params['databases']]
+        # check if tool already run (or if --force) to allow getting command
+        if self.config.force or sum([to_do(x) for x in outs]):
+            # collect the command line
+            cmd = abricate_cmd(self, tech, inputs, out_d)
+            # add is to the 'cmds'
+            self.outputs['cmds'].setdefault(key, []).append(cmd)
+            io_update(self, i_f=fasta_folder, o_d=out_d, key=key)
 
 
-def metamarc(self):
-    """Meta-MARC is a set of profile Hidden Markov Models develoepd for the
-    purpose of screening and profiling resistance genes in DNA-based
-    metagenomic data. This tool was developed for the characterization of
-    various resistance classes, mechanisms, and gene/operon groups from raw
-    sequencing data much in the way that microbiome tools profile the
-    bacterial taxonomy of metagenomic samples. Meta-MARC is not intended to
-    be used as a final annotation or all-in-one tool; this software simply
-    offers the user another view of complex metagenomic data. Users are
-    encouraged to perform further statistical testing on their data to
-    validate results obtained from Meta-MARC.
-
-    References
-    ----------
-    Lakin, Steven M., et al. "Hierarchical Hidden Markov models enable
-    accurate and diverse detection of antimicrobial resistance sequences."
-    Communications biology 2.1 (2019): 1-11.
+def abricate(self) -> None:
+    """Mass screening of contigs for antimicrobial resistance or virulence
+    genes. It comes bundled with multiple databases: NCBI, CARD, ARG-ANNOT,
+    Resfinder, MEGARES, EcOH, PlasmidFinder, Ecoli_VF and VFDB.
 
     Notes
     -----
-    GitHub  : https://github.com/lakinsm/meta-marc
-    Paper   : https://doi.org/10.1038/s42003-019-0545-9
+    GitHub  : https://github.com/tseemann/abricate
 
     Parameters
     ----------
-    self
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for metaWRAP
+        .sam_pool : str
+            Sample of co-assembly group name
+        .pools : dict
+            Co-assembly pools and sample per group
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.name : str
+            Name of the current software in the pipeline
+        .soft.prev : str
+            Name of the previous software in the pipeline
+        .soft.status
+            Current status of the pipeline in terms of available outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
     """
     if self.sam_pool in self.pools:
         for (tech, group), inputs in self.inputs[self.sam_pool].items():
             fastas_folders = group_inputs(self, inputs)
-            get_metamarc(self, fastas_folders, tech, group)
+            get_abricate(self, tech, fastas_folders, group)
 
     elif self.soft.prev == 'drep':
         for (tech, bin_algo), inputs in self.inputs[''].items():
             folders = group_inputs(self, inputs)
-            get_metamarc(self, folders, tech, bin_algo)
+            get_abricate(self, tech, folders, bin_algo)
+
     else:
-        for (tech, sam), inputs in self.inputs[self.sam_pool].items():
-            fastas = group_inputs(self, inputs)
-            get_metamarc(self, fastas, tech, sam)
+        tech_fastas = sample_inputs(self, ['nanopore', 'pacbio'], raw=True)
+        for tech, fastas in tech_fastas.items():
+            get_abricate(self, tech, fastas, self.sam_pool)
+
+
+def amrplusplus2_cmd(
+        self,
+        fastqs: list,
+        out_dir: str,
+) -> str:
+    """Collect amrplusplus2 command.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .soft.params
+            Parameters
+    fastqs : list
+        Paths to the input files
+    out_dir : str
+        Paths to the output folder
+
+    Returns
+    -------
+    cmd : str
+        amrplusplus2 command
+    """
+    cmd = 'mkdir %s/copy\n' % out_dir
+    cmd += 'cp -r %s/* %s/copy/.\n' % (self.soft.params['path'], out_dir)
+    cmd += 'cd %s/copy\n' % out_dir
+
+    cmd += 'nextflow run main_AmrPlusPlus_v2.nf'
+    if len(fastqs) > 1:
+        cmd += ' --reads "%s"' % fastqs[0].replace('R1', '{R1,R2}')
+    else:
+        cmd += ' --reads %s' % fastqs[0]
+    for path in ['adapters', 'fqc_adapters', 'host_index', 'host',
+                 'kraken_db', 'amr_index', 'amr', 'annotation',
+                 'snp_annotation', 'snp_confirmation']:
+        if self.soft.params[path]:
+            cmd += ' --%s "%s"' % (path, self.soft.params[path])
+    for param in ['leading', 'trailing', 'slidingwindow', 'minlen',
+                  'threshold', 'min', 'max', 'skip', 'samples']:
+        cmd += ' --%s %s' % (param, self.soft.params[param])
+    cmd += ' --threads %s' % self.soft.params['cpus']
+    cmd += ' --output "%s"' % out_dir
+    cmd += ' -work "%s/work_dir"\n' % out_dir
+    cmd += 'cd %s\n' % out_dir
+    cmd += 'rm -rf copy\n'
+    cmd += 'rm -rf work_dir\n'
+    cmd += 'rm -rf RunQC\n'
+    cmd += 'rm -rf BuildHostIndex\n'
+    cmd += 'rm -rf AlignReadsToHost\n'
+    cmd += 'rm -rf NonHostReads\n'
+    cmd += 'rm -rf RemoveHostDNA\n'
+    cmd += 'rm -rf RunKraken\n'
+    cmd += 'rm -rf KrakenResults\n'
+    cmd += 'rm -rf FilteredKrakenResults\n'
+    return cmd
+
+
+def get_amrplusplus2(
+        self,
+        tech: str,
+        fastqs: list,
+        sam: str
+) -> None:
+    """
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .outputs : dict
+            All outputs
+        .soft.status
+            Current status of the pipeline in terms of available outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    fastqs : list
+        Paths to the input fastqs files
+    sam : str
+        Name of the current sample
+    """
+    out_dir = genome_out_dir(self, tech, fastqs[0], sam)
+    self.outputs['dirs'].append(out_dir)
+    self.outputs['outs'].setdefault((tech, sam), []).append(out_dir)
+
+    key = genome_key(tech, sam)
+    condition = sum([to_do(x) for x in fastqs])
+    if condition:
+        self.soft.status.add('Run %s (%s)' % (self.soft.prev, key))
+
+    # check if tool already run (or if --force) to allow getting command
+    out = '%s/ResistomeResults/AMR_analytic_matrix.csv' % out_dir
+    if self.config.force or to_do(out):
+        # collect the command line
+        cmd = amrplusplus2_cmd(self, fastqs, out_dir)
+        # add is to the 'cmds'
+        self.outputs['cmds'].setdefault(key, []).append(cmd)
+        io_update(self, i_f=fastqs, o_d=out_dir, key=key)
+
+
+def amrplusplus2(self) -> None:
+    """AmrPlusPlus is an easy to use app that identifies and characterizes
+    resistance genes within sequence data.
+
+    References
+    ----------
+    Lakin, Steven M., et al. "MEGARes: an antimicrobial resistance database
+    for high throughput sequencing." Nucleic acids research 45.D1 (2017):
+    D574-D580.
+
+    Notes
+    -----
+    GitHub  : https://github.com/meglab-metagenomics/amrplusplus_v2
+    Docs    : http://megares.meglab.org/amrplusplus/latest/html/index.html
+    Paper   : https://doi.org/10.1093/nar/gkw1009
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for metaWRAP
+        .sam_pool : str
+            Sample of co-assembly group name
+        .pools : dict
+            Co-assembly pools and sample per group
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.name : str
+            Name of the current software in the pipeline
+        .soft.prev : str
+            Name of the previous software in the pipeline
+        .soft.status
+            Current status of the pipeline in terms of available outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    """
+    if not self.sam_pool or self.sam_pool in self.pools:
+        sys.exit('[%s] Only run on non-assembled reads' % self.soft.name)
+    else:
+        tech_fastqs = sample_inputs(self, raw=True)
+        for tech, fastqs in tech_fastqs.items():
+            get_amrplusplus2(self, tech, fastqs[''], self.sam_pool)

@@ -1008,7 +1008,9 @@ def check_checkm2(self, params, soft):
 
 
 def check_gtdbtk(self, params, soft):
-    defaults = {}
+    defaults = {
+
+    }
     check_nums(self, params, defaults, [''], int, soft.name)
     check_nums(self, params, defaults, [''], float, soft.name)
     check_default(self, params, defaults, soft.name)
@@ -2156,16 +2158,120 @@ def check_metamarc(self, params, soft):
     return defaults
 
 
-# def check_ToolName(self, params, soft):
-#     defaults = {
-#     }
-#     ints = []
-#     check_nums(self, params, defaults, ints, int, soft.name)
-#     floats = []
-#     check_nums(self, params, defaults, floats, float, soft.name)
-#     check_default(self, params, defaults, soft.name, (ints + floats))
-#     defaults[''] = '<>'
-#     return defaults
+def check_hifiadapterfilt(self, params, soft):
+    defaults = {'l': 44, 'm': 97}
+    check_nums(self, params, defaults, ['l'], int, soft.name)
+    check_nums(self, params, defaults, ['m'], float, soft.name, 0, 100)
+    check_default(self, params, defaults, soft.name, ['l', 'm'])
+    check_binary(self, 'hifiadapterfilt', params, defaults, 'path')
+    defaults['path'] = '<Path to the folder containing "pbadapterfilt.sh">'
+    return defaults
+
+
+def check_karga(self, params, soft):
+    defaults = {
+        'k': 0,
+        'r': ['y', 'n', 'yes', 'no'],
+        'm': ['y', 'n', 'yes', 'no'],
+        'i': 125000,
+        's': 12345
+    }
+    if 'databases' not in params:
+        sys.exit('[karga] Param "databases" missing (name: /path/to/db.fasta')
+    check_nums(self, params, defaults, ['k', 'i', 's'], int, soft.name)
+    check_default(self, params, defaults, soft.name, ['k', 'i', 's'])
+    check_binary(self, 'karga', params, defaults, 'path')
+    defaults['path'] = '<Path to the folder containing "KARGA.class">'
+    defaults['databases'] = '<Paths to the ARG/MGE fasta files (with ' \
+                            'resistance annotation in header) per name (dict)>'
+    return defaults
+
+
+def check_kargva(self, params, soft):
+    defaults = {
+        'k': 9,
+        'm': ['y', 'n', 'yes', 'no'],
+        'i': 125000,
+    }
+    check_nums(self, params, defaults, ['k', 'i'], int, soft.name)
+    check_default(self, params, defaults, soft.name, ['k', 'i'])
+    check_binary(self, 'kargva', params, defaults, 'path')
+    if 'databases' not in params:
+        params['databases'] = {
+            'default': '%s/kargva_db_v5.fasta' % params['path']}
+    defaults['path'] = '<Path to the folder containing "KARGA.class">'
+    defaults['databases'] = '<Paths to the ARG/MGE fasta files (with ' \
+                            'resistance mutations in header) per name (dict)>'
+    return defaults
+
+
+def check_abricate(self, params, soft):
+    defaults = {
+        'setupdb': [False, True],
+        'noheader': [False, True],
+        'csv': [False, True],
+        'nopath': [False, True],
+        'minid': 80,
+        'mincov': 80,
+        'databases': ['vfdb', 'card', 'ecoh', 'resfinder', 'ncbi', 'megares',
+                      'argannot', 'plasmidfinder', 'ecoli_vf']
+    }
+    if 'databases' not in params:
+        params['databases'] = defaults['databases']
+    ints = ['minid', 'mincov']
+    check_nums(self, params, defaults, ints, int, soft.name, 0, 100)
+    check_default(self, params, defaults, soft.name, ints, ['databases'])
+    return defaults
+
+
+def check_amrplusplus2(self, params, soft):
+    defaults = {
+        'leading': 10,
+        'trailing': 3,
+        'slidingwindow': 4,
+        'minlen': 36,
+        'threshold': 80,
+        'min': 5,
+        'max': 100,
+        'skip': 5,
+        'samples': 1
+    }
+    paths = {
+        'adapters': "data/adapters/nextera.fa",
+        'fqc_adapters': "data/adapters/nextera.tab",
+        'host_index': "",
+        'host': "data/host/chr21.fasta.gz",
+        'kraken_db': "",
+        'amr_index': "",
+        'amr': "data/amr/megares_database_v1.02.fasta",
+        'annotation': "data/amr/megares_annotations_v1.02.csv",
+        'snp_annotation': "data/amr/snp_location_metadata.csv",
+        'snp_confirmation': "bin/snp_confirmation.py"
+    }
+    for param, filename in paths.items():
+        if param not in params:
+            params[param] = filename
+    ints0 = ['leading', 'trailing', 'minlen', 'min', 'max', 'skip', 'samples']
+    check_nums(self, params, defaults, ints0, int, soft.name)
+    ints1 = ['slidingwindow']
+    check_nums(self, params, defaults, ints1, int, soft.name, 4, 15)
+    ints2 = ['threshold']
+    check_nums(self, params, defaults, ints2, int, soft.name, 0, 100)
+    check_default(self, params, defaults, soft.name,
+                  (ints0 + ints1 + ints2 + list(paths.keys())))
+    check_binary(self, 'amrplusplus2', params, defaults, 'path')
+    defaults['path'] = '<Path to folder containing "main_AmrPlusPlus_v2.nf">'
+    defaults['adapters'] = '<Path to adapter sequences file>'
+    defaults['fqc_adapters'] = '<Path to tab delimited adapter sequences file>'
+    defaults['host_index'] = '<Path to host genome index files>'
+    defaults['host'] = '<Path to host genome file>'
+    defaults['kraken_db'] = '<Path to Kraken database>'
+    defaults['amr_index'] = '<Path to amr index files>'
+    defaults['amr'] = '<Path to antimicrobial resistance (MEGARes) database>'
+    defaults['annotation'] = '<Path to amr annotation file>'
+    defaults['snp_annotation'] = '<Path to SNP metadata file>'
+    defaults['snp_confirmation'] = '<Path to "snp_confirmation.py" script>'
+    return defaults
 
 
 # def check_circlator(self, params, soft):
