@@ -1,6 +1,7 @@
 filtering	sequence filtering
 fastp	preprocessing
 cutadapt	preprocessing
+hifiadapterfilt	preprocessing
 bowtie2	alignment
 midas	profiling
 humann	profiling
@@ -15,9 +16,9 @@ pooling	coassembly
 spades	assembling
 quast	assembling
 plass	assembling
-spades_metaviral	assembling
-spades_plasmid	assembling
-spades_bio	assembling
+spades_metaviral	assembling (viruses)
+spades_plasmid	assembling (plasmids)
+spades_bio	assembling (biosynthetic gene clusters)
 flye	assembling
 canu	assembling
 necat	assembling
@@ -31,6 +32,11 @@ metawrap_quantify	binning
 metawrap_classify	binning
 metawrap_annotate	binning
 deeparg	annotation (ARGs)
+metamarc	annotation (ARGs)
+karga	annotation (ARGs)
+kargva	annotation (ARGs)
+abricate	annotation (ARGs)
+amrplusplus2	annotation (ARGs)
 integronfinder	annotation
 search_diamond	protein annotation
 search_hmmer	protein annotation
@@ -57,3 +63,7 @@ ccmap	annotation (circularity)
 macsyfinder	annotation (macromolecular systems, pathways)
 tiara	annotation (eukaryotic sequences)
 antismash	annotation (antibiotics and secondary metabolite)
+lorikeet	strain-level analysis
+lorikeet_call	strain-level analysis (reassembly-based variant calling)
+lorikeet_consensus	strain-level analysis (genomes consensus)
+lorikeet_genotype	strain-level analysis (genotyping and abundance)
