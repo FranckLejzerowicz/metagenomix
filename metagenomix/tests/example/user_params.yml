@@ -307,3 +307,22 @@ deeparg:
 # --------------- metamarc --------------
 metamarc:
   path: /some/path/to/bin
+
+# --------------- karga --------------
+karga:
+  path: /some/path/to/folder
+  databases:
+    megares: /path/to/megares_db.fasta
+    ice: /path/to/ice.fasta
+
+# --------------- kargva --------------
+kargva:
+  path: /some/path/to/folder
+
+# --------------- hifiadapterfilt --------------
+hifiadapterfilt:
+  path: /some/path/to/bin
+
+# --------------- amrplusplus2 --------------
+amrplusplus2:
+  path: /some/path/to/bin
