@@ -10,16 +10,21 @@ from metagenomix.pipeline import Workflow
 from metagenomix.config import AnalysesConfig
 from metagenomix.databases import ReferenceDatabases
 from metagenomix.commands import Commands
-from metagenomix.jobs import CreateScripts
 
 
-def metagenomix(**kwargs):
-    """Run metagenomix to account for the passed commanbd line a.
+def metagenomix(**kwargs) -> tuple:
+    """Run metagenomix to account for the passed command-line arguments.
 
     Parameters
     ----------
     kwargs : dict
         All arguments passed in command line, including defaults
+
+    Returns
+    -------
+    instances : tuple
+        Class instances for pipeline configuration, databases, workflow,
+        and commands
     """
 
     # Parse the command line arguments and validate computing environment
@@ -44,16 +49,7 @@ def metagenomix(**kwargs):
     # Collect the command line and  the workflow of tools to run as a pipeline
     commands = Commands(config, databases, workflow)
     print('* Collecting command lines')
-    commands.run()
-    print('* Creating output folders')
-    commands.make_dirs()
+    commands.collect()
 
-    # Make .sh and scheduler (.slm or .pbs) scripts to
-    scripting = CreateScripts(config, workflow, databases, commands)
-    # print('* Writing database formatting commands')
-    # scripting.database_cmds()  # build the databases
-    print('* Writing pipeline command lines')
-    scripting.software_cmds()   # run the analysis pipeline
-    if len(scripting.run['database']) or len(scripting.run['software']):
-        print('< PLEASE CONSIDER CHECKING THE COMMAND LINE SCRIPTS MANUALLY >')
-        scripting.display()  # show the scripts to run
+    instances = (config, databases, workflow, commands)
+    return instances

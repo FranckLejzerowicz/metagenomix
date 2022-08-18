@@ -37,7 +37,8 @@ with open("metagenomix/__init__.py", "rb") as f:
     hit = _version_re.search(f.read().decode("utf-8")).group(1)
     version = str(ast.literal_eval(hit))
 
-standalone = ['metagenomix=metagenomix.scripts._standalone_metagenomix:standalone_metagenomix']
+standalone = ['metagenomix=metagenomix.scripts._standalone_metagenomix'
+              ':standalone_metagenomix']
 
 setup(
     name="metagenomix",

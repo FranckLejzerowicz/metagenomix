@@ -109,7 +109,16 @@ class Workflow(object):
     def parametrize(self) -> None:
         self.set_params()
 
-    def validate_softs(self, softs):
+    def validate_softs(self, softs: list):
+        """Verify that each software is run only once in the pipeline (yet,
+        a software can be used multiple times as input to another software).
+
+        Parameters
+        ----------
+        softs : list
+            One or two names of softwares that are run on
+            the fastq files or after one another, respectively.
+        """
         if softs[-1] in self.softs:
             already_used = self.softs[softs[-1]]
             prev, name = already_used.prev, already_used.name

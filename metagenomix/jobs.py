@@ -11,14 +11,14 @@ import sys
 import yaml
 import subprocess
 import numpy as np
-from os.path import dirname, splitext
+from os.path import dirname, isdir, splitext
 
 from metagenomix._io_utils import mkdr, get_roundtrip
 
 
 class CreateScripts(object):
 
-    def __init__(self, config, workflow, databases, commands):
+    def __init__(self, config, databases, workflow, commands):
         self.config = config
         self.databases = databases
         self.commands = commands
@@ -34,6 +34,12 @@ class CreateScripts(object):
         self.modules = {}
         self.pjct = self.get_prjct()
         self.scheduler = self.get_scheduler()
+
+    def make_dirs(self):
+        for name, soft in self.commands.softs.items():
+            for directory in sorted(soft.dirs):
+                if not isdir(directory):
+                    os.makedirs(directory)
 
     def get_scheduler(self):
         if self.config.jobs:

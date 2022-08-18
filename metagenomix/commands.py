@@ -6,7 +6,6 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-import yaml
 import itertools
 from os.path import abspath
 
@@ -62,7 +61,7 @@ class Commands(object):
             'strainphlan'
         ]
 
-    def run(self):
+    def collect(self):
         for sdx, softs in enumerate(self.config.pipeline):
             # print()
             # print('*' * 30)
@@ -78,17 +77,12 @@ class Commands(object):
             self.get_dir()
             self.generic_command()
             # print(' * ' * 75)
+            # import yaml
             # print(yaml.dump(self.softs[self.soft.name].cmds))
             # print(' * ' * 75)
             # print('- ' * 50)
             # print(self.soft.outputs)
             # print('- ' * 50)
-
-    def make_dirs(self):
-        for name, soft in self.softs.items():
-            for directory in sorted(soft.dirs):
-                if not isdir(directory):
-                    os.makedirs(directory)
 
     def get_inputs(self):
         """Update the `inputs` attribute of the software object."""

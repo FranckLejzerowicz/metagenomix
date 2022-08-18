@@ -8,145 +8,23 @@
 
 import click
 
-from metagenomix.metagenomix import metagenomix
 from metagenomix import __version__
 
+from metagenomix.scripts.modules import create
+from metagenomix.scripts.modules import check
+from metagenomix.scripts.modules import manage
 
-@click.command()
-@click.option(
-    "-i", "--i-fastq-illumina", multiple=True,
-    help="Path to short Illumina reads fastq files folder(s).")
-@click.option(
-    "-j", "--i-fastq-pacbio", multiple=True,
-    help="Path to long PacBio reads fastq files folder(s).")
-@click.option(
-    "-k", "--i-fastq-nanopore", multiple=True,
-    help="Path to long MinION Nanopore reads fastq files folder.")
-@click.option(
-    "-m", "--m-metadata", required=True, help="Path to the metadata file.")
-@click.option(
-    "-o", "--o-out-dir", required=True, help="Path to pipeline output folder.")
-@click.option(
-    "-n", "--p-project-name", required=True, help="Name for your project.")
-@click.option(
-    "-d", "--p-databases", show_default=True, help="Databases (yaml file).")
-@click.option(
-    "-p", "--p-pipeline", show_default=True, help="Tools to pipeline.")
-@click.option(
-    "-u", "--p-run-params", show_default=True, help="Server run parameters.")
-@click.option(
-    "-c", "--p-co-assembly", show_default=True,
-    help="Metadata column(s) defining the co-assembly groups (yaml file).")
-@click.option(
-    "-s", "--p-strains", show_default=True, help="Species for strain-level"
-                                                 " analyses (yaml file).")
-@click.option(
-    "-M", "--p-modules", show_default=True, help="modules to use per software"
-                                                 " analyses (yaml file).")
-@click.option(
-    "-a", "--p-account", show_default=False, default=None,
-    help="User account on HPC")
-@click.option(
-    "-x", "--p-chunks", type=int, show_default=False, default=None,
-    help="Number of jobs to split the commands into for each tool")
-@click.option(
-    "--force/--no-force", default=False, show_default=True,
-    help="Force the re-writing of scripts for all commands"
-         "(default is to not re-run if output file exists).")
-@click.option(
-    "--jobs/--no-jobs", default=True, show_default=True,
-    help="Whether to prepare Torque jobs from scripts.")
-@click.option(
-    "--torque/--no-torque", default=False, show_default=True,
-    help="Whether to prepare Torque jobs instead of Slurm.")
-@click.option(
-    "-l", "--localscratch", type=int, show_default=False, default=None,
-    help="Use localscratch with the provided memory amount (in GB)")
-@click.option(
-    "--scratch/--no-scratch", default=False, show_default=True,
-    help="Use the scratch folder to move files and compute")
-@click.option(
-    "--userscratch/--no-userscratch", default=False, show_default=True,
-    help="Use the userscratch folder to move files and compute")
-@click.option(
-    "--move-back/--no-move-back", default=True, show_default=True,
-    help="Do not move back from scrach (makes sense only for --userscratch)")
-@click.option(
-    "--show-params/--no-show-params", default=False, show_default=False,
-    help="Show all possible parameters for all tools of your pipeline.")
-@click.option(
-    "--show-pfams/--no-show-pfams", default=False, show_default=False,
-    help="Show terms for which Pfam HMM models were already extracted before.")
-@click.option(
-    "--purge-pfams", "--no-purge-pfams", default=None, show_default=False,
-    help="Remove terms for Pfam HMM models that were already extracted before.")
-@click.option(
-    "--verbose/--no-verbose", default=False, show_default=True,
-    help="Whether to show expected input and outputs and other tools' details.")
-@click.option(
-    "--dev/--no-dev", default=False, show_default=True,
-    help="For development...")
+
+@click.group(help="Metagenomix command line manager")
 @click.version_option(__version__, prog_name="metagenomix")
+def standalone_metagenomix():
+    pass
 
 
-def standalone_metagenomix(
-        m_metadata,
-        i_fastq_illumina,
-        i_fastq_pacbio,
-        i_fastq_nanopore,
-        o_out_dir,
-        p_project_name,
-        p_co_assembly,
-        p_databases,
-        p_pipeline,
-        p_run_params,
-        p_strains,
-        p_modules,
-        p_account,
-        p_chunks,
-        force,
-        jobs,
-        torque,
-        localscratch,
-        scratch,
-        userscratch,
-        move_back,
-        show_params,
-        show_pfams,
-        purge_pfams,
-        verbose,
-        dev
-):
-
-    metagenomix(
-        meta_fp=m_metadata,
-        illumina_dirs=i_fastq_illumina,
-        pacbio_dirs=i_fastq_pacbio,
-        nanopore_dirs=i_fastq_nanopore,
-        output_dir=o_out_dir,
-        project=p_project_name,
-        coassembly_yml=p_co_assembly,
-        databases_yml=p_databases,
-        pipeline_tsv=p_pipeline,
-        user_params_yml=p_run_params,
-        strains_yml=p_strains,
-        modules_yml=p_modules,
-        force=force,
-        jobs=jobs,
-        torque=torque,
-        account=p_account,
-        chunks=p_chunks,
-        localscratch=localscratch,
-        scratch=scratch,
-        userscratch=userscratch,
-        move_back=move_back,
-        show_params=show_params,
-        show_pfams=show_pfams,
-        purge_pfams=purge_pfams,
-        verbose=verbose,
-        dev=dev
-    )
+standalone_metagenomix.add_command(create.create)
+standalone_metagenomix.add_command(check.check)
+standalone_metagenomix.add_command(manage.manage)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     standalone_metagenomix()
