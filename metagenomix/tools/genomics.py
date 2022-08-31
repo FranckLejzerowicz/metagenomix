@@ -32,7 +32,7 @@ def get_bin_folders(
     """
     bins = {}
     if self.soft.prev == 'metawrap_refine':
-        bins['refined_bins'] = bin_paths[1]
+        bins['refined_bins'] = bin_paths[0]
     elif self.soft.prev == 'metawrap_reassemble':
         bins = {}
         for group_path in bin_paths:
@@ -97,19 +97,18 @@ def get_drep_inputs(
         Command to create the input
     drep_in : str
         File containing the paths corresponding to each bin
-    n_bins : int
-        Number of genome files to use for dereplication
+    bin_paths : int
+        Genome files to use for dereplication
     """
     cmd = ''
-    n_bins = 0
     drep_in = '%s/input_genomes.txt' % drep_dir
+    bin_paths = []
     for path in paths:
         bin_paths = glob.glob('%s/*fa' % path.replace('${SCRATCH_FOLDER}', ''))
         if self.config.dev:
             bin_paths = ['%s/a.fa' % path.replace('${SCRATCH_FOLDER}', ''),
                          '%s/b.fa' % path.replace('${SCRATCH_FOLDER}', '')]
         for bin_path in bin_paths:
-            n_bins += 1
             if cmd:
                 cmd += 'echo "%s" >> %s\n' % (bin_path, drep_in)
             else:
@@ -117,7 +116,7 @@ def get_drep_inputs(
     if cmd:
         cmd += 'envsubst < %s > %s.tmp\n' % (drep_in, drep_in)
         cmd += 'mv %s.tmp %s\n' % (drep_in, drep_in)
-    return cmd, drep_in, n_bins
+    return cmd, drep_in, bin_paths
 
 
 def drep_cmd(
@@ -125,7 +124,7 @@ def drep_cmd(
         algorithm: str,
         drep_in: str,
         drep_out: str,
-        n_bins: int,
+        bin_paths: list,
         input_cmd: str
 ) -> str:
     """Collect dRep dereplicate command.
@@ -141,8 +140,8 @@ def drep_cmd(
         File containing the paths corresponding to each bin
     drep_out : str
         Path to the output folder
-    n_bins : int
-        Number of genome files to use for dereplication
+    bin_paths : int
+        Genome files to use for dereplication
     input_cmd : str
         Command to create the input
 
@@ -156,7 +155,7 @@ def drep_cmd(
     cmd += ' --S_algorithm %s' % algorithm
     cmd += ' --ignoreGenomeQuality'
     cmd += ' --processors %s' % self.soft.params['cpus']
-    if n_bins > self.soft.params['primary_chunksize']:
+    if len(bin_paths) > self.soft.params['primary_chunksize']:
         cmd += ' --multiround_primary_clustering'
         cmd += ' --run_tertiary_clustering'
         if algorithm == 'fastANI':
@@ -219,29 +218,30 @@ def drep(self):
         for binning, paths in pool_paths.items():
             for algo in self.soft.params['S_algorithm']:
 
-                pool_binning_algo = pool + '/' + '_'.join([binning, algo])
+                bin_algo = '_'.join([binning, algo])
+                pool_binning_algo = pool + '/' + bin_algo
                 drep_out = '/'.join([self.dir, tech, pool_binning_algo])
                 self.outputs['dirs'].append(drep_out)
 
                 dereps = '%s/dereplicated_genomes' % drep_out
                 self.outputs['outs'][''][(tech, pool_binning_algo)] = [dereps]
 
-                cmd, drep_in, n_bins = get_drep_inputs(self, drep_out, paths)
-                if not n_bins:
-                    self.soft.status.add(
-                        'Must run %s (%s)' % (self.soft.prev, pool))
+                cmd, drep_in, bin_paths = get_drep_inputs(self, drep_out, paths)
+                if not bin_paths:
+                    self.soft.add_status(tech, pool, [paths], group=bin_algo,
+                                         message='run previous')
                     if self.config.dev:
-                        n_bins = 30000
+                        bin_paths = ['x'] * 5001
 
                 out_dereps = '%s/*.fa' % dereps.replace('${SCRATCH_FOLDER}', '')
                 if not self.config.force and glob.glob(out_dereps):
-                    self.soft.status.add('Done')
+                    self.soft.add_status(tech, pool, 0, group=bin_algo)
                     continue
-
                 key = '_'.join([tech, pool_binning_algo])
-                io_update(self, i_d=paths, o_d=drep_out, key=key)
-                cmd = drep_cmd(self, algo, drep_in, drep_out, n_bins, cmd)
+                cmd = drep_cmd(self, algo, drep_in, drep_out, bin_paths, cmd)
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
+                self.soft.add_status(tech, pool, 1, group=bin_algo)
+                io_update(self, i_d=paths, o_d=drep_out, key=key)
 
 
 def tree_cmd(
@@ -305,8 +305,8 @@ def tree(
         Mame of a co-assembly pool's group
     """
     for genome, dirs in folders.items():
-        genomes_dir = dirs[0]
-        out_dir = genome_out_dir(self, tech, genomes_dir, group, genome)
+        genome_dir = dirs[0]
+        out_dir = genome_out_dir(self, tech, genome_dir, group, genome)
         tree_dir = add_folder(self, 'checkm', out_dir, 'lineage_tree')
 
         self.outputs['dirs'].append(tree_dir)
@@ -316,15 +316,21 @@ def tree(
         self.outputs['outs'].setdefault((tech, group), {}).update(outs)
 
         key = genome_key(tech, group, genome)
-        if to_do(folder=genomes_dir):
-            self.soft.status.add('Run %s (%s)' % (self.soft.prev, key))
+        if self.soft.name != 'checkm' and to_do(folder=genome_dir):
+            self.soft.add_status(
+                tech, self.sam_pool, [genome_dir], group=group, genome=genome)
 
         if self.config.force or glob.glob('%s/*' % tree_dir):
-            cmd = tree_cmd(self, genomes_dir, tree_dir)
+            cmd = tree_cmd(self, genome_dir, tree_dir)
             self.outputs['cmds'].setdefault(key, []).append(cmd)
-            io_update(self, i_d=genomes_dir, o_d=tree_dir, key=key)
+            io_update(self, i_d=genome_dir, o_d=tree_dir, key=key)
+            self.soft.add_status(
+                tech, self.sam_pool, 1, group=group, genome=genome)
         elif self.soft.name == 'checkm':
             io_update(self, i_d=tree_dir, key=key)
+        else:
+            self.soft.add_status(
+                tech, self.sam_pool, 0, group=group, genome=genome)
 
 
 def treeqa_cmd(
@@ -419,16 +425,22 @@ def treeqa(
         self.outputs['outs'].setdefault((tech, group), {}).update(outs)
 
         key = genome_key(tech, group, genome)
-        if to_do(folder=tree_dir):
-            self.soft.status.add('Run %s (%s)' % (self.soft.prev, key))
+        if self.soft.name != 'checkm' and to_do(folder=tree_dir):
+            self.soft.add_status(
+                tech, self.sam_pool, [tree_dir], group=group, genome=genome)
 
         out = '%s/1_tree_placement_summary.txt' % qa_dir
         if self.config.force or to_do(out):
             cmd = treeqa_cmd(self, tree_dir, qa_dir)
             self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, i_d=tree_dir, o_d=qa_dir, key=key)
+            self.soft.add_status(
+                tech, self.sam_pool, 1, group=group, genome=genome)
         elif self.soft.name == 'checkm':
             io_update(self, i_d=qa_dir, key=key)
+        else:
+            self.soft.add_status(
+                tech, self.sam_pool, 0, group=group, genome=genome)
 
 
 def lineageset_cmd(
@@ -514,15 +526,21 @@ def lineageset(
 
         key = genome_key(tech, group, genome)
         lineage_ms = '%s/lineage.ms' % lineage_dir
-        if to_do(lineage_ms):
-            self.soft.status.add('Run %s (%s)' % (self.soft.prev, key))
+        if self.soft.name != 'checkm' and to_do(lineage_ms):
+            self.soft.add_status(
+                tech, self.sam_pool, [lineage_ms], group=group, genome=genome)
 
         if self.config.force or to_do(lineage_ms):
             cmd = lineageset_cmd(self, tree_dir, lineage_ms)
             self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, i_d=tree_dir, o_d=lineage_dir, key=key)
+            self.soft.add_status(
+                tech, self.sam_pool, 1, group=group, genome=genome)
         elif self.soft.name == 'checkm':
             io_update(self, i_d=lineage_dir, key=key)
+        else:
+            self.soft.add_status(
+                tech, self.sam_pool, 0, group=group, genome=genome)
 
 
 def analyze_cmd(
@@ -615,16 +633,22 @@ def analyze(
 
         key = genome_key(tech, group, genome)
         out = '%s/lineage.ms' % lineage_dir
-        if to_do(out):
-            self.soft.status.add('Run %s (%s)' % (self.soft.prev, key))
+        if self.soft.name != 'checkm' and to_do(out):
+            self.soft.add_status(
+                tech, self.sam_pool, [out], group=group, genome=genome)
 
         if self.config.force or glob.glob('%s/*' % analyze_dir):
             cmd = analyze_cmd(self, genomes_dir, lineage_dir, analyze_dir)
             self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(
                 self, i_d=[genomes_dir, lineage_dir], o_d=analyze_dir, key=key)
+            self.soft.add_status(
+                tech, self.sam_pool, 1, group=group, genome=genome)
         elif self.soft.name == 'checkm':
             io_update(self, i_d=analyze_dir, key=key)
+        else:
+            self.soft.add_status(
+                tech, self.sam_pool, 0, group=group, genome=genome)
 
 
 def coverage_cmd(
@@ -758,15 +782,21 @@ def coverage(
                 self.outputs['outs'].setdefault((tech, group), {}).update(outs)
 
                 key = genome_key(tech, group, genome)
-                if to_do(cov):
-                    self.soft.status.add('Run %s (%s)' % (self.soft.prev, key))
+                if self.soft.name != 'checkm' and to_do(cov):
+                    self.soft.add_status(
+                        tech, self.sam_pool, [cov], group=group, genome=genome)
 
                 if self.config.force or to_do(cov):
                     cmd = coverage_cmd(self, genome_dir, cov, bams)
                     self.outputs['cmds'].setdefault(key, []).append(cmd)
                     io_update(self, i_f=bams, i_d=genome_dir, o_f=cov, key=key)
+                    self.soft.add_status(
+                        tech, self.sam_pool, 1, group=group, genome=genome)
                 elif self.soft.name == 'checkm':
                     io_update(self, i_f=cov, key=key)
+                else:
+                    self.soft.add_status(
+                        tech, self.sam_pool, 0, group=group, genome=genome)
 
 
 def qa_cmd(
@@ -936,14 +966,9 @@ def qa(
 
         key = genome_key(tech, group, genome)
         lineage_ms = '%s/lineage.ms' % lineage_dir
-        if self.soft.name != 'checkm':
-            status = []
-            if cov and to_do(cov):
-                status.append('checkm_coverage')
-            if to_do(lineage_ms):
-                status.append('checkm_lineageset')
-            if status:
-                self.soft.status.add('Run %s (%s)' % ('; '.join(status), key))
+        if self.soft.name != 'checkm' and to_do(lineage_ms):
+            self.soft.add_status(
+                tech, self.sam_pool, [lineage_ms], group=group, genome=genome)
 
         out = '%s/1_completeness_contamination.txt' % qa_dir
         if self.config.force or to_do(out):
@@ -951,6 +976,11 @@ def qa(
             self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, i_f=[lineage_ms, cov], i_d=analyze_dir,
                       o_d=qa_dir, key=key)
+            self.soft.add_status(
+                tech, self.sam_pool, 1, group=group, genome=genome)
+        else:
+            self.soft.add_status(
+                tech, self.sam_pool, 0, group=group, genome=genome)
 
 
 def unbinned_cmd(
@@ -1036,13 +1066,19 @@ def unbinned(
 
         key = genome_key(tech, group, genome)
         if self.soft.name != 'checkm' and not glob.glob('%s/*' % genomes_dir):
-            self.soft.status.add('Run %s (%s)' % (self.soft.prev, key))
+            self.soft.add_status(
+                tech, self.sam_pool, [genomes_dir], group=group, genome=genome)
 
         if self.config.force or to_do('%s/unbinned.fa' % unbinned_dir):
             cmd = unbinned_cmd(self, genomes_dir, contigs, unbinned_dir)
             self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(
                 self, i_f=contigs, i_d=genomes_dir, o_d=unbinned_dir, key=key)
+            self.soft.add_status(
+                tech, self.sam_pool, 1, group=group, genome=genome)
+        else:
+            self.soft.add_status(
+                tech, self.sam_pool, 0, group=group, genome=genome)
 
 
 def tetra_cmd(
@@ -1115,13 +1151,16 @@ def tetra(
 
         key = genome_key(tech, group)
         if to_do(fasta[0]):
-            self.soft.status.add('Run %s (%s)' % (self.soft.prev, key))
+            self.soft.add_status(tech, self.sam_pool, [fasta[0]], group=group)
 
         out = '%s/tetra.txt' % out_dir
         if self.config.force or to_do(out):
             cmd = tetra_cmd(self, fasta[0], out)
             self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, i_f=fasta[0], o_d=out_dir, key=key)
+            self.soft.add_status(tech, self.sam_pool, 1, group=group)
+        else:
+            self.soft.add_status(tech, self.sam_pool, 0, group=group)
 
 
 def checkm_(
@@ -1302,13 +1341,19 @@ def get_checkm2(
 
         key = genome_key(tech, group, genome)
         if to_do(folder=folder):
-            self.soft.status.add('Run %s (%s)' % (self.soft.prev, key))
+            self.soft.add_status(
+                tech, self.sam_pool, [folder], group=group, genome=genome)
 
         out = '%s/quality_report.tsv' % out_dir
         if self.config.force or to_do(out):
             cmd = checkm2_cmd(self, folder, out_dir)
             self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, i_f=folder, o_d=out_dir, key=key)
+            self.soft.add_status(
+                tech, self.sam_pool, 1, group=group, genome=genome)
+        else:
+            self.soft.add_status(
+                tech, self.sam_pool, 0, group=group, genome=genome)
 
 
 def checkm2(self) -> None:
