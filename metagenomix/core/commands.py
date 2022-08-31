@@ -10,21 +10,21 @@ import itertools
 from os.path import abspath
 
 from metagenomix._inputs import show_inputs
+from metagenomix.tools.alignment import *
+from metagenomix.tools.annotation import *
+from metagenomix.tools.args import *
+from metagenomix.tools.assembly import *
+from metagenomix.tools.binning import *
+from metagenomix.tools.metamarker import *
+from metagenomix.tools.genomics import *
+from metagenomix.tools.phlans import *
+from metagenomix.tools.plasmids import *
 from metagenomix.tools.pooling import pooling
 from metagenomix.tools.preprocess import *
-from metagenomix.tools.alignment import *
-from metagenomix.tools.simka import *
 from metagenomix.tools.profiling import *
-from metagenomix.tools.phlans import *
-from metagenomix.tools.assembly import *
-from metagenomix.tools.annotation import *
-from metagenomix.tools.binning import *
+from metagenomix.tools.simka import *
 from metagenomix.tools.strains import *
-from metagenomix.tools.plasmids import *
 from metagenomix.tools.viruses import *
-from metagenomix.tools.args import *
-from metagenomix.tools.genomics import *
-from metagenomix.tools.metamarker import *
 
 
 class Commands(object):
@@ -38,12 +38,10 @@ class Commands(object):
         self.cmds = {}
         self.args = {}
         self.pools = {}
-        # self.pool = None
         self.longs = None
         self.inputs = None
         self.method = None
         self.soft = None
-        # self.sam = None
         self.sam_pool = None
         self.dir = ''
         self.out = []
@@ -69,6 +67,7 @@ class Commands(object):
             # print('*' * 30)
             # print()
             self.soft = self.softs[softs[-1]]
+            self.soft.add_soft_path(self.softs)
             self.get_inputs()
             # print()
             # print('-' * 100)
@@ -76,6 +75,7 @@ class Commands(object):
             # print('-' * 100)
             self.get_dir()
             self.generic_command()
+            self.show_messages()
             # print(' * ' * 75)
             # import yaml
             # print(yaml.dump(self.softs[self.soft.name].cmds))
@@ -98,7 +98,7 @@ class Commands(object):
     def get_dir(self):
         self.dir = abspath('%s/%s/after_%s' % (
             self.config.dir, self.soft.name, self.soft.prev))
-        self.soft.dirs.add(self.dir)
+        self.soft.dir = self.dir
         if self.soft.params['scratch'] and self.config.jobs:
             self.dir = '${SCRATCH_FOLDER}%s' % self.dir
 
@@ -109,7 +109,6 @@ class Commands(object):
 
     def generic_command(self):
         self.sam_pool = ''
-        # self.sam = ''
         self.is_pool()
         self.soft.io = {}
         if self.soft.name in self.holistics:
@@ -119,10 +118,12 @@ class Commands(object):
         else:
             for sam_or_pool in sorted(self.inputs):
                 self.sam_pool = sam_or_pool
-                # self.sam = sam_or_pool
-                # self.pool = sam_or_pool
                 self.prep_job()
         self.register_command()
+
+    def show_messages(self):
+        for message in self.soft.messages:
+            print('[%s] %s' % (self.soft.name, message))
 
     def update_dirs(self):
         self.soft.dirs.update(set([x.replace('${SCRATCH_FOLDER}/', '/')
