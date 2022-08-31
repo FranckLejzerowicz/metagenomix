@@ -8,7 +8,7 @@
 
 import click
 
-from metagenomix.checker import checker
+from metagenomix.monitoring import monitoring
 from metagenomix import __version__
 
 
@@ -38,10 +38,22 @@ from metagenomix import __version__
     "-c", "--p-co-assembly", show_default=True,
     help="Metadata column(s) defining the co-assembly groups (yaml file).")
 @click.option(
-    "-t", "--p-strains", show_default=True, help="Species for strain-level"
-                                                 " analyses (yaml file).")
+    "-t", "--p-strains", show_default=True,
+    help="Species for strain-level analyses (yaml file).")
+@click.option(
+    "--show-params/--no-show-params", default=False, show_default=False,
+    help="Show all possible parameters for all tools of your pipeline")
+@click.option(
+    "--force/--no-force", default=False, show_default=True,
+    help="Check as if the re-writing of scripts for all commands was planned")
+@click.option(
+    "--verbose/--no-verbose", default=False, show_default=True,
+    help="Whether to show input/outputs and other details")
+@click.option(
+    "--dev/--no-dev", default=False, show_default=True,
+    help="For development...")
 @click.version_option(__version__, prog_name="metagenomix")
-def check(
+def monitor(
         m_metadata,
         i_fastq_illumina,
         i_fastq_pacbio,
@@ -53,9 +65,13 @@ def check(
         p_pipeline,
         p_run_params,
         p_strains,
+        show_params,
+        force,
+        verbose,
+        dev
 ):
-
-    checker(
+    """Check IO/job status of your pipeline configuration."""
+    monitoring(
         meta_fp=m_metadata,
         illumina_dirs=i_fastq_illumina,
         pacbio_dirs=i_fastq_pacbio,
@@ -67,4 +83,8 @@ def check(
         pipeline_tsv=p_pipeline,
         user_params_yml=p_run_params,
         strains_yml=p_strains,
+        show_params=show_params,
+        force=force,
+        verbose=verbose,
+        dev=dev
     )
