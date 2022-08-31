@@ -10,7 +10,8 @@ import sys
 import glob
 import pkg_resources
 from os.path import basename, dirname, isdir, isfile, splitext
-from metagenomix._io_utils import min_nlines, io_update, to_do, tech_specificity
+from metagenomix._io_utils import (
+    min_nlines, io_update, to_do, tech_specificity, status_update)
 from metagenomix.tools.alignment import get_alignment_cmd
 from metagenomix.core.parameters import tech_params
 
@@ -711,6 +712,8 @@ def shogun(self) -> None:
     for (tech, sam), inputs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, inputs, tech, sam):
             continue
+        status_update(self, tech, inputs)
+
         self.outputs['outs'][(tech, self.sam_pool)] = {}
         params = tech_params(self, tech)
         combine_cmds, ali_cmds = [], []
@@ -737,6 +740,10 @@ def shogun(self) -> None:
         if self.outputs['cmds']:
             cmd = combine_cmds + ali_cmds + self.outputs['cmds'][tech]
             self.outputs['cmds'][tech] = cmd
+            self.soft.add_status(tech, sam, 1)
+        else:
+            self.soft.add_status(tech, sam, 0)
+
 
 
 def woltka_aligments(
@@ -859,14 +866,19 @@ def woltka_tax_cmd(
     tech_aligner = tech + '_' + aligner
     out = '/'.join([self.dir, tech, aligner, pairing])
     tax_out, tax_outmap = '%s/taxa' % out, '%s/taxmap' % out
-    tax_outputs = ['phylum', 'family', 'genus', 'species', 'none']
+    taxa = ['phylum', 'family', 'genus', 'species', 'none']
     tax_to_do = []
-    for tdx, tax_output in enumerate(tax_outputs):
-        out_dir = '%s/%s.tsv' % (tax_out, tax_output)
+    for tdx, taxon in enumerate(taxa):
+        out_dir = '%s/%s.tsv' % (tax_out, taxon)
         self.outputs['outs'].setdefault(tech_aligner, []).append(out_dir)
         if to_do(out_dir):
-            tax_to_do.append(tax_output)
+            tax_to_do.append(taxon)
             io_update(self, o_f=out_dir, key=tech_aligner)
+            self.soft.add_status(tech, 'all samples', 1, group='taxonomy',
+                                 genome=taxon)
+        else:
+            self.soft.add_status(tech, 'all samples', 0, group='taxonomy',
+                                 genome=taxon)
 
     taxid = '%s/taxonomy/taxid.map' % database
     nodes = '%s/taxonomy/nodes.dmp' % database
@@ -879,7 +891,7 @@ def woltka_tax_cmd(
         cur_cmd += ' --map %s' % taxid
         cur_cmd += ' --nodes %s' % nodes
         cur_cmd += ' --names %s' % names
-        cur_cmd += ' --rank %s' % ','.join(tax_outputs)
+        cur_cmd += ' --rank %s' % ','.join(taxa)
         cur_cmd += ' --add-rank'
         cur_cmd += ' --add-lineage'
         cur_cmd += ' --name-as-id'
@@ -952,6 +964,12 @@ def woltka_go(
         if to_do(cur_out):
             self.outputs['cmds'].setdefault(tech_aligner, []).append(cmd)
             io_update(self, o_f=cur_out, key=tech_aligner)
+            self.soft.add_status(tech, 'all samples', 1, group='go',
+                                 genome=go)
+        else:
+            self.soft.add_status(tech, 'all samples', 0, group='go',
+                                 genome=go)
+
         self.outputs['outs'].setdefault(tech_aligner, []).append(cur_out)
 
     stratifs = ['phylum', 'family', 'genus', 'species']
@@ -974,6 +992,11 @@ def woltka_go(
             cmd += ' -o %s' % go_out
             if to_do(go_out):
                 self.outputs['cmds'].setdefault(tech_aligner, []).append(cmd)
+                self.soft.add_status(tech, 'all samples', 1,
+                                     group='go (%s)' % stratif, genome=go)
+            else:
+                self.soft.add_status(tech, 'all samples', 0,
+                                     group='go (%s)' % stratif, genome=go)
             self.outputs['outs'].setdefault(tech_aligner, []).append(go_out)
 
 
@@ -1027,8 +1050,10 @@ def woltka_genes(
         cmd += ' -o %s' % genes
         self.outputs['cmds'].setdefault(tech_aligner, []).append(cmd)
         io_update(self, o_f=genes, key=tech_aligner)
+        self.soft.add_status(tech, 'all samples', 1, group='genes')
     else:
         io_update(self, i_f=genes, key=tech_aligner)
+        self.soft.add_status(tech, 'all samples', 0, group='genes')
     self.outputs['outs'].setdefault(tech_aligner, []).append(genes)
 
     genes_tax = {}
@@ -1045,8 +1070,13 @@ def woltka_genes(
             cmd += ' -o %s' % genes
             self.outputs['cmds'].setdefault(tech_aligner, []).append(cmd)
             io_update(self, o_f=genes, key=tech_aligner)
+            self.soft.add_status(
+                tech, 'all samples', 1, group='genes (%s)' % stratif)
         else:
             io_update(self, i_f=genes, key=tech_aligner)
+            self.soft.add_status(
+                tech, 'all samples', 0, group='genes (%s)' % stratif)
+
         self.outputs['outs'].setdefault(tech_aligner, []).append(genes)
     return genes, genes_tax
 
@@ -1103,8 +1133,10 @@ def woltka_uniref(
         cmd += ' --output %s' % uniref
         self.outputs['cmds'].setdefault(tech_aligner, []).append(cmd)
         io_update(self, o_f=uniref, key=tech_aligner)
+        self.soft.add_status(tech, 'all samples', 1, group='uniref')
     else:
         io_update(self, i_f=uniref, key=tech_aligner)
+        self.soft.add_status(tech, 'all samples', 1, group='uniref')
     self.outputs['outs'].setdefault(tech_aligner, []).append(uniref)
 
     uniref_tax = {}
@@ -1122,8 +1154,12 @@ def woltka_uniref(
             cmd += ' --output %s' % uniref
             self.outputs['cmds'].setdefault(tech_aligner, []).append(cmd)
             io_update(self, o_f=uniref, key=tech_aligner)
+            self.soft.add_status(
+                tech, 'all samples', 1, group='uniref (%s)' % stratif)
         else:
             io_update(self, i_f=uniref, key=tech_aligner)
+            self.soft.add_status(
+                tech, 'all samples', 1, group='uniref (%s)' % stratif)
         self.outputs['outs'].setdefault(tech_aligner, []).append(uniref)
 
     return uniref, uniref_tax
@@ -1170,8 +1206,10 @@ def woltka_eggnog(
         cmd += ' --output %s\n\n' % biom
         self.outputs['cmds'].setdefault(tech_aligner, []).append(cmd)
         io_update(self, o_f=biom, key=tech_aligner)
+        self.soft.add_status(tech, 'all samples', 1, group='eggnog')
     else:
         io_update(self, i_f=biom, key=tech_aligner)
+        self.soft.add_status(tech, 'all samples', 1, group='eggnog')
     tsv = '%s.tsv' % splitext(biom)[0]
     if to_do(tsv):
         cmd = 'biom convert -i %s -o %s.tmp --to-tsv\n' % (biom, tsv)
@@ -1192,8 +1230,13 @@ def woltka_eggnog(
             cmd += ' --output %s\n\n' % biom
             self.outputs['cmds'].setdefault(tech_aligner, []).append(cmd)
             io_update(self, o_f=biom, key=tech_aligner)
+            self.soft.add_status(
+                tech, 'all samples', 1, group='eggnog (%s)' % stratif)
         else:
             io_update(self, i_f=biom, key=tech_aligner)
+            self.soft.add_status(
+                tech, 'all samples', 1, group='eggnog (%s)' % stratif)
+
         tsv = '%s.tsv' % splitext(biom)[0]
         if to_do(tsv):
             cmd = 'biom convert -i %s -o %s.tmp --to-tsv\n' % (biom, tsv)
@@ -1248,8 +1291,10 @@ def woltka_cazy(
         cmd += ' --output %s\n\n' % biom
         self.outputs['cmds'].setdefault(tech_aligner, []).append(cmd)
         io_update(self, o_f=biom, key=tech_aligner)
+        self.soft.add_status(tech, 'all samples', 1, group='cazy')
     else:
         io_update(self, i_f=biom, key=tech_aligner)
+        self.soft.add_status(tech, 'all samples', 1, group='cazy')
     tsv = '%s.tsv' % splitext(biom)[0]
     if to_do(tsv):
         cmd = 'biom convert -i %s -o %s.tmp --to-tsv\n' % (biom, tsv)
@@ -1271,8 +1316,12 @@ def woltka_cazy(
             cmd += ' --output %s\n\n' % biom
             self.outputs['cmds'].setdefault(tech_aligner, []).append(cmd)
             io_update(self, o_f=biom, key=tech_aligner)
+            self.soft.add_status(
+                tech, 'all samples', 1, group='cazy (%s)' % stratif)
         else:
             io_update(self, i_f=biom, key=tech_aligner)
+            self.soft.add_status(
+                tech, 'all samples', 1, group='cazy (%s)' % stratif)
         tsv = '%s.tsv' % splitext(biom)[0]
         if to_do(tsv):
             cmd = 'biom convert -i %s -o %s.tmp --to-tsv\n' % (biom, tsv)
@@ -1346,8 +1395,13 @@ def woltka_metacyc(
             cmd += ' --map %s/%s' % (metacyc_dir, maps)
             cmd += ' --output %s\n' % biom
             io_update(self, o_f=biom, key=tech_aligner)
+            self.soft.add_status(tech, 'all samples', 1,
+                                 group='metacyc', genome=level)
         else:
             io_update(self, i_f=biom, key=tech_aligner)
+            self.soft.add_status(tech, 'all samples', 0,
+                                 group='metacyc', genome=level)
+
         if to_do(tsv):
             cmd += 'biom convert'
             cmd += ' -i %s' % biom
@@ -1381,8 +1435,14 @@ def woltka_metacyc(
                 cmd += ' --map %s/%s' % (metacyc_dir, maps)
                 cmd += ' --output %s\n' % biom
                 io_update(self, o_f=biom, key=tech_aligner)
+                self.soft.add_status(tech, 'all samples', 1,
+                                     group='metacyc (%s)' % stratif,
+                                     genome=level)
             else:
                 io_update(self, i_f=biom, key=tech_aligner)
+                self.soft.add_status(tech, 'all samples', 0,
+                                     group='metacyc (%s)' % stratif,
+                                     genome=level)
             if to_do(tsv):
                 cmd += 'biom convert'
                 cmd += ' -i %s' % biom
@@ -1495,8 +1555,12 @@ def woltka_kegg(
                     cmd += ' > %s\n' % tsv
                     cmd += ' rm %s.tmp\n' % tsv
                     io_update(self, o_f=[biom, tsv], key=tech_aligner)
+                    self.soft.add_status(tech, 'all samples', 1,
+                                         group='kegg', genome=level)
                 else:
                     io_update(self, i_f=biom, key=tech_aligner)
+                    self.soft.add_status(tech, 'all samples', 0,
+                                         group='kegg', genome=level)
             else:
                 input_fp = '%s/kegg/%s.biom' % (out_dir, level)
                 if to_do(tsv):
@@ -1534,8 +1598,14 @@ def woltka_kegg(
                         cmd += ' > %s\n' % tsv
                         cmd += ' rm %s.tmp\n' % tsv
                         io_update(self, o_f=[biom, tsv], key=tech_aligner)
+                        self.soft.add_status(tech, 'all samples', 1,
+                                             group='kegg (%s)' % stratif,
+                                             genome=level)
                     else:
                         io_update(self, i_f=biom, key=tech_aligner)
+                        self.soft.add_status(tech, 'all samples', 0,
+                                             group='kegg (%s)' % stratif,
+                                             genome=level)
                 else:
                     input_fp = '%s/kegg/%s_%s.biom' % (out_dir, level, stratif)
                     if to_do(tsv):
@@ -1640,6 +1710,8 @@ def woltka(self) -> None:
         if not alignments:
             continue
         for aligner, alis in alignments.items():
+            status_update(self, tech, list(alis.values()), group=aligner)
+
             maps = woltka_write_map(self, tech, pairing, aligner, alis)
             taxmap = woltka_tax_cmd(self, tech, pairing, aligner, maps, db)
             woltka_go(self, tech, pairing, aligner, maps, taxmap, db)
@@ -1745,10 +1817,12 @@ def midas_species(
     spcs_profile = '%s/species_profile.txt' % spcs_out
     if not self.config.force and not to_do(spcs_profile):
         io_update(self, i_d=spcs_out, key=tech)
+        self.soft.add_status(tech, self.sam_pool, 1, group='species')
     else:
         self.outputs['cmds'].setdefault(tech, []).append(
             get_midas_cmd(self, tech, inputs, focus_dir, analysis))
         io_update(self, i_f=inputs, o_d=spcs_out, key=tech)
+        self.soft.add_status(tech, self.sam_pool, 0, group='species')
     self.outputs['outs'].setdefault((tech, self.sam_pool), []).append(spcs_out)
     self.outputs['dirs'].append(spcs_out)
 
@@ -1788,6 +1862,9 @@ def midas_genes(
         self.outputs['cmds'].setdefault(tech, []).append(
             get_midas_cmd(self, tech, inputs, focus_dir, analysis, select))
         io_update(self, o_d=genes_out, key=tech)
+        self.soft.add_status(tech, self.sam_pool, 1, group='genes')
+    else:
+        self.soft.add_status(tech, self.sam_pool, 0, group='genes')
     self.outputs['outs'].setdefault((tech, self.sam_pool), []).append(genes_out)
     self.outputs['dirs'].append(genes_out)
 
@@ -1827,6 +1904,9 @@ def midas_snps(
         self.outputs['cmds'].setdefault(tech, []).append(
             get_midas_cmd(self, tech, inputs, focus_dir, analysis, select))
         io_update(self, o_d=snps_out, key=tech)
+        self.soft.add_status(tech, self.sam_pool, 1, group='snps')
+    else:
+        self.soft.add_status(tech, self.sam_pool, 0, group='snps')
     self.outputs['outs'].setdefault((tech, self.sam_pool), []).append(snps_out)
     self.outputs['dirs'].append(snps_out)
 
@@ -1903,6 +1983,8 @@ def midas(self) -> None:
     for (tech, sam), inputs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, inputs, tech, sam):
             continue
+        status_update(self, tech, inputs)
+
         params = tech_params(self, tech)
         for focus, species_list in params['focus'].items():
             focus_dir = '/'.join([self.dir, tech, focus, self.sam_pool])
@@ -2079,6 +2161,8 @@ def kraken2(self) -> None:
     for (tech, sam), inputs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, inputs, tech, sam):
             continue
+        status_update(self, tech, inputs)
+
         params = tech_params(self, tech)
         for db in params['databases']:
             out = '/'.join([self.dir, tech, self.sam_pool, db])
@@ -2089,6 +2173,9 @@ def kraken2(self) -> None:
                 cmd = get_kraken2_cmd(self, tech, inputs, out, db_path)
                 self.outputs['cmds'].setdefault(tech, []).append(cmd)
                 io_update(self, i_f=inputs, o_d=out, key=tech)
+                self.soft.add_status(tech, sam, 1, group=db)
+            else:
+                self.soft.add_status(tech, sam, 0, group=db)
 
 
 def get_bracken_db(
@@ -2230,6 +2317,7 @@ def bracken(self) -> None:
     for (tech, sam), inputs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, inputs, tech, sam):
             continue
+        status_update(self, tech, inputs)
 
         for (db, k2) in inputs:
             db_path = get_bracken_db(self, db)
@@ -2242,9 +2330,9 @@ def bracken(self) -> None:
                 cmd = bracken_cmd(self, tech, db_path, report, out)
                 self.outputs['cmds'].setdefault(tech, []).append(cmd)
                 io_update(self, i_f=report, o_d=out, key=tech)
-                self.soft.add_status(tech, self.sam_pool, 1)
+                self.soft.add_status(tech, sam, 1, group=(db + ' / ' + k2))
             else:
-                self.soft.add_status(tech, self.sam_pool, 0)
+                self.soft.add_status(tech, sam, 0, group=(db + ' / ' + k2))
 
 
 def metaxa2(self) -> None:
