@@ -1,7 +1,9 @@
-# Netadata
+# Metadata
 
-The sample metadata is a mandatory [configuration file](https://github.com/FranckLejzerowicz/metagenomix/wiki/Configuration-files) must be a 
-tab-separated file with a header row containing at least one column.
+The sample metadata is a mandatory [configuration file](https://github.
+com/FranckLejzerowicz/metagenomix/wiki/Configuration-files).
+It must be a simple tab-separated file with a header row containing at least 
+one column.
 
 The variable name for this first column can be anything, such as 
 `sample_name`, `SampleID`, or any other character string such as 
