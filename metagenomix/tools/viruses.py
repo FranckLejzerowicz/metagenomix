@@ -8,7 +8,7 @@
 
 import sys
 from os.path import basename, splitext
-from metagenomix._io_utils import io_update, to_do
+from metagenomix._io_utils import io_update, to_do, status_update
 
 
 def viralverify_cmd(
@@ -108,6 +108,8 @@ def viralverify(self) -> None:
 
     for (tech, group), inputs in self.inputs[self.sam_pool].items():
 
+        status_update(self, tech, [inputs[0]], group=group)
+
         out = '/'.join([self.dir, tech, self.sam_pool, group])
         self.outputs['dirs'].append(out)
 
@@ -121,6 +123,9 @@ def viralverify(self) -> None:
             cmd = viralverify_cmd(self, contigs, out)
             self.outputs['cmds'].setdefault(tech_group, []).append(cmd)
             io_update(self, i_f=contigs, o_d=out, key=tech_group)
+            self.soft.add_status(tech, self.sam_pool, 1, group=group)
+        else:
+            self.soft.add_status(tech, self.sam_pool, 0, group=group)
 
 
 def threecac(self) -> None:
@@ -261,6 +266,9 @@ def coconet(self) -> None:
         bams = self.softs['mapping_spades'].outputs
 
     for (tech, group), inputs in self.inputs[self.sam_pool].items():
+
+        status_update(self, tech, [inputs[0]], group=group)
+
         bam = bams.get((tech, group), [])
 
         out_dir = '/'.join([self.dir, tech, self.sam_pool, group])
@@ -273,3 +281,6 @@ def coconet(self) -> None:
             cmd = coconet_cmd(self, contigs, bam, out_dir)
             self.outputs['cmds'].setdefault(group, []).append(cmd)
             io_update(self, i_f=contigs, o_d=out_dir, key=group)
+            self.soft.add_status(tech, self.sam_pool, 1, group=group)
+        else:
+            self.soft.add_status(tech, self.sam_pool, 0, group=group)
