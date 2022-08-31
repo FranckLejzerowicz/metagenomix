@@ -11,7 +11,7 @@ import click
 from metagenomix import __version__
 
 from metagenomix.scripts.modules import create
-from metagenomix.scripts.modules import check
+from metagenomix.scripts.modules import monitor
 from metagenomix.scripts.modules import manage
 
 
@@ -22,7 +22,7 @@ def standalone_metagenomix():
 
 
 standalone_metagenomix.add_command(create.create)
-standalone_metagenomix.add_command(check.check)
+standalone_metagenomix.add_command(monitor.monitor)
 standalone_metagenomix.add_command(manage.manage)
 
 
