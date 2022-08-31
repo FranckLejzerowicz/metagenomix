@@ -8,8 +8,8 @@
 
 from os.path import splitext
 from metagenomix.core.parameters import tech_params
-from metagenomix.core._io_utils import (io_update, to_do, tech_specificity,
-                                        not_paired, status_update)
+from metagenomix._io_utils import (io_update, to_do, tech_specificity,
+                                   not_paired, status_update)
 
 # Keep line because read mapping alignments will be python scripts
 # scripts = pkg_resources.resource_filename('metagenomix', 'resources/scripts')
