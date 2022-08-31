@@ -46,11 +46,7 @@ sample3 value_A2    value_B2
 In this example, the long Nanopore reads in `sampleX` will be ignored and the 
 metadata sample `sample3` will be ignored since there is no data for it.
 
-### Usage
-
-
-
-### Output copy
+### Augmentation
 
 `metagenomix` will write a copy of the metadata file (with extension 
 `_pipelone.tsv`), to which will be added the names of the
