@@ -11,7 +11,7 @@ from os.path import basename, dirname, splitext
 from metagenomix._inputs import (sample_inputs, group_inputs, genome_key,
                                  genome_out_dir)
 from metagenomix._io_utils import (caller, io_update, to_do, tech_specificity,
-                                   not_paired)
+                                   not_paired, status_update)
 
 
 def predict_cmd(
@@ -109,7 +109,7 @@ def get_predict(
     tech : str
         Technology: 'illumina', 'pacbio', or 'nanopore'
     sam_group : str
-
+        Sample name or name of a co-assembly pool's group
     """
     for genome, fasta in fastas.items():
 
@@ -120,8 +120,7 @@ def get_predict(
         for typ, seq in typ_seqs.items():
 
             key = genome_key(tech, sam_group, genome)
-            if to_do(seq):
-                self.soft.status.add('Run %s (%s)' % (self.soft.prev, key))
+            status_update(self, tech, [seq], group=sam_group, genome=genome)
 
             base = splitext(basename(seq))[0]
             prefix = '%s/%s' % (out_dir, base)
@@ -138,6 +137,11 @@ def get_predict(
                 key += '_' + typ
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
                 io_update(self, i_f=fasta[0], o_d=out_dir, key=key)
+                self.soft.add_status(
+                    tech, self.sam_pool, 1, group=sam_group, genome=genome)
+            else:
+                self.soft.add_status(
+                    tech, self.sam_pool, 0, group=sam_group, genome=genome)
 
 
 def predict(self) -> None:
@@ -232,8 +236,9 @@ def short(self) -> None:
     for (tech, sam), fastqs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, fastqs, tech, sam, ['illumina']):
             continue
-        if not_paired(self, tech, fastqs):
+        if not_paired(self, tech, sam, fastqs):
             continue
+        status_update(self, tech, fastqs)
 
         # make the output directory
         out = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
@@ -255,6 +260,9 @@ def short(self) -> None:
             # add is to the 'cmds'
             self.outputs['cmds'][tech] = [cmd]
             io_update(self, i_f=fastqs, o_d=out, key=tech)
+            self.soft.add_status(tech, sam, 1)
+        else:
+            self.soft.add_status(tech, sam, 0)
 
 
 def deeparg(self) -> None:
@@ -299,7 +307,7 @@ def deeparg(self) -> None:
 def mmarc_cmd(
         self,
         tech: str,
-        fasta_folder: list,
+        inputs: list,
         out: str,
         genome: str,
         level: str
@@ -313,7 +321,7 @@ def mmarc_cmd(
             Parameters
     tech : str
         Technology: 'illumina', 'pacbio', or 'nanopore'
-    fasta_folder : list
+    inputs : list
         Paths to the input files
     out : str
         Paths to the output folder
@@ -329,12 +337,12 @@ def mmarc_cmd(
     """
     cmd = '\n./mmarc'
     if genome:
-        cmd += ' --input %s' % fasta_folder[0]
+        cmd += ' --input %s' % inputs[0]
     else:
-        if len(fasta_folder) == 1:
-            cmd += ' --input %s' % fasta_folder[0]
-        if len(fasta_folder) == 2:
-            cmd += ' --i1 %s --i2 %s' % tuple(fasta_folder)
+        if len(inputs) == 1:
+            cmd += ' --input %s' % inputs[0]
+        if len(inputs) == 2:
+            cmd += ' --i1 %s --i2 %s' % tuple(inputs)
         if tech == 'illumina':
             cmd += ' --dedup'
         cmd += ' --multicorrect'
@@ -381,21 +389,16 @@ def get_metamarc(
     sam_group : str
         Name of the current sample or co-assembly group
     """
-    for genome, dirs in fastas_folders.items():
+    for genome, inputs in fastas_folders.items():
 
-        fasta_folder = dirs[0]
-        out_dir = genome_out_dir(self, tech, fasta_folder, sam_group, genome)
+        fasta = inputs[0]
+        out_dir = genome_out_dir(self, tech, fasta, sam_group, genome)
         self.outputs['outs'].setdefault((tech, sam_group), []).append(out_dir)
-
-        key = genome_key(tech, sam_group, genome)
-        if genome:
-            condition = to_do(folder=fasta_folder)
-        else:
-            condition = to_do(fasta_folder)
-        if condition:
-            self.soft.status.add('Run %s (%s)' % (self.soft.prev, key))
+        status_update(
+            self, tech, self.sam_pool, inputs, group=sam_group, genome=genome)
 
         outs, cmd = [], ''
+        key = genome_key(tech, sam_group, genome)
         for level in self.soft.params['level']:
             out = '%s/model_level_%s' % (out_dir, level)
             self.outputs['dirs'].append(out_dir)
@@ -404,7 +407,7 @@ def get_metamarc(
             # check if tool already run (or if --force) to allow getting command
             if self.config.force or to_do(skewness):
                 # collect the command line
-                cmd += mmarc_cmd(self, tech, fasta_folder, out, genome, level)
+                cmd += mmarc_cmd(self, tech, inputs, out, genome, level)
 
         if cmd:
             path = self.soft.params['path']
@@ -418,7 +421,12 @@ def get_metamarc(
             full_cmd += 'rm -rf hmmer-3.1b2\n'
             # add is to the 'cmds'
             self.outputs['cmds'].setdefault(key, []).append(full_cmd)
-            io_update(self, i_f=fasta_folder, o_d=outs, key=key)
+            io_update(self, i_f=inputs, o_d=outs, key=key)
+            self.soft.add_status(
+                tech, self.sam_pool, 1, group=sam_group, genome=genome)
+        else:
+            self.soft.add_status(
+                tech, self.sam_pool, 0, group=sam_group, genome=genome)
 
 
 def metamarc(self) -> None:
@@ -548,22 +556,19 @@ def get_karga_kargva(
     sam_group : str
         Name of the current sample or co-assembly group
     """
-    for genome, dirs in fastas_folders.items():
+    for genome, inputs in fastas_folders.items():
 
-        fastx = dirs[0]
+        fastx = inputs[0]
         out_dir = genome_out_dir(self, tech, fastx, sam_group)
         self.outputs['outs'].setdefault((tech, sam_group), []).append(out_dir)
-
-        key = genome_key(tech, sam_group)
-        if to_do(fastx):
-            self.soft.status.add('Run %s (%s)' % (self.soft.prev, key))
+        status_update(self, tech, inputs, group=sam_group, genome=genome)
 
         merge_cmd = ''
-        if len(dirs) == 1:
+        if len(inputs) == 1:
             merged = fastx
-        elif len(dirs) > 1:
+        elif len(inputs) > 1:
             merged = '%s/%s' % (out_dir, basename(fastx))
-            merge_cmd += 'cat %s > %s\n' % (' '.join(dirs), merged)
+            merge_cmd += 'cat %s > %s\n' % (' '.join(inputs), merged)
 
         outs, cmd = [], ''
         for db, db_path in self.soft.params['databases'].items():
@@ -593,8 +598,14 @@ def get_karga_kargva(
                 full_cmd += 'rm -rf %s\n' % p
 
             # add is to the 'cmds'
+            key = genome_key(tech, sam_group)
             self.outputs['cmds'].setdefault(key, []).append(full_cmd)
-            io_update(self, i_f=dirs, o_d=outs, key=key)
+            io_update(self, i_f=inputs, o_d=outs, key=key)
+            self.soft.add_status(
+                tech, self.sam_pool, 1, group=sam_group, genome=genome)
+        else:
+            self.soft.add_status(
+                tech, self.sam_pool, 0, group=sam_group, genome=genome)
 
 
 def karga_kargva(self) -> None:
@@ -812,18 +823,12 @@ def get_abricate(
     """
     for genome, inputs in fastas_folders.items():
 
-        fasta_folder = inputs[0]
-        out_d = genome_out_dir(self, tech, fasta_folder, sam_group, genome)
+        fasta = inputs[0]
+        out_d = genome_out_dir(self, tech, fasta, sam_group, genome)
         self.outputs['dirs'].append(out_d)
         self.outputs['outs'].setdefault((tech, sam_group), []).append(out_d)
 
-        key = genome_key(tech, sam_group, genome)
-        if genome:
-            condition = to_do(folder=fasta_folder)
-        else:
-            condition = to_do(fasta_folder)
-        if condition:
-            self.soft.status.add('Run %s (%s)' % (self.soft.prev, key))
+        status_update(self, tech, [fasta], group=sam_group, genome=genome)
 
         outs = ['%s/%s.txt' % (out_d, x) for x in self.soft.params['databases']]
         # check if tool already run (or if --force) to allow getting command
@@ -831,8 +836,14 @@ def get_abricate(
             # collect the command line
             cmd = abricate_cmd(self, tech, inputs, out_d)
             # add is to the 'cmds'
+            key = genome_key(tech, sam_group, genome)
             self.outputs['cmds'].setdefault(key, []).append(cmd)
-            io_update(self, i_f=fasta_folder, o_d=out_d, key=key)
+            io_update(self, i_f=inputs, o_d=out_d, key=key)
+            self.soft.add_status(
+                tech, self.sam_pool, 1, group=sam_group, genome=genome)
+        else:
+            self.soft.add_status(
+                tech, self.sam_pool, 0, group=sam_group, genome=genome)
 
 
 def abricate(self) -> None:
@@ -970,10 +981,7 @@ def get_amrplusplus2(
     self.outputs['dirs'].append(out_dir)
     self.outputs['outs'].setdefault((tech, sam), []).append(out_dir)
 
-    key = genome_key(tech, sam)
-    condition = sum([to_do(x) for x in fastqs])
-    if condition:
-        self.soft.status.add('Run %s (%s)' % (self.soft.prev, key))
+    status_update(self, tech, fastqs)
 
     # check if tool already run (or if --force) to allow getting command
     out = '%s/ResistomeResults/AMR_analytic_matrix.csv' % out_dir
@@ -981,8 +989,12 @@ def get_amrplusplus2(
         # collect the command line
         cmd = amrplusplus2_cmd(self, fastqs, out_dir)
         # add is to the 'cmds'
+        key = genome_key(tech, sam)
         self.outputs['cmds'].setdefault(key, []).append(cmd)
         io_update(self, i_f=fastqs, o_d=out_dir, key=key)
+        self.soft.add_status(tech, self.sam_pool, 1)
+    else:
+        self.soft.add_status(tech, self.sam_pool, 0)
 
 
 def amrplusplus2(self) -> None:
