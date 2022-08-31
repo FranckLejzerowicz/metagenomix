@@ -7,7 +7,7 @@
 # ----------------------------------------------------------------------------
 
 import sys
-from metagenomix._io_utils import to_do
+from metagenomix._io_utils import to_do, status_update
 
 
 def pool_cmd(
@@ -183,6 +183,7 @@ def get_fasta_pools(
         combine_single(paths_to_merge)
     fasta_fps = []
     for extension, paths in sorted(paths_to_merge.items()):
+        status_update(self, tech, paths, group=group)
         fasta = pool_fasta(self, tech, out, extension, paths, pool, group)
         fasta_fps.append(fasta)
     return fasta_fps
