@@ -1,7 +1,6 @@
 # Metadata
 
-The sample metadata is a mandatory [configuration file](https://github.
-com/FranckLejzerowicz/metagenomix/wiki/Configuration-files).
+The sample metadata is a mandatory [configuration file](https://github.com/FranckLejzerowicz/metagenomix/wiki/Configuration-files).
 It must be a simple tab-separated file with a header row containing at least 
 one column.
 
