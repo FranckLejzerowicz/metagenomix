@@ -8,12 +8,17 @@
 
 import os
 import sys
+import json
 import yaml
+import random
+import hashlib
 import subprocess
 import numpy as np
+import datetime as dt
 from os.path import dirname, isdir, splitext
 
-from metagenomix._io_utils import mkdr, get_roundtrip
+from metagenomix._io_utils import (
+    mkdr, get_roundtrip, print_status_table, get_versions)
 
 
 class CreateScripts(object):
@@ -34,6 +39,9 @@ class CreateScripts(object):
         self.modules = {}
         self.pjct = self.get_prjct()
         self.scheduler = self.get_scheduler()
+        self.time = dt.datetime.now().strftime("%d/%m/%Y-%H:%M")
+        self.scripts = []
+        self.hash = ''
 
     def make_dirs(self):
         for name, soft in self.commands.softs.items():
@@ -73,44 +81,52 @@ class CreateScripts(object):
                     self.chunks['_'.join([k for k in key if k])] = [key]
 
     def get_main_sh(self, name, soft=None) -> str:
-        main = '%s/run_%s' % (self.sh.rsplit('/', 2)[0], name)
         if soft:
-            main += '_after_%s.sh' % soft.prev
+            main = '%s/run.sh' % soft.dir
             self.run['software'][name] = main
         else:
-            main += '.sh'
+            main = '%s/run_%s.sh' % (self.sh.rsplit('/', 2)[0], name)
             self.run['database'][name] = main
         return main
 
-    def write_main(self, name, soft=None, hashed=None) -> None:
+    def write_main(self, name, soft=None, soft_hash=None) -> None:
         main = self.get_main_sh(name, soft)
         with open(main, 'w') as o:
             if len(self.job_fps):
                 job_dir = dirname(self.job_fps[0])
                 o.write('mkdir -p %s/output\n' % job_dir)
                 o.write('cd %s/output\n' % job_dir)
-                for job_fp in self.job_fps:
+                for jdx, job_fp in enumerate(self.job_fps):
                     o.write('%s %s\n' % (self.scheduler, job_fp))
+                    if self.config.dev:
+                        if not isdir('%s/output' % job_dir):
+                            os.makedirs('%s/output' % job_dir)
+                        f = 'slurm-%s_000000%s' % (self.job_name, jdx)
+                        for e in ['.o', '.e']:
+                            job_std = '%s/output/%s%s' % (job_dir, f, e)
+                            with open(job_std, 'w') as o_dev:
+                                for r in range(10, random.randrange(11, 100)):
+                                    o_dev.write('random %s\n' % r)
+                                o_dev.write('Done!\n')
                 self.job_fps = []
 
     def get_provenance_fp(self, name, soft=None) -> str:
-        provenance = '%s/provenance_%s' % (self.sh.rsplit('/', 2)[0], name)
         if soft:
-            provenance += '_after_%s.txt' % soft.prev
+            fp = '%s/provenance.txt' % soft.dir
         else:
-            provenance += '.sh'
-        return provenance
+            fp = '%s/provenance_%s.txt' % (self.sh.rsplit('/', 2)[0], name)
+        return fp
 
-    def write_provenance(self, name, soft=None, hashed=None) -> None:
+    def write_provenance(self, name, soft=None, soft_hash=None) -> None:
         steps = self.graph.paths[soft.name][0]
         step_max = max([len(x) for x in steps])
         provenance_fp = self.get_provenance_fp(name, soft)
         with open(provenance_fp, 'w') as o:
             o.write("Pipeline steps to this output (and analysis type):\n")
             for sdx, step in enumerate(steps):
-                types = ', '.join(self.config.tools.get(step, []))
                 o.write('%s\t%s%s\t: %s\n' % (
-                    sdx, step, (' ' * ( step_max - len(step))), types))
+                    sdx, step, (' ' * (step_max-len(step))),
+                    self.config.tools.get(step, '')))
             o.write("\nParameters for these steps' outputs:\n")
             for sdx, step in enumerate(steps):
                 if step not in self.commands.softs:
@@ -158,7 +174,6 @@ class CreateScripts(object):
                 self.scratch(soft, sam_or_pool, cmds)
             elif isinstance(cmds, dict):
                 if sam_or_pool in self.commands.pools:
-                    # for group in commands.pools[sam_or_pool]:
                     for group, group_cmds in cmds.items():
                         self.scratch(soft, (sam_or_pool, group), group_cmds)
                 else:
@@ -166,35 +181,49 @@ class CreateScripts(object):
             else:
                 sys.exit('The collected commands are neither list of dict!')
 
-    @staticmethod
-    def show_status(soft):
-        if soft.status == {'Done'}:
-            print('-> Done')
-        elif len(soft.status):
-            print()
-            for stat in soft.status:
-                if stat != 'Done':
-                    print('\t\t-> %s' % stat)
-        else:
-            print(' -> %s per-sample/co-assembly to run' % (len(soft.cmds)))
-
     def print_status(self, m, sdx, name, soft):
-        gap = (m - len(name) - len(str(sdx)))
-        print('\t%s [%s]%s\t' % (sdx, name, (' ' * gap)), end=' ')
-        self.show_status(soft)
+        gap = (m - len(name) - len(str(sdx))) + 1
+        print('\t%s [%s] %s%s' % (sdx, name, ('.' * gap), ('.' * 8)), end=' ')
+        print_status_table(soft, self.config.show_status)
 
-    def get_hash(self, soft=None) -> str:
+    def get_hash(self, hash_string):
+        h = hashlib.blake2b(digest_size=10)
+        h.update(hash_string.encode('utf-8'))
+        hashed = str(h.hexdigest())
+        return hashed
+
+    def get_soft_hash(self, soft=None) -> str:
         hashed = None
         if soft:
             steps = self.graph.paths[soft.name]
-
-            hash_string = ''.join([str(step) + str(soft.params) for step in
-                                   steps])
-            hashed = abs(hash(hash_string)) % (10 ** 8)
+            hash_string = ''.join([json.dumps(step) + json.dumps(soft.params)
+                                   for step in steps])
+            self.hash += hash_string
+            hashed = self.get_hash(hash_string)
         return hashed
 
+    def versioning(self):
+        versions_dir = '%s/_versions' % self.config.dir
+        if not isdir(versions_dir):
+            os.makedirs(versions_dir)
+        self.write_versions(versions_dir)
+
+    def write_versions(self, versions_dir):
+        hashed = self.get_hash(self.hash)
+        versions_fp = versions_dir + '/version_hash-' + hashed + '.txt'
+        versions = get_versions(versions_fp)
+        with open(versions_fp, 'w') as o:
+            for script in self.scripts:
+                o.write('%s\n' % script)
+            o.write('\n--------- versions ---------\n')
+            for version in versions:
+                o.write('Date: %s\n' % version)
+            o.write('Date: %s\n' % self.time)
+            o.write('\n----------------------------\n')
+        print('\n[config version] Written: %s' % versions_fp)
+
     def software_cmds(self):
-        m = max(len(x) for x in self.commands.softs)
+        m = max(len(x) for x in self.commands.softs) + 1
         for sdx, (name, soft) in enumerate(self.commands.softs.items()):
             self.print_status(m, sdx, name, soft)
             if not len(soft.cmds):
@@ -203,27 +232,27 @@ class CreateScripts(object):
             self.get_cmds(soft)
             self.get_chunks(soft.params['chunks'])
             self.write_jobs(name, soft)
-            hashed = self.get_hash(soft)
-            self.write_main(name, soft, hashed)
-            self.write_provenance(name, soft, hashed)
+            soft_hash = self.get_soft_hash(soft)
+            self.write_main(name, soft, soft_hash)
+            self.write_provenance(name, soft, soft_hash)
 
-    def get_sh(self, name: str, chunk_name: str, soft=None) -> None:
+    def get_sh(self, name: str, chunk: str, soft=None) -> None:
         """
 
         Parameters
         ----------
         name : str
             Name of the current software of the pipeline workflow
-        chunk_name : str
+        chunk : str
             Name of the current chunk of commands
         soft
         """
         if soft:
-            self.sh = '%s/%s/jobs/run_%s_after_%s_%s.sh' % (
-                self.config.dir, name, name, soft.prev, chunk_name)
+            self.sh = '%s/jobs/run_%s.sh' % (
+                soft.dir, chunk.replace('/', '_'))
         else:
             self.sh = '%s/databases/jobs/build_%s_%s.sh' % (
-                self.config.dir, name, chunk_name)
+                self.config.dir, name, chunk)
         mkdr(dirname(self.sh))
 
     def prep_script(self, params: dict) -> None:
@@ -287,8 +316,12 @@ class CreateScripts(object):
                     else:
                         sh.write('%s\n' % cmd.replace('${SCRATCH_FOLDER}', ''))
 
-    def get_job_name(self, name: str, chunk_name: str):
-        self.job_name = name + '.' + self.pjct + '.' + chunk_name
+    def get_job_name(self, name: str, chunk: str, soft=None):
+        self.job_name = name + '.' + self.pjct
+        if soft:
+            self.job_name += '.' + ''.join([
+                x for x in soft.dir.split('after_')[-1] if x not in 'aeiuoy'])
+        self.job_name += '.' + chunk.replace('/', '_')
 
     def write_script(self, soft=None):
         if self.config.jobs:
@@ -301,17 +334,20 @@ class CreateScripts(object):
             self.job_fps.append('%s.sh' % splitext(self.sh)[0])
 
     def write_jobs(self, name: str, soft=None):
-        for chunk_name, chunk_keys in self.chunks.items():
-            self.get_sh(name, chunk_name, soft)
+        for chunk, chunk_keys in self.chunks.items():
+            self.get_sh(name, chunk, soft)
             self.write_chunks(chunk_keys, soft)
-            self.get_job_name(name, chunk_name)
+            self.get_job_name(name, chunk, soft)
             self.write_script(soft)
 
     def display(self):
-        for database_software, name_main in self.run.items():
-            if len(self.run[database_software]):
+        for db_soft, name_main in self.run.items():
+            if len(self.run[db_soft]):
                 print()
-                print('========== %s ========== ' % database_software)
+                soft_print = '========== %s scripts ========== ' % db_soft
+                print(soft_print)
+                self.scripts.append(soft_print)
             for name, main in name_main.items():
-                print('>', name)
-                print('sh', main)
+                main_print = '>%s\nsh %s' % (name, main)
+                print(main_print)
+                self.scripts.append(main_print)
