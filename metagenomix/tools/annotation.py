@@ -13,8 +13,8 @@ from os.path import basename, isdir, splitext
 
 from metagenomix._inputs import (sample_inputs, group_inputs,
                                  genome_key, genome_out_dir)
-from metagenomix._io_utils import caller, io_update, to_do
-from metagenomix.parameters import tech_params
+from metagenomix._io_utils import caller, io_update, to_do, status_update
+from metagenomix.core.parameters import tech_params
 
 RESOURCES = pkg_resources.resource_filename("metagenomix", "resources/scripts")
 
@@ -108,12 +108,18 @@ def get_prodigal(
             key += '_' + genome
         self.outputs['dirs'].append(out)
         self.outputs['outs'].setdefault((tech, sam_group), []).append(out)
+        status_update(self, tech, [fasta[0]], group=sam_group, genome=genome)
 
         proteins = '%s/protein.translations.fasta' % out
         if self.config.force or to_do(proteins):
             cmd = prodigal_cmd(self, tech, fasta[0], out)
             self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, i_f=fasta[0], o_d=out, key=key)
+            self.soft.add_status(
+                tech, self.sam_pool, 1, group=sam_group, genome=genome)
+        else:
+            self.soft.add_status(
+                tech, self.sam_pool, 0, group=sam_group, genome=genome)
 
 
 def prodigal(self) -> None:
@@ -169,6 +175,8 @@ def macsyfinder_cmd(
         self,
         tech: str,
         proteins: str,
+        sam_group: str,
+        genome: str,
         out_dir: str,
         models_dir: str
 ) -> tuple:
@@ -187,6 +195,10 @@ def macsyfinder_cmd(
         Technology: 'illumina', 'pacbio', 'nanopore', or hybrif naming
     proteins : str
         Path to the input proteins fasta file
+    sam_group : str
+        Sample name or group for the current co-assembly
+    genome : str
+        MAGs/Genomes folder name or empty string (for assembly contigs)
     out_dir : str
         Path to the output folder
     models_dir : str
@@ -211,6 +223,8 @@ def macsyfinder_cmd(
     for model in params['models']:
         model_dir = '%s/%s' % (out_dir, model)
         if not self.config.dev and not isdir(model_dir):
+            self.soft.add_status(tech, self.sam_pool, 1, group=sam_group,
+                                 message='no model %s' % model, genome=genome)
             continue
         outs[model] = model_dir
         self.outputs['dirs'].append(model_dir)
@@ -241,6 +255,12 @@ def macsyfinder_cmd(
             cmd += ' --models-dir %s/models' % models_dir
             cmd += ' --models %s all' % model
             cmd += ' --verbosity\n'
+            self.soft.add_status(
+                tech, self.sam_pool, 1, group=sam_group, genome=genome)
+        else:
+            self.soft.add_status(
+                tech, self.sam_pool, 0, group=sam_group, genome=genome)
+
     return cmd, outs
 
 
@@ -275,9 +295,11 @@ def get_macsyfinder(
         proteins = fasta[0]
         if self.soft.prev == 'prodigal':
             proteins = '%s/protein.translations.fasta' % fasta[0]
+        status_update(self, tech, [proteins], group=sam_group, genome=genome)
 
         models_dir = self.databases.paths['macsyfinder']
-        cmd, outs = macsyfinder_cmd(self, tech, proteins, out_dir, models_dir)
+        cmd, outs = macsyfinder_cmd(
+            self, tech, proteins, sam_group, genome, out_dir, models_dir)
         self.outputs['outs'].setdefault((tech, sam_group), []).append(outs)
         if cmd:
             self.outputs['cmds'].setdefault(key, []).append(cmd)
@@ -482,12 +504,18 @@ def get_integronfinder(
         fasta = fasta_[0]
         if self.soft.prev == 'prodigal':
             fasta = '%s/nucleotide.sequences.fasta' % fasta_[0]
+        status_update(self, tech, [fasta], group=sam_group, genome=genome)
 
         fpo = '%s/Results_Integron_Finder_mysequences/mysequences.summary' % out
         if self.config.force or to_do(fpo):
             cmd = integronfinder_cmd(self, tech, fasta, out)
             self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, i_f=fasta, o_d=out, key=key)
+            self.soft.add_status(
+                tech, self.sam_pool, 1, group=sam_group, genome=genome)
+        else:
+            self.soft.add_status(
+                tech, self.sam_pool, 0, group=sam_group, genome=genome)
 
 
 def integronfinder(self) -> None:
@@ -598,6 +626,7 @@ def integronfinder(self) -> None:
 def search_cmd(
         self,
         tech: str,
+        sam_group: str,
         proteins: str,
         out_dir: str,
         key: str
@@ -618,6 +647,8 @@ def search_cmd(
             Configurations
     tech : str
         Technology: 'illumina', 'pacbio', or 'nanopore'
+    sam_group : str
+        Sample name or group for the current co-assembly
     proteins : str
         Path to the input proteins fasta file
     out_dir : str
@@ -647,6 +678,12 @@ def search_cmd(
                 cmd = module_call(params, proteins, db_path, out, tmp)
                 io_update(self, i_f=proteins, o_d=db_out_dir, key=key)
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
+                self.soft.add_status(
+                    tech, self.sam_pool, 1, group=sam_group, genome=db)
+            else:
+                self.soft.add_status(
+                    tech, self.sam_pool, 0, group=sam_group, genome=db)
+
     return outs
 
 
@@ -776,8 +813,9 @@ def get_search(
         proteins = fasta[0]
         if self.soft.prev == 'prodigal':
             proteins = '%s/protein.translations.fasta' % fasta[0]
+        status_update(self, tech, [proteins], group=sam_group, genome=genome)
 
-        outs = search_cmd(self, tech, proteins, out_dir, key)
+        outs = search_cmd(self, tech, sam_group, proteins, out_dir, key)
         if outs:
             self.outputs['outs'].setdefault((tech, sam_group), {}).update(outs)
 
@@ -937,6 +975,8 @@ def prokka_configs(self) -> tuple:
 
 def get_prokka(
         self,
+        tech: str,
+        group: str,
         inputs: list,
         out_dir: str
 ) -> str:
@@ -950,6 +990,10 @@ def get_prokka(
             Parameters
         .config
             Configurations
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    group : str
+        Name of the current co-assembly
     inputs : list
         Paths to the input files
     out_dir : str
@@ -963,12 +1007,20 @@ def get_prokka(
     cmd = ''
     configs, cols = prokka_configs(self)
     for config in configs:
+
+        status_update(self, tech, [inputs[0]], group=group, genome=config)
         pref = '_'.join([config[x] for x in cols if config[x]])
         if config.get('proteins'):
             pref += '_%s' % splitext(basename(config['proteins']))[0]
         file_out = '%s/%s.out' % (out_dir, pref)
         if self.config.force or to_do(file_out):
             cmd += prokka_cmd(self, inputs[0], out_dir, pref, config, cols)
+            self.soft.add_status(
+                tech, self.sam_pool, 1, group=group, genome=config)
+        else:
+            self.soft.add_status(
+                tech, self.sam_pool, 0, group=group, genome=config)
+
     return cmd
 
 
@@ -1012,7 +1064,7 @@ def prokka(self) -> None:
             self.outputs['dirs'].append(out_dir)
             self.outputs['outs'].setdefault(group, []).append(out_dir)
 
-            cmd = get_prokka(self, inputs, out_dir)
+            cmd = get_prokka(self, tech, group, inputs, out_dir)
             if cmd:
                 tech_group = '_'.join([tech, group])
                 self.outputs['cmds'].setdefault(tech_group, []).append(cmd)
@@ -1143,6 +1195,7 @@ def get_ccfind(
         out_dir = genome_out_dir(self, tech, fasta[0], sam_group, genome)
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'].setdefault((tech, sam_group), []).append(out_dir)
+        status_update(self, tech, [fasta[0]], group=sam_group, genome=genome)
 
         out = '%s/circ.detected.list' % out_dir
         if self.config.force or not to_do(out):
@@ -1150,6 +1203,11 @@ def get_ccfind(
             key = genome_key(tech, sam_group, genome)
             self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, i_f=fasta[0], o_d=out_dir, key=key)
+            self.soft.add_status(
+                tech, self.sam_pool, 1, group=sam_group, genome=genome)
+        else:
+            self.soft.add_status(
+                tech, self.sam_pool, 0, group=sam_group, genome=genome)
 
 
 def get_barrnap(
@@ -1191,14 +1249,17 @@ def get_barrnap(
 
         out = '%s/rrna_seqs.fas' % out_dir
         self.outputs['outs'].setdefault((tech, sam_group), []).append(out)
-
-        if to_do(fasta[0]):
-            self.soft.status.add('Run %s (%s)' % (self.soft.prev, key))
+        status_update(self, tech, [fasta[0]], group=sam_group, genome=genome)
 
         if self.config.force or not to_do(out):
             cmd = barrnap_cmd(self, tech, fasta[0], out)
             self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, i_f=fasta[0], o_d=out_dir, key=key)
+            self.soft.add_status(
+                tech, self.sam_pool, 1, group=sam_group, genome=genome)
+        else:
+            self.soft.add_status(
+                tech, self.sam_pool, 0, group=sam_group, genome=genome)
 
 
 def dispatch(self) -> None:
@@ -1293,9 +1354,8 @@ def ccfind(self) -> None:
 
 def antismash_cmd(
         self,
-        fa: str,
-        base: str,
-        out: str
+        fasta: str,
+        out_dir: str
 ) -> str:
     """Collect the command line for Antismash.
 
@@ -1306,11 +1366,9 @@ def antismash_cmd(
             Parameters
         .soft.prev : str
             Previous software
-    fa : str
+    fasta : str
         Path to the input genome fasta file
-    base : str
-        Basename for the output files
-    out : str
+    out_dir : str
         Path to the output folder
 
     Returns
@@ -1320,20 +1378,70 @@ def antismash_cmd(
     """
     cmd = '\nantismash'
     for boolean in ['rre', 'asf', 'cassis', 'pfam2go', 'tigrfam', 'fullhmmer',
-                    'cc-mibig', 'cb_general', 'smcog_trees', 'clusterhmmer',
+                    'cc_mibig', 'cb_general', 'smcog_trees', 'clusterhmmer',
                     'cb_subclusters', 'cb_knownclusters']:
         if self.soft.params[boolean]:
             cmd += ' --%s' % boolean.replace('_', '-')
-    cmd += ' --tta-threshold %s' % self.soft.params['--tta-threshold']
+    cmd += ' --tta-threshold %s' % self.soft.params['tta_threshold']
     cmd += ' --genefinding-tool %s' % self.soft.params['genefinding_tool']
     cmd += ' --html-description after_%s' % self.soft.prev
     cmd += ' --taxon %s' % self.soft.params['taxon']
     cmd += ' --cpus %s' % self.soft.params['cpus']
-    cmd += ' --output-basename %s' % base
-    cmd += ' --html-title "%s: %s"' % base
-    cmd += ' --output-dir %s' % out
-    cmd += ' %s\n' % fa
+    cmd += ' --output-basename %s' % splitext(basename(fasta))[0]
+    cmd += ' --html-title "%s"' % splitext(basename(fasta))[0]
+    cmd += ' --output-dir %s' % out_dir
+    cmd += ' %s\n' % fasta
     return cmd
+
+
+def get_antismash(
+        self,
+        fastas: dict,
+        tech: str,
+        sam_group: str
+) -> None:
+    """
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    fastas : dict
+        Paths to the input fasta files per genome/MAG
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    sam_group : str
+        Sample name or name of a co-assembly pool's group
+    """
+    for genome, dirs in fastas.items():
+
+        fasta = dirs[0]
+        out_dir = genome_out_dir(self, tech, fasta, sam_group, genome)
+        self.outputs['dirs'].append(out_dir)
+        self.outputs['outs'].setdefault((tech, sam_group), []).append(out_dir)
+
+        key = genome_key(tech, sam_group, genome)
+        if genome:
+            condition = to_do(folder=fasta)
+        else:
+            condition = to_do(fasta)
+        if condition:
+            status_update(self, tech, [fasta], group=sam_group, genome=genome)
+
+        if self.config.force or not glob.glob('%s/*' % out_dir):
+            cmd = antismash_cmd(self, fasta, out_dir)
+            self.outputs['cmds'].setdefault(key, []).append(cmd)
+            io_update(self, i_f=fasta, o_d=out_dir, key=key)
+            self.soft.add_status(
+                tech, self.sam_pool, 1, group=sam_group, genome=genome)
+        else:
+            self.soft.add_status(
+                tech, self.sam_pool, 0, group=sam_group, genome=genome)
 
 
 def antismash(self) -> None:
@@ -1372,22 +1480,19 @@ def antismash(self) -> None:
         .config
             Configurations
     """
-    if self.soft.prev != 'drep':
-        sys.exit('[antismash] Possible only after drep (!=%s)' % self.soft.prev)
-    for pool in self.pools:
-        for algo, folder in self.inputs[pool].items():
-            out_dir = '/'.join([self.dir, pool, algo])
-            io_update(self, o_d=out_dir, key=pool)
-            for fa in glob.glob('%s/*.fa' % folder):
-                io_update(self, i_f=fa, key=pool)
-                base = fa.split('/')[-1].replace('.fa', '')
-                out = '%s/%s' % (out_dir, base)
-                self.outputs['dirs'].append(out)
-                outs = glob.glob('%s/*' % out.replace('${SCRATCH_FOLDER}', ''))
-                if self.config.force or not outs:
-                    cmd = antismash_cmd(self, fa, base, out)
-                    self.outputs['cmds'].setdefault(
-                        (pool, algo), []).append(cmd)
+    if self.sam_pool in self.pools:
+        for (tech, group), inputs in self.inputs[self.sam_pool].items():
+            fastas = group_inputs(self, inputs)
+            get_antismash(self, fastas, tech, group)
+
+    elif self.soft.prev == 'drep':
+        for (tech, bin_algo), inputs in self.inputs[''].items():
+            fastas = group_inputs(self, inputs)
+            get_antismash(self, fastas, tech, bin_algo)
+    else:
+        tech_fastas = sample_inputs(self, ['pacbio', 'nanopore'])
+        for tech, fastas in tech_fastas.items():
+            get_antismash(self, fastas, tech, self.sam_pool)
 
 
 def tiara(self) -> None:
@@ -1424,15 +1529,17 @@ def tiara(self) -> None:
     """
     if self.soft.prev != 'spades':
         sys.exit('[tiara] can only be run on assembly output')
-    for (tech, group), spades_outs in self.inputs[self.sam_pool].items():
+    for (tech, group), spades in self.inputs[self.sam_pool].items():
         out_dir = '/'.join([self.dir, tech, self.sam_pool, group])
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'][group] = out_dir
         out_fp = '%s/classifications.txt' % out_dir
+        status_update(self, tech, [spades[0]], group=group)
+
         if self.config.force or to_do(out_fp):
             cmd = 'cd %s\n' % out_dir
             cmd += 'tiara'
-            cmd += ' --input %s' % spades_outs[0]
+            cmd += ' --input %s' % spades[0]
             cmd += ' --output %s' % out_fp
             cmd += ' --threads %s' % self.soft.params['cpus']
             for boolean in ['probabilities', 'verbose', 'gzip']:
@@ -1443,8 +1550,10 @@ def tiara(self) -> None:
             for param in ['prob_cutoff', 'to_fasta']:
                 cmd += ' --%s %s' % (param, ' '.join(self.soft.params[param]))
             self.outputs['cmds'].setdefault(group, []).append(cmd)
-            io_update(self, i_f=spades_outs[0], o_d=out_dir, key=group)
-
+            io_update(self, i_f=spades[0], o_d=out_dir, key=group)
+            self.soft.add_status(tech, self.sam_pool, 1, group=group)
+        else:
+            self.soft.add_status(tech, self.sam_pool, 0, group=group)
 
 # def write_dbcan_subset(
 #         self,
