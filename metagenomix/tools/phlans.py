@@ -8,37 +8,53 @@
 
 import glob
 from os.path import dirname
-from metagenomix._io_utils import io_update, to_do
+from metagenomix.core.parameters import tech_params
+from metagenomix._io_utils import (io_update, tech_specificity,
+                                   to_do, status_update)
 
 
-def get_read_count(self) -> str:
+def get_read_count(
+        self,
+        tech: str,
+        sam: str,
+) -> str:
     """Get the number of reads in the current sample,
     or an empty string if the counting did not happen yet.
 
     Parameters
     ----------
     self : Commands class instance
-        .sam : str
-            Sample name
+        .softs : dict of software classes
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    sam: str
+        Sample name
 
     Returns
     -------
     reads : str
-        Number of reads.
+        Number of reads
     """
     reads = ''
-    reads_fps = self.softs['count'].outputs
-    if self.sam_pool in reads_fps and not to_do(reads_fps[self.sam_pool][0]):
-        reads_fp = reads_fps[self.sam_pool][0].replace('${SCRATCH_FOLDER}', '')
-        with open(reads_fp) as f:
-            for line in f:
-                reads = line[-1].strip().split(',')[-1]
-                break
+    if 'count' in self.softs:
+        reads_fps = self.softs['count'].outputs.get((sam, tech), [])
+        if not to_do(reads_fps):
+            reads_fp = reads_fps.replace('${SCRATCH_FOLDER}', '')
+            with open(reads_fp) as f:
+                for line in f:
+                    reads = line[-1].strip().split(',')[-1]
+                    break
+        else:
+            t = "marker_ab_table"
+            if t in tech_params(self, tech)['t']:
+                self.soft.messages.add('Run "count" to use read counts for' + t)
     return reads
 
 
 def analyses(
         self,
+        tech: str,
+        sam: str,
         bowtie2out: str,
         reads: str
 ) -> None:
@@ -57,50 +73,84 @@ def analyses(
             Parameters for humann
         .config
             Configurations
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    sam : str
+        Name of the current sample
     bowtie2out : str
         Input type was a bowtie2 output of the same tool
     reads : str
         Number of reads in the current sample
     """
-    tax_levs = ['a', 'k', 'p', 'c', 'o', 'f', 'g', 's']
-    for analysis in ['rel_ab',
-                     'rel_ab_w_read_stats',
-                     'clade_profiles',
-                     'marker_ab_table',
-                     'marker_pres_table',
-                     'clade_specific_strain_tracker']:
-        out = '%s/%s' % (self.dir, analysis)
+    params = tech_params(self, tech)
+    if 'a' in params:
+        tax_levs = ['a']
+    else:
+        tax_levs = params['tax_lev']
+    for t in params['t']:
+        out = '%s/%s/%s' % (self.dir, tech, t)
         for tax_lev in tax_levs:
-            rad = '%s/%s_t-%s' % (out, self.sam_pool, tax_lev)
+            rad = '%s/%s_t-%s' % (out, sam, tax_lev)
             cmd = 'metaphlan'
             cmd += ' %s' % bowtie2out
-            cmd += ' -t %s' % analysis
+            cmd += ' -t %s' % t
             cmd += ' --tax_lev %s' % tax_lev
             cmd += ' --input_type bowtie2out'
-            cmd += ' --sample_id %s' % self.sam_pool
+            cmd += ' --sample_id %s' % sam
             cmd += ' --sample_id_key sample_name'
-            cmd += ' --nproc %s' % self.soft.params['cpus']
-            if reads and analysis == 'marker_ab_table':
+            cmd += ' --nproc %s' % params['cpus']
+            for param in [
+                'perc_nonzero',
+                'stat_q',
+                'min_cu_len',
+                'min_alignment_len',
+            ]:
+                cmd += ' --%s %s' % (param, params[param])
+            for param in [
+                'ignore_eukaryotes',
+                'ignore_bacteria',
+                'ignore_archaea',
+                'add_viruses',
+                'avoid_disqm'
+            ]:
+                if params[param]:
+                    cmd += ' --%s' % param
+            if reads and t == 'marker_ab_table':
                 cmd += ' --nreads %s' % reads
-            if analysis == 'clade_specific_strain_tracker':
+            elif t == 'marker_pres_table':
+                cmd += ' --pres_th %s' % params['pres_th']
+            elif t == 'clade_specific_strain_tracker':
                 for strain in self.config.strains:
-                    strain_cmd = cmd
-                    strain_cmd += ' --clade %s' % strain.replace(' ', '_')
+                    s_cmd = cmd
+                    s_cmd += ' --clade %s' % strain.replace(' ', '_')
                     clade_out = '%s_%s.tsv' % (rad, strain.replace(' ', '_'))
-                    strain_cmd += ' --output_file %s' % clade_out
+                    s_cmd += ' --output_file %s' % clade_out
+                    if params['min_ab']:
+                        s_cmd += ' --min_ab %s' % params['min_ab']
                     if self.config.force or to_do(clade_out):
-                        self.outputs['cmds'].append(strain_cmd)
-                        io_update(self, o_f=clade_out)
+                        self.outputs['cmds'].setdefault(tech, []).append(s_cmd)
+                        io_update(self, o_f=clade_out, key=tech)
+                        self.soft.add_status(
+                            tech, self.sam_pool, 1, message=t, genome='strain')
+                    else:
+                        self.soft.add_status(
+                            tech, self.sam_pool, 0, message=t, genome='strain')
             else:
                 ab_out = '%s.tsv' % rad
                 cmd += ' --output_file %s' % ab_out
                 if self.config.force or to_do(ab_out):
-                    self.outputs['cmds'].append(cmd)
-                    io_update(self, o_f=ab_out)
+                    self.outputs['cmds'].setdefault(tech, []).append(cmd)
+                    io_update(self, o_f=ab_out, key=tech)
+                    self.soft.add_status(tech, self.sam_pool, 1, message=t)
+                else:
+                    self.soft.add_status(tech, self.sam_pool, 0, message=t)
 
 
 def profiling(
         self,
+        tech: str,
+        sam: str,
+        inputs: list,
         bowtie2out: str,
         tmpdir: str
 ) -> tuple:
@@ -123,6 +173,12 @@ def profiling(
             All databases class instance
         .config
             Configurations
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    sam : str
+        Name of the current sample
+    inputs : list
+        Paths for the input fastq files
     bowtie2out : str
         Input type was a bowtie2 output of the same tool
     tmpdir : str
@@ -135,30 +191,37 @@ def profiling(
     profile_out : str
         Metaphlan taxonomic profile output
     """
-    sam_out = '%s/sams/%s.sam.bz2' % (self.dir, self.sam_pool)
-    profile_out = '%s/profiles/%s.tsv' % (self.dir, self.sam_pool)
-    if not to_do(profile_out):
-        io_update(self, i_f=bowtie2out)
-    else:
-        io_update(self, o_f=profile_out)
+    sam_out = '%s/%s/sams/%s.sam.bz2' % (self.dir, tech, sam)
+    profile_out = '%s/%s/profiles/%s.tsv' % (self.dir, tech, sam)
+
+    params = tech_params(self, tech)
+    if to_do(profile_out):
+        io_update(self, o_f=profile_out, key=tech)
         cmd = 'metaphlan'
         if not to_do(bowtie2out):
-            io_update(self, i_f=bowtie2out)
+            io_update(self, i_f=bowtie2out, key=tech)
             cmd += ' %s' % bowtie2out
             cmd += ' --input_type bowtie2out'
         else:
-            io_update(self, i_f=self.inputs[self.sam_pool])
-            cmd += ' %s' % ','.join(self.inputs[self.sam_pool])
+            status_update(self, tech, inputs)
+            io_update(self, i_f=inputs, key=tech)
+            cmd += ' %s' % ','.join(inputs)
             cmd += ' --input_type fastq'
             cmd += ' --samout %s' % sam_out
+            cmd += ' --bt2_ps %s' % params['bt2_ps']
+            cmd += ' --min_mapq_val %s' % params['min_mapq_val']
+            cmd += ' --read_min_len %s' % params['read_min_len']
             cmd += ' --bowtie2out %s' % bowtie2out
             cmd += ' --bowtie2db %s' % self.databases.paths['metaphlan']
         cmd += ' --tmp_dir %s' % tmpdir
         cmd += ' --output_file %s' % profile_out
-        cmd += ' --nproc %s' % self.soft.params['cpus']
-        cmd += ' --sample_id_key %s' % self.sam_pool
-        self.outputs['cmds'].append(cmd)
-
+        cmd += ' --nproc %s' % params['cpus']
+        cmd += ' --sample_id_key %s' % sam
+        self.outputs['cmds'].setdefault(tech, []).append(cmd)
+        self.soft.add_status(tech, self.sam_pool, 1)
+    else:
+        io_update(self, i_f=bowtie2out, key=tech)
+        self.soft.add_status(tech, self.sam_pool, 0)
     return sam_out, profile_out
 
 
@@ -216,20 +279,25 @@ def metaphlan(self) -> None:
         .config
             Configurations
     """
-    tmpdir = '$TMPDIR/metaphlan_%s' % self.sam_pool
-    tmp_cmd = ['mkdir -p %s\n' % tmpdir]
+    for (tech, sam), inputs in self.inputs[self.sam_pool].items():
+        if tech_specificity(self, inputs, tech, sam, ['illumina']):
+            continue
 
-    bowtie2out = '%s/bowtie2/%s.bowtie2.bz2' % (self.dir, self.sam_pool)
+        tmpdir = '$TMPDIR/metaphlan_%s_%s' % (tech, self.sam_pool)
+        tmp_cmd = ['mkdir -p %s\n' % tmpdir]
+        bowtie2out = '%s/%s/bowtie2/%s.bowtie2.bz2' % (self.dir, tech, sam)
 
-    outs = profiling(self, bowtie2out, tmpdir)
-    self.outputs['outs'] = [bowtie2out] + list(outs)
-    self.outputs['dir'] = [dirname(x) for x in self.outputs['outs']]
+        outs = profiling(self, tech, sam, inputs, bowtie2out, tmpdir)
+        self.outputs['outs'].setdefault(
+            (tech, sam), []).extend([bowtie2out] + list(outs))
+        self.outputs['dir'] = [
+            dirname(x) for x in self.outputs['outs'][(tech, sam)]]
 
-    reads = get_read_count(self)
-    if reads:
-        analyses(self, bowtie2out, reads)
-    if self.outputs['cmds']:
-        self.outputs['cmds'] = tmp_cmd + self.outputs['cmds']
+        reads = get_read_count(self, tech, sam)
+        if reads:
+            analyses(self, tech, sam, bowtie2out, reads)
+        if self.outputs['cmds'].get(tech):
+            self.outputs['cmds'][tech] = tmp_cmd + self.outputs['cmds'][tech]
 
 
 def get_profile(self) -> list:
@@ -589,45 +657,53 @@ def strainphlan(self) -> None:
         .config
             Configurations
     """
-    bt2_fp, sam_fp = self.inputs[list(self.inputs.keys())[0]][:2]
-    sam_dir = dirname(sam_fp)
-    tmp_dir = '$TMPDIR/strainphlan'
-    db_dir = '%s/db_markers' % self.dir
-    meta_dir = '%s/metadata' % self.dir
-    markers_dir = '%s/consensus_markers' % self.dir
-    wol_pd = self.databases.paths['wol']['taxonomy']
+    for (tech, sam), inputs in self.inputs[self.sam_pool].items():
+        if tech_specificity(self, inputs, 'illumina', sam):
+            continue
+        bt2_fp, sam_fp = inputs[:2]
+        sam_dir = dirname(sam_fp)
+        tmp_dir = '$TMPDIR/strainphlan'
+        db_dir = '%s/db_markers' % self.dir
+        meta_dir = '%s/metadata' % self.dir
+        markers_dir = '%s/consensus_markers' % self.dir
+        wol_pd = self.databases.paths['wol']['taxonomy']
 
-    self.outputs['outs'] = dict({})
-    self.outputs['dirs'].extend([db_dir, meta_dir])
-    self.outputs['cmds'].append('mkdir -p %s' % tmp_dir)
-    io_update(self, i_d=sam_dir, o_d=[markers_dir, db_dir, meta_dir])
+        self.outputs['outs'] = dict({})
+        self.outputs['dirs'].extend([db_dir, meta_dir])
+        self.outputs['cmds'].append('mkdir -p %s' % tmp_dir)
+        io_update(self, i_d=sam_dir, o_d=[markers_dir, db_dir, meta_dir])
 
-    get_sample_to_marker(self, sam_dir, markers_dir)
+        get_sample_to_marker(self, sam_dir, markers_dir)
 
-    for strain_group, strains in self.config.strains.items():
-        strain_dir = '%s/%s' % (db_dir, strain_group)
-        self.outputs['dirs'].append(strain_dir)
-        for strain in [x.replace(' ', '_') for x in strains]:
-            if strain[0] != 's':
-                continue
-            extract_markers(self, strain, strain_dir, db_dir)
-            odir = '%s/output/%s' % (self.dir, strain_group)
-            self.outputs['dirs'].append(odir)
-            self.outputs['outs'][(strain_group, strain)] = odir
-            io_update(self, o_d=odir)
-            tree = '%s/RAxML_bestTree.%s.StrainPhlAn3.tre' % (odir, strain)
-            if self.config.force or to_do(tree):
-                cmd = 'strainphlan'
-                cmd += ' -s %s/*.pkl' % markers_dir
-                cmd += ' -m %s/%s.fna' % (db_dir, strain)
-                if strain in wol_pd['species']:
-                    fna = '%s/%s.fna.bz2' % (
-                        self.databases.paths['wol']['fna'],
-                        wol_pd.loc[wol_pd['species'] == strain, 0])
-                    io_update(self, i_f=fna)
-                    cmd += ' -r %s' % fna
-                cmd += ' -o %s' % odir
-                cmd += ' -n %s' % self.soft.params['cpus']
-                cmd += ' -c %s' % strain
-                cmd += ' --mutation_rates'
-                self.outputs['cmds'].append(cmd)
+        for strain_group, strains in self.config.strains.items():
+            strain_dir = '%s/%s' % (db_dir, strain_group)
+            self.outputs['dirs'].append(strain_dir)
+            for strain in [x.replace(' ', '_') for x in strains]:
+                if strain[0] != 's':
+                    continue
+                extract_markers(self, strain, strain_dir, db_dir)
+                odir = '%s/output/%s' % (self.dir, strain_group)
+                self.outputs['dirs'].append(odir)
+                self.outputs['outs'][(strain_group, strain)] = odir
+                io_update(self, o_d=odir)
+                tree = '%s/RAxML_bestTree.%s.StrainPhlAn3.tre' % (odir, strain)
+                if self.config.force or to_do(tree):
+                    cmd = 'strainphlan'
+                    cmd += ' -s %s/*.pkl' % markers_dir
+                    cmd += ' -m %s/%s.fna' % (db_dir, strain)
+                    if strain in wol_pd['species']:
+                        fna = '%s/%s.fna.bz2' % (
+                            self.databases.paths['wol']['fna'],
+                            wol_pd.loc[wol_pd['species'] == strain, 0])
+                        io_update(self, i_f=fna)
+                        cmd += ' -r %s' % fna
+                    cmd += ' -o %s' % odir
+                    cmd += ' -n %s' % self.soft.params['cpus']
+                    cmd += ' -c %s' % strain
+                    cmd += ' --mutation_rates'
+                    self.outputs['cmds'].append(cmd)
+                    self.soft.add_status(
+                        tech, sam, 1, group=strain_group, genome=strain)
+                else:
+                    self.soft.add_status(
+                        tech, sam, 0, group=strain_group, genome=strain)
