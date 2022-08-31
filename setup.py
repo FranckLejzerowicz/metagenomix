@@ -60,6 +60,7 @@ setup(
         "scipy",
         "numpy",
         "pandas",
+        "tabulate",
         "pyyaml",
         "seaborn",
         "Xhpc==2.6"
