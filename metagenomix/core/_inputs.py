@@ -152,7 +152,7 @@ def show_inputs(self):
             print()
 
 
-def post_prot_dir(
+def get_post_prot_dir(
         self,
         input_fp: str,
 ) -> str:
@@ -253,7 +253,10 @@ def genome_out_dir(
     key : str
         Concatenation of variables names for the current analytic level
     """
-    out_dir = '/'.join([post_prot_dir(self, fasta), tech])
+    post_prot_dir = get_post_prot_dir(self, fasta)
+    self.soft.dir = post_prot_dir.replace('${SCRATCH_FOLDER}', '')
+
+    out_dir = '/'.join([post_prot_dir, tech])
     if self.sam_pool:
         out_dir += '/%s' % self.sam_pool
     if sam_group != self.sam_pool:
@@ -509,7 +512,7 @@ def get_assembler(self) -> str:
     for step in steps:
         if 'assembling' in self.config.tools.get(step, []):
             return step
-    tools = '%s/tools.txt' % RESOURCES
+    tools = '%s/softwares.txt' % RESOURCES
     sys.exit('[%s] None of "%s" is an "assembling" tool (see %s)' % (
         self.soft.name, '", "'.join(steps), tools))
 
