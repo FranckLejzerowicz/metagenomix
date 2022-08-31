@@ -12,7 +12,7 @@ import pkg_resources
 from os.path import basename, dirname, isdir, isfile, splitext
 from metagenomix._io_utils import min_nlines, io_update, to_do, tech_specificity
 from metagenomix.tools.alignment import get_alignment_cmd
-from metagenomix.parameters import tech_params
+from metagenomix.core.parameters import tech_params
 
 RESOURCES = pkg_resources.resource_filename('metagenomix', 'resources/scripts')
 
@@ -286,6 +286,9 @@ def get_combine_cmd(
                 io_update(self, i_f=path_, o_f=path, key=tech)
                 to_fasta_cmd = 'seqtk seq -A %s > %s' % (path_, path)
                 combine_cmds.append(to_fasta_cmd)
+                self.soft.add_status(tech, self.sam_pool, 1)
+            else:
+                self.soft.add_status(tech, self.sam_pool, 0)
 
         path_out = '%s/%s' % (out, basename(path))
         edit_fasta = '%s/fasta4shogun.py -i %s -o %s -s %s' % (
@@ -2117,8 +2120,6 @@ def get_bracken_db(
             Configurations
     db : str
         Name of the Bracken database
-    read_len : int
-        Current reads length to find the suitable Bracken database
 
     Returns
     -------
@@ -2229,7 +2230,7 @@ def bracken(self) -> None:
     for (tech, sam), inputs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, inputs, tech, sam):
             continue
-        params = tech_params(self, tech)
+
         for (db, k2) in inputs:
             db_path = get_bracken_db(self, db)
             out = '/'.join([self.dir, tech, self.sam_pool, db])
@@ -2241,6 +2242,9 @@ def bracken(self) -> None:
                 cmd = bracken_cmd(self, tech, db_path, report, out)
                 self.outputs['cmds'].setdefault(tech, []).append(cmd)
                 io_update(self, i_f=report, o_d=out, key=tech)
+                self.soft.add_status(tech, self.sam_pool, 1)
+            else:
+                self.soft.add_status(tech, self.sam_pool, 0)
 
 
 def metaxa2(self) -> None:

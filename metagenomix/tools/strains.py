@@ -289,7 +289,8 @@ def get_lorikeet(
         else:
             condition = to_do(fasta_folder)
         if condition:
-            self.soft.status.add('Run %s (%s)' % (self.soft.prev, key))
+            self.soft.add_status(
+                tech, self.sam_pool, [fasta_folder], group=group, genome=genome)
 
         if self.config.force or not glob.glob('%s/*' % out_dir):
 
