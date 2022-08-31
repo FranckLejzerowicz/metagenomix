@@ -6,10 +6,10 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-from metagenomix.pipeline import Workflow
-from metagenomix.config import AnalysesConfig
-from metagenomix.databases import ReferenceDatabases
-from metagenomix.commands import Commands
+from metagenomix.core.pipeline import Workflow
+from metagenomix.core.config import AnalysesConfig
+from metagenomix.core.databases import ReferenceDatabases
+from metagenomix.core.commands import Commands
 
 
 def metagenomix(**kwargs) -> tuple:
