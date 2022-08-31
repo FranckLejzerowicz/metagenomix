@@ -29,7 +29,8 @@ nanopore reads (using options `-i illumina_fastqs -k nanopore_fastqs`):
 ```
 
 Then, for these samples to be integrated in the analyses of the 
-configured [pipeline](), it is crucial that the metadata looks like:
+configured [pipeline](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/pipeline.md), it is 
+crucial that the metadata looks like:
 
 ```
 sample_name variable_A   variable_B
