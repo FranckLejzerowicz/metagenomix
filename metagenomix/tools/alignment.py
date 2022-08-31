@@ -6,11 +6,10 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-import sys
-import pkg_resources
 from os.path import splitext
-from metagenomix._io_utils import io_update, to_do, tech_specificity, not_paired
-from metagenomix.parameters import tech_params
+from metagenomix.core.parameters import tech_params
+from metagenomix.core._io_utils import (io_update, to_do, tech_specificity,
+                                        not_paired, status_update)
 
 # Keep line because read mapping alignments will be python scripts
 # scripts = pkg_resources.resource_filename('metagenomix', 'resources/scripts')
@@ -250,9 +249,10 @@ def bowtie2(self) -> None:
         .config
             Configurations
     """
-    for (tech, sam), fastxs in self.inputs[self.sam_pool].items():
-        if tech_specificity(self, fastxs, tech, sam):
+    for (tech, sample), fastxs in self.inputs[self.sam_pool].items():
+        if tech_specificity(self, fastxs, tech, sample):
             continue
+        status_update(self, tech, fastxs)
         out = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
         self.outputs['outs'][(tech, self.sam_pool)] = dict()
         for db, db_path in self.soft.params['databases'].items():
@@ -263,6 +263,9 @@ def bowtie2(self) -> None:
                 cmd = get_alignment_cmd(fastxs, cmd, sam)
                 self.outputs['cmds'].setdefault(tech, []).append(cmd)
                 io_update(self, i_f=fastxs, i_d=db_out, o_d=db_out, key=tech)
+                self.soft.add_status(tech, self.sam_pool, 1)
+            else:
+                self.soft.add_status(tech, self.sam_pool, 0)
             self.outputs['dirs'].append(db_out)
 
 
@@ -344,8 +347,9 @@ def flash(self) -> None:
     for (tech, sam), fastqs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, fastqs, tech, sam, ['illumina']):
             continue
-        if not_paired(self, tech, fastqs):
+        if not_paired(self, tech, sam, fastqs):
             continue
+        status_update(self, tech, fastqs)
 
         out = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
         self.outputs['dirs'].append(out)
@@ -361,6 +365,9 @@ def flash(self) -> None:
             cmd = flash_cmd(self, tech, fastqs, out)
             self.outputs['cmds'][tech] = [cmd]
             io_update(self, i_f=fastqs, o_d=out, key=tech)
+            self.soft.add_status(tech, sam, 1)
+        else:
+            self.soft.add_status(tech, sam, 0)
 
 
 def ngmerge_cmd(
@@ -459,8 +466,9 @@ def ngmerge(self) -> None:
     for (tech, sam), fastqs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, fastqs, tech, sam, ['illumina']):
             continue
-        if not_paired(self, tech, fastqs):
+        if not_paired(self, tech, sam, fastqs):
             continue
+        status_update(self, tech, fastqs)
 
         out = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
         self.outputs['dirs'].append(out)
@@ -482,6 +490,9 @@ def ngmerge(self) -> None:
             cmd = ngmerge_cmd(self, tech, fastqs, ext, log, fail)
             self.outputs['cmds'][tech] = [cmd]
             io_update(self, i_f=fastqs, o_d=out, key=tech)
+            self.soft.add_status(tech, sam, 1)
+        else:
+            self.soft.add_status(tech, sam, 0)
 
 
 def pear_cmd(
@@ -577,8 +588,9 @@ def pear(self) -> None:
     for (tech, sam), fastqs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, fastqs, tech, sam, ['illumina']):
             continue
-        if not_paired(self, tech, fastqs):
+        if not_paired(self, tech, sam, fastqs):
             continue
+        status_update(self, tech, fastqs)
 
         out = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
         self.outputs['dirs'].append(out)
@@ -599,6 +611,9 @@ def pear(self) -> None:
             cmd = pear_cmd(self, tech, fastqs, rad, outs, outs_, na)
             self.outputs['cmds'][tech] = [cmd]
             io_update(self, i_f=fastqs, o_d=out, key=tech)
+            self.soft.add_status(tech, sam, 1)
+        else:
+            self.soft.add_status(tech, sam, 0)
 
 
 def bbmerge_cmd(
@@ -708,8 +723,9 @@ def bbmerge(self) -> None:
     for (tech, sam), fastqs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, fastqs, tech, sam, ['illumina']):
             continue
-        if not_paired(self, tech, fastqs):
+        if not_paired(self, tech, sam, fastqs):
             continue
+        status_update(self, tech, fastqs)
 
         # make the output directory
         out = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
@@ -736,6 +752,9 @@ def bbmerge(self) -> None:
             # add is to the 'cmds'
             self.outputs['cmds'][tech] = [cmd]
             io_update(self, i_f=fastqs, o_d=out, key=tech)
+            self.soft.add_status(tech, sam, 1)
+        else:
+            self.soft.add_status(tech, sam, 0)
 
 
 def salmon(self) -> None:
