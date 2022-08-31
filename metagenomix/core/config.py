@@ -85,7 +85,7 @@ class AnalysesConfig(object):
 
     def get_tools(self):
         self.tools['fastq'] = 'raw data'
-        with open('%s/tools.txt' % RESOURCES) as f:
+        with open('%s/softwares.txt' % RESOURCES) as f:
             for line in f:
                 tool, category = line.strip().split('\t')
                 self.tools[tool] = category
