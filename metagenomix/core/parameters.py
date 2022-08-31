@@ -470,13 +470,13 @@ def check_prokka(self, params, soft):
 
 def check_antismash(self, params, soft):
     defaults = {
-        'tta-threshold': 0.65,
+        'tta_threshold': 0.65,
         'rre': [True, False],
         'asf': [True, False],
         'cassis': [True, False],
         'pfam2go': [True, False],
         'tigrfam': [True, False],
-        'cc-mibig': [True, False],
+        'cc_mibig': [True, False],
         'fullhmmer': [True, False],
         'cb_general': [True, False],
         'smcog_trees': [True, False],
@@ -487,9 +487,9 @@ def check_antismash(self, params, soft):
         'genefinding_tool': [
             'prodigal-m', 'prodigal', 'glimmerhmm', 'none', 'error']
     }
-    check_nums(self, params, defaults, ['tta-threshold'],
-               float, soft.name, 0, 1)
-    check_default(self, params, defaults, soft.name, ['tta-threshold'])
+    floats = ['tta_threshold']
+    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
+    check_default(self, params, defaults, soft.name, floats)
     return defaults
 
 
@@ -2272,6 +2272,96 @@ def check_amrplusplus2(self, params, soft):
     defaults['snp_annotation'] = '<Path to SNP metadata file>'
     defaults['snp_confirmation'] = '<Path to "snp_confirmation.py" script>'
     return defaults
+
+
+def check_metaphlan(self, params, soft):
+    defaults = {
+        'tax_lev': ['k', 'p', 'c', 'o', 'f', 'g', 's', 'a'],
+        'bt2_ps': ['very-sensitive', 'sensitive', 'sensitive-local',
+                   'very-sensitive-local'],
+        'stat': ['tavg_g', 'avg_g', 'avg_l', 'tavg_l', 'wavg_g', 'wavg_l',
+                 'med'],
+        't': ['rel_ab', 'rel_ab_w_read_stats', 'clade_profiles',
+              'marker_ab_table', 'marker_pres_table',
+              'clade_specific_strain_tracker'],
+        'perc_nonzero': 0.33,
+        'stat_q': 0.2,
+        'pres_th': 0.,
+        'min_ab': 0.,
+        'min_mapq_val': 5,
+        'min_cu_len': 2000,
+        'read_min_len': 70,
+        'min_alignment_len': 0,
+        'ignore_eukaryotes': [False, True],
+        'ignore_bacteria': [False, True],
+        'ignore_archaea': [False, True],
+        'add_viruses': [False, True],
+        'avoid_disqm': [False, True]
+    }
+    if 't' not in params:
+        params['t'] = ['rel_ab', 'rel_ab_w_read_stats', 'clade_profiles',
+                       'marker_ab_table', 'marker_pres_table',
+                       'clade_specific_strain_tracker']
+    if 'tax_lev' not in params:
+        params['tax_lev'] = ['a']
+    if 'ignore_markers' in params and not isfile(params['ignore_markers']):
+        sys.exit('[metaphlan] Param "ignore_markers" must be a file path')
+    ints = ['min_mapq_val', 'min_cu_len', 'min_alignment_len', 'read_min_len']
+    check_nums(self, params, defaults, ints, int, soft.name)
+    floats = ['stat_q', 'perc_nonzero', 'pres_th', 'min_ab']
+    check_nums(self, params, defaults, floats, float, soft.name)
+    check_default(
+        self, params, defaults, soft.name, (ints + floats), ['tax_lev', 't'])
+    defaults['ignore_markers'] = '<File containing a list of markers to ignore>'
+    return defaults
+
+
+# def check_ToolName(self, params, soft):
+#     defaults = {
+#     }
+#     ints = []
+#     check_nums(self, params, defaults, ints, int, soft.name)
+#     floats = []
+#     check_nums(self, params, defaults, floats, float, soft.name)
+#     check_default(self, params, defaults, soft.name, (ints + floats))
+#     defaults[''] = '<>'
+#     return defaults
+
+
+# def check_ToolName(self, params, soft):
+#     defaults = {
+#     }
+#     ints = []
+#     check_nums(self, params, defaults, ints, int, soft.name)
+#     floats = []
+#     check_nums(self, params, defaults, floats, float, soft.name)
+#     check_default(self, params, defaults, soft.name, (ints + floats))
+#     defaults[''] = '<>'
+#     return defaults
+
+
+# def check_ToolName(self, params, soft):
+#     defaults = {
+#     }
+#     ints = []
+#     check_nums(self, params, defaults, ints, int, soft.name)
+#     floats = []
+#     check_nums(self, params, defaults, floats, float, soft.name)
+#     check_default(self, params, defaults, soft.name, (ints + floats))
+#     defaults[''] = '<>'
+#     return defaults
+
+
+# def check_ToolName(self, params, soft):
+#     defaults = {
+#     }
+#     ints = []
+#     check_nums(self, params, defaults, ints, int, soft.name)
+#     floats = []
+#     check_nums(self, params, defaults, floats, float, soft.name)
+#     check_default(self, params, defaults, soft.name, (ints + floats))
+#     defaults[''] = '<>'
+#     return defaults
 
 
 # def check_circlator(self, params, soft):
