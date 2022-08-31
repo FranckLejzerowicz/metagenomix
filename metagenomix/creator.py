@@ -7,7 +7,7 @@
 # ----------------------------------------------------------------------------
 
 from metagenomix.metagenomix import metagenomix
-from metagenomix.jobs import CreateScripts
+from metagenomix.core.jobs import CreateScripts
 
 
 def creator(**kwargs):
@@ -18,7 +18,8 @@ def creator(**kwargs):
     kwargs : dict
         All arguments passed in command line, including defaults
     """
-    # Make .sh and scheduler (.slm or .pbs) scripts to
+    print('\n === metagenomix creator ===\n')
+    # Collect all command and init the script creating instance
     scripting = CreateScripts(*metagenomix(**kwargs))
     # print('* Writing database formatting commands')
     # scripting.database_cmds()  # build the databases
@@ -29,3 +30,5 @@ def creator(**kwargs):
     if len(scripting.run['database']) or len(scripting.run['software']):
         print('< PLEASE CONSIDER CHECKING THE COMMAND LINE SCRIPTS MANUALLY >')
         scripting.display()  # show the scripts to run
+    scripting.versioning()
+    print('\nCompleted.')
