@@ -11,8 +11,11 @@ import re
 import sys
 import yaml
 import glob
+import itertools
 import pandas as pd
-from os.path import dirname, isdir, isfile
+from tabulate import tabulate
+from os.path import basename, dirname, isdir, isfile
+
 
 
 def read_yaml(
@@ -215,6 +218,7 @@ def min_nlines(
 def not_paired(
         self,
         tech: str,
+        sam: str,
         fqs: list,
 ) -> bool:
     """Checks whether there are two input files, which is what is needed for
@@ -227,6 +231,8 @@ def not_paired(
             All outputs
     tech : str
         Technology: 'illumina', 'pacbio', or 'nanopore'
+    sam : str
+        Name of the current sample
     fqs : list
         Paths to the input files
 
@@ -238,8 +244,47 @@ def not_paired(
     nfiles = len(fqs)
     if nfiles != 2:
         self.outputs['outs'].setdefault((tech, self.sam_pool), []).extend(fqs)
+        self.soft.add_status(tech, sam, 1, message='unpaired reads')
         return True
     return False
+
+
+def status_update(
+        self,
+        tech: str,
+        inputs: list,
+        pool: str = None,
+        group: str = None,
+        genome: str = None
+) -> None:
+    """Potentially add the fastq files to the status (files to generate).
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .sam_pool : str
+            Sample name
+        .soft
+            Software class instance
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    inputs : list
+        Paths to input files
+    pool : str
+        Name of the current co-assembly
+    group : str
+        Name of the current co-assembly group
+    genome : str
+        MAGs/Genomes folder name or empty string (for assembly contigs)
+    """
+    to_dos = [x for x in inputs if to_do(x)]
+    if to_dos:
+        if pool:
+            self.soft.add_status(tech, pool, to_dos,
+                                 group=group, genome=genome)
+        else:
+            self.soft.add_status(tech, self.sam_pool, to_dos,
+                                 group=group, genome=genome)
 
 
 def get_roundtrip(io) -> dict:
@@ -427,6 +472,7 @@ def tech_specificity(
     """
     if not data or (specificity and tech not in specificity):
         self.outputs['outs'].setdefault((tech, sam), []).extend(data)
+        self.soft.add_status(tech, sam, 0, message='technology incompatible')
         return True
     return False
 
@@ -448,3 +494,263 @@ def caller(
             module_call = getattr(module, func)
             return module_call
     print('No function "%s" in module "%s"' % (func, namespace))
+
+
+def edit_sample_or_pool(not_done):
+    sample_or_pool = 'pool'
+    if not_done['group'].isnull().all():
+        sample_or_pool = 'sample'
+    not_done.rename(columns={'sample_or_pool': sample_or_pool}, inplace=True)
+
+
+def show_not_done(not_done):
+    """
+
+    Parameters
+    ----------
+    not_done : pd.DataFrame
+
+    Returns
+    -------
+    status_summary : str
+        Summary of the analyses that remain to do
+    """
+    # replace "sample_or_pool" by "sample" or "pool" depending on the data type
+    edit_sample_or_pool(not_done)
+    # get the data that remains to analyse for the current software
+    todo_pd = not_done.loc[not_done['status'] == 'To do'].copy()
+    # make a one-liner summarizing what remains to analyse (per tech, pool etc)
+    status_summary = summarize_status(todo_pd)
+    print(status_summary)
+    return status_summary
+
+
+def print_vals(vals) -> str:
+    vals = '; '.join(['%ss' % v if int(v.split()[0]) > 1 else v for v in
+                        vals])
+    return vals
+
+
+def summarize_status(tab) -> str:
+    """
+
+    Parameters
+    ----------
+    tab
+
+    Returns
+    -------
+    status_summary : str
+        Summary of the analyses that remain to do
+    """
+    cols = tab.columns.tolist()[:2] + ['group', 'genome']
+    dat = tab[cols].apply(lambda x: x.nunique()).astype(str).to_dict().items()
+    vals = [' '.join(x[::-1]) for x in dat if int(x[1])]
+    if vals:
+        status_summary = 'to do:\t%s' % print_vals(vals)
+    else:
+        status_summary = 'nothing to do'
+    return status_summary
+
+
+def pretty_print(tab, header, typ) -> str:
+    # stackoverflow.com/questions/41593793/
+    # printtabulate-to-pretty-print-multiindex-pandas
+    p_tab = tabulate(tab, headers=header, tablefmt='orgtbl')
+    tab_width = [len(x) for x in p_tab.split('\n') if '|--' in x][0]
+    dash = '-' * tab_width
+    if not typ:
+        typ = 'needed input'
+    gap = (tab_width // 2) - (len(typ) // 2)
+    header = '%s\n%s%s\n%s\n' % (dash, ' ' * gap, typ, dash)
+    out_tab = header + p_tab + '\n' + dash
+    p_tab = '\n\t\t' + re.sub('\\n', '\n%s' % ('\t' * 2), out_tab) + '\n'
+    print(p_tab)
+    return out_tab
+
+
+def get_pivot_table_cols(
+        tab: pd.DataFrame,
+) -> list:
+    """Get the columns of the status table that are to be used
+    to report progress.
+
+    Parameters
+    ----------
+    tab : pd.DataFrame
+
+    Returns
+    -------
+    pivot_table_cols : list
+    """
+    tab_cols = tab.columns.tolist()
+    cols = tab_cols[:2] + ['group']
+    if 'genome' in tab_cols:
+        cols += ['genome']
+    pivot_table_cols = [col for col in cols if not tab[col].isnull().all()]
+    return pivot_table_cols
+
+
+def pivot_not_done_multi_header(t) -> tuple:
+    # reorder column multiindex to get the tech above and group/genome below
+    t.columns = t.columns.reorder_levels(range(len(t.columns.levels))[::-1])
+    # sort table columns to suit the reordering
+    t = t[[
+        it for it in itertools.product(*[
+            lev[::-1] if lx else lev for lx, lev in enumerate(t.columns.levels)
+        ])
+    ]]
+    # edit the multi-index lie for pretty printing
+    h = [t.index.names[0] + '/' + t.columns.names[0]] + list(
+        map('\n'.join, t.columns.tolist()))
+    return t, h
+
+
+def print_tab_pv(
+        tab_pv: pd.DataFrame,
+        cols: list,
+        typ: str = '',
+) -> tuple:
+    """
+
+    Parameters
+    ----------
+    tab_pv : pd.DataFrame
+    cols : list
+    typ : str
+
+    Returns
+    -------
+    out_tab : str
+        Table to write out
+    skip : bool
+        Whether the print table is only for sample per tech
+        (will break without printing content details since there is no content)
+    """
+    skip = False
+    if len(cols[2:]) > 1:
+        tab_pv_sorted, h = pivot_not_done_multi_header(tab_pv)
+        out_tab = pretty_print(tab_pv_sorted, h, typ)
+    elif len(cols[2:]):
+        h = [tab_pv.index.names[0]] + ['\n'.join(x[::-1]) if x[0][:3] == 'Run'
+                                       else x[-1] for x in tab_pv.columns]
+        out_tab = pretty_print(tab_pv, h, typ)
+    else:
+        h = [tab_pv.index.names[0]] + tab_pv.columns.tolist()
+        out_tab = pretty_print(tab_pv, h, typ)
+        skip = True
+    return out_tab, skip
+
+
+def print_message(
+        tab: pd.DataFrame,
+) -> list:
+    """Loop to print both the data remaining to analyze, both in terms of
+    job counts and job contents (sample, co-assembly pool's group, genome).
+
+    Parameters
+    ----------
+    tab : pd.DataFrame
+        Status table for the
+
+    Returns
+    -------
+    out_messages : list
+        Pretty tables
+    """
+    out_messages = []
+    cols = get_pivot_table_cols(tab)
+    for (typ, aggfunc) in [
+        ('counts', 'count'),
+        ('contents', (lambda x: '\n'.join([y for y in x if y is not None]))),
+    ]:
+        tab_pv = tab[cols].pivot_table(
+            values=cols[2:],
+            columns=cols[0],
+            index=cols[1],
+            aggfunc=aggfunc)
+        out_tab, break_here = print_tab_pv(tab_pv, cols, typ)
+        out_messages.append(out_tab)
+        if break_here:
+            break
+    return out_messages
+
+
+def print_messages(not_done):
+    out_messages = []
+    for mess, mess_pd in not_done.groupby('message'):
+        message = 'Attention -> "%s":' % mess
+        print('\n\t\t%s ' % message)
+        out_messages.append(message)
+        out_messages.extend(print_message(mess_pd))
+    return out_messages
+
+
+def print_needed(path, not_done) -> str:
+    tab = not_done.loc[not_done['status'] != 'To do'].copy()
+    if len(tab):
+        tab['status'] = ['\n'.join(map(basename, x)) for x in tab['status']]
+        path = ['%s> %s' % (' ' * x, y) for x, y in enumerate(path[:-1])]
+        status = 'Run:\n%s\n%s*' % ('\n'.join(path[:-1])[2:],
+                                    path[-1].replace('> ', '=> *'))
+        tab = tab.rename(columns={'status': status})
+        cols = get_pivot_table_cols(tab) + [status]
+        tab_pv = tab[cols].pivot_table(
+            values=cols[2:],
+            columns=cols[0],
+            index=cols[1],
+            aggfunc=(lambda x: '\n'.join(set(y for y in x if y is not None))))
+        out_tab, _ = print_tab_pv(tab_pv, cols)
+        return out_tab
+
+
+def print_status_table(
+        soft,
+        show_status: bool = False
+) -> None:
+    if soft.status:
+        status = pd.DataFrame(soft.status, columns=[
+            'tech', 'sample_or_pool', 'status', 'group', 'message', 'genome'])
+        status.drop_duplicates(inplace=True)
+        not_done = status.loc[status['status'] != 'Done'].copy()
+        if len(not_done):
+            soft.tables.append(show_not_done(not_done))
+            if show_status:
+                # pretty table of data that remains to analyse when message
+                soft.tables.extend(print_messages(not_done))
+                # pretty table of data that remains to analyse upfront
+                soft.tables.append(print_needed(soft.path, not_done))
+        else:
+            soft.tables.append('done')
+            print('done')
+    else:
+        soft.tables.append('done')
+        print('done')
+
+
+def get_versions(version_fp) -> list:
+    """Get the different dates at which the current
+    pipeline configuration was run.
+
+    Parameters
+    ----------
+    version_fp
+        Path to the versioning file for this pipeline configuration
+    Returns
+    -------
+    versions : list
+        All the dates at which this pipeline configuration was run
+    """
+    versions = []
+    if isfile(version_fp):
+        print('This pipeline configuration (softwares/parmas) was already run.')
+        with open(version_fp) as f:
+            for line in f:
+                if line.startswith('Date'):
+                    versions.append(line.strip().split()[-1])
+    return versions
+
+
+
+
+
