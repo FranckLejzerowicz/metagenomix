@@ -8,9 +8,7 @@
 
 import os
 import glob
-import sys
 
-import yaml
 import pkg_resources
 
 import pandas as pd
