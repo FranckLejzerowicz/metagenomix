@@ -7,7 +7,7 @@
 # ----------------------------------------------------------------------------
 
 import unittest
-from metagenomix.pipeline import Graph, Soft, Workflow
+from metagenomix.core.pipeline import Graph, Soft
 
 
 class TestGraph(unittest.TestCase):

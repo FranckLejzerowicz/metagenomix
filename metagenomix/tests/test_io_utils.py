@@ -229,5 +229,33 @@ class TestIOUtils(unittest.TestCase):
         os.remove('%s.gz' % self.to_format)
 
 
+class TestPrints(unittest.TestCase):
+
+    def setUp(self) -> None:
+        tab_status_full = pd.DataFrame(
+            [['illumina', 'S1', ['a1.fastq.gz', 'b1.fastq.gz'], 'a', 'x'],
+             ['illumina', 'S2', ['a2.fastq.gz', 'b2.fastq.gz'], 'a', 'x'],
+             ['illumina', 'S3', ['a3.fastq.gz', 'b3.fastq.gz'], 'b', 'x'],
+             ['nanopore', 'S1', ['a4.fastq.gz', 'b4.fastq.gz'], 'a', None],
+             ['nanopore', 'S2', ['a5.fastq.gz', 'b5.fastq.gz'], 'b', None]],
+            columns=['tech', 'sam', 'status', 'group', 'genome'])
+
+        tab_status_group = pd.DataFrame(
+            [['illumina', 'S1', ['a1.fastq.gz', 'b1.fastq.gz'], 'a', None],
+             ['illumina', 'S2', ['a2.fastq.gz', 'b2.fastq.gz'], 'a', None],
+             ['illumina', 'S3', ['a3.fastq.gz', 'b3.fastq.gz'], 'b', None],
+             ['nanopore', 'S1', ['a4.fastq.gz', 'b4.fastq.gz'], 'a', None],
+             ['nanopore', 'S2', ['a5.fastq.gz', 'b5.fastq.gz'], 'b', None]],
+            columns=['tech', 'sam', 'status', 'group', 'genome'])
+
+        tab_status = pd.DataFrame(
+            [['illumina', 'S1', ['a1.fastq.gz', 'b1.fastq.gz'], None, None],
+             ['illumina', 'S2', ['a2.fastq.gz', 'b2.fastq.gz'], None, None],
+             ['illumina', 'S3', ['a3.fastq.gz', 'b3.fastq.gz'], None, None],
+             ['nanopore', 'S1', ['a4.fastq.gz', 'b4.fastq.gz'], None, None],
+             ['nanopore', 'S2', ['a5.fastq.gz', 'b5.fastq.gz'], None, None]],
+            columns=['tech', 'sam', 'status', 'group', 'genome'])
+
+
 if __name__ == '__main__':
     unittest.main()

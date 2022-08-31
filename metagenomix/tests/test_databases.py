@@ -7,7 +7,6 @@
 # ----------------------------------------------------------------------------
 
 import os
-import glob
 import yaml
 import unittest
 import pkg_resources
@@ -19,8 +18,8 @@ from pandas.testing import assert_frame_equal
 import io
 from unittest.mock import patch
 
-from metagenomix.databases import ReferenceDatabases
-from metagenomix.config import AnalysesConfig
+from metagenomix.core.databases import ReferenceDatabases
+from metagenomix.core.config import AnalysesConfig
 
 RESOURCES = pkg_resources.resource_filename('metagenomix', 'resources')
 FOLDER = pkg_resources.resource_filename('metagenomix', 'tests/unittests')

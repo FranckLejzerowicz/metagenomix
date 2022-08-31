@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 from pandas.testing import assert_frame_equal
 
-from metagenomix.config import AnalysesConfig
+from metagenomix.core.config import AnalysesConfig
 
 RESOURCES = pkg_resources.resource_filename('metagenomix', 'resources')
 FOLDER = pkg_resources.resource_filename('metagenomix', 'tests/unittests')

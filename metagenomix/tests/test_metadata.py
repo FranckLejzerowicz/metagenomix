@@ -10,7 +10,7 @@ import unittest
 
 import pandas as pd
 import pkg_resources
-from pandas.testing import assert_frame_equal, assert_series_equal
+from pandas.testing import assert_frame_equal
 
 from metagenomix._metadata import read_metadata, get_cur_type, get_first_column
 
