@@ -9,8 +9,8 @@
 import pkg_resources
 from os.path import isdir
 
-from metagenomix._io_utils import io_update, to_do
-from metagenomix.parameters import tech_params
+from metagenomix._io_utils import io_update, to_do, status_update
+from metagenomix.core.parameters import tech_params
 
 RESOURCES = pkg_resources.resource_filename("metagenomix", "resources/scripts")
 
@@ -304,12 +304,15 @@ def simka(self) -> None:
     for tech in self.config.techs:
         params = tech_params(self, tech)
         input_cmd, input_fastqs, input_file = get_simka_input(self, tech)
+        status_update(self, tech, input_fastqs)
+        cmds = ''
         for k in map(int, params['kmer']):
             for n in map(int, params['log_reads']):
                 out_dir = '%s/%s/k%s/n%s' % (self.dir, tech, k, n)
                 cmd = simka_cmd(self, params, input_file, out_dir, k, n)
                 if cmd:
                     cmd = input_cmd + cmd
+                    cmds += cmd
                     self.outputs['dirs'].append(out_dir)
                     self.outputs['cmds'].setdefault(tech, []).append(cmd)
                     io_update(self, i_f=input_fastqs, o_d=out_dir, key=tech)
@@ -320,5 +323,10 @@ def simka(self) -> None:
                     mat = '%s/mat_%s.csv.gz' % (out_dir, met)
                     cmd = simka_pcoa_cmd(self, mat)
                     if cmd:
+                        cmds += cmd
                         self.outputs['cmds'].setdefault(tech, []).append(cmd)
                         io_update(self, o_d=out_dir, key=tech)
+        if cmds:
+            self.soft.add_status(tech, 'all samples', 1)
+        else:
+            self.soft.add_status(tech, 'all samples', 0)
