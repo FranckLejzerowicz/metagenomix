@@ -8,31 +8,63 @@
 
 import yaml
 from collections import defaultdict, Counter
-from metagenomix import parameters
-from metagenomix.parameters import *
+from metagenomix.core import parameters
+from metagenomix.core.parameters import *
 
 
 class Soft(object):
 
     def __init__(self, config):
         self.name = ''
+        self.dir = None
         self.prev = None
         self.scratch = None   # no use of the scratch file system by default
         self.params = dict(config.params)  # init with default params
         # key attributes to be filled by each tool-specific code
-        self.io = {}
+        self.io = {}  # contains the input/output for the movement to scratch
         self.inputs = {}
         self.outputs = {}
         self.defaults = {}
         self.cmds = {}
+        self.path = []
+        self.status = []
+        self.tables = []
         self.dirs = set()
-        self.status = set()
+        self.messages = set()
 
     def get_softs(self, softs):
         if len(softs) == 1:
             self.name = softs[0]
         else:
             self.prev, self.name = softs
+
+    def add_status(
+            self,
+            tech,
+            sam_pool,
+            dec=None,
+            group=None,
+            message=None,
+            genome=None
+    ):
+        row = [tech, sam_pool]
+        if dec == 0:
+            row.append('Done')
+        elif dec == 1:
+            row.append('To do')
+        else:
+            if isinstance(dec, list):
+                row.append(tuple(dec))
+            elif isinstance(dec, str):
+                row.append((dec,))
+        row.extend([None if not x else x for x in [group, message, genome]])
+        self.status.append(row)
+
+    def add_soft_path(self, softs):
+        if self.prev is None:
+            self.path = ['fastq', self.name]
+        else:
+            self.path = softs[self.prev].path + [self.name]
 
 
 class Graph(object):
