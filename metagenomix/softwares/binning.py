@@ -379,7 +379,7 @@ def classify_or_annotate_condition(
         command: str,
         out: str
 ) -> bool:
-    """Get the boolean telling whether the tools was already run.
+    """Get the boolean telling whether the softwares was already run.
 
     Parameters
     ----------
@@ -793,7 +793,7 @@ def get_binners(
         self,
         binned: dict
 ) -> list:
-    """Get the binning tools that were not run yet.
+    """Get the binning softwares that were not run yet.
 
     Parameters
     ----------
@@ -808,7 +808,7 @@ def get_binners(
     Returns
     -------
     binners : list
-        Binner tools used for the metaWRAP binning
+        Binner softwares used for the metaWRAP binning
     """
     binners = []
     for binner, bins in binned.items():

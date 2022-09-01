@@ -1459,7 +1459,7 @@ def antismash(self) -> None:
     antiSMASH allows the rapid genome-wide identification, annotation and
     analysis of secondary metabolite biosynthesis gene clusters in bacterial
     and fungal genomes. It integrates and cross-links with a large number of
-    in silico secondary metabolite analysis tools that have been published
+    in silico secondary metabolite analysis softwares that have been published
     earlier.
 
     References

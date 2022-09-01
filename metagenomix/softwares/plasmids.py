@@ -299,25 +299,25 @@ def plasforest(self) -> None:
 
 
 def mobsuite(self) -> None:
-    """MOB-suite: Software tools for clustering, reconstruction and typing of
+    """MOB-suite: Software softwares for clustering, reconstruction and typing of
     plasmids from draft assemblies.
 
     Plasmids are mobile genetic elements (MGEs), which allow for rapid
     evolution and adaption of bacteria to new niches through horizontal
     transmission of novel traits to different genetic backgrounds. The
-    MOB-suite is designed to be a modular set of tools for the typing and
+    MOB-suite is designed to be a modular set of softwares for the typing and
     reconstruction of plasmid sequences from WGS assemblies.
 
     The MOB-suite depends on a series of databases which are too large to be
     hosted in git-hub. They can be downloaded or updated by running mob_init
-    or if running any of the tools for the first time, the databases will
+    or if running any of the softwares for the first time, the databases will
     download and initialize automatically if you do not specify an alternate
     database location. However, they are quite large so the first run will
     take a long time depending on your connection and speed of your computer.
 
     References
     ----------
-    Robertson, James, and John HE Nash. "MOB-suite: software tools for
+    Robertson, James, and John HE Nash. "MOB-suite: software softwares for
     clustering, reconstruction and typing of plasmids from draft assemblies."
     Microbial genomics 4.8 (2018).
 

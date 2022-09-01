@@ -434,7 +434,7 @@ def metamarc(self) -> None:
     purpose of screening and profiling resistance genes in DNA-based
     metagenomic data. This tool was developed for the characterization of
     various resistance classes, mechanisms, and gene/operon groups from raw
-    sequencing data much in the way that microbiome tools profile the
+    sequencing data much in the way that microbiome softwares profile the
     bacterial taxonomy of metagenomic samples. Meta-MARC is not intended to
     be used as a final annotation or all-in-one tool; this software simply
     offers the user another view of complex metagenomic data. Users are
@@ -653,7 +653,7 @@ def karga(self) -> None:
     mutation rates within 10%, and of 83.37% for error/mutation rates between
     10% and 25%, while it is 99.92% on ARGs with rearrangements. On empirical
     data, KARGA provides higher hit score (≥1.5-fold) than AMRPlusPlus, DeepARG,
-    and MetaMARC. KARGA has also faster runtimes than all other tools (2x faster
+    and MetaMARC. KARGA has also faster runtimes than all other softwares (2x faster
     than AMRPlusPlus, 7x than DeepARG, and over 100x than MetaMARC).
 
     References

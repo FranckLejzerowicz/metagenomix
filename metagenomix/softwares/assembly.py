@@ -120,7 +120,7 @@ def quast(self) -> None:
     QUAST toolkit includes the general QUAST tool for genome assemblies,
     MetaQUAST, the extension for metagenomic datasets, QUAST-LG,
     the extension for large genomes (e.g., mammalians), and Icarus,
-    the interactive visualizer for these tools.
+    the interactive visualizer for these softwares.
 
     References
     ----------
