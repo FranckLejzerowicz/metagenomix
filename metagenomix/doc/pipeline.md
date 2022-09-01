@@ -96,7 +96,7 @@ Below are shown both a simple and an extensive example of valid pipeline
 configuration files. For more examples reflecting how previous research 
 works could have been conducted using metagenomix, please explore examples 
 of possible
-[Research applications](https://github.com/FranckLejzerowicz/metagenomix/wiki/Research-applications).
+[Research applications](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/tutorial/applications/readme.md).
 
 #### Simple
 
