@@ -1057,3 +1057,30 @@ def filtering(self):
             self.soft.add_status(tech, sam, 1)
         else:
             self.soft.add_status(tech, sam, 0)
+
+
+def mapdamage2(self) -> None:
+    """.
+
+    Notes
+    -----
+    GitHub  : https://ginolhac.github.io/mapDamage
+    paper   : https://doi.org/10.1093/bioinformatics/btt193
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for MapDamage2
+        .sam : str
+            Sample name
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    """
+    pass
