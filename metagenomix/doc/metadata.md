@@ -2,10 +2,10 @@
 
 ### Format
 
-The sample metadata is a mandatory
+The sample metadata
 [configuration file](https://github.com/FranckLejzerowicz/metagenomix/wiki/Configuration-files).
-It must be a simple tab-separated file with a header row containing at least 
-one column.
+is mandatory. It must be a simple tab-separated file with a header row 
+containing at least one column.
 
 The variable name for this first column can be anything, such as 
 `sample_name`, `SampleID`, or any other character string (e.g, `my_samples`).
