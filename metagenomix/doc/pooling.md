@@ -1,4 +1,4 @@
-:construction: IN PROGRESS
+:construction:
 
 # Pooling for co-assembly
 
