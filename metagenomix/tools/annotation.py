@@ -696,6 +696,11 @@ def diamond(
 ) -> str:
     """Collect the command line for DIAMOND.
 
+    Notes
+    -----
+    GitHub  : https://github.com/bbuchfink/diamond
+    Paper   : https://doi.org/10.1038/s41592-021-01101-x
+
     Parameters
     ----------
     params : dict
@@ -741,6 +746,11 @@ def hmmer(
         _: str
 ) -> str:
     """Collect the command line for HMMER.
+
+    Notes
+    -----
+    Docs    : http://hmmer.org/documentation.html
+    Paper   : https://doi.org/10.1371/journal.pcbi.1002195
 
     Parameters
     ----------
