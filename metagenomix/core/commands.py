@@ -48,7 +48,6 @@ class Commands(object):
         self.struc = list
         self.holistics = [
             'antismash'
-            'multiqc',
             'simka',
             'quast'
             'qiita_wol',
