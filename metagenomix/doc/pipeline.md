@@ -7,7 +7,11 @@ one after the other.
 
 ### Format
 
-
+Thw file must contain one or two [software names](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/pipline.md#software-names)
+separated by a space (can be one or mulitple space(s), or a tab).
+Lines starting with a hash (`#`) comment character will be ignored as well 
+as blank lines. Hence, it can be useful to add comments to label your 
+pipeline (for example, if sharing the configuration files with peers).
 
 ### Content
 
