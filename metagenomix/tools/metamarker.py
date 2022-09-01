@@ -61,6 +61,11 @@ def get_input_files(self):
 def metamarker(self) -> None:
     """Prepare the command and collect outputs, io and dirs for Metamarker.
 
+    Notes
+    -----
+    BitBucket   : https://bitbucket.org/mkoohim/metamarker/wiki/Home
+    Paper       : https://doi.org/10.1093/bioinformatics/btz123
+
     Parameters
     ----------
     self : Commands class instance
