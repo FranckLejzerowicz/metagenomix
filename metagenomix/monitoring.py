@@ -32,11 +32,6 @@ def monitoring(**kwargs):
     monitored.parse_softs()
     monitored.monitor_softs()
 
-    for name, soft in monitored.data.items():
-        print()
-        print('software:', name)
-        print(pd.DataFrame(soft.jobs))
-
 
 class Monitored(object):
 
@@ -114,3 +109,20 @@ class Monitored(object):
         for name, soft in self.commands.softs.items():
             if isdir(self.output_dir + '/' + name):
                 self.data[name] = Output(self.output_dir, name)
+
+    def monitor_softs(self):
+        for name, soft in self.data.items():
+            print()
+            print()
+            print()
+            print('#' * 40)
+            print('software:', name)
+            print('#' * 40)
+            print()
+            print(soft.__dict__.keys())
+            for key, value in soft.__dict__.items():
+                print()
+                print("key:", key)
+                print(value)
+            # print(pd.DataFrame(soft.jobs))
+
