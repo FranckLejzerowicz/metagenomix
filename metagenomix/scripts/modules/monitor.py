@@ -42,7 +42,7 @@ from metagenomix import __version__
     help="Species for strain-level analyses (yaml file).")
 @click.option(
     "--show-params/--no-show-params", default=False, show_default=False,
-    help="Show all possible parameters for all tools of your pipeline")
+    help="Show all possible parameters for all softwares of your pipeline")
 @click.option(
     "--force/--no-force", default=False, show_default=True,
     help="Check as if the re-writing of scripts for all commands was planned")

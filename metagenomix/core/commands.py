@@ -10,21 +10,21 @@ import itertools
 from os.path import abspath
 
 from metagenomix._inputs import show_inputs
-from metagenomix.tools.alignment import *
-from metagenomix.tools.annotation import *
-from metagenomix.tools.args import *
-from metagenomix.tools.assembly import *
-from metagenomix.tools.binning import *
-from metagenomix.tools.metamarker import *
-from metagenomix.tools.genomics import *
-from metagenomix.tools.phlans import *
-from metagenomix.tools.plasmids import *
-from metagenomix.tools.pooling import pooling
-from metagenomix.tools.preprocess import *
-from metagenomix.tools.profiling import *
-from metagenomix.tools.simka import *
-from metagenomix.tools.strains import *
-from metagenomix.tools.viruses import *
+from metagenomix.softwares.alignment import *
+from metagenomix.softwares.annotation import *
+from metagenomix.softwares.args import *
+from metagenomix.softwares.assembly import *
+from metagenomix.softwares.binning import *
+from metagenomix.softwares.metamarker import *
+from metagenomix.softwares.genomics import *
+from metagenomix.softwares.phlans import *
+from metagenomix.softwares.plasmids import *
+from metagenomix.softwares.pooling import pooling
+from metagenomix.softwares.preprocess import *
+from metagenomix.softwares.profiling import *
+from metagenomix.softwares.simka import *
+from metagenomix.softwares.strains import *
+from metagenomix.softwares.viruses import *
 
 
 class Commands(object):
@@ -170,9 +170,9 @@ class Commands(object):
             pooling(self, pool)
 
     def call_method(self):
-        """Call the command-preparing method from this class (for the tools that
-        are easy to deal with), or from auxillary modules located in the `tools`
-        submodules path."""
+        """Call the command-preparing method from this class (for the
+        softwares that are easy to deal with), or from auxillary modules
+        located in the softwares submodules path."""
         func = self.soft.name.split('_')[0]
         if func in globals():
             globals()[func](self)

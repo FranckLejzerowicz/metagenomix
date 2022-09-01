@@ -83,7 +83,7 @@ from metagenomix import __version__
     "--show-pfams/--no-show-pfams", default=False, show_default=False,
     help="Show terms for which Pfam HMM models were already extracted before")
 @click.option(
-    "--purge-pfams", "--no-purge-pfams", default=None, show_default=False,
+    "--purge-pfams/--no-purge-pfams", default=False, show_default=False,
     help="Remove terms for Pfam HMM models that were already extracted before")
 @click.option(
     "--verbose/--no-verbose", default=False, show_default=True,

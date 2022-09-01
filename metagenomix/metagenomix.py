@@ -37,7 +37,7 @@ def metagenomix(**kwargs) -> tuple:
     print('* Checking databases')
     databases.run()
 
-    # Read and validate the workflow of tools to run as a pipeline
+    # Read and validate the workflow of softwares to run as a pipeline
     workflow = Workflow(config, databases)
     print('* Reading pipeline')
     workflow.visit()
@@ -46,7 +46,7 @@ def metagenomix(**kwargs) -> tuple:
     print('* Checking parameters')
     workflow.parametrize()
 
-    # Collect the command line and  the workflow of tools to run as a pipeline
+    # Collect command line and workflow of softwares to run as a pipeline
     commands = Commands(config, databases, workflow)
     print('* Collecting command lines')
     commands.collect()

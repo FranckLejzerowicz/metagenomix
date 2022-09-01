@@ -444,7 +444,7 @@ def tech_specificity(
     Notes
     -----
     This behaviour is common to all software functions and therefore
-    justifies this function, and some tools of a workflow ar not designed
+    justifies this function, and some softwares of a workflow ar not designed
     for some technologies so the pipeline should pass through these while
     retaining the files available for a next step.
     For example, the reads merging can only happen on the 'illumina' data.

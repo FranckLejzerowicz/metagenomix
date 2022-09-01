@@ -16,7 +16,7 @@
 #my_database_name:                                                           #
 #  path: /a/path/to/the/folder/containing/my/database                        #
 #                                                                            #
-#  for the tools that ship with a database, such as humann, wol, midas, etc, #
+#  for the softwares that ship with a database, such as humann, wol, midas, etc, #
 #  then this must be the path where the database is installed, but if you    #
 #  have created re-formatted versions of these databases (or others), then   #
 #  this path must contain the formatting sub-folders (as explained  above)   #

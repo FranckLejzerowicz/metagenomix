@@ -204,7 +204,7 @@ class ReferenceDatabases(object):
                 hmm, term_pd, term, self.pfams['res'])
             terms_hmms_dias[term] = hmms_dias
             self.cmds[term] = [cmd]
-        # collect the "pfams per term" for the parameters of the current tools
+        # collect the "pfams per term" for the parameters of current softwares
         # params['terms'] = terms
         # add these "pfams per term" to a full, database-level collection
         self.pfams['terms'].update(terms_hmms_dias)

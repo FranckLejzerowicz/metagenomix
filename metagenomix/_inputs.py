@@ -161,10 +161,10 @@ def get_post_prot_dir(
 
     Notes
     -----
-    This function is (currently) only called for the tools that run after
-    Prodigal (and in the future, after other protein-prediction tools),
+    This function is (currently) only called for the softwares that run after
+    Prodigal (and in the future, after other protein-prediction softwares),
     since the protein prediction throughout the pipeline can be called after
-    different tools (e.g., after metawrap_refine, after drep, or, for long
+    different softwares (e.g., after metawrap_refine, after drep, or, for long
     read data, after error correction). Hence, editing the output directory
     to reflect the provenance and thus obtain different output folders if
     the pipeline is re-run for different paths at the Prodigal step.
@@ -316,7 +316,7 @@ def sample_inputs(
         index: int = 1
 ) -> dict:
     """Get per-sample input files per technology, depending on the current
-    tools.
+    softwares.
 
     Notes
     -----
@@ -345,7 +345,7 @@ def sample_inputs(
         .config
             Configurations
     techs : list
-        Technologies possibly used per sample for the current tools
+        Technologies possibly used per sample for the current softwares
     raw : bool
         Whether illumina data cna be processed as raw/per-sample paired reads
     index : int

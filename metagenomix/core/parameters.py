@@ -219,7 +219,7 @@ def check_binary(self, t, params, defaults, opt):
 
 class Parameters(object):
     """
-    This class shall contains the checks for all tools specifically,
+    This class shall contains the checks for all softwares specifically,
     but since these rely on the systematic elaboration of `defaults` and
     `dtypes` data structures that are useful later, it is best to consign
     these inside class instances.
