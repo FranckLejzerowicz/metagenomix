@@ -712,7 +712,6 @@ def shogun(self) -> None:
     for (tech, sam), inputs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, inputs, tech, sam):
             continue
-        status_update(self, tech, inputs)
 
         self.outputs['outs'][(tech, self.sam_pool)] = {}
         params = tech_params(self, tech)
@@ -723,13 +722,14 @@ def shogun(self) -> None:
         io_update(self, o_d=out, key=tech)
 
         if self.soft.prev == 'bowtie2':
+            status_update(self, tech, list(inputs.values()))
             for (db, aligner), sam in inputs.items():
                 ali = format_sam(sam, ali_cmds, self.sam_pool)
                 self.outputs['outs'][(tech, self.sam_pool)].setdefault(
                     (db, 'bowtie2'), []).append(ali)
                 shogun_taxonomy(self, tech, out, 'bowtie2', ali, db)
-
         elif params['databases']:
+            status_update(self, tech, inputs)
             fasta = combine_inputs(self, tech, inputs, out, combine_cmds)
             for db, aligners in params['databases'].items():
                 for aligner in aligners:
@@ -2268,11 +2268,9 @@ def bracken_cmd(
 
 def bracken(self) -> None:
     """Bracken (Bayesian Reestimation of Abundance with KrakEN) is a highly
-    accurate statistical method that computes the abundance of species in
-    DNA sequences from a metagenomics sample.
-    Bracken (Bayesian Reestimation of Abundance with KrakEN) is a highly
     accurate statistical method that computes the abundance of species in DNA
-    sequences from a metagenomics sample. Braken uses the taxonomy labels
+    sequences from a metagenomics sample.
+    Braken uses the taxonomy labels
     assigned by Kraken, a highly accurate metagenomics classification
     algorithm, to estimate the number of reads originating from each species
     present in a sample. Kraken classifies reads to the best matching
