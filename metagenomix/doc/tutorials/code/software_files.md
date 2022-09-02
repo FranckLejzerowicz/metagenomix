@@ -25,7 +25,7 @@ which in logical order of execution include:
 
 This
 [folder](https://github.com/FranckLejzerowicz/metagenomix/tree/main/metagenomix/softwares)
-contains the per-software [code files](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/tutorials/code/software_files.md):
+contains the per-software code files:
 
 * `alignment.py`: sequence alignment vs. databases and for merging ([details](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/tutorials/code/softwares/alignment.md))
 * `annotation.py`: annotation of DNA and proteins sequence, contigs and 
