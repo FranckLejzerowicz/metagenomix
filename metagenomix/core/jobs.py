@@ -18,7 +18,7 @@ import datetime as dt
 from os.path import dirname, isdir, splitext
 
 from metagenomix._io_utils import (
-    mkdr, get_roundtrip, print_status_table, get_versions)
+    mkdr, get_roundtrip, print_status_table, get_runs)
 
 
 class CreateScripts(object):
@@ -42,6 +42,7 @@ class CreateScripts(object):
         self.time = dt.datetime.now().strftime("%d/%m/%Y-%H:%M")
         self.scripts = []
         self.hash = ''
+        self.hashed = ''
 
     def make_dirs(self):
         for name, soft in self.commands.softs.items():
@@ -89,7 +90,7 @@ class CreateScripts(object):
             self.run['database'][name] = main
         return main
 
-    def write_main(self, name, soft=None, soft_hash=None) -> None:
+    def write_main(self, name, soft=None) -> None:
         main = self.get_main_sh(name, soft)
         with open(main, 'w') as o:
             if len(self.job_fps):
@@ -112,12 +113,13 @@ class CreateScripts(object):
 
     def get_provenance_fp(self, name, soft=None) -> str:
         if soft:
-            fp = '%s/provenance.txt' % soft.dir
+            fp = '%s/provenance_%s.txt' % (soft.dir, self.hashed)
         else:
-            fp = '%s/provenance_%s.txt' % (self.sh.rsplit('/', 2)[0], name)
+            fp = '%s/provenance_%s_%s.txt' % (self.sh.rsplit('/', 2)[0],
+                                              name, self.hashed)
         return fp
 
-    def write_provenance(self, name, soft=None, soft_hash=None) -> None:
+    def write_provenance(self, name, soft=None) -> None:
         steps = self.graph.paths[soft.name][0]
         step_max = max([len(x) for x in steps])
         provenance_fp = self.get_provenance_fp(name, soft)
@@ -186,41 +188,40 @@ class CreateScripts(object):
         print('\t%s [%s] %s%s' % (sdx, name, ('.' * gap), ('.' * 8)), end=' ')
         print_status_table(soft, self.config.show_status)
 
-    def get_hash(self, hash_string):
+    def get_hash(self):
         h = hashlib.blake2b(digest_size=10)
-        h.update(hash_string.encode('utf-8'))
+        h.update(self.hash.encode('utf-8'))
         hashed = str(h.hexdigest())
-        return hashed
+        self.hashed = hashed
 
-    def get_soft_hash(self, soft=None) -> str:
-        hashed = None
+    def get_soft_hash(self, soft=None):
+        dflts = ['time', 'nodes', 'mem', 'mem_dim', 'env', 'chunks',
+                 'scratch', 'machine', 'partition']
         if soft:
             steps = self.graph.paths[soft.name]
-            hash_string = ''.join([json.dumps(step) + json.dumps(soft.params)
-                                   for step in steps])
-            self.hash += hash_string
-            hashed = self.get_hash(hash_string)
-        return hashed
+            params = dict(x for x in soft.params.items() if x[0] not in dflts)
+            self.hash += ''.join([
+                json.dumps(step) + json.dumps(params) for step in steps])
+            self.get_hash()
 
     def versioning(self):
-        versions_dir = '%s/_versions' % self.config.dir
-        if not isdir(versions_dir):
-            os.makedirs(versions_dir)
-        self.write_versions(versions_dir)
+        runs_dir = '%s/_runs' % self.config.dir
+        if not isdir(runs_dir):
+            os.makedirs(runs_dir)
+        self.write_runs(runs_dir)
 
-    def write_versions(self, versions_dir):
-        hashed = self.get_hash(self.hash)
-        versions_fp = versions_dir + '/version_hash-' + hashed + '.txt'
-        versions = get_versions(versions_fp)
-        with open(versions_fp, 'w') as o:
+    def write_runs(self, runs_dir):
+        runs_fp = runs_dir + '/run_hash-' + self.hashed + '.txt'
+        runs = get_runs(runs_fp)
+        with open(runs_fp, 'w') as o:
             for script in self.scripts:
                 o.write('%s\n' % script)
-            o.write('\n--------- versions ---------\n')
-            for version in versions:
-                o.write('Date: %s\n' % version)
+            o.write('\n--------- runs ---------\n')
+            for run in runs:
+                o.write('Date: %s\n' % run)
             o.write('Date: %s\n' % self.time)
             o.write('\n----------------------------\n')
-        print('\n[config version] Written: %s' % versions_fp)
+        print('\n[config run] Written: %s' % runs_fp)
 
     def software_cmds(self):
         m = max(len(x) for x in self.commands.softs) + 1
@@ -232,9 +233,9 @@ class CreateScripts(object):
             self.get_cmds(soft)
             self.get_chunks(soft.params['chunks'])
             self.write_jobs(name, soft)
-            soft_hash = self.get_soft_hash(soft)
-            self.write_main(name, soft, soft_hash)
-            self.write_provenance(name, soft, soft_hash)
+            self.get_soft_hash(soft)
+            self.write_main(name, soft)
+            self.write_provenance(name, soft)
 
     def get_sh(self, name: str, chunk: str, soft=None) -> None:
         """

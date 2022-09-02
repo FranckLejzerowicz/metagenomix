@@ -728,27 +728,27 @@ def print_status_table(
         print('done')
 
 
-def get_versions(version_fp) -> list:
-    """Get the different dates at which the current
-    pipeline configuration was run.
+def get_runs(run_fp) -> list:
+    """Get the different dates at which the current pipeline configuration
+    was run.
 
     Parameters
     ----------
-    version_fp
+    run_fp
         Path to the versioning file for this pipeline configuration
     Returns
     -------
-    versions : list
+    runs : list
         All the dates at which this pipeline configuration was run
     """
-    versions = []
-    if isfile(version_fp):
+    runs = []
+    if isfile(run_fp):
         print('This pipeline configuration (softwares/parmas) was already run.')
-        with open(version_fp) as f:
+        with open(run_fp) as f:
             for line in f:
                 if line.startswith('Date'):
-                    versions.append(line.strip().split()[-1])
-    return versions
+                    runs.append(line.strip().split()[-1])
+    return runs
 
 
 

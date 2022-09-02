@@ -30,5 +30,6 @@ def creator(**kwargs):
     if len(scripting.run['database']) or len(scripting.run['software']):
         print('< PLEASE CONSIDER CHECKING THE COMMAND LINE SCRIPTS MANUALLY >')
         scripting.display()  # show the scripts to run
+    scripting.get_hash()
     scripting.versioning()
     print('\nCompleted.')

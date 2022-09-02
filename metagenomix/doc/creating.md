@@ -1,5 +1,8 @@
 # Creating
 
+This explains how to create and run the analyses of a shotgun metagenomics 
+pipeline `netagenomix create`.
+
 ## Input
 
 ### Fastq file folders
@@ -190,6 +193,7 @@ trimming           alignment
 </tr>
 </table>
 
+
 #### Future solution
 
 An internal mechanism to account that a software step is happening not 
@@ -199,16 +203,18 @@ available in the
 [provenance](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/creating.md#provenance)
 file (see below).
 
+
 ### Jobs
 
 For each software step, the jobs that contain the actual command line 
 scripts are located in the `jobs` folder. These scripts are executed by 
 running the `run.sh` script located alongside this folder and displayed 
 to the user as part of the
-[terminal](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/creating.md#terminal)
+[terminal](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/creating.md#terminal-output)
 and
-[file](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/creating.md#_run)
+[file](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/creating.md#run)
 outputs of `metagenomix create`.
+
 
 #### Job outputs
 
@@ -240,6 +246,45 @@ and
 for each step of the pipeline. The naming of these (slurm) job output files 
 always has the following nomenclature:
 `slurm-<software>.<project-name>.<input_unit_1 / chunk_1>_<JOBID>.e`
+
+
+### Terminal output
+
+The terminal will display information about the current pipeline, including 
+whether the provided database paths point to existing and properly-formatted 
+builds for the various aligners / formats that are requested (see docs on 
+[databases]()
+), as well as information about the jobs being written and their current 
+analysis status. For more info on the progress of the software analyses, 
+some command-line 
+[arguments](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/creating.md#monitoring-and-behaviour)
+are available, whereas the
+[monitoring](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/monitoring.md)
+command will be much more useful.
+
+After writing all the jobs for all softwares, the terminal display will 
+first warn to `< PLEASE CONSIDER CHECKING THE COMMAND LINE SCRIPTS MANUALLY>` -
+as it is worth checking the written commands before running them - and then 
+provide the main `run.sh` bash script to run.
+
+### Runs output
+
+A folder named `_runs` will be created and filled with versionninf files 
+containing the last terminal outputs as well as the dates at which the 
+pipeline was created.  
+
+### Running
+
+In order to run the analyses for which all the necessary scripts have been 
+generated, just run the `run.sh` script for the software you know needs to 
+be run at this point. This can be done manually, or by copying and pasting 
+the `sh /path/to/the/run.sh` commands displayed in the terminal.
+
+For a software that is planned to run at the middle of the pipeline, it is 
+obviously necessary that the previous softwares completed, and that their 
+outputs are there to be used in input. Again, use
+[monitoring](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/monitoring.md)
+to make sure of that
 
 #### Provenance
 
