@@ -7,6 +7,21 @@ The pipeline
 is mandatory as it establishes the sequence of softwares that are to be run 
 one after the other.
 
+## Content
+
+Not all softwares can be run after any other:
+  1. It is the user's responsibility to know what's going on and what to 
+     analyse to answer a research question and obtain useful data and results.
+  2. It may not make sense (e.g., running an assembler on the 
+     output of a protein annotation software).
+  3. A software can only be used once as output (solution in development)
+
+To obtain a full list of the available softwares, please refer to the 
+[softwares list](https://github.com/FranckLejzerowicz/metagenomix/wiki/Softwares)
+or look at the
+[resources](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/tutorial/code/software_files.md#resources)
+file "`softwares.txt`".   
+
 ## Format
 
 The file must contain one or two [software names](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/pipline.md#software-names)
@@ -16,8 +31,6 @@ separated by a space (can be one or mulitple space(s), or a tab):
   reads as input, those fastq files from the folders of the [input]() 
   options `-i` (or `--fastq-dir-illumina`), and/or `-j` (or 
   `--fastq-dir-pacbio`), and/or `-k` (or `--fastq-dir-nanopore`).
-
-
 * if **two software names** are given, then the second space-separated 
   software will take as input the output of the first space-separated 
   software, for example:
@@ -32,48 +45,34 @@ separated by a space (can be one or mulitple space(s), or a tab):
   soft_1 ──> soft_2 ──> soft_3
                   └───> soft_4
   ```
-  Softwares can be used multiple times as inputs (as first space-separated 
-  name in the pipeline configuration file), but currently, not as outputs. 
-  So the following sequence of softwares will throw an error:
-  ```
-  soft_1    soft_3
-  soft_2    soft_3
-  ```
-  The error will be explicit:
-  ```
-  Error in workflow "<path/to/pipeline/configuration/file.txt>":
-          Can't run "soft_3" after "soft_2": "soft_3" already planned to use after "soft_1"
-  Each tool must yield a single output re-used as input
-  -> please re-run for each different workflow "graph"
-  Exiting
-  ```
-  Read more on work-around to re-run `metagenomix` using different 
-  configurations while
-  [monitoring](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/monitoring.md)
-  your progress and
-  [managing](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/managing.md)
-  your outputs.
-
-
 * Lines starting with a hash comment character (`#`) will be ignored as well 
-as blank lines. Hence, it can be useful to add comments to label your 
-pipeline (for example, if sharing the configuration files with peers; see 
-below).
+  as blank lines. Hence, it can be useful to add comments to label your
+  pipeline (for example, if sharing the configuration files with peers; see 
+  below).
 
-### Content
+### Multiple usage
 
-Not all softwares can be run after any other:
-  1. It is the user's responsibility to know what's going on and what to 
-     analyse to answer a research question and obtain useful data and results.
-  2. It may not make sense (e.g., running an assembler on the 
-     output of a protein annotation software).
-  3. A software can only be used once as output (solution in development)
-
-To obtain a full list of the available softwares, please refer to the 
-[softwares list](https://github.com/FranckLejzerowicz/metagenomix/wiki/Softwares)
-or look at the
-[resources](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/tutorial/code/software_files.md#resources)
-file "`softwares.txt`".   
+Softwares can be used multiple times as inputs (as first space-separated 
+name in the pipeline configuration file), but currently, not as outputs. 
+So the following sequence of softwares will throw an error:
+```
+soft_1    soft_3
+soft_2    soft_3
+```
+The error will be explicit:
+```
+Error in workflow "<path/to/pipeline/configuration/file.txt>":
+      Can't run "soft_3" after "soft_2": "soft_3" already planned to use after "soft_1"
+Each tool must yield a single output re-used as input
+-> please re-run for each different workflow "graph"
+Exiting
+```
+Read more on work-around to re-run `metagenomix` using different 
+configurations while
+[monitoring](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/monitoring.md)
+your progress and
+[managing](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/managing.md)
+your outputs.
 
 ### Software names
 

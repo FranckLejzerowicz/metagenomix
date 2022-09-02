@@ -5,7 +5,7 @@ default:
   mem: 10
   mem_dim: gb
   env:
-  chunks: 6
+  chunks:
   scratch: userscarch
   machine:
   partition:
