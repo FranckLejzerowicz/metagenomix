@@ -1,66 +1,71 @@
-:construction:
-
 # metagenomix
 
-## Description
-
-metagenomix is a pipeline
+`metagenomix` is a pipeline
 [creator](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/creating.md),
 [monitor](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/monitoring.md)
 and 
 [manager](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/managing.md)
 that takes care of writing the command-lines for any shotgun metagenomics 
-software, either as bash scripts or Slurm/Torque jobs (incl. scratch space 
-usage), following  user-defined configurations for databases, co-assemblies, 
-strain foci, as well as software-specific or computing resource parameters 
-(incl. memory, scratch relocations, modules and conda environments).
+software, either as bash scripts or
+[Slurm](https://slurm.schedmd.com/documentation.html)
+/
+[Torque](http://docs.adaptivecomputing.com/torque/4-0-2/help.htm)
+jobs (incl. scratch space usage), based on user-defined
+[configurations](https://github.com/FranckLejzerowicz/metagenomix/wiki/Configurations)
+for databases, co-assemblies, strain foci, as well as software-specific or 
+computing resource parameters (incl. memory, scratch relocations, modules 
+and conda environments). 
+
+Outputs are scripts that the user needs to run sequentially, which typically 
+can be handled by packages such as
+[snakemake](https://snakemake.readthedocs.io/en/stable/): this is not (yet) 
+used here as `metagenomix` is only meant to facilitate the creation, 
+monitoring, management and access of shotgun metagenomic analyses results for 
+personalized pipelines including any software.
 
 Any software? Well, if not already in the
 [softwares list](https://github.com/FranckLejzerowicz/metagenomix/wiki/Softwares),
 someone will need to add it to metagenomix, following the instructions to 
 [contribute code](https://github.com/FranckLejzerowicz/metagenomix/wiki/Contributing).
 
-
-This also eases importing issues and notably run this on a High-Performance 
-Computer (HPC), either [Torque](http://docs.adaptivecomputing.com/torque/4-0-2/help.htm) 
-or [Slurm](https://slurm.schedmd.com/documentation.html) scheduler, and it 
-heavily relies on a you having installed and configured properly multiple conda
-environments (explanations and environment.yml files provided in Wiki). 
-This tool wrapping other tools could be done using 
-[snakemake](https://snakemake.readthedocs.io/en/stable/) but this is meant to 
-only create the scripts to run on your samples, not execute these scripts.
+Please read the documentation using the [Wiki pages](https://github.com/FranckLejzerowicz/metagenomix/wiki)
 
 ## Installation
+
+```
+pip install metagenomix
+```
+
+or
+
 ```
 pip install --upgrade git+https://github.com/FranckLejzerowicz/metagenomix.git
 ```
 
-*_Note that python and pip should be python3_
-
 ### Depencencies
 
-You must install all the databases and softwares (lists below) that the pipeline
-will allow you to run. I recommend using conda environments for each tool and 
-then specify the name of the environment for this tool in the run parameters
-configuration file. I am working on an installer of conda environments to 
-alleviate this time-consuming step, but since some tools may require you to edit
-configurations for you system, this will not be fully integrated.  
+While a container solution with all the softwares and conda environments is 
+being develop, it currently is the responsibility of the user to install all 
+the databases and softwares that the pipeline will allow you to prepare 
+command-lines for. Some softwares necessitate to be present either as a 
+single binary file or with an entire folder (e.g., pre-trained models or 
+scripts). Since some softwares require the user to edit configurations 
+after install, some level of manual installation/tuning will be needed 
+before usage.
 
-#### Databases
+## Usage
 
-* [PFAM](http://pfam.xfam.org/): allows searching HMM profiles per keywords from the Pfam-A catalogue,
-(see [here](https://doi.org/10.1093/nar/gkp985) or 
-[here](https://academic.oup.com/nar/article/38/suppl_1/D211/3112325?searchresult=1#64944278)) 
-which you need to download: Pfam-A files "Pfam-A.hmm" and "Pfam-A.hmm.dat.gz"
-[here](http://ftp.ebi.ac.uk/pub/databases/Pfam/releases)
-* [dbCAN](https://bcb.unl.edu/dbCAN/): allows searching HMM profiles per CAZy subfamily.
-* [MAR](https://mmp2.sfb.uit.no/databases/): Allow querying the MarDB and MarRef databases for marine microbes. 
-* [GTDB](https://gtdb.ecogenomic.org/)
+```
+Usage: metagenomix [OPTIONS] COMMAND [ARGS]...
 
-## Input
+  Metagenomix command line manager
 
-IN CONSTRUCTION
+Options:
+  --version  Show the version and exit.
+  --help     Show this message and exit.
 
-## Outputs
-
-IN CONSTRUCTION
+Commands:
+  create   Write jobs for your pipeline configuration.
+  manage   Edit the contents of your pipeline output folder.
+  monitor  Check IO/job status of your pipeline configuration.`
+```

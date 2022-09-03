@@ -1,5 +1,3 @@
-:construction:
-
 # Pooling for co-assembly
 
 ## Overview
@@ -27,8 +25,9 @@ data)
 
 By default, there will be no co-assembly if the user does not provide a 
 [co-assembly configuration](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/co-assembly.md)
-file. In fact (i.e., in the [core code](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/tutorials/code/core/commands.md))
-there will be a **per-sample** co-assembly, where each sample is co-assemble 
+file. In fact (i.e., as per the
+[core code](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/tutorials/code/core/commands.md))
+there _will_ be a **per-sample** co-assembly, where each sample is co-assemble 
 with itself only.
 
 ## Pipeline usage 

@@ -1,5 +1,3 @@
-:construction:
-
 # Pipeline
 
 The pipeline 

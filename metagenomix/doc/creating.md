@@ -1,7 +1,7 @@
 # Creating
 
 This explains how to create and run the analyses of a shotgun metagenomics 
-pipeline `netagenomix create`.
+pipeline `metagenomix create`.
 
 ## Input
 
@@ -14,10 +14,10 @@ in command line, using one or several of the following arguments:
 * `-j` (or `--fastq-dir-pacbio`): Path to long PacBio reads fastq files folder(s).
 * `-k` (or `--fastq-dir-nanopore`): Path to long MinION Nanopore reads fastq files folder-
 
-It is perfectly possible to provide more than one of these arguments if the 
-Illumina and PacBio and/or Nanopore data must be analysed altogether (the 
-pipeline accounts for which software is able to handle which data type), and 
-it is also possible to provide multiple folders per technology if the data is
+It is possible to provide more than one of these arguments if Illumina 
+and PacBio and/or Nanopore data must be analysed altogether (the pipeline 
+accounts for which software is able to handle which data type), and it is 
+also possible to provide multiple folders per technology if the data is 
 located in multiple locations (whether for samples from different projects, 
 or for the same re-sequenced samples), e.g.:
 
