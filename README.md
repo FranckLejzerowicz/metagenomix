@@ -66,8 +66,10 @@ Options:
 
 Commands:
   create   Write jobs for your pipeline configuration.
+  export   Prepare an archive for specific pipeline outputs.
   manage   Edit the contents of your pipeline output folder.
-  monitor  Check IO/job status of your pipeline configuration.`
+  monitor  Check IO/job status of your pipeline configuration.
+  merge    Combine the per-sample outputs into feature tables.
 ```
 
 Detailed explanations for each command at
