@@ -400,7 +400,7 @@ will have no effect:
     * `--move-back/--no-move-back`: will prevent moving back the files from 
       the chosen scratch location (useful to keep files for manual work).
 
-## Monitoring and behaviour
+### Monitoring and behaviour
 
 Although it is recommended to use the 
 [monitoring](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/monitoring.md)
