@@ -69,3 +69,8 @@ Commands:
   manage   Edit the contents of your pipeline output folder.
   monitor  Check IO/job status of your pipeline configuration.`
 ```
+
+Detailed explanations for each command at
+[Running](https://github.com/FranckLejzerowicz/metagenomix/wiki/Running)
+Wiki page
+
