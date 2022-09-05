@@ -109,7 +109,7 @@ another input folder. Then, the single-end files will be internally admitted
 as _another_ sample, associated with a copy of its metadata information. If a 
 [paired-read merging](https://github.com/FranckLejzerowicz/metagenomix/wiki/Softwares#paired-read-merging)
 or
-[pooling](https://github.com/FranckLejzerowicz/metagenomix/wiki/Softwares#co-assembly-setup)
+[pooling](https://github.com/FranckLejzerowicz/metagenomix/wiki/Softwares#pooling)
 step is performed (whichever comes first), then the single-end reads will be 
 merged into the file containing the non-extended reads resulting form
 [merging analysis](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/tutorials/code/softwares/alignment.md#paired-reads-merging).

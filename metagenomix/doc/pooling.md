@@ -9,7 +9,7 @@ to collect and write the command-lines/jobs.
 
 Essentially, the nature of the input to a software will depend on whether a 
 software is set to run **upstream** or **downstream** of the
-[pooling](https://github.com/FranckLejzerowicz/metagenomix/wiki/Softwares#co-assembly-setup)
+[pooling](https://github.com/FranckLejzerowicz/metagenomix/wiki/Softwares#pooling)
 step according to the
 [pipeline graph](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/graph.md)
 resulting from a given
@@ -33,7 +33,7 @@ with itself only.
 ## Pipeline usage 
 
 It is mandatory that the  ipeline configuration file includes
-[pooling](https://github.com/FranckLejzerowicz/metagenomix/wiki/Softwares#co-assembly-setup)
+[pooling](https://github.com/FranckLejzerowicz/metagenomix/wiki/Softwares#pooling)
 as output software name and that it is used as input to an assembler. For 
 example, these pipeline configurations are valid.
 
