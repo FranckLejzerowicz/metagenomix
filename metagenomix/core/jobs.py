@@ -205,13 +205,13 @@ class CreateScripts(object):
             self.get_hash()
 
     def versioning(self):
-        runs_dir = '%s/_runs' % self.config.dir
+        runs_dir = '%s/_created' % self.config.dir
         if not isdir(runs_dir):
             os.makedirs(runs_dir)
         self.write_runs(runs_dir)
 
     def write_runs(self, runs_dir):
-        runs_fp = runs_dir + '/run_hash-' + self.hashed + '.txt'
+        runs_fp = runs_dir + '/' + self.hashed + '.txt'
         runs = get_runs(runs_fp)
         with open(runs_fp, 'w') as o:
             for script in self.scripts:
