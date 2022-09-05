@@ -44,7 +44,7 @@ class Exported(object):
         self.__dict__.update(kwargs)
         self.softs = Softwares(**kwargs)
         self.time = dt.datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
-        self.export_dir = '%s/_exports' % self.folder
+        self.export_dir = abspath('%s/_exports' % self.folder)
         self.dir = ''
         self.extensions = []
         self.to_exports = []
@@ -61,7 +61,7 @@ class Exported(object):
             self.exts = ['.%s' % x if x[0] != '.' else x for x in self.exts]
 
     def get_inputs(self):
-        print('* Getting files to export:')
+        print('\n* Getting files to export:')
         if self.regex:
             regex = re.compile(
                 r'%s' % '|'.join(list(self.regex)), flags=re.IGNORECASE)
@@ -81,13 +81,12 @@ class Exported(object):
                         continue
                 ext = splitext(fil)[1]
                 if self.exts and ext in self.exts:
-                    m = 'with extensions "%s" ' % '", "'.join(self.exts)
+                    m = '(with extensions "%s" )' % '", "'.join(self.exts)
                     self.to_exports.append('%s/%s' % (root, fil))
                 else:
                     self.to_exports.append('%s/%s' % (root, fil))
 
-        print('\t> %s files %swill be moved to %s' % (
-            len(self.to_exports), m, self.dir))
+        print('\t%s files %swill be exported' % (len(self.to_exports), m))
 
     def get_output(self):
         print('* Getting output archive path')
@@ -114,8 +113,6 @@ class Exported(object):
     def get_archiving_commands(self):
         tar_cmd = 'tar czf %s -C %s .' % (self.out, self.dir)
         rm_cmd = 'rm -rf %s' % self.dir
-        print('  - archive creation   : %s' % tar_cmd)
-        print('  - export dir removal : %s' % rm_cmd)
         self.commands.append(tar_cmd)
         self.commands.append(rm_cmd)
 
@@ -136,6 +133,7 @@ class Exported(object):
         cmd = 'Xhpc -i %s -o %s -j xpt_%s -t 2 --no-stat' % (sh, hpc, self.time)
         if self.account:
             cmd += ' -a %s' % self.account
+        cmd += ' --quiet'
         subprocess.call(cmd.split())
         os.remove(sh)
         return hpc
@@ -151,10 +149,10 @@ class Exported(object):
                     o.write('squeue %s\n' % hpc)
                 else:
                     o.write('sbatch %s\n' % hpc)
-        print('\nTo export, run the following:\nsh %s\n' % sh)
+        print('\n* To export, run the following:\nsh %s\n' % sh)
 
     def showdown(self):
         user = expanduser('~').split('/')[-1]
         hostname = socket.gethostname()
-        print('Done! To download from server to local, copy(-edit)-paste:\n')
+        print('* Then, copy(-edit)-paste to download from server to local:')
         print('scp %s@%s:%s .' % (user, hostname, self.out))
