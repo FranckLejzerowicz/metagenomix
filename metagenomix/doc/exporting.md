@@ -22,34 +22,95 @@ softwares names that can be provided using either/or:
 For example, the following is a valid `metagenomix export` command:
 ```
 metagenomix export \
-    -i /path/to/pipeline/output \
+    -i <PIPELINE_FOLDER> \
     -o /path/to/exports.txt \
     -s checkm2 \
     -s metawrap_*
 ```
 where one export file will be created for all the outputs of `checkm2`, as 
-well as `metawrap_`, `metawrap_`, 
+well as `metawrap_annotate`, `metawrap_binning`, `metawrap_classify`,
+`metawrap_reassemble`, and `metawrap_refine`.
 
-### Softwares
+### Extensions and regular expressions
 
+It is possible to further subset the contents to export by targeting files 
+ending with one or more specific extensions or matching regular expressions. 
+
+#### Extensions
+
+Targeting files with specific extension is done by using the `-e` (or
+`--extension`) argument, possibly multiple times. 
+
+For example:
+```
+metagenomix export \
+    -i <PIPELINE_FOLDER> \
+    -o /path/to/exports.txt \
+    -s checkm2 \
+    -e .tsv \
+    -e .html
+```
+will export the `.tsv` and `.html` files present in the `checkm2` 
+folder of the pipeline output.
+
+#### Regular expressions
+
+Targeting files matching regular expressions is done by using the `-r` (or
+`--regex`) argument, possibly multiple times. 
+
+For example:
+```
+metagenomix export \
+    -i <PIPELINE_FOLDER> \
+    -o /path/to/exports.txt \
+    -s checkm2 \
+    -r *table* \
+    -r *ERR*
+```
+will export all the files that contains `table` or `ERR`.
 
 ## Output
 
-Exporting essentially consists of copying and archiving target files while
-conserving the structure of the folders from the input location.
+Exporting using `metagenomix export` consists of copying and archiving target 
+files while conserving the structure of the folders from the input locations.
 
-### Archived export
+### Archive
 
-By default - if not extension is used to target files - then all the
+The path to the export file is **mandatory**, and must be provided using the 
+`-o` (or `--output`) argument. If the filename does not have a `tar.gz` 
+extension, it will be added. In the above example, `/path/to/exports.txt` 
+will be replaced to `/path/to/exports.tar.gz`.  
+
+By default (if no extension or regex is used to target files), then all the 
+files, including the
 [job output](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/creating.md#job-outputs)
-files will also be included.
+files will also be included in the export archive.
 
 ### Job script
 
-Exporting many files can take a long time, and therefore, it is key
+Exporting many files can take a long time, and therefore, the default is to 
+write the export commands into a job script, which is set to last for max. 2 
+hours. It can be run by executing the bash script shown in the terminal, 
+after `To export, run the following:`, which is composed of commands 
+that will ensure that the actual job script outputs (`.o` and `.o`) will be 
+written in the `_exports/jobs/output` sub-folders:
+```
+mkdir <PIPELINE_FOLDER>/_exports/jobs/output
+cd <PIPELINE_FOLDER>/_exports/jobs/output
+sbatch <PIPELINE_FOLDER>/_exports/jobs/export_DD-MM-YYYY_HH-MM-SS.slm
+```
 
 ### Terminal display
 
+For the example:
+```
+metagenomix export \
+    -i <PIPELINE_FOLDER>  \
+    -o /path/to/exports.txt \
+    -s checkm* \
+    -s metawrap*
+```
+the terminal will display explicit messages:
 ```
  === metagenomix exporter ===
 
@@ -67,7 +128,7 @@ Tools to export per role:
 * Getting files to export:
         141 files will be exported
 * Getting output archive path
-        > /Users/franck/programs/metagenomix/metagenomix/tests/example/agp/exports.tar.gz
+        > /path/to/exports.tar.gz
 * Getting copying commmands
 * Getting archiving commmands
 
@@ -76,10 +137,6 @@ sh <PIPELINE_FOLDER>/_exports/jobs/export_DD-MM-YYYY_HH-MM-SS.sh
 
 * Then, copy(-edit)-paste to download from server to local:
 scp <USERNAME>@<MACHINE>:/path/to/exports.tar.gz .
-
-
-
-metagenomix export -i metagenomix/tests/example/agp/output -o metagenomix/tests/example/agp/exports.txt -s checkm* -s metawrap*
 ```
 
 ## Usage
@@ -96,7 +153,7 @@ Options:
   -p, --pipeline TEXT       Path to the file containing the softwares to run
                             in order
   -s, --software TEXT       Software(s) to manage (or all in `-i/-p`)
-  -e, --extensions TEXT     Files extensions to select
+  -e, --extension TEXT      Extension to select files
   -r, --regex TEXT          Regex for file names to select
   -l, --location TEXT       If not creating the tar locally, create it there
   --local / --no-local      Creates the tar locally, and not in the location

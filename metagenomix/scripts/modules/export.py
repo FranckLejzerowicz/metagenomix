@@ -20,8 +20,8 @@ from metagenomix import __version__
               help="Path to the file containing the softwares to run in order")
 @click.option("-s", "--software", multiple=True,
               help="Software(s) to manage (or all in `-i/-p`)")
-@click.option("-e", "--extensions", multiple=True, default=None,
-              show_default=True, help="Files extensions to select")
+@click.option("-e", "--extension", multiple=True, default=None,
+              show_default=True, help="Extension to select files")
 @click.option("-r", "--regex", multiple=True, default=None,
               show_default=False, help="Regex for file names to select")
 @click.option("-l", "--location", default='USERWORK',
@@ -42,7 +42,7 @@ def export(
         output,
         pipeline,
         software,
-        extensions,
+        extension,
         regex,
         location,
         local,
@@ -57,7 +57,7 @@ def export(
         out=output,
         pipeline=pipeline,
         softwares=software,
-        exts=extensions,
+        exts=extension,
         regex=regex,
         location=location,
         local=local,
