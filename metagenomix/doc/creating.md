@@ -1,7 +1,7 @@
 # Creating
 
-This explains how to create and run the analyses of a shotgun metagenomics 
-pipeline `metagenomix create`.
+This explains how to use the `metagenomix create` command to create and run 
+the analyses of a shotgun metagenomics pipeline.
 
 ## Input
 
@@ -212,8 +212,8 @@ running the `run.sh` script located alongside this folder and displayed
 to the user as part of the
 [terminal](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/creating.md#terminal-output)
 and
-[file](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/creating.md#run)
-outputs of `metagenomix create`.
+[file](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/creating.md#creations)
+outputs.
 
 
 #### Job outputs
@@ -267,9 +267,9 @@ first warn to `< PLEASE CONSIDER CHECKING THE COMMAND LINE SCRIPTS MANUALLY>` -
 as it is worth checking the written commands before running them - and then 
 provide the main `run.sh` bash script to run.
 
-### Runs output
+### Creations
 
-A folder named `_runs` will be created and filled with versionninf files 
+A folder named `_created` will be created and filled with versioning files 
 containing the last terminal outputs as well as the dates at which the 
 pipeline was created.  
 
