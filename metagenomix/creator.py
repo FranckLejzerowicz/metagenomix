@@ -7,7 +7,7 @@
 # ----------------------------------------------------------------------------
 
 from metagenomix.metagenomix import metagenomix
-from metagenomix.core.jobs import CreateScripts
+from metagenomix.core.jobs import Created
 
 
 def creator(**kwargs):
@@ -20,16 +20,15 @@ def creator(**kwargs):
     """
     print('\n === metagenomix creator ===\n')
     # Collect all command and init the script creating instance
-    scripting = CreateScripts(*metagenomix(**kwargs))
+    creating = Created(*metagenomix(**kwargs))
     # print('* Writing database formatting commands')
     # scripting.database_cmds()  # build the databases
     print('* Creating output folders')
-    scripting.make_dirs()
+    creating.make_dirs()
     print('* Writing pipeline command lines')
-    scripting.software_cmds()   # run the analysis pipeline
-    if len(scripting.run['database']) or len(scripting.run['software']):
+    creating.software_cmds()   # run the analysis pipeline
+    if len(creating.run['database']) or len(creating.run['software']):
         print('< PLEASE CONSIDER CHECKING THE COMMAND LINE SCRIPTS MANUALLY >')
-        scripting.display()  # show the scripts to run
-    scripting.get_hash()
-    scripting.versioning()
+        creating.display()  # show the scripts to run
+    creating.write_logs()
     print('\nCompleted.')
