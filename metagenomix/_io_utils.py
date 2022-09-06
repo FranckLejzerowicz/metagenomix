@@ -11,6 +11,7 @@ import re
 import sys
 import yaml
 import glob
+import hashlib
 import itertools
 import pandas as pd
 from tabulate import tabulate
@@ -728,7 +729,25 @@ def print_status_table(
         print('done')
 
 
-def get_runs(run_fp) -> list:
+def compute_hash(hash_string):
+    h = hashlib.blake2b(digest_size=10)
+    h.update(str(hash_string).encode('utf-8'))
+    hashed = str(h.hexdigest())
+    return hashed
+
+
+def get_md5(fp):
+    if isdir(fp):
+        return ''
+    md5 = hashlib.md5()
+    with open(fp, "rb") as f:
+        for chunk in f:
+            md5.update(chunk)
+    md5 = str(md5.hexdigest())
+    return md5
+
+
+def get_dates(run_fp) -> list:
     """Get the different dates at which the current pipeline configuration
     was run.
 
@@ -743,7 +762,6 @@ def get_runs(run_fp) -> list:
     """
     runs = []
     if isfile(run_fp):
-        print('This pipeline configuration (softwares/parmas) was already run.')
         with open(run_fp) as f:
             for line in f:
                 if line.startswith('Date'):
