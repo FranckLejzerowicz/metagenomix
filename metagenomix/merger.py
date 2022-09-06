@@ -7,7 +7,7 @@
 # ----------------------------------------------------------------------------
 
 from metagenomix.metagenomix import metagenomix
-from metagenomix.core.jobs import CreateScripts
+from metagenomix.core.jobs import Created
 
 
 def merger(**kwargs):
@@ -20,16 +20,8 @@ def merger(**kwargs):
     """
     print('\n === metagenomix exporter ===\n')
     # Collect all command and init the script creating instance
-    scripting = CreateScripts(*metagenomix(**kwargs))
+    merging = Created(*metagenomix(**kwargs))
     # print('* Writing database formatting commands')
     # scripting.database_cmds()  # build the databases
-    print('* Creating output folders')
-    scripting.make_dirs()
     print('* Writing pipeline command lines')
-    scripting.software_cmds()   # run the analysis pipeline
-    if len(scripting.run['database']) or len(scripting.run['software']):
-        print('< PLEASE CONSIDER CHECKING THE COMMAND LINE SCRIPTS MANUALLY >')
-        scripting.display()  # show the scripts to run
-    scripting.get_hash()
-    scripting.versioning()
-    print('\nCompleted.')
+    merging.software_cmds()   # run the analysis pipeline
