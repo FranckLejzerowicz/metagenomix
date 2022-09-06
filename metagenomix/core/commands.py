@@ -9,6 +9,7 @@
 import itertools
 from os.path import abspath
 
+from metagenomix._io_utils import compute_hash
 from metagenomix._inputs import show_inputs
 from metagenomix.softwares.alignment import *
 from metagenomix.softwares.annotation import *
@@ -68,6 +69,7 @@ class Commands(object):
             self.soft = self.softs[softs[-1]]
             self.soft.add_soft_path(self.softs)
             self.get_inputs()
+            self.get_hash()
             # print()
             # print('-' * 100)
             # print(self.inputs)
@@ -94,9 +96,18 @@ class Commands(object):
             self.inputs = self.softs[self.soft.prev].outputs
         show_inputs(self)
 
+    def get_hash(self):
+        avoid = {'time', 'nodes', 'mem', 'mem_dim', 'env', 'chunks',
+                 'scratch', 'machine', 'partition'}
+        params = dict(x for x in self.soft.params.items() if x[0] not in avoid)
+        path = self.soft.path
+        hashes = [self.softs[x].hash for x in self.soft.path[1:-1]]
+        self.soft.hash = (params, path, hashes)
+        self.soft.hashed = compute_hash(self.soft.hash)
+
     def get_dir(self):
-        self.dir = abspath('%s/%s/after_%s' % (
-            self.config.dir, self.soft.name, self.soft.prev))
+        self.dir = abspath('%s/%s/after_%s_%s' % (
+            self.config.dir, self.soft.name, self.soft.prev, self.soft.hashed))
         self.soft.dir = self.dir
         if self.soft.params['scratch'] and self.config.jobs:
             self.dir = '${SCRATCH_FOLDER}%s' % self.dir
