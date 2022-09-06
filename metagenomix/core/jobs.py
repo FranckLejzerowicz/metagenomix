@@ -8,20 +8,18 @@
 
 import os
 import sys
-import json
 import yaml
 import random
-import hashlib
 import subprocess
 import numpy as np
 import datetime as dt
 from os.path import dirname, isdir, splitext
 
 from metagenomix._io_utils import (
-    mkdr, get_roundtrip, print_status_table, get_runs)
+    mkdr, get_roundtrip, print_status_table, compute_hash, get_md5, get_dates)
 
 
-class CreateScripts(object):
+class Created(object):
 
     def __init__(self, config, databases, workflow, commands):
         self.config = config
@@ -32,6 +30,7 @@ class CreateScripts(object):
         self.cmds = {}
         self.chunks = {}
         self.soft = ''
+        self.hash = ''
         self.sh = ''
         self.run = {'database': {}, 'software': {}}
         self.job_fps = []
@@ -41,8 +40,7 @@ class CreateScripts(object):
         self.scheduler = self.get_scheduler()
         self.time = dt.datetime.now().strftime("%d/%m/%Y-%H:%M")
         self.scripts = []
-        self.hash = ''
-        self.hashed = ''
+        self.log_dir = '%s/_created' % config.dir
 
     def make_dirs(self):
         for name, soft in self.commands.softs.items():
@@ -113,10 +111,9 @@ class CreateScripts(object):
 
     def get_provenance_fp(self, name, soft=None) -> str:
         if soft:
-            fp = '%s/provenance_%s.txt' % (soft.dir, self.hashed)
+            fp = '%s/provenance.txt' % soft.dir
         else:
-            fp = '%s/provenance_%s_%s.txt' % (self.sh.rsplit('/', 2)[0],
-                                              name, self.hashed)
+            fp = '%s/provenance_%s.txt' % (self.sh.rsplit('/', 2)[0], name)
         return fp
 
     def write_provenance(self, name, soft=None) -> None:
@@ -188,40 +185,54 @@ class CreateScripts(object):
         print('\t%s [%s] %s%s' % (sdx, name, ('.' * gap), ('.' * 8)), end=' ')
         print_status_table(soft, self.config.show_status)
 
-    def get_hash(self):
-        h = hashlib.blake2b(digest_size=10)
-        h.update(self.hash.encode('utf-8'))
-        hashed = str(h.hexdigest())
-        self.hashed = hashed
+    def write_logs(self):
+        if not isdir(self.log_dir):
+            os.makedirs(self.log_dir)
+        fp = '%s/%s.txt' % (self.log_dir, compute_hash(self.hash))
+        logs = self.get_logs(get_dates(fp))
+        with open(fp, 'w') as o:
+            for log in logs:
+                o.write('%s\n' % log)
+        print('\n[config] Written: %s' % fp)
 
-    def get_soft_hash(self, soft=None):
-        dflts = ['time', 'nodes', 'mem', 'mem_dim', 'env', 'chunks',
-                 'scratch', 'machine', 'partition']
-        if soft:
-            steps = self.graph.paths[soft.name]
-            params = dict(x for x in soft.params.items() if x[0] not in dflts)
-            self.hash += ''.join([
-                json.dumps(step) + json.dumps(params) for step in steps])
-            self.get_hash()
+    def get_logs(self, dates):
+        logs = self.scripts
+        logs.extend(self.get_date_logs(dates))
+        logs.extend(self.get_input_logs())
+        return logs
 
-    def versioning(self):
-        runs_dir = '%s/_created' % self.config.dir
-        if not isdir(runs_dir):
-            os.makedirs(runs_dir)
-        self.write_runs(runs_dir)
+    def get_date_logs(self, dates) -> list:
+        date_logs = ['\n------------------']
+        date_logs.extend(['Date: %s' % date for date in dates])
+        date_logs.append('Date: %s' % self.time)
+        date_logs.append('------------------')
+        return date_logs
 
-    def write_runs(self, runs_dir):
-        runs_fp = runs_dir + '/' + self.hashed + '.txt'
-        runs = get_runs(runs_fp)
-        with open(runs_fp, 'w') as o:
-            for script in self.scripts:
-                o.write('%s\n' % script)
-            o.write('\n--------- runs ---------\n')
-            for run in runs:
-                o.write('Date: %s\n' % run)
-            o.write('Date: %s\n' % self.time)
-            o.write('\n----------------------------\n')
-        print('\n[config run] Written: %s' % runs_fp)
+    def get_input_logs(self):
+        input_logs = ['\n* Input files:']
+        for key, arg in [
+            ('illumina_dirs', '--fastq-dir-illumina'),
+            ('pacbio_dirs', '--fastq-dir-pacbio'),
+            ('nanopore_dirs', '--fastq-dir-nanopore'),
+            ('output_dir', '--output-dir'),
+            ('meta_fp', '--metadata'),
+            ('pipeline_tsv', '--pipeline'),
+            ('databases_yml', '--databases'),
+            ('user_params_yml', '--user-params'),
+            ('coassembly_yml', '--co-assembly'),
+            ('strains_yml', '--strains')
+        ]:
+            vals = self.config.__dict__[key]
+            if not vals:
+                continue
+            if not isinstance(vals, tuple):
+                vals = (vals,)
+            for val in vals:
+                if key == 'meta_fp':
+                    input_logs.append('* Input configuration files:')
+                input_logs.append('%s%s%s\t%s' % (arg, ' ' * (25-len(arg)),
+                                                  get_md5(val), val))
+        return input_logs
 
     def software_cmds(self):
         m = max(len(x) for x in self.commands.softs) + 1
@@ -229,11 +240,11 @@ class CreateScripts(object):
             self.print_status(m, sdx, name, soft)
             if not len(soft.cmds):
                 continue
+            self.hash += str(soft.hash)
             self.get_modules(name)
             self.get_cmds(soft)
             self.get_chunks(soft.params['chunks'])
             self.write_jobs(name, soft)
-            self.get_soft_hash(soft)
             self.write_main(name, soft)
             self.write_provenance(name, soft)
 
