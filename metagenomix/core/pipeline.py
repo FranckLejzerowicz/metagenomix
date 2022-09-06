@@ -16,6 +16,8 @@ class Soft(object):
 
     def __init__(self, config):
         self.name = ''
+        self.hash = ''
+        self.hashed = ''
         self.dir = None
         self.prev = None
         self.scratch = None   # no use of the scratch file system by default
