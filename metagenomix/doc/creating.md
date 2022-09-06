@@ -124,7 +124,7 @@ given using the `-o` (or `--output-dir`) argument.
 For every software, the output folder structure is always the same:
 ```
 <current_sofware>
-└── after_<previous_software(s)>
+└── after_<previous_software(s)>_<hash_value>
     ├── <technology/ies>
     #   # for "input unit" before pooling
     │   ├── <sample 1>
@@ -193,6 +193,13 @@ trimming           alignment
 </tr>
 </table>
 
+This is why the name of these `after_` output folders all end with a 
+unique hash value, which is unique to all the softwares and parameters used 
+to produce this output. Hence, if these two configurations are run, there 
+will be two outputs such as the ouptuts `alignment/after_trimming_X` and 
+`alignment/after_trimming_Y` can be distinguished. In order to know which 
+output corresponds to which configuration, please refer to the 
+associated [provenance file]()   
 
 #### Future solution
 
@@ -269,9 +276,26 @@ provide the main `run.sh` bash script to run.
 
 ### Creations
 
-A folder named `_created` will be created and filled with versioning files 
-containing the last terminal outputs as well as the dates at which the 
-pipeline was created.  
+To keep track of the commands to run (and hence, in order not to have to 
+re-run `metagenomix create` command if no job was executed), each unique 
+`metagenomix create` command will generate a unique versioning file, named 
+using a hashing signature, in a folder named `_created`. 
+
+This signature is unique to the pipeline and its software´s parameters, but 
+not to
+- the inputs: if more data arrives later, one can re-run the same 
+  pipeline/params so that the new results for the new samples can be added 
+  to the existing output folders.
+- the computing-resource parameters (other than cpus/threads): indeed, the 
+  output should be sensibly the same whether the job computed for different 
+  time, nodes, mem, number of chunks, scratch location...  
+
+The versioning files all contain three information sections that describe 
+the current pipeline:
+1. The path to the `run.sh` that remain to be executed (as in the
+[terminal output](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/creating.md#terminal-output))
+2. The dates at which `run.sh` files were generated
+3. The input fastq folders and configuration files
 
 ### Running
 
@@ -288,15 +312,11 @@ to make sure of that
 
 #### Provenance
 
-For each software step, a `provenance_HASH.txt` file is also located alongside 
+For each software step, a `provenance.txt` file is also located alongside 
 the `jobs` folder. This file summarizes the pipeline analysis steps that led 
 to the current results, including the names (and roles) of the previous 
-softwares, as well as the full list of paramters used for each of these 
+softwares, as well as the full list of parameters used for each of those 
 softwares.
-
-The provenance filename contains a hash value in its names that is unique to 
-all the softwares and their run parameters (except computing-resource params 
-other than cpus/threads) that were used to result in the current outputs.
 
 ##### Example
 
@@ -305,7 +325,7 @@ For this short pipeline:
 cutadapt
 cutadapt    bbmerge
 ```
-The provenance file `bbmerge/after_cutadapt/provenance_HASH.txt` would contain: 
+The provenance file `bbmerge/after_cutadapt/provenance.txt` would contain: 
 
 ```
 Pipeline steps to this output (and analysis type):
@@ -355,7 +375,7 @@ that all must/can be passed using the following commamd-line arguments:
   * `-c` (or `--co-assembly`):
     [co-assembly](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/co-assembly.md)
     groups of samples based on metadata variable factors.
-  * `-s` (or `--strains`):
+  * `-t` (or `--strains`):
     [strains](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/strains.md)
     foci for analyse of variation within species. 
 
