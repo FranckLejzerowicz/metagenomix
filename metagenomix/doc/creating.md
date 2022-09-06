@@ -166,10 +166,11 @@ A software step depends on the previous software step(s).
 Since a software can be set as output only **once** in the
 [pipeline configuration](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/pipeline.md#multiple-usage)
 file, the user must edit this configuration to change the input to a given 
-software. This will be reflected in the name of the first folder located 
-inside a software output folder, which starts with `after_`. But, this only 
-applies to the one previous software step. Indeed, the following two 
-configurations will result in the same `alignment/after_trimming` output folder:
+software. This input is reflected in the names of the folders located inside 
+a software output folder, which all start with `after_`. 
+
+However, both the following configurations will result in the same 
+`alignment/after_trimming` output folder:
 
 <table>
 <tr>
@@ -193,23 +194,19 @@ trimming           alignment
 </tr>
 </table>
 
-This is why the name of these `after_` output folders all end with a 
-unique hash value, which is unique to all the softwares and parameters used 
-to produce this output. Hence, if these two configurations are run, there 
-will be two outputs such as the ouptuts `alignment/after_trimming_X` and 
-`alignment/after_trimming_Y` can be distinguished. In order to know which 
-output corresponds to which configuration, please refer to the 
-associated [provenance file]()   
 
-#### Future solution
+Hence, the names of these `after_` output folders all end with a unique hash 
+value, which is unique to all the softwares and parameters used to produce 
+this output. If these two configurations are run, there will be two outputs, 
+such as `alignment/after_trimming_X` and `alignment/after_trimming_Y` can be 
+distinguished. The unique hash value takes into account that a software step 
+is happening not only after one previous software but as a result of all 
+previous softwares. 
 
-An internal mechanism to account that a software step is happening not 
-only after one previous step but as a result of all previous steps will be 
-established so that to separate outputs. This information is already 
-available in the 
+In order to know which output/hash corresponds to which configuration, please 
+refer to the associated
 [provenance](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/creating.md#provenance)
-file (see below).
-
+file.
 
 ### Jobs
 
