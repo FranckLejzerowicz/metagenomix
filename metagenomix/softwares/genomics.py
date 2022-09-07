@@ -228,7 +228,7 @@ def drep(self):
 
                 cmd, drep_in, bin_paths = get_drep_inputs(self, drep_out, paths)
                 if not bin_paths:
-                    self.soft.add_status(tech, pool, [paths], group=bin_algo,
+                    self.soft.add_status(tech, pool, paths, group=bin_algo,
                                          message='run previous')
                     if self.config.dev:
                         bin_paths = ['x'] * 5001
