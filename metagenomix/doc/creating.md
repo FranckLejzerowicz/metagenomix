@@ -349,7 +349,7 @@ ziplevel: 2
 ## Configuration files
 
 Creating a pipeline relies on multiple
-[configurations files](https://github.com/FranckLejzerowicz/metagenomix/wiki/Configuration-files)
+[configurations files](https://github.com/FranckLejzerowicz/metagenomix/wiki/Configuration)
 that all must/can be passed using the following commamd-line arguments: 
 
 * Mandatory:

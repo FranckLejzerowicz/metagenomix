@@ -1,7 +1,7 @@
 # Pipeline
 
 The pipeline 
-[configuration file](https://github.com/FranckLejzerowicz/metagenomix/wiki/Configuration-files).
+[configuration file](https://github.com/FranckLejzerowicz/metagenomix/wiki/Configuration).
 is mandatory as it establishes the sequence of softwares that are to be run 
 one after the other.
 
