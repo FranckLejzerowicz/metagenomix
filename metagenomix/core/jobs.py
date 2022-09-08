@@ -74,8 +74,8 @@ class Created(object):
                     self.chunks[str(cdx)] = [cmds_d[x] for x in chunk]
         else:
             for key in self.cmds:
-                chunk_key = '%s_%s' % (key[0], '-'.join(key[1]))
-                self.chunks[chunk_key] = [key]
+                chunkey = '%s_%s' % (key[0], '-'.join(key[1]).replace('/', '_'))
+                self.chunks[chunkey] = [key]
 
     def get_main_sh(self, name, soft=None) -> str:
         if soft:
