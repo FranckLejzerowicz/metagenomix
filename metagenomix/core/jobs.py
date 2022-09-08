@@ -9,6 +9,7 @@
 import os
 import sys
 import yaml
+import glob
 import random
 import subprocess
 import numpy as np
@@ -95,16 +96,6 @@ class Created(object):
                 o.write('cd %s/output\n' % job_dir)
                 for jdx, job_fp in enumerate(self.job_fps):
                     o.write('%s %s\n' % (self.scheduler, job_fp))
-                    if self.config.dev:
-                        if not isdir('%s/output' % job_dir):
-                            os.makedirs('%s/output' % job_dir)
-                        f = 'slurm-%s_000000%s' % (self.job_name, jdx)
-                        for e in ['.o', '.e']:
-                            job_std = '%s/output/%s%s' % (job_dir, f, e)
-                            with open(job_std, 'w') as o_dev:
-                                for r in range(10, random.randrange(11, 100)):
-                                    o_dev.write('random %s\n' % r)
-                                o_dev.write('Done!\n')
                 self.job_fps = []
 
     def get_provenance_fp(self, name, soft=None) -> str:
@@ -155,13 +146,13 @@ class Created(object):
             roundtrip = get_roundtrip(soft.io[key])
             extended_cmds = ['\n# Move to SCRATCH_FOLDER']
             extended_cmds += roundtrip['to']
-            extended_cmds += ['\n# data: %s %s' % (key[0], ' - '.join(key[1]))]
+            extended_cmds += ['\n# data: %s %s' % (key[0], ' '.join(key[1]))]
             extended_cmds += cmds
             if self.config.move_back:
                 extended_cmds += ['\n# Move from SCRATCH_FOLDER']
                 extended_cmds += roundtrip['from']
         else:
-            extended_cmds = ['\n# data: %s %s' % (key[0], ' - '.join(key[1]))]
+            extended_cmds = ['\n# data: %s %s' % (key[0], ' '.join(key[1]))]
             extended_cmds += cmds
         self.cmds[key] = extended_cmds
 
@@ -169,15 +160,12 @@ class Created(object):
         self.cmds = {}
         for sam_or_pool, cmds in soft.cmds.items():
             if isinstance(cmds, list):
-                print(1, sam_or_pool)
                 self.scratch(soft, sam_or_pool, cmds)
             elif isinstance(cmds, dict):
                 if sam_or_pool in self.commands.pools:
                     for group, group_cmds in cmds.items():
-                        print(2, sam_or_pool, group)
                         self.scratch(soft, (sam_or_pool, group), group_cmds)
                 else:
-                    print(3, sam_or_pool)
                     self.scratch(soft, sam_or_pool, cmds)
             else:
                 sys.exit('The collected commands are neither a list or a dict!')
@@ -337,6 +325,23 @@ class Created(object):
                 x for x in soft.dir.split('after_')[-1] if x not in 'aeiuoy'])
         self.job_name += '.' + chunk.replace('/', '_')
 
+    def write_dummy_oe(self):
+        job_dir = '%s/output' % dirname(self.sh)
+        if not isdir(job_dir):
+            os.makedirs(job_dir)
+        for job_fp in glob.glob('%s/#%s*' % (job_dir, self.job_name)):
+            os.remove(job_fp)
+        jobs = range(1, random.randrange(2, 4))
+        for job in jobs:
+            job_fp = 'slurm-%s_000000%s' % (self.job_name, job)
+            lines = ['random %s' % r for r in range(5, random.randrange(6, 20))]
+            if job == jobs[-1] and random.choice([0, 1]):
+                lines.append('Done!')
+            for oe in ['.o', '.e']:
+                job_fp_oe = '%s/%s%s' % (job_dir, job_fp, oe)
+                with open(job_fp_oe, 'w') as o_dev:
+                    o_dev.write('\n'.join(lines))
+
     def write_script(self, soft=None):
         if self.config.jobs:
             if soft:
@@ -352,6 +357,8 @@ class Created(object):
             self.get_sh(name, chunk, soft)
             self.write_chunks(chunk_keys, soft)
             self.get_job_name(name, chunk, soft)
+            if self.config.dev:
+                self.write_dummy_oe()
             self.write_script(soft)
 
     def display(self):
