@@ -261,7 +261,7 @@ def bowtie2(self) -> None:
             self.outputs['outs'][(tech, self.sam_pool)][(db, 'bowtie2')] = sam
             if self.config.force or to_do(sam):
                 cmd = get_alignment_cmd(fastxs, cmd, sam)
-                self.outputs['cmds'].setdefault(tech, []).append(cmd)
+                self.outputs['cmds'].setdefault((tech,), []).append(cmd)
                 io_update(self, i_f=fastxs, i_d=db_out, o_d=db_out, key=tech)
                 self.soft.add_status(tech, self.sam_pool, 1)
             else:
@@ -363,7 +363,7 @@ def flash(self) -> None:
 
         if self.config.force or sum([to_do(x) for x in outs]):
             cmd = flash_cmd(self, tech, fastqs, out)
-            self.outputs['cmds'][tech] = [cmd]
+            self.outputs['cmds'][(tech,)] = [cmd]
             io_update(self, i_f=fastqs, o_d=out, key=tech)
             self.soft.add_status(tech, sam, 1)
         else:
@@ -488,7 +488,7 @@ def ngmerge(self) -> None:
 
         if self.config.force or sum([to_do(x) for x in outs]):
             cmd = ngmerge_cmd(self, tech, fastqs, ext, log, fail)
-            self.outputs['cmds'][tech] = [cmd]
+            self.outputs['cmds'][(tech,)] = [cmd]
             io_update(self, i_f=fastqs, o_d=out, key=tech)
             self.soft.add_status(tech, sam, 1)
         else:
@@ -609,7 +609,7 @@ def pear(self) -> None:
 
         if self.config.force or sum([to_do(x) for x in outs]):
             cmd = pear_cmd(self, tech, fastqs, rad, outs, outs_, na)
-            self.outputs['cmds'][tech] = [cmd]
+            self.outputs['cmds'][(tech,)] = [cmd]
             io_update(self, i_f=fastqs, o_d=out, key=tech)
             self.soft.add_status(tech, sam, 1)
         else:
@@ -747,10 +747,10 @@ def bbmerge(self) -> None:
 
         # check if the tool already run (or if --force) to allow getting command
         if self.config.force or sum([to_do(x) for x in outs]):
-            # collect the commmand line
+            # collect the command line
             cmd = bbmerge_cmd(self, tech, fastqs, outs_cmd)
             # add is to the 'cmds'
-            self.outputs['cmds'][tech] = [cmd]
+            self.outputs['cmds'][(tech,)] = [cmd]
             io_update(self, i_f=fastqs, o_d=out, key=tech)
             self.soft.add_status(tech, sam, 1)
         else:

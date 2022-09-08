@@ -237,11 +237,11 @@ def drep(self):
                 if not self.config.force and glob.glob(out_dereps):
                     self.soft.add_status(tech, pool, 0, group=bin_algo)
                     continue
-                key = '_'.join([tech, pool_binning_algo])
+                key = (tech, pool_binning_algo)
                 cmd = drep_cmd(self, algo, drep_in, drep_out, bin_paths, cmd)
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
-                self.soft.add_status(tech, pool, 1, group=bin_algo)
                 io_update(self, i_d=paths, o_d=drep_out, key=key)
+                self.soft.add_status(tech, pool, 1, group=bin_algo)
 
 
 def tree_cmd(

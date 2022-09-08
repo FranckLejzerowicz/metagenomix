@@ -101,7 +101,7 @@ def plasmidfinder_cmd(
         self,
         fasta: str,
         out_dir: str,
-        key: str
+        key: tuple
 ) -> str:
     """Collect PlasmidFinder command.
 
@@ -117,14 +117,14 @@ def plasmidfinder_cmd(
     out_dir : str
         Path to the output folder for the current sample/MAG
     key : str
-        Concatenation of the technology and/or co-assembly pool group name
+        Technology and/or co-assembly pool group name
 
     Returns
     -------
     cmd : str
         PlasmidFinder command
     """
-    tmp_dir = '$TMPDIR/plasmidfinder_%s' % key
+    tmp_dir = '$TMPDIR/plasmidfinder_%s' % '_'.join(key)
     cmd = 'mkdir -p %s\n' % tmp_dir
     cmd += 'plasmidfinder.py'
     if len(fasta) == 2:

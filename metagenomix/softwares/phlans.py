@@ -121,14 +121,14 @@ def analyses(
                 cmd += ' --pres_th %s' % params['pres_th']
             elif t == 'clade_specific_strain_tracker':
                 for strain in self.config.strains:
-                    s_cmd = cmd
-                    s_cmd += ' --clade %s' % strain.replace(' ', '_')
+                    cms = cmd
+                    cms += ' --clade %s' % strain.replace(' ', '_')
                     clade_out = '%s_%s.tsv' % (rad, strain.replace(' ', '_'))
-                    s_cmd += ' --output_file %s' % clade_out
+                    cms += ' --output_file %s' % clade_out
                     if params['min_ab']:
-                        s_cmd += ' --min_ab %s' % params['min_ab']
+                        cms += ' --min_ab %s' % params['min_ab']
                     if self.config.force or to_do(clade_out):
-                        self.outputs['cmds'].setdefault(tech, []).append(s_cmd)
+                        self.outputs['cmds'].setdefault((tech,), []).append(cms)
                         io_update(self, o_f=clade_out, key=tech)
                         self.soft.add_status(
                             tech, self.sam_pool, 1, message=t, genome='strain')
@@ -139,7 +139,7 @@ def analyses(
                 ab_out = '%s.tsv' % rad
                 cmd += ' --output_file %s' % ab_out
                 if self.config.force or to_do(ab_out):
-                    self.outputs['cmds'].setdefault(tech, []).append(cmd)
+                    self.outputs['cmds'].setdefault((tech,), []).append(cmd)
                     io_update(self, o_f=ab_out, key=tech)
                     self.soft.add_status(tech, self.sam_pool, 1, message=t)
                 else:
@@ -217,7 +217,7 @@ def profiling(
         cmd += ' --output_file %s' % profile_out
         cmd += ' --nproc %s' % params['cpus']
         cmd += ' --sample_id_key %s' % sam
-        self.outputs['cmds'].setdefault(tech, []).append(cmd)
+        self.outputs['cmds'].setdefault((tech,), []).append(cmd)
         self.soft.add_status(tech, self.sam_pool, 1)
     else:
         io_update(self, i_f=bowtie2out, key=tech)
@@ -284,7 +284,6 @@ def metaphlan(self) -> None:
             continue
 
         tmpdir = '$TMPDIR/metaphlan_%s_%s' % (tech, self.sam_pool)
-        tmp_cmd = ['mkdir -p %s\n' % tmpdir]
         bowtie2out = '%s/%s/bowtie2/%s.bowtie2.bz2' % (self.dir, tech, sam)
 
         outs = profiling(self, tech, sam, inputs, bowtie2out, tmpdir)
@@ -296,8 +295,9 @@ def metaphlan(self) -> None:
         reads = get_read_count(self, tech, sam)
         if reads:
             analyses(self, tech, sam, bowtie2out, reads)
-        if self.outputs['cmds'].get(tech):
-            self.outputs['cmds'][tech] = tmp_cmd + self.outputs['cmds'][tech]
+        if self.outputs['cmds'].get((tech,)):
+            _cmd = ['mkdir -p %s\n' % tmpdir]
+            self.outputs['cmds'][(tech,)] = _cmd + self.outputs['cmds'][(tech,)]
 
 
 def get_profile(self) -> list:
@@ -479,7 +479,8 @@ def get_outputs(
         profile: str,
         db: str,
         out: str,
-        ali: str
+        ali: str,
+        key: tuple
 ) -> tuple:
     """Get the profiling output files at genus, pathway and coverage levels.
 
@@ -500,6 +501,8 @@ def get_outputs(
         Path to the output folder.
     ali : str
         Path to temporary, alignment sam file
+    key : tuple
+        Technology and/or smaple name
 
     Returns
     -------
@@ -517,13 +520,14 @@ def get_outputs(
     if not self.config.force and not sum([to_do(x) for x in [gen, pwy, cov]]):
         io_update(self, i_f=[gen, pwy])
     else:
-        self.outputs['cmds'].append(get_cmd(self, profile, db, out, base, ali))
+        cmd = get_cmd(self, profile, db, out, base, ali)
+        self.outputs['cmds'].setdefault(key, []).append(cmd)
         io_update(self, o_f=[gen, pwy, cov])
     return gen, pwy, cov
 
 
 def humann(self) -> None:
-    """Create command lines for humann for the current database's species focus.
+    """.
 
     References
     ----------
@@ -554,14 +558,17 @@ def humann(self) -> None:
             Configurations
     """
     for profile, db, out in zip(*get_profile(self)):
+        key = (tech, '_'.join(profile, db))
         ali = get_ali(self, out)
-        gen, pwy, cov = get_outputs(self, ali, profile, db, out)
+        gen, pwy, cov = get_outputs(self, ali, profile, db, out, key)
         gen_relab = '%s/%s_genefamilies_relab.tsv' % (out, self.sam_pool)
         pwy_relab = '%s/%s_pathabundance_relab.tsv' % (out, self.sam_pool)
         if self.config.force or to_do(gen_relab) or to_do(pwy_relab):
-            self.outputs['cmds'].append(renorm(gen, gen_relab))
-            self.outputs['cmds'].append(renorm(pwy, pwy_relab))
-            io_update(self, o_f=[gen_relab, pwy_relab])
+            cmd_gen = renorm(gen, gen_relab)
+            cmd_pwy = renorm(pwy, pwy_relab)
+            self.outputs['cmds'].setdefault(key, []).append(cmd_gen)
+            self.outputs['cmds'].setdefault(key, []).append(cmd_pwy)
+            io_update(self, o_f=[gen_relab, pwy_relab], key=key)
         self.outputs['dirs'].append(out)
         self.outputs['outs'].append([out, ali, gen, gen_relab, pwy,
                                      pwy_relab, cov])
@@ -591,7 +598,7 @@ def get_sample_to_marker(
         cmd += ' -i %s/*.sam.bz2' % sam_dir
         cmd += ' -o %s' % markers_dir
         cmd += ' -n %s' % self.soft.params['cpus']
-        self.outputs['cmds'].append(cmd)
+        self.outputs['cmds'].setdefault(key, []).append(cmd)
 
 
 def extract_markers(
@@ -615,7 +622,7 @@ def extract_markers(
         cmd = 'extract_markers.py'
         cmd += ' -c %s' % st
         cmd += ' -o %s' % db_dir
-        self.outputs['cmds'].append(cmd)
+        self.outputs['cmds'].setdefault(key, []).append(cmd)
 
 
 def strainphlan(self) -> None:
@@ -662,7 +669,6 @@ def strainphlan(self) -> None:
             continue
         bt2_fp, sam_fp = inputs[:2]
         sam_dir = dirname(sam_fp)
-        tmp_dir = '$TMPDIR/strainphlan'
         db_dir = '%s/db_markers' % self.dir
         meta_dir = '%s/metadata' % self.dir
         markers_dir = '%s/consensus_markers' % self.dir
@@ -670,12 +676,16 @@ def strainphlan(self) -> None:
 
         self.outputs['outs'] = dict({})
         self.outputs['dirs'].extend([db_dir, meta_dir])
-        self.outputs['cmds'].append('mkdir -p %s' % tmp_dir)
-        io_update(self, i_d=sam_dir, o_d=[markers_dir, db_dir, meta_dir])
-
         get_sample_to_marker(self, sam_dir, markers_dir)
 
         for strain_group, strains in self.config.strains.items():
+
+            tmp = '$TMPDIR/strainphlan_%s' % strain_group
+            key = (tech, strain_group)
+            self.outputs['cmds'].setdefault(key, []).append('mkdir -p %s' % tmp)
+            io_update(self, i_d=sam_dir, o_d=[markers_dir, db_dir, meta_dir],
+                      key=key)
+
             strain_dir = '%s/%s' % (db_dir, strain_group)
             self.outputs['dirs'].append(strain_dir)
             for strain in [x.replace(' ', '_') for x in strains]:
@@ -685,7 +695,7 @@ def strainphlan(self) -> None:
                 odir = '%s/output/%s' % (self.dir, strain_group)
                 self.outputs['dirs'].append(odir)
                 self.outputs['outs'][(strain_group, strain)] = odir
-                io_update(self, o_d=odir)
+                io_update(self, o_d=odir, key=key)
                 tree = '%s/RAxML_bestTree.%s.StrainPhlAn3.tre' % (odir, strain)
                 if self.config.force or to_do(tree):
                     cmd = 'strainphlan'
@@ -695,13 +705,13 @@ def strainphlan(self) -> None:
                         fna = '%s/%s.fna.bz2' % (
                             self.databases.paths['wol']['fna'],
                             wol_pd.loc[wol_pd['species'] == strain, 0])
-                        io_update(self, i_f=fna)
+                        io_update(self, i_f=fna, key=key)
                         cmd += ' -r %s' % fna
                     cmd += ' -o %s' % odir
                     cmd += ' -n %s' % self.soft.params['cpus']
                     cmd += ' -c %s' % strain
                     cmd += ' --mutation_rates'
-                    self.outputs['cmds'].append(cmd)
+                    self.outputs['cmds'].setdefault(key, []).append(cmd)
                     self.soft.add_status(
                         tech, sam, 1, group=strain_group, genome=strain)
                 else:

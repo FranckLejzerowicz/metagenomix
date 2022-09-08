@@ -314,7 +314,7 @@ def simka(self) -> None:
                     cmd = input_cmd + cmd
                     cmds += cmd
                     self.outputs['dirs'].append(out_dir)
-                    self.outputs['cmds'].setdefault(tech, []).append(cmd)
+                    self.outputs['cmds'].setdefault((tech,), []).append(cmd)
                     io_update(self, i_f=input_fastqs, o_d=out_dir, key=tech)
                 else:
                     io_update(self, i_d=out_dir, key=tech)
@@ -324,7 +324,7 @@ def simka(self) -> None:
                     cmd = simka_pcoa_cmd(self, mat)
                     if cmd:
                         cmds += cmd
-                        self.outputs['cmds'].setdefault(tech, []).append(cmd)
+                        self.outputs['cmds'].setdefault((tech,), []).append(cmd)
                         io_update(self, o_d=out_dir, key=tech)
         if cmds:
             self.soft.add_status(tech, 'all samples', 1)

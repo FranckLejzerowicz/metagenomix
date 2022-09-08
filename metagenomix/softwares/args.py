@@ -175,7 +175,7 @@ def predict(self) -> None:
             fastas = group_inputs(self, inputs)
             get_predict(self, fastas, tech, bin_algo)
     else:
-        tech_fastas = sample_inputs(self, ['pacbio', 'nanopore'])
+        tech_fastas = sample_inputs(self)
         for tech, fastas in tech_fastas.items():
             get_predict(self, fastas, tech, self.sam_pool)
 
@@ -258,7 +258,7 @@ def short(self) -> None:
             # collect the commmand line
             cmd = short_cmd(self, fastqs, prefix)
             # add is to the 'cmds'
-            self.outputs['cmds'][tech] = [cmd]
+            self.outputs['cmds'][(tech,)] = [cmd]
             io_update(self, i_f=fastqs, o_d=out, key=tech)
             self.soft.add_status(tech, sam, 1)
         else:

@@ -399,6 +399,8 @@ def io_update(
         o_d=None,
         key=None
 ):
+    if not isinstance(key, tuple):
+        key = (key,)
     for (IO_fd, val) in [
         (('I', 'f'), i_f),
         (('I', 'd'), i_d),
@@ -408,15 +410,9 @@ def io_update(
         if not val:
             continue
         if isinstance(val, list):
-            if key:
-                self.outputs['io'][IO_fd].setdefault(key, set()).update(val)
-            else:
-                self.outputs['io'][IO_fd].update(val)
+            self.outputs['io'][IO_fd].setdefault(key, set()).update(val)
         elif isinstance(val, str):
-            if key:
-                self.outputs['io'][IO_fd].setdefault(key, set()).add(val)
-            else:
-                self.outputs['io'][IO_fd].add(val)
+            self.outputs['io'][IO_fd].setdefault(key, set()).add(val)
 
 
 def to_do(

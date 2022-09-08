@@ -198,7 +198,7 @@ def genome_key(
         tech: str,
         sam_group: str,
         genome: str = ''
-) -> str:
+) -> tuple:
     """Get a concatenation of the variables fields to split the commands as
     separate jobs later when writing out.
 
@@ -213,12 +213,12 @@ def genome_key(
 
     Returns
     -------
-    key : str
-        Concatenation of variables names for the current analytic level
+    key : tuple
+        Variables names for the current analytic level
     """
-    key = '_'.join([tech, sam_group])
+    key = (tech, sam_group)
     if genome:
-        key += '_' + genome
+        key += (genome,)
     return key
 
 

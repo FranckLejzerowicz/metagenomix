@@ -18,7 +18,7 @@ def lorikeet_cmd(
         fasta_folder: str,
         group_reads: dict,
         out_dir: str,
-        key: str,
+        key: tuple,
         step: str
 ) -> str:
     """Collect lorikeet call, lorikeet consensus, or lorikeet genotype command.
@@ -36,8 +36,8 @@ def lorikeet_cmd(
         Path(s) to the fastq files per sample
     out_dir : str
         Path to the output folder
-    key : str
-        Concatenation of the current tech, pool, group, genome, etc
+    key : tuple
+        Turrent tech, pool, group, genome, etc
     step : str
         name of the Lorikeet module ("call", "consensus", or "genotype")
 
@@ -46,7 +46,7 @@ def lorikeet_cmd(
     cmd : str
         lorikeet command
     """
-    tmp_dir = '$TMPDIR/lorikeet_%s_%s' % (key, step)
+    tmp_dir = '$TMPDIR/lorikeet_%s_%s' % ('_'.join(key), step)
     cmd = 'mkdir -p %s\n' % tmp_dir
 
     cmd += 'lorikeet %s' % step

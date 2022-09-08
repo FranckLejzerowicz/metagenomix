@@ -102,10 +102,10 @@ def get_prodigal(
     for genome, fasta in fastas.items():
 
         out = out_dir
-        key = '_'.join([tech, sam_group])
+        key = (tech, sam_group)
         if genome:
             out += '/' + genome
-            key += '_' + genome
+            key += (genome,)
         self.outputs['dirs'].append(out)
         self.outputs['outs'].setdefault((tech, sam_group), []).append(out)
         status_update(self, tech, [fasta[0]], group=sam_group, genome=genome)
@@ -629,7 +629,7 @@ def search_cmd(
         sam_group: str,
         proteins: str,
         out_dir: str,
-        key: str
+        key: tuple
 ) -> dict:
     """Dispatch the command line creation for hmmer or diamond and
     for the different reference databases.
@@ -653,8 +653,8 @@ def search_cmd(
         Path to the input proteins fasta file
     out_dir : str
         Path to the main output folder
-    key : str
-        Concatenation of variables names for the current analytic level
+    key : tuple
+        Variables names for the current analytic level
 
     Returns
     -------
@@ -663,7 +663,7 @@ def search_cmd(
     """
     outs = {}
     params = tech_params(self, tech)
-    tmp = '$TMPDIR/%s_%s_%s' % (self.soft.name, self.sam_pool, key)
+    tmp = '$TMPDIR/%s_%s_%s' % (self.soft.name, self.sam_pool, '_'.join(key))
     module_call = caller(self, __name__)
     for db, db_paths in params['databases'].items():
         for db_path in db_paths:
@@ -676,8 +676,8 @@ def search_cmd(
 
             if self.config.force or to_do(out):
                 cmd = module_call(params, proteins, db_path, out, tmp)
-                io_update(self, i_f=proteins, o_d=db_out_dir, key=key)
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
+                io_update(self, i_f=proteins, o_d=db_out_dir, key=key)
                 self.soft.add_status(
                     tech, self.sam_pool, 1, group=sam_group, genome=db)
             else:
@@ -1076,9 +1076,9 @@ def prokka(self) -> None:
 
             cmd = get_prokka(self, tech, group, inputs, out_dir)
             if cmd:
-                tech_group = '_'.join([tech, group])
-                self.outputs['cmds'].setdefault(tech_group, []).append(cmd)
-                io_update(self, i_f=inputs[0], o_d=out_dir, key=tech_group)
+                key = (tech, group)
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
+                io_update(self, i_f=inputs[0], o_d=out_dir, key=key)
 
 
 def barrnap_cmd(
@@ -1559,8 +1559,9 @@ def tiara(self) -> None:
                 cmd += ' --%s %s' % (param, self.soft.params[param])
             for param in ['prob_cutoff', 'to_fasta']:
                 cmd += ' --%s %s' % (param, ' '.join(self.soft.params[param]))
-            self.outputs['cmds'].setdefault(group, []).append(cmd)
-            io_update(self, i_f=spades[0], o_d=out_dir, key=group)
+            key = (tech, group)
+            self.outputs['cmds'].setdefault(key, []).append(cmd)
+            io_update(self, i_f=spades[0], o_d=out_dir, key=key)
             self.soft.add_status(tech, self.sam_pool, 1, group=group)
         else:
             self.soft.add_status(tech, self.sam_pool, 0, group=group)

@@ -74,10 +74,8 @@ class Created(object):
                     self.chunks[str(cdx)] = [cmds_d[x] for x in chunk]
         else:
             for key in self.cmds:
-                if isinstance(key, str):
-                    self.chunks[key] = [key]
-                else:
-                    self.chunks['_'.join([k for k in key if k])] = [key]
+                chunk_key = '%s_%s' % (key[0], '-'.join(key[1]))
+                self.chunks[chunk_key] = [key]
 
     def get_main_sh(self, name, soft=None) -> str:
         if soft:
@@ -155,30 +153,34 @@ class Created(object):
     def scratch(self, soft, key, cmds):
         if soft.params['scratch'] and self.config.jobs and key in soft.io:
             roundtrip = get_roundtrip(soft.io[key])
-            scratch_cmds = ['\n# Move to SCRATCH_FOLDER']
-            scratch_cmds += roundtrip['to']
-            scratch_cmds += ['\n# %s commands (%s)' % (soft.name, key)]
-            scratch_cmds += cmds
+            extended_cmds = ['\n# Move to SCRATCH_FOLDER']
+            extended_cmds += roundtrip['to']
+            extended_cmds += ['\n# data: %s %s' % (key[0], ' - '.join(key[1]))]
+            extended_cmds += cmds
             if self.config.move_back:
-                scratch_cmds += ['\n# Move from SCRATCH_FOLDER']
-                scratch_cmds += roundtrip['from']
-            self.cmds[key] = scratch_cmds
+                extended_cmds += ['\n# Move from SCRATCH_FOLDER']
+                extended_cmds += roundtrip['from']
         else:
-            self.cmds[key] = cmds
+            extended_cmds = ['\n# data: %s %s' % (key[0], ' - '.join(key[1]))]
+            extended_cmds += cmds
+        self.cmds[key] = extended_cmds
 
     def get_cmds(self, soft):
         self.cmds = {}
         for sam_or_pool, cmds in soft.cmds.items():
             if isinstance(cmds, list):
+                print(1, sam_or_pool)
                 self.scratch(soft, sam_or_pool, cmds)
             elif isinstance(cmds, dict):
                 if sam_or_pool in self.commands.pools:
                     for group, group_cmds in cmds.items():
+                        print(2, sam_or_pool, group)
                         self.scratch(soft, (sam_or_pool, group), group_cmds)
                 else:
+                    print(3, sam_or_pool)
                     self.scratch(soft, sam_or_pool, cmds)
             else:
-                sys.exit('The collected commands are neither list of dict!')
+                sys.exit('The collected commands are neither a list or a dict!')
 
     def print_status(self, m, sdx, name, soft):
         gap = (m - len(name) - len(str(sdx))) + 1

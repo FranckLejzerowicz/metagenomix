@@ -130,7 +130,7 @@ def get_edit_cmd(
     if not line_split[0].endswith('/%s' % num):
         if len(line_split) > 1:
             cmd = edit_fastq_cmd(fastq_fp, num)
-            self.outputs['cmds'].setdefault(tech, []).append(cmd)
+            self.outputs['cmds'].setdefault((tech,), []).append(cmd)
             self.soft.add_status(tech, self.sam_pool, 1)
         else:
             self.soft.add_status(tech, self.sam_pool, 0)
@@ -239,7 +239,7 @@ def count(self) -> None:
         if self.config.force or to_do(out):
             for idx, fastx in enumerate(fastxs):
                 cmd = count_cmd(self, idx, fastx, out)
-                self.outputs['cmds'].setdefault(tech, []).append(cmd)
+                self.outputs['cmds'].setdefault((tech,), []).append(cmd)
             io_update(self, i_f=fastxs, i_d=out_dir, o_f=out, key=tech)
             self.soft.add_status(tech, sam, 1)
         else:
@@ -293,7 +293,7 @@ def fastqc(self) -> None:
 
         if self.config.force or not sum([to_do(x) for x in out]):
             cmd = 'fastqc %s -o %s' % (' '.join(fastxs), out_dir)
-            self.outputs['cmds'][tech] = [cmd]
+            self.outputs['cmds'][(tech,)] = [cmd]
             io_update(self, i_f=fastxs, o_d=out_dir, key=tech)
             self.soft.add_status(tech, sam, 1)
         else:
@@ -465,7 +465,7 @@ def fastp(self) -> None:
         self.outputs['outs'].setdefault((tech, self.sam_pool), []).extend(outs)
 
         if self.config.force or sum([to_do(x) for x in outs]):
-            self.outputs['cmds'][tech] = [cmd]
+            self.outputs['cmds'][(tech,)] = [cmd]
             io_update(self, i_f=fastqs, o_d=out_dir, key=tech)
             self.soft.add_status(tech, sam, 1)
         else:
@@ -584,7 +584,7 @@ def cutadapt(self) -> None:
         self.outputs['outs'].setdefault((tech, self.sam_pool), []).extend(outs)
 
         if self.config.force or sum([to_do(x) for x in outs]):
-            self.outputs['cmds'][tech] = [cmd]
+            self.outputs['cmds'][(tech,)] = [cmd]
             io_update(self, i_f=fastqs, o_f=outs, key=tech)
             self.soft.add_status(tech, sam, 1)
         else:
@@ -725,7 +725,7 @@ def atropos(self) -> None:
 
         cmd = atropos_cmd(self, tech, fastqs, out_dir, outs)
         if self.config.force or sum([to_do(x) for x in outs]):
-            self.outputs['cmds'][tech] = [cmd]
+            self.outputs['cmds'][(tech,)] = [cmd]
             io_update(self, i_f=fastqs, o_f=outs, key=tech)
             self.soft.add_status(tech, sam, 1)
         else:
@@ -821,7 +821,7 @@ def hifiadapterfilt(self) -> None:
 
         if self.config.force or to_do(out):
             cmd = hifiadapterfilt_cmd(self, fastqs, out_dir, sam)
-            key = tech + '_' + sam
+            key = (tech, sam)
             self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, i_f=fastqs, o_d=out_dir, key=key)
             self.soft.add_status(tech, sam, 1)
@@ -942,7 +942,7 @@ def kneaddata(self) -> None:
         cmd, outputs = kneaddata_cmd(self, tech, fastqs, out_dir)
 
         if self.config.force or sum([to_do(x) for x in outputs]):
-            self.outputs['cmds'][tech] = [cmd]
+            self.outputs['cmds'][(tech,)] = [cmd]
             io_update(self, i_f=fastqs, o_d=out_dir, key=tech)
             self.soft.add_status(tech, sam, 1)
         else:
@@ -1059,7 +1059,7 @@ def filtering(self):
         self.outputs['outs'].setdefault(
             (tech, self.sam_pool), []).extend(fastqs_gz)
         if (self.config.force or sum([to_do(x) for x in fastqs_gz])) and cmds:
-            self.outputs['cmds'][tech] = [cmds]
+            self.outputs['cmds'][(tech,)] = [cmds]
             io_update(self, i_f=fastqs_, i_d=out_dirs, o_f=fastqs_gz, key=tech)
             self.soft.add_status(tech, sam, 1)
         else:
