@@ -311,10 +311,8 @@ def simka(self) -> None:
                 out_dir = '%s/%s/k%s/n%s' % (self.dir, tech, k, n)
                 cmd = simka_cmd(self, params, input_file, out_dir, k, n)
                 if cmd:
-                    cmd = input_cmd + cmd
                     cmds += cmd
                     self.outputs['dirs'].append(out_dir)
-                    self.outputs['cmds'].setdefault((tech,), []).append(cmd)
                     io_update(self, i_f=input_fastqs, o_d=out_dir, key=tech)
                 else:
                     io_update(self, i_d=out_dir, key=tech)
@@ -327,6 +325,8 @@ def simka(self) -> None:
                         self.outputs['cmds'].setdefault((tech,), []).append(cmd)
                         io_update(self, o_d=out_dir, key=tech)
         if cmds:
+            cmd = input_cmd + cmd
+            self.outputs['cmds'].setdefault((tech,), []).append(cmd)
             self.soft.add_status(tech, 'all samples', 1)
         else:
             self.soft.add_status(tech, 'all samples', 0)
