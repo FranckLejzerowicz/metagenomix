@@ -134,7 +134,6 @@ def get_predict(
                 # collect the command line
                 cmd = predict_cmd(self, seq, prefix, typ)
                 # add is to the 'cmds'
-                key += '_' + typ
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
                 io_update(self, i_f=fasta[0], o_d=out_dir, key=key)
                 self.soft.add_status(
