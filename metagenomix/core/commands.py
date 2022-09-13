@@ -175,7 +175,6 @@ class Commands(object):
 
     def pooling(self):
         for pool in self.config.pooling_groups:
-            self.soft.io = {}
             self.pools[pool] = {}
             self.soft.outputs[pool] = {}
             pooling(self, pool)
