@@ -178,7 +178,6 @@ class Created(object):
                     fil = fil_.replace('${SCRATCH_FOLDER}', '')
                     if not isdir(dirname(fil)):
                         os.makedirs(dirname(fil))
-                    print(fil)
                     with open(fil, 'w') as o:
                         for r in range(10, random.randrange(11, 100)):
                             o.write('test\n')
