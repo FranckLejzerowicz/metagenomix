@@ -46,7 +46,7 @@ def pool_cmd(
             else:
                 cmd += 'cat %s > %s\n' % (path, fasta)
         if cmd:
-            self.cmds.setdefault((pool, group, tech), []).append(cmd)
+            self.cmds.setdefault((tech, (pool, group)), []).append(cmd)
 
 
 def extension_paths(
@@ -215,34 +215,6 @@ def fasta_fp(
     return fasta
 
 
-def add_to_pool_io(
-        self,
-        io: tuple,
-        key: tuple,
-        values: list
-) -> None:
-    """Add to the self.soft.io data structure the path to move to/from
-    scratch for the pooling step specifically (which is pivotal between
-    per sample processing to per pool/pool group).
-
-    Parameters
-    ----------
-    self : Commands class instance
-        .soft.io : dict
-            All files to I/O is scratch is used
-    io : tuple
-        ('I', 'd'), ('I', 'f'), ('O', 'd'), or ('O', 'f')
-    key : tuple
-        (Name of the pool, Name of the pool group, Name pf the technology)
-    values: list
-        Paths to move to/from scratch for the pooling
-    """
-    if key not in self.soft.io:
-        self.soft.io[key] = {('I', 'd'): set(), ('I', 'f'): set(),
-                             ('O', 'd'): set(), ('O', 'f'): set()}
-    self.soft.io[key][io].update(values)
-
-
 def make_pool(
         self,
         tech: str,
@@ -274,7 +246,7 @@ def make_pool(
         Fasta file name for the merging result
     """
     # collect the inputs to pool as to move to scratch
-    add_to_pool_io(self, ('I', 'f'), (pool, group, tech), paths)
+    add_to_pool_io(self, ('I', 'f'), tech, pool, group, paths)
     # collect the pooling command line
     pool_cmd(self, tech, pool, paths, fasta, group)
 
@@ -364,9 +336,44 @@ def get_pools(
         # get the fasta files of the pools (per orientation)
         fasta_fps = get_fasta_pools(self, tech, out, sams, pool, group)
         # fill the data structures
-        add_to_pool_io(self, ('O', 'd'), (pool, group, tech), [out])
-        add_to_pool_io(self, ('O', 'f'), (pool, group, tech), fasta_fps)
+        add_to_pool_io(self, ('O', 'd'), tech, pool, group, [out])
+        add_to_pool_io(self, ('O', 'f'), tech, pool, group, fasta_fps)
         self.soft.outputs[pool][group][tech] = fasta_fps
+
+
+def add_to_pool_io(
+        self,
+        io: tuple,
+        tech: str,
+        pool: str,
+        group: str,
+        values: list
+) -> None:
+    """Add to the self.soft.io data structure the path to move to/from
+    scratch for the pooling step specifically (which is pivotal between
+    per sample processing to per pool/pool group).
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .soft.io : dict
+            All files to I/O is scratch is used
+    io : tuple
+        ('I', 'd'), ('I', 'f'), ('O', 'd'), or ('O', 'f')
+    tech : str
+        Name pf the technology
+    pool : str
+        Name of the pool
+    group : str
+        Name of the pool group
+    values: list
+        Paths to move to/from scratch for the pooling
+    """
+    key = (tech, (pool, group))
+    if key not in self.soft.io:
+        self.soft.io[key] = {}
+    if io not in self.soft.io[key]:
+        self.soft.io[key].setdefault(io, set()).update(values)
 
 
 def pooling(
