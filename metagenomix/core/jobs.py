@@ -170,7 +170,8 @@ class Created(object):
                 if folder_.endswith('*'):
                     continue
                 folder = folder_.replace('${SCRATCH_FOLDER}', '')
-                shutil.rmtree(folder)
+                if isdir(folder):
+                    shutil.rmtree(folder)
             if random.choice([0, 1]):
                 for fil_ in soft.io[key].get(('O', 'f'), []):
                     if fil_.endswith('*'):
