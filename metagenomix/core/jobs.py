@@ -10,6 +10,7 @@ import os
 import sys
 import yaml
 import glob
+import shutil
 import random
 import subprocess
 import numpy as np
@@ -169,13 +170,7 @@ class Created(object):
                 if folder_.endswith('*'):
                     continue
                 folder = folder_.replace('${SCRATCH_FOLDER}', '')
-                if isdir(folder):
-                    for fp in glob.glob('%s/*' % folder):
-                        if isfile(fp):
-                            os.remove(fp)
-                        if isdir(fp):
-                            os.rmdir(fp)
-                    os.rmdir(folder)
+                shutil.rmtree(folder)
             if random.choice([0, 1]):
                 for fil_ in soft.io[key].get(('O', 'f'), []):
                     if fil_.endswith('*'):
@@ -183,8 +178,10 @@ class Created(object):
                     fil = fil_.replace('${SCRATCH_FOLDER}', '')
                     if not isdir(dirname(fil)):
                         os.makedirs(dirname(fil))
-                    with open(fil, 'w'):
-                        pass
+                    print(fil)
+                    with open(fil, 'w') as o:
+                        for r in range(10, random.randrange(11, 100)):
+                            o.write('test\n')
                 for folder_ in soft.io[key].get(('O', 'd'), []):
                     if folder_.endswith('*'):
                         continue
