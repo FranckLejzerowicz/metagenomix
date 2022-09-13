@@ -579,5 +579,3 @@ def add_folder(
     if self.soft.name == name:
         out += '/%s' % step
     return out
-
-
