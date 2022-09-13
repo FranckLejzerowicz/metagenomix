@@ -763,8 +763,3 @@ def get_dates(run_fp) -> list:
                 if line.startswith('Date'):
                     runs.append(line.strip().split()[-1])
     return runs
-
-
-
-
-
