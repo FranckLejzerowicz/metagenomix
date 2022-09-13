@@ -21,35 +21,37 @@ from metagenomix import __version__
               help="Path to the file containing the softwares to run in order")
 @click.option("-s", "--software", multiple=True,
               help="Software(s) to manage (or all in `-i/-p`)")
-@click.option("--remove/--no-remove", default=True,
-              help="Enable assistance to manage folder(s)/file(s) removals")
 @click.option("--jobs/--no-jobs", default=True,
-              help="Enable assistance to manage job stdour/stderr files")
-@click.option("--rename/--no-rename", default=True,
-              help="Enable assistance to manage folder(s)/file(s) renaming")
-@click.option("--rename/--no-rename", default=True,
-              help="Enable assistance to manage folder(s)/file(s) renaming")
-@click.option("--verbose/--no-verbose", default=True, show_default=True,
-              help="Whether to show input/outputs and other details")
+              help="[Management task] Enable job output management")
+@click.option("--remove/--no-remove", default=False,
+              help="[Management task] Enable completed output removal")
+@click.option("--rename/--no-rename", default=False,
+              help="[Management task] Enable output renaming")
+@click.option("--store/--no-store", default=False,
+              help="[Management task] Enable output storage")
+@click.option("--confirm/--no-confirm", default=True, show_default=True,
+              help="Whether to ask for confirmation before applying task")
 @click.version_option(__version__, prog_name="metagenomix")
 def manage(
         folder,
         summary,
         pipeline,
         software,
-        remove,
         jobs,
+        remove,
         rename,
-        verbose
+        store,
+        confirm
 ):
     """Edit the contents of your pipeline output folder."""
     manager(
-        folder=folder,
+        dir=folder,
         out=summary,
         pipeline=pipeline,
         softwares=software,
-        remove=remove,
         jobs=jobs,
+        remove=remove,
         rename=rename,
-        verbose=verbose
+        store=store,
+        confirm=confirm
     )
