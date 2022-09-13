@@ -8,7 +8,7 @@
 
 import os
 import datetime as dt
-from os.path import basename, isdir
+from os.path import abspath, basename, isdir
 
 from metagenomix.metagenomix import metagenomix
 from metagenomix._io_utils import print_status_table
@@ -50,10 +50,11 @@ class Monitored(object):
         self.databases = databases
         self.graph = workflow.graph
         self.commands = commands
+        self.output_dir = abspath(self.output_dir)
         # self.softs = {'res': {}, 'dir': set(), 'pip': set(), 'usr': set()}
         # USE THE SOFTWARES OF THE PARSED COMMANDS----
-        self.time = dt.datetime.now().strftime("%d/%m/%Y, %H") + 'h'
-        self.status_dir = '%s/_status' % self.output_dir
+        self.time = dt.datetime.now().strftime("%d-%m-%Y_%H-%M")
+        self.log_dir = '%s/_monitors' % config.dir
         self.roles = {}
         self.data = {}
 
@@ -67,25 +68,17 @@ class Monitored(object):
             print_status_table(soft, True)
 
     def make_status_dir(self):
-        if not isdir(self.status_dir):
-            os.makedirs(self.status_dir)
+        if not isdir(self.log_dir):
+            os.makedirs(self.log_dir)
 
     def get_out(self):
         if self.summary_fp is None:
-            path = self.time + '.txt'
+            base = self.time + '.txt'
         else:
-            path = basename(self.summary_fp)
+            base = basename(self.summary_fp)
             if '/' in self.summary_fp:
-                print('Using "%s" to write in "%s"' % (path, self.status_dir))
-        self.summary_fp = self.status_dir + '/' + path
-
-    def get_hash(self, soft) -> str:
-        steps = self.graph.paths[soft.name]
-
-        hash_string = ''.join([str(step) + str(soft.params) for step in
-                               steps])
-        hashed = abs(hash(hash_string)) % (10 ** 8)
-        return hashed
+                print('Using "%s" to write in "%s"' % (base, self.log_dir))
+        self.summary_fp = self.log_dir + '/' + base
 
     def write_status(self):
         with open(self.summary_fp, 'w') as o:
@@ -101,14 +94,18 @@ class Monitored(object):
                         o.write(' -> All necessary data available\n')
                     else:
                         o.write('%s\n' % table)
-        print('Witten: %s' % self.summary_fp)
+        print('Written: %s' % self.summary_fp)
 
     def parse_softs(self):
         """An Output class instance is created for each software to manage,
         and placed as value to the dict with the software name of key."""
         for name, soft in self.commands.softs.items():
             if isdir(self.output_dir + '/' + name):
-                self.data[name] = Output(self.output_dir, name)
+                output = Output(self.output_dir, name)
+                output.get_afters()
+                # output.init_table()
+                output.manage()
+                self.data[name] = output
 
     def monitor_softs(self):
         for name, soft in self.data.items():
