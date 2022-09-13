@@ -990,7 +990,7 @@ def get_amrplusplus2(
         # add is to the 'cmds'
         key = genome_key(tech, sam)
         self.outputs['cmds'].setdefault(key, []).append(cmd)
-        io_update(self, i_f=fastqs, o_d=out_dir, key=key)
+        io_update(self, i_f=fastqs, o_d=out_dir, o_f=out, key=key)
         self.soft.add_status(tech, self.sam_pool, 1)
     else:
         self.soft.add_status(tech, self.sam_pool, 0)
