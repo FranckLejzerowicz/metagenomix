@@ -14,7 +14,7 @@ import random
 import subprocess
 import numpy as np
 import datetime as dt
-from os.path import dirname, isdir, splitext
+from os.path import dirname, isdir, isfile, splitext
 
 from metagenomix._io_utils import (
     mkdr, get_roundtrip, print_status_table, compute_hash, get_md5, get_dates)
@@ -155,6 +155,42 @@ class Created(object):
             extended_cmds = ['\n# data: %s %s' % (key[0], ' '.join(key[1]))]
             extended_cmds += cmds
         self.cmds[key] = extended_cmds
+        self.dummy_outputs(soft, key)
+
+    def dummy_outputs(self, soft, key):
+        if self.config.dev:
+            for fil_ in soft.io[key].get(('O', 'f'), []):
+                if fil_.endswith('*'):
+                    continue
+                fil = fil_.replace('${SCRATCH_FOLDER}', '')
+                if isfile(fil_):
+                    os.remove(fil)
+            for folder_ in soft.io[key].get(('O', 'd'), []):
+                if folder_.endswith('*'):
+                    continue
+                folder = folder_.replace('${SCRATCH_FOLDER}', '')
+                if isdir(folder):
+                    for fp in glob.glob('%s/*' % folder):
+                        if isfile(fp):
+                            os.remove(fp)
+                        if isdir(fp):
+                            os.rmdir(fp)
+                    os.rmdir(folder)
+            if random.choice([0, 1]):
+                for fil_ in soft.io[key].get(('O', 'f'), []):
+                    if fil_.endswith('*'):
+                        continue
+                    fil = fil_.replace('${SCRATCH_FOLDER}', '')
+                    if not isdir(dirname(fil)):
+                        os.makedirs(dirname(fil))
+                    with open(fil, 'w'):
+                        pass
+                for folder_ in soft.io[key].get(('O', 'd'), []):
+                    if folder_.endswith('*'):
+                        continue
+                    folder = folder_.replace('${SCRATCH_FOLDER}', '')
+                    if not isdir(folder):
+                        os.makedirs(folder)
 
     def get_cmds(self, soft):
         self.cmds = {}
