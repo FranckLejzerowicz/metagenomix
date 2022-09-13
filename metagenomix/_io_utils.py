@@ -763,3 +763,49 @@ def get_dates(run_fp) -> list:
                 if line.startswith('Date'):
                     runs.append(line.strip().split()[-1])
     return runs
+
+
+def get_input_info(dat):
+    m = '%s input unit' % dat.shape[0]
+    if dat.shape[0] > 1:
+        m += 's'
+    info = '%s scripts (%s):' % (dat.name.nunique(), m)
+    return info
+
+
+def get_folder_info(dat):
+    d = [(len(v), [len(x) for x in v.values()]) for v in dat.values()]
+    tech = '%s tech' % len(d)
+    if len(d) > 1:
+        tech += 's'
+    fs = sum([x[0] for x in d])
+    folders = '%s folder' % fs
+    if fs > 1:
+        folders += 's'
+    av = round(sum([round(sum(x[1])/len(x[1]), 2) for x in d]) / len(d), 2)
+    files = '%s file' % av
+    if av > 1:
+        files += 's'
+    info = '%s; (%s and %s per folder)' % (tech, folders, files)
+    return info
+
+
+def get_size_info(dat):
+    fs = '%s folder' % len(dat)
+    if len(dat) > 1:
+        fs += 's'
+    sizes = []
+    for folder, size_ in dat.items():
+        if size_ < 1024:
+            size =  "%s bytes" % size_
+        elif size_ < 1024 * 1024:
+            size =  "%s KB" % round(size_ / 1024, 2)
+        elif size_ < 1024 * 1024 * 1024:
+            size =  "%s MB" % round(size_ / (1024 * 1024), 2)
+        elif size_ < 1024 * 1024 * 1024 * 1024:
+            size =  "%s GB" % round(size_ / (1024 * 1024 * 1024), 2)
+        else:
+            size = size_
+        sizes.append('%s: %s' % (folder, size))
+    info = '%s (%s)' % (fs, '; '.join(sizes))
+    return info
