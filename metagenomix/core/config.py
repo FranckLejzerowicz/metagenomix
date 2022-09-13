@@ -117,15 +117,15 @@ class AnalysesConfig(object):
         """
         cols = {}
         for col, factors in coassembly.items():
+            t = (col, self.meta_fp)
             if col not in self.meta.columns:
-                raise IOError(
-                    'Co-assembly variable "%s" not in %s' % (col, self.meta_fp))
+                sys.exit('Co-assembly variable "%s" not in %s' % t)
             factors_flat = [str(f) for factor in factors for f in factor]
             if not set(factors_flat).issubset(set(self.meta[col])):
-                raise IOError('Co-assembly factors for variable "%s" not'
-                              ' in %s' % (col, self.meta_fp))
+                sys.exit('Co-assembly factors for variable "%s" not in %s' % t)
             d = {str(y): '_'.join(map(str, x)) for x in factors for y in x}
-            cols[col] = [d[x] if x in d else np.nan for x in self.meta[col]]
+            cols[col] = [d[y] if y in d else self.meta.sample_name[x]
+                         for x, y in enumerate(self.meta[col])]
         ser = pd.DataFrame(cols).fillna('')
         col = ser.apply(lambda x: '-'.join([str(i) for i in x if i]), axis=1)
         self.meta[name] = col.replace('', np.nan)
