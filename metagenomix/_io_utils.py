@@ -807,5 +807,5 @@ def get_size_info(dat):
         else:
             size = str(size_)
         sizes[folder] = size
-    info = '%s (./%s)' % (fs, '; ./'.join(sorted(dat)))
+    info = '%s (./%s)' % (fs, '; ./'.join(['='.join(x) for x in sizes.items()]))
     return info, sizes
