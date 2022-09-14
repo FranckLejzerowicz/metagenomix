@@ -44,7 +44,7 @@ def manager(**kwargs):
     print('* Managing')
     managing.manage()
 
-    print('* Applying management decisions:')
+    print('\n\n%s\n* Applying management decisions:' % ('=' % 50))
     if managing.remove or managing.jobs:
         managing.removing()
     if managing.rename:
@@ -378,7 +378,7 @@ class Manage(object):
             print('\t-> nothing to remove')
 
     def renaming(self):
-        print(' - Renaming')
+        print('  - Renaming')
         renames = []
         for after_dir, index_renames in self.renames.items():
             soft, after = after_dir.rsplit('/', 2)[1:]
