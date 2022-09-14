@@ -28,7 +28,7 @@ from metagenomix import __version__
 @click.option("--jobs/--no-jobs", show_default=True,
               help="[Task] Enable job output management")
 @click.option("--remove/--no-remove", default=False, show_default=True,
-              help="[Task] Enable output removal (incl. jobs and post-storage)")
+              help="[Task] Enable output removal")
 @click.option("--rename/--no-rename", default=False, show_default=True,
               help="[Task] Enable output renaming")
 @click.option("--store/--no-store", default=False, show_default=True,

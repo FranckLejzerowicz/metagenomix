@@ -152,10 +152,10 @@ class Manage(object):
             dest = '%s/%s' % (self.disk, '/'.join(row[1:-1]))
             out = dest + '/' + row[-1]
             if not isdir(dest):
-                self.mkdir.setdefault(folder, []).append((dest, ))
-            self.rsync.setdefault(folder, []).append((folder, dest))
-            self.rm.setdefault(folder, []).append((fil,))
-            self.ln.setdefault(folder, []).append((out, fil))
+                self.mkdir.setdefault(folder, set()).add((dest, ))
+            self.rsync.setdefault(folder, set()).add((folder, dest))
+            self.rm.setdefault(folder, set()).add((fil,))
+            self.ln.setdefault(folder, set()).add((out, fil))
 
     def get_store_input(self, details=True):
         if details and len(self.sizes) > 1:
@@ -467,15 +467,14 @@ class Manage(object):
                 o.write('echo "%s"\n' % message)
                 for key in keys:
                     o.write('# Storing folder: "%s"\n' % key)
-                    for (step, args, sep) in [
+                    for (step, args, j) in [
                         ('mkdir', 'p', ' '),
                         ('rsync', 'aurqv', '/ '),
                         ('rm', 'rf', ' '),
                         ('ln', 's', ' '),
                     ]:
                         for paths in self.__dict__[step].get(key, []):
-                            continue
-                        o.write('%s -%s %s\n' % (step, args, sep.join(paths)))
+                            o.write('%s -%s %s\n' % (step, args, j.join(paths)))
                 o.write('echo "done"\n')
         return scripts
 
