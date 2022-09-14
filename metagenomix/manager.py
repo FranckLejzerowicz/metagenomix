@@ -10,11 +10,12 @@ import os
 import sys
 import datetime as dt
 
+import numpy as np
 import pandas as pd
 from tabulate import tabulate
-from os.path import abspath, basename, dirname
+from os.path import abspath, basename, dirname, isdir, splitext
 from metagenomix.core.output import Softwares, Output
-from metagenomix._io_utils import get_input_info, get_folder_info, get_size_info
+from metagenomix._io_utils import get_input_info, get_res_info, get_size_info
 
 
 def manager(**kwargs):
@@ -36,7 +37,6 @@ def manager(**kwargs):
 
     print('* Setting up the output file name')
     managing.get_output_path()
-    print(' -> %s' % managing.out)
 
     print('* Parsing folders to collect info about jobs and outputs')
     managing.get_softs_data()
@@ -46,15 +46,10 @@ def manager(**kwargs):
 
     print('* Applying management decisions:')
     if managing.remove or managing.jobs:
-        print(' - Removing')
         managing.removing()
-
     if managing.rename:
-        print(' - Renaming')
         managing.renaming()
-
     if managing.store:
-        print(' - Storing')
         managing.storing()
 
 
@@ -62,10 +57,12 @@ class Manage(object):
 
     def __init__(self, **kwargs) -> None:
         self.__dict__.update(kwargs)
+        self.check_disk()
+        self.disk = abspath(self.disk)
         self.dir = abspath(self.dir)
         self.softwares = Softwares(**kwargs)
         self.time = dt.datetime.now().strftime("%d/%m/%Y, %H") + 'h'
-        self.manage_dir = '%s/_managament' % self.dir
+        self.manage_dir = '%s/_managed' % self.dir
         self.managed = {}
         self.done = {}
         self.h = None
@@ -74,19 +71,38 @@ class Manage(object):
         self.soft = None
         self.role = None
         self.name = None
+        self.task = None
+        self.sizes = None
         self.after = None
         self.removes = []
+        self.stores = []
+        self.mkdir = {}
+        self.rsync = {}
+        self.ln = {}
+        self.rm = {}
+        self.folders = {}
         self.renames = {}
         self.rename_pd = pd.DataFrame()
 
+    def check_disk(self):
+        disk_root = (self.disk, None)
+        if '/' in self.disk:
+            disk_root = self.disk.rsplit('/', 1)
+
+        if self.store and not isdir(disk_root[0]):
+            error = 'Error:`--store` needs a valid path'
+            if disk_root[0]:
+                error += ': "%s" not found' % self.disk
+                if 'SLURM_JOB_ID' in os.environ or 'PBS_JOBID' in os.environ:
+                    error += '\n(Check that path is accessible from a job/node)'
+            sys.exit(error)
+
     def get_output_path(self):
         if self.out is None:
-            path = self.time + '.txt'
+            name = self.time
         else:
-            path = basename(self.out)
-            if '/' in self.out:
-                print('Using "%s" to write in "%s"' % (path, self.manage_dir))
-        self.out = self.manage_dir + '/' + path
+            name = splitext(basename(self.out))[0]
+        self.out = self.manage_dir + '/' + name
 
     def get_softs_data(self):
         """An Output class instance is created for each software to manage,
@@ -106,27 +122,83 @@ class Manage(object):
             if len(afters) > 1:
                 term += 's'
             m = '[%s] %s (%s)' % (soft, term, '; '.join([x[0] for x in afters]))
-            print('\n%s\n%s\n%s' % (('=' * len(m)), m, ('=' * len(m))))
-            # if self.jobs:
-            #     self.manage_jobs(afters)
-            # if self.rename:
-            #     self.rename_folders(afters)
+            sep = ('*' * len(m))
+            print('\n%s\n%s\n%s' % (sep, m, sep))
+            if self.jobs:
+                self.task = 'jobs'
+                self.manage_jobs(afters)
+            if self.rename:
+                self.task = 'rename'
+                self.rename_folders(afters)
             if self.store:
+                self.task = 'store'
                 self.store_data(afters)
 
     def store_data(self, afters):
         for (after, h), data in afters.items():
-            self.data, self.after, self.h = data, after, h
-            self.print_after('sizes')
+            self.data, self.after, self.h, self.stores = data, after, h, []
+            self.folders = self.data['results']
+            self.print_after()
+            self.manage_storage()
+            if self.stores:
+                self.set_stores()
+
+    def set_stores(self):
+        stores_pd = pd.DataFrame(self.stores, columns=[
+            'local', 'output', 'root', 'tech_dir', 'folder', 'fil'])
+        for row in stores_pd.values:
+            fil = '/'.join(row)
+            folder = dirname(fil)
+            dest = '%s/%s' % (self.disk, '/'.join(row[1:-1]))
+            out = dest + '/' + row[-1]
+            if not isdir(dest):
+                self.mkdir.setdefault(folder, []).append((dest, ))
+            self.rsync.setdefault(folder, []).append((folder, dest))
+            self.rm.setdefault(folder, []).append((fil,))
+            self.ln.setdefault(folder, []).append((out, fil))
+
+    def get_store_input(self, details=True):
+        if details and len(self.sizes) > 1:
+            inp = input('y/n/[d]etails: ')
+        else:
+            inp = input('y/[n]: ')
+        return inp
+
+    def manage_storage(self, details=True):
+        inp = self.get_store_input(details)
+        self.store_level(inp, details)
+
+    def store_level(self, inp, details=True):
+        if inp == 'y':
+            self.store_all()
+        elif inp in ['', 'd']:
+            if details and len(self.sizes) > 1:
+                self.store_details()
+        elif inp != 'n':
+            sys.exit('Error: "%s" is unknown (not in ["y", "n", "d"])' % inp)
+
+    def store_all(self):
+        local, out = self.dir.rsplit('/', 1)
+        root = '%s/after_%s_%s' % (self.soft, self.after, self.h)
+        for tech_dir, folders_files in self.folders.items():
+            for folder, files in folders_files.items():
+                for fp in files:
+                    self.stores.append([local, out, root, tech_dir, folder, fp])
+
+    def store_details(self):
+        for folder in self.data['sizes']:
+            print('\t* %s (%s): Store?' % (folder, self.sizes[folder]), end=' ')
+            self.folders = {folder: self.data['results'][folder]}
+            self.manage_storage(False)
 
     def manage_jobs(self, afters):
         for (after, h), data in afters.items():
             self.data, self.after, self.h = data, after, h
-            self.print_after('input')
-            # self.remove_scripts()
+            self.print_after()
             self.get_oes()
             self.print_oes()
             self.manage_oes()
+            self.remove_scripts()
 
     def get_renaming_table(self):
         rename_pd = []
@@ -152,7 +224,7 @@ class Manage(object):
             self.data, self.after, self.h = data, after, h
             if not self.data['results']:
                 continue
-            self.print_after('results')
+            self.print_after()
             self.get_renaming_table()
             self.pretty_print(self.rename_pd)
             self.get_renaming()
@@ -252,19 +324,25 @@ class Manage(object):
     def pretty_print(data, tab='\t', fmt='pretty', showindex=False):
         t = tabulate(data, headers='keys', tablefmt=fmt,
                      showindex=showindex, stralign="left")
-        print('\n%s%s' % (tab, t.replace('\n', '\n%s' % tab)))
+        print('\n\n%s%s' % (tab, t.replace('\n', '\n%s' % tab)))
 
-    def print_after(self, data):
+    def print_after(self):
         print_ = '\n    * after "%s"' % self.after
-        dat = self.data[data]
-        print(dat)
-        if data == 'input':
-            print_ = '\n  [jobs] * %s' % get_input_info(dat)
-        elif data == 'results':
-            print_ = '\n  [results] * %s' % get_folder_info(dat)
-        elif data == 'sizes':
-            print_ = '\n  [sizes] * %s' % get_size_info(dat)
-        print(print_)
+        if self.task == 'jobs':
+            task = ' Management task: Jobs '
+            print_ = '%s' % get_input_info(self.data['input'])
+        elif self.task == 'rename':
+            task = ' Management task: Rename '
+            print_ = '%s' % get_res_info(self.data['results'])
+        elif self.task == 'store':
+            task = ' Management task: Storage '
+            print_, self.sizes = get_size_info(self.data['sizes'])
+            print_ = '%s: Store' % print_
+            if len(self.sizes) > 1:
+                print_ += ' all'
+            print_ += '?'
+        sep = '  %s' % ('-' * len(task))
+        print('\n\n%s\n  %s\n%s\n  > %s' % (sep, task, sep, print_), end=' ')
 
     def get_paths(self, paths, jobs=False):
         if jobs:
@@ -285,6 +363,7 @@ class Manage(object):
                     self.removes.extend(scripts)
 
     def removing(self):
+        print('  - Removing')
         if self.removes:
             remove = 'y'
             if self.confirm:
@@ -292,10 +371,14 @@ class Manage(object):
             if remove == 'y':
                 for path in self.removes:
                     os.remove(path)
+                print('\t-> done')
             else:
-                print('\t-> Removal aborted.')
+                print('\t-> aborted')
+        else:
+            print('\t-> nothing to remove')
 
     def renaming(self):
+        print(' - Renaming')
         renames = []
         for after_dir, index_renames in self.renames.items():
             soft, after = after_dir.rsplit('/', 2)[1:]
@@ -322,6 +405,87 @@ class Manage(object):
             if input('\ty/[n] ') == 'y':
                 for (name, rename) in renames:
                     os.rename(name, rename)
+            print('\t-> done')
+        else:
+            print('\t-> nothing to rename')
+
+    def get_chunks(self):
+        cmds = {}
+        if self.chunks and 1 < self.chunks <= len(self.rsync):
+            cmds_ = dict(enumerate(self.rsync))
+            chunks = [list(x) for x in np.array_split(list(cmds_), self.chunks)]
+            for cdx, c in enumerate(chunks):
+                if len(c):
+                    cmds['-%s' % str(cdx + 1)] = [cmds_[x] for x in c]
+        elif self.rsync:
+            cmds[''] = sorted(self.rsync)
+        return cmds
 
     def storing(self):
-        pass
+        self.make_disk_dir()
+        self.make_scripts_dir()
+        scripts = self.write_scripts()
+        if scripts:
+            sh = self.write_screen_jobs(scripts)
+            print('  - Storing')
+            message = 'please run the following script to spawn screen session'
+            if len(scripts) > 1:
+                message += 's'
+            print('\t-> %s' % message)
+            print('\t   sh %s' % sh)
+        else:
+            print('\t-> nothing to store')
+
+    def write_screen_jobs(self, scripts):
+        sh = '%s/store.sh' % self.out
+        with open(sh, 'w') as o:
+            for part, script in sorted(scripts.items()):
+                if part:
+                    name = 'store_%s_of_%s' % (part.split()[1], part.split()[3])
+                else:
+                    name = 'store'
+                echo = 'To monitor storage, please run: `screen -r %s`' % name
+                screen = 'screen -dm -S %s /bin/bash "%s"' % (name, script)
+                o.write('%s\n' % screen)
+                o.write('echo "%s"\n' % echo)
+            o.write('echo "`screen -ls` to list running screen session(s)"\n')
+            o.write('echo "<ctrl-d> to detach when within screen session"\n')
+            o.write('echo "<ctrl-k> to kill a screen session from within"\n')
+        return sh
+
+    def write_scripts(self):
+        scripts = {}
+        chunks = self.get_chunks()
+        for chunk, keys in chunks.items():
+            part = ''
+            if chunk:
+                part += ' [ %s / %s ]' % (chunk[1:], len(chunks))
+            sh = '%s/scripts/store%s.sh' % (self.out, chunk)
+            scripts[part] = sh
+            with open(sh, 'w') as o:
+                message = 'Storing pipeline data to: %s%s' % (self.disk, part)
+                o.write('echo "%s"\n' % message)
+                for key in keys:
+                    o.write('# Storing folder: "%s"\n' % key)
+                    for (step, args, sep) in [
+                        ('mkdir', 'p', ' '),
+                        ('rsync', 'aurqv', '/ '),
+                        ('rm', 'rf', ' '),
+                        ('ln', 's', ' '),
+                    ]:
+                        for paths in self.__dict__[step].get(key, []):
+                            continue
+                        o.write('%s -%s %s\n' % (step, args, sep.join(paths)))
+                o.write('echo "done"\n')
+        return scripts
+
+    def make_disk_dir(self):
+        disk = abspath(self.disk)
+        if not isdir(disk):
+            os.makedirs(disk)
+
+    def make_scripts_dir(self):
+        folder = '%s/scripts' % self.out
+        if not isdir(folder):
+            os.makedirs(folder)
+

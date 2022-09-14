@@ -773,7 +773,7 @@ def get_input_info(dat):
     return info
 
 
-def get_folder_info(dat):
+def get_res_info(dat):
     d = [(len(v), [len(x) for x in v.values()]) for v in dat.values()]
     tech = '%s tech' % len(d)
     if len(d) > 1:
@@ -794,18 +794,18 @@ def get_size_info(dat):
     fs = '%s folder' % len(dat)
     if len(dat) > 1:
         fs += 's'
-    sizes = []
+    sizes = {}
     for folder, size_ in dat.items():
         if size_ < 1024:
-            size =  "%s bytes" % size_
+            size = "%s bytes" % size_
         elif size_ < 1024 * 1024:
-            size =  "%s KB" % round(size_ / 1024, 2)
+            size = "%s KB" % round(size_ / 1024, 2)
         elif size_ < 1024 * 1024 * 1024:
-            size =  "%s MB" % round(size_ / (1024 * 1024), 2)
+            size = "%s MB" % round(size_ / (1024 * 1024), 2)
         elif size_ < 1024 * 1024 * 1024 * 1024:
-            size =  "%s GB" % round(size_ / (1024 * 1024 * 1024), 2)
+            size = "%s GB" % round(size_ / (1024 * 1024 * 1024), 2)
         else:
-            size = size_
-        sizes.append('%s: %s' % (folder, size))
-    info = '%s (%s)' % (fs, '; '.join(sizes))
-    return info
+            size = str(size_)
+        sizes[folder] = size
+    info = '%s (./%s)' % (fs, '; ./'.join(sorted(dat)))
+    return info, sizes
