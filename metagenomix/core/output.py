@@ -37,14 +37,11 @@ class Output(object):
     def get_afters(self):
         for folder in os.listdir(self.soft_dir):
             if folder.startswith('after_'):
-                print("folder", folder)
-                key = tuple(folder.lstrip('after_').rsplit('_', 1))
-                print("key", key)
+                key = tuple(folder.split('after_')[-1].rsplit('_', 1))
                 self.outputs[key] = {'stdouts': {}, 'results': {}, 'sizes': {}}
 
     def get_outputs(self):
         for after in list(self.outputs):
-            print("after", after)
             self.after = after
             self.get_contents()
             self.get_results()
