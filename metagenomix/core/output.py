@@ -140,10 +140,10 @@ class Output(object):
                 status['memory_usage'] = line[3]
 
             stderr = '%s.e' % splitext(stdout)[0]
-            ls = open(stderr).readlines()[-1]
-            if 'error' in ls:
-                status['error'] = ls
-            self.oe.append(status)
+            ls = open(stderr).readlines()
+            if ls and 'error' in ls[-1]:
+                status['error'] = ls[-1]
+                self.oe.append(status)
 
     def get_inputs(self):
         cols = [self.sample_pool[self.after], 'tech', 'group', 'genome_taxon']
