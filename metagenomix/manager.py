@@ -123,7 +123,7 @@ class Manage(object):
                 term += 's'
             m = '[%s] %s (%s)' % (soft, term, '; '.join([x[0] for x in afters]))
             sep = ('*' * len(m))
-            print('\n%s\n%s\n%s' % (sep, m, sep))
+            print('\n\n\n%s\n%s\n%s' % (sep, m, sep))
             if self.jobs:
                 self.task = 'jobs'
                 self.manage_jobs(afters)
