@@ -44,7 +44,7 @@ def manager(**kwargs):
     print('* Managing')
     managing.manage()
 
-    print('\n\n%s\n* Applying management decisions:' % ('=' % 50))
+    print('\n\n%s\n* Applying management decisions:' % ('=' * 50))
     if managing.remove or managing.jobs:
         managing.removing()
     if managing.rename:
