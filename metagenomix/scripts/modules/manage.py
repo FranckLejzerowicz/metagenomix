@@ -15,9 +15,9 @@ from metagenomix import __version__
 @click.command()
 @click.option("-i", "--folder", required=True,
               help='Path to pipeline output folder (`-o` for "create" module)')
-@click.option("-o", "--output",
+@click.option("-o", "--output", default=None, show_default=True,
               help='Output folder (will be in "<`-i`>/_management")')
-@click.option("-p", "--pipeline",
+@click.option("-p", "--pipeline", default=None, show_default=True,
               help="Path to the file containing the softwares to run in order")
 @click.option("-s", "--software", multiple=True,
               help="Software(s) to manage (or all in `-i/-p`)")
@@ -25,13 +25,13 @@ from metagenomix import __version__
               help="Path to a storage disk for `--store` task")
 @click.option("-x", "--chunks", type=int, show_default=False, default=None,
               help="Number of scripts for each `--store` task")
-@click.option("--jobs/--no-jobs", default=True,
+@click.option("--jobs/--no-jobs", show_default=True,
               help="[Task] Enable job output management")
-@click.option("--remove/--no-remove", default=False,
+@click.option("--remove/--no-remove", default=False, show_default=True,
               help="[Task] Enable output removal (incl. jobs and post-storage)")
-@click.option("--rename/--no-rename", default=False,
+@click.option("--rename/--no-rename", default=False, show_default=True,
               help="[Task] Enable output renaming")
-@click.option("--store/--no-store", default=False,
+@click.option("--store/--no-store", default=False, show_default=True,
               help="[Task] Enable output storage")
 @click.option("--confirm/--no-confirm", default=True, show_default=True,
               help="Whether to ask for confirmation before applying task")
