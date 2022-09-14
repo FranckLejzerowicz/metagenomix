@@ -19,7 +19,7 @@ from metagenomix._io_utils import get_input_info, get_res_info, get_size_info
 
 
 def manager(**kwargs):
-    """Run metagenomix to assist user renaming or discarding outputs.
+    """Deal with the contents of your pipeline output folder.
 
     Parameters
     ----------

@@ -49,7 +49,7 @@ def manage(
         store,
         confirm
 ):
-    """Edit the contents of your pipeline output folder."""
+    """Deal with the contents of your pipeline output folder."""
     manager(
         dir=folder,
         out=output,
