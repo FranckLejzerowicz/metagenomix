@@ -2313,10 +2313,8 @@ def bracken(self) -> None:
     for (tech, sam), inputs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, inputs, tech, sam):
             continue
-        print(inputs)
-        status_update(self, tech, inputs)
-
         for (db, k2) in inputs:
+            status_update(self, tech, k2)
             db_path = get_bracken_db(self, db)
             out = '/'.join([self.dir, tech, self.sam_pool, db])
             self.outputs['dirs'].append(out)
