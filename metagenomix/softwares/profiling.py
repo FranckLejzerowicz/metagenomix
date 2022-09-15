@@ -2313,6 +2313,7 @@ def bracken(self) -> None:
     for (tech, sam), inputs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, inputs, tech, sam):
             continue
+        print(inputs)
         status_update(self, tech, inputs)
 
         for (db, k2) in inputs:
