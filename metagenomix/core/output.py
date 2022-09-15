@@ -143,7 +143,7 @@ class Output(object):
             ls = open(stderr).readlines()
             if ls and 'error' in ls[-1]:
                 status['error'] = ls[-1]
-                self.oe.append(status)
+            self.oe.append(status)
 
     def get_inputs(self):
         cols = [self.sample_pool[self.after], 'tech', 'group', 'genome_taxon']
