@@ -881,7 +881,7 @@ def check_simka(self, params, soft):
     params['log_reads'] = [int(x) for x in params['log_reads']]
     defaults['kmer'] = [str(x) for x in np.linspace(15, 80, 6)]
     defaults['log_reads'] = [str(x) for x in np.logspace(3, 7, 3)]
-    check_binary(self, 'kneaddata', params, defaults, 'path')
+    check_binary(self, 'simka', params, defaults, 'path')
     return defaults
 
 
