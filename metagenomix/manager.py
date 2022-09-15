@@ -275,6 +275,8 @@ class Manage(object):
         done = self.done.get(self.name)
         if done['N'] or done['Y'] and self.remove:
             self.pretty_print(tab, '\t    ', 'presto')
+        elif done['Y'] and not done['N'] and not self.remove:
+            print('\t%s-> all COMPLETED' % (' ' * (len('[%s]' % idx))))
 
     def manage_oe(self, idx):
         done = self.done.get(self.name)
@@ -291,9 +293,9 @@ class Manage(object):
             n = len(fps)
             fps = self.get_paths(fps, True)
             if y_n == 'Y':
-                status = 'ERRONEOUS'
-            else:
                 status = 'COMPLETED'
+            else:
+                status = 'ERRONEOUS'
             if input('\n\t     Remove %s %s jobs?%s' % (n, status, fps)) == 'y':
                 self.removes.extend(fps)
 
@@ -428,9 +430,9 @@ class Manage(object):
         self.make_disk_dir()
         self.make_scripts_dir()
         scripts = self.write_scripts()
+        print('  - Storing')
         if scripts:
             sh = self.write_screen_jobs(scripts)
-            print('  - Storing')
             message = 'please run the following script to spawn screen session'
             if len(scripts) > 1:
                 message += 's'
