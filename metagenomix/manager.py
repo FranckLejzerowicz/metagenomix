@@ -135,6 +135,7 @@ class Manage(object):
                 self.store_data(afters)
 
     def store_data(self, afters):
+        print("afters:", afters)
         for (after, h), data in afters.items():
             self.data, self.after, self.h, self.stores = data, after, h, []
             self.folders = self.data['results']
