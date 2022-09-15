@@ -11,7 +11,7 @@ import os
 from glob import glob
 import pandas as pd
 import pkg_resources
-from os.path import getsize, isdir, isfile, splitext
+from os.path import basename, getsize, isdir, isfile, splitext
 
 
 class Output(object):
@@ -47,6 +47,7 @@ class Output(object):
             self.get_results()
             self.parse_provenance()
             self.parse_run_sh()
+            self.job_outputs()
             self.make_table(after)
 
     def get_contents(self):
@@ -93,7 +94,7 @@ class Output(object):
                     scripts.add(self.script)
                     if self.script.endswith('.slm'):
                         self.parse_slm()
-                        self.job_outputs()
+                        self.job_outputs(self.name)
                         self.outputs[self.after][self.name] = self.script
                     self.get_inputs()
             self.outputs[self.after]['run_scripts'] = scripts
@@ -120,23 +121,23 @@ class Output(object):
         self.name = directives.get('name')
         self.hpc.append(directives)
 
-    def job_outputs(self):
-        o_fps = '%s/jobs/output/*%s*.o' % (self.after_dir, self.name)
+    def job_outputs(self, job_name: str = ''):
+        o_fps = '%s/jobs/output/*%s*.o' % (self.after_dir, job_name)
         for sdx, stdout in enumerate(sorted(glob(o_fps))):
-            job_id = stdout[:-2].split('_')[-1]
-            self.outputs[self.after]['stdouts'][(self.name, job_id)] = stdout
+            name, job_id = basename(stdout[:-2]).split('-', 1)[1].rsplit('_', 1)
+            self.outputs[self.after]['stdouts'][(name, job_id)] = stdout
 
-            status = {'name': self.name, 'done': 'N', 'id': job_id,
+            status = {'name': name, 'done': 'N', 'id': job_id, 'script': None,
                       'cpu_usage': None, 'memory_usage': None, 'error': None}
-
-            ls = open(stdout).readlines()[-25:]
+            ls = open(stdout).readlines()
+            status['script'] = [x for x in ls[:15]][0].strip().split('/')[-1]
             if 'Done!' in ls:
                 status['done'] = 'Y'
-            if 'Task and CPU usage stats:' in ls:
-                line = ls[ls.index('Task and CPU usage stats:') + 4].split()
+            if 'Task and CPU usage stats:\n' in ls:
+                line = ls[ls.index('Task and CPU usage stats:\n') + 4].split()
                 status['cpu_usage'] = ' '.join([line[2], line[6]])
-            if 'Memory usage stats:' in ls:
-                line = ls[ls.index('Memory usage stats:') + 4].split()
+            if 'Memory usage stats:\n' in ls:
+                line = ls[ls.index('Memory usage stats:\n') + 4].split()
                 status['memory_usage'] = line[3]
 
             stderr = '%s.e' % splitext(stdout)[0]
