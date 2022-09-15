@@ -67,6 +67,7 @@ class Commands(object):
             # print('*' * 30)
             # print()
             self.soft = self.softs[softs[-1]]
+            print(self.soft)
             self.soft.add_soft_path(self.softs)
             self.get_inputs()
             self.get_hash()
