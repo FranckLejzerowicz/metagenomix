@@ -139,9 +139,10 @@ class Manage(object):
             self.data, self.after, self.h, self.stores = data, after, h, []
             self.folders = self.data['results']
             self.print_after()
-            self.manage_storage()
-            if self.stores:
-                self.set_stores()
+            if self.sizes:
+                self.manage_storage()
+                if self.stores:
+                    self.set_stores()
 
     def set_stores(self):
         stores_pd = pd.DataFrame(self.stores, columns=[
@@ -337,6 +338,8 @@ class Manage(object):
         elif self.task == 'store':
             task = ' Management task: Storage '
             print_, self.sizes = get_size_info(self.data['sizes'])
+            if not self.sizes:
+                return
             print_ = '%s: Store' % print_
             if len(self.sizes) > 1:
                 print_ += ' all'

@@ -806,6 +806,7 @@ def get_size_info(dat):
             size = "%s GB" % round(size_ / (1024 * 1024 * 1024), 2)
         else:
             size = str(size_)
-        sizes[folder] = size
+        if size_ > 0:
+            sizes[folder] = size
     info = '%s (./%s)' % (fs, '; ./'.join(['='.join(x) for x in sizes.items()]))
     return info, sizes
