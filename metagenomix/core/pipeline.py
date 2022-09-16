@@ -29,7 +29,6 @@ class Soft(object):
         self.defaults = {}
         self.cmds = {}
         self.path = []
-        self.links = []
         self.status = []
         self.tables = []
         self.dirs = set()

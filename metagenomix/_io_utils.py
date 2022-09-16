@@ -315,7 +315,7 @@ def get_to_dos(self, inputs):
             else:
                 inps = [inp]
             inps = [x.replace('${SCRATCH_FOLDER}', '') for x in inps]
-            self.links.extend([x for x in inps if islink(x)])
+            self.links.update({x: os.readlink(x) for x in inps if islink(x)})
     return to_dos
 
 

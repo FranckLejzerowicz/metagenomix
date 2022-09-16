@@ -283,16 +283,15 @@ class Created(object):
 
     def get_links_chunks(self):
         cmds = {}
-        print(sorted(self.commands.links))
         n_chunks = self.config.chunks
         if n_chunks and 1 < n_chunks <= len(self.commands.links):
-            cmds_ = dict(enumerate(self.commands.links))
+            cmds_ = dict(enumerate(list(self.commands.links)))
             chunks = [list(x) for x in np.array_split(list(cmds_), n_chunks)]
             for cdx, c in enumerate(chunks):
                 if len(c):
                     cmds['-%s' % str(cdx + 1)] = [cmds_[x] for x in c]
         elif self.commands.links:
-            cmds[''] = sorted(self.commands.links)
+            cmds[''] = list(self.commands.links)
         return cmds
 
     def get_links_dir(self):
@@ -336,7 +335,7 @@ class Created(object):
     def get_bring_links_scripts(self, links_dir):
         scripts = {}
         chunks = self.get_links_chunks()
-        for chunk, keys in chunks.items():
+        for chunk, links in chunks.items():
             part = ''
             if chunk:
                 part += ' [ %s / %s ]' % (chunk[1:], len(chunks))
@@ -345,10 +344,8 @@ class Created(object):
             with open(sh, 'w') as o:
                 message = 'Bringing data from %s%s' % (self.config.disk, part)
                 o.write('echo "%s"\n' % message)
-                for key in keys:
-                    o.write('cp -r %s %s\n' % (
-                        key.replace(dirname(self.config.dir), self.config.disk),
-                        key))
+                for link in links:
+                    o.write('cp -r %s %s\n' % (link, self.commands.links[link]))
                 o.write('echo "done"\n')
         return scripts
 

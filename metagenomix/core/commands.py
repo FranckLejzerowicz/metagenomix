@@ -47,7 +47,7 @@ class Commands(object):
         self.dir = ''
         self.out = []
         self.struc = list
-        self.links = []
+        self.links = {}
         self.holistics = [
             'antismash'
             'simka',
