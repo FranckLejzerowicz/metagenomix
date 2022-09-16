@@ -427,8 +427,6 @@ class Created(object):
 
     def call_cmd(self):
         cmd = ' '.join(self.cmd)
-        if self.config.verbose:
-            print('[Running]', cmd)
         subprocess.call(cmd.split())
         os.remove(self.sh)
 
