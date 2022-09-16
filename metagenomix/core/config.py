@@ -23,6 +23,8 @@ class AnalysesConfig(object):
     """Collect the data associated with each dataset passed but the user."""
     def __init__(self, **kwargs) -> None:
         self.__dict__.update(kwargs)
+        self.check_disk()
+        self.disk = abspath(self.disk)
         self.meta = pd.DataFrame()
         self.tools = {}
         self.pooling_groups = []
@@ -53,6 +55,19 @@ class AnalysesConfig(object):
         self.set_coassembly()
         self.update_metadata()
         self.get_default_params()
+
+    def check_disk(self):
+        disk_root = (self.disk, None)
+        if '/' in self.disk:
+            disk_root = self.disk.rsplit('/', 1)
+
+        if self.disk and not isdir(disk_root[0]):
+            error = 'Error:`-d`/`--disk` value must be a valid path'
+            if disk_root[0]:
+                error += ': "%s" not found' % self.disk
+                if 'SLURM_JOB_ID' in os.environ or 'PBS_JOBID' in os.environ:
+                    error += '\n(Check that path is accessible from a job/node)'
+            sys.exit(error)
 
     def check_xhpc_install(self):
         """Try to get the install path of third party tool
