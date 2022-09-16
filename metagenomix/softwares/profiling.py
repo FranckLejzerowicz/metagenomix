@@ -2106,10 +2106,10 @@ def get_kraken2_cmd(
         cmd += ' --classified-out %s/classified.fastq' % out
     if inputs[0].endswith('.gz'):
         cmd += ' --gzip-compressed'
-        outs = ['%s.gz' % x for x in unclass] + ['%s.gz' % x for x in classif]
-        io_update(self, o_f=outs, key=tech)
-    else:
-        io_update(self, o_f=(unclass + classif), key=tech)
+    #     outs = ['%s.gz' % x for x in unclass] + ['%s.gz' % x for x in classif]
+    #     io_update(self, o_f=outs, key=tech)
+    # else:
+    #     io_update(self, o_f=(unclass + classif), key=tech)
     cmd += ' %s > %s/result.tsv' % (' '.join(inputs), out)
     return cmd
 
@@ -2314,12 +2314,11 @@ def bracken(self) -> None:
         if tech_specificity(self, inputs, tech, sam):
             continue
         for (db, k2) in inputs:
-            status_update(self, tech, k2)
+            status_update(self, tech, [k2])
             db_path = get_bracken_db(self, db)
             out = '/'.join([self.dir, tech, self.sam_pool, db])
             self.outputs['dirs'].append(out)
-            self.outputs['outs'].setdefault(
-                (tech, self.sam_pool), []).extend(out)
+            self.outputs['outs'].setdefault((tech, sam), []).extend(out)
             if self.config.force or to_do('%s/results.tsv' % out):
                 report = '%s/report.tsv' % k2
                 cmd = bracken_cmd(self, tech, db_path, report, out)
