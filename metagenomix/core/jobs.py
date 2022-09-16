@@ -13,12 +13,15 @@ import glob
 import shutil
 import random
 import subprocess
+import pkg_resources
 import numpy as np
 import datetime as dt
-from os.path import dirname, isdir, isfile, splitext
+from os.path import abspath, dirname, isdir, isfile, islink, splitext
 
 from metagenomix._io_utils import (
     mkdr, get_roundtrip, print_status_table, compute_hash, get_md5, get_dates)
+
+STORAGE = pkg_resources.resource_filename("metagenomix", "storage")
 
 
 class Created(object):
@@ -160,34 +163,55 @@ class Created(object):
 
     def dummy_outputs(self, soft, key):
         if self.config.dev:
+
             for fil_ in soft.io[key].get(('O', 'f'), []):
                 if fil_.endswith('*'):
                     continue
-                fil = fil_.replace('${SCRATCH_FOLDER}', '')
-                if isfile(fil_):
-                    os.remove(fil)
-            for folder_ in soft.io[key].get(('O', 'd'), []):
-                if folder_.endswith('*'):
+                fil_loc = fil_.replace('${SCRATCH_FOLDER}', '')
+                fil_sto = fil_loc.replace(dirname(self.config.dir), STORAGE)
+                if isfile(fil_loc) or islink(fil_loc):
+                    os.remove(fil_loc)
+                if isfile(fil_sto):
+                    os.remove(fil_sto)
+
+            for fol_ in soft.io[key].get(('O', 'd'), []):
+                if fol_.endswith('*'):
                     continue
-                folder = folder_.replace('${SCRATCH_FOLDER}', '')
-                if isdir(folder):
-                    shutil.rmtree(folder)
+                fol_loc = fol_.replace('${SCRATCH_FOLDER}', '')
+                fol_sto = fol_loc.replace(dirname(self.config.dir), STORAGE)
+                if islink(fol_loc):
+                    os.unlink(fol_loc)
+                elif isdir(fol_loc):
+                    shutil.rmtree(fol_loc)
+                if isdir(fol_sto):
+                    shutil.rmtree(fol_sto)
+
             if random.choice([0, 1]):
+
+                for fol_ in soft.io[key].get(('O', 'd'), []):
+                    if fol_.endswith('*'):
+                        continue
+                    fol_loc = fol_.replace('${SCRATCH_FOLDER}', '')
+                    fol_sto = fol_loc.replace(dirname(self.config.dir), STORAGE)
+                    if not isdir(fol_sto):
+                        os.makedirs(fol_sto)
+                    if not isdir(dirname(fol_loc)):
+                        os.makedirs(dirname(fol_loc))
+                    os.symlink(fol_sto, fol_loc)
+
                 for fil_ in soft.io[key].get(('O', 'f'), []):
                     if fil_.endswith('*'):
                         continue
-                    fil = fil_.replace('${SCRATCH_FOLDER}', '')
-                    if not isdir(dirname(fil)):
-                        os.makedirs(dirname(fil))
-                    with open(fil, 'w') as o:
+                    fil_loc = fil_.replace('${SCRATCH_FOLDER}', '')
+                    fil_sto = fil_loc.replace(dirname(self.config.dir), STORAGE)
+                    if not isdir(dirname(fil_loc)):
+                        os.makedirs(dirname(fil_loc))
+                    if not isdir(dirname(fil_sto)):
+                        os.makedirs(dirname(fil_sto))
+                    with open(fil_sto, 'w') as o:
                         for r in range(10, random.randrange(11, 100)):
                             o.write('test\n')
-                for folder_ in soft.io[key].get(('O', 'd'), []):
-                    if folder_.endswith('*'):
-                        continue
-                    folder = folder_.replace('${SCRATCH_FOLDER}', '')
-                    if not isdir(folder):
-                        os.makedirs(folder)
+                    os.symlink(fil_sto, fil_loc)
 
     def get_cmds(self, soft):
         self.cmds = {}
@@ -256,6 +280,76 @@ class Created(object):
                 input_logs.append('%s%s%s\t%s' % (arg, ' ' * (25-len(arg)),
                                                   get_md5(val), val))
         return input_logs
+
+    def get_links_chunks(self):
+        cmds = {}
+        if self.chunks and 1 < self.chunks <= len(self.commands.links):
+            cmds_ = dict(enumerate(self.commands.links))
+            chunks = [list(x) for x in np.array_split(list(cmds_), self.chunks)]
+            for cdx, c in enumerate(chunks):
+                if len(c):
+                    cmds['-%s' % str(cdx + 1)] = [cmds_[x] for x in c]
+        elif self.commands.links:
+            cmds[''] = sorted(self.commands.links)
+        return cmds
+
+    def get_links_dir(self):
+        links_dir = '%s/%s' % (self.log_dir, compute_hash(self.hash))
+        if not isdir(links_dir):
+            os.makedirs(links_dir)
+        if not isdir('%s' % links_dir):
+            os.makedirs('%s' % links_dir)
+        return links_dir
+
+    @staticmethod
+    def write_screen_jobs(links_dir, scripts):
+        sh = '%s/move.sh' % links_dir
+        with open(sh, 'w') as o:
+            for part, script in sorted(scripts.items()):
+                if part:
+                    name = 'move_%s_of_%s' % (part.split()[1], part.split()[3])
+                else:
+                    name = 'move'
+                echo = 'To monitor moving, please run: `screen -r %s`' % name
+                screen = 'screen -dm -S %s /bin/bash "%s"' % (name, script)
+                o.write('%s\n' % screen)
+                o.write('echo "%s"\n' % echo)
+            o.write('echo "`screen -ls` to list running screen session(s)"\n')
+            o.write('echo "<ctrl-d> to detach when within screen session"\n')
+            o.write('echo "<ctrl-k> to kill a screen session from within"\n')
+        return sh
+
+    def bring_links(self):
+        links_dir = self.get_links_dir()
+        scripts = self.get_bring_links_scripts(links_dir)
+        if scripts:
+            sh = self.write_screen_jobs(links_dir, scripts)
+            print('\n[!!!] Some data is stored away at %s' % self.config.disk)
+            message = 'Please run the following script to bring this data'
+            print('\t-> %s' % message)
+            print('\t   sh %s' % sh)
+        else:
+            print('\t-> nothing to store')
+
+    def get_bring_links_scripts(self, links_dir):
+        scripts = {}
+        chunks = self.get_links_chunks()
+        for chunk, keys in chunks.items():
+            part = ''
+            if chunk:
+                part += ' [ %s / %s ]' % (chunk[1:], len(chunks))
+            sh = '%s/scripts/move%s.sh' % (links_dir, chunk)
+            scripts[part] = sh
+            with open(sh, 'w') as o:
+                message = 'Bringing data from %s%s' % (self.config.disk, part)
+                o.write('echo "%s"\n' % message)
+                for key in keys:
+                    print(key)
+                    print(self.config.disk)
+                    print(selffgd)
+                    o.write('cp -r %s %s\n' % ())
+                o.write('echo "done"\n')
+        return scripts
 
     def software_cmds(self):
         m = max(len(x) for x in self.commands.softs) + 1
