@@ -21,7 +21,7 @@ from metagenomix import __version__
               help="Path to the file containing the softwares to run in order")
 @click.option("-s", "--software", multiple=True,
               help="Software(s) to manage (or all in `-i/-p`)")
-@click.option("-d", "--disk", default='',
+@click.option("-k", "--disk", default='',
               help="Path to a storage disk for `--store` task")
 @click.option("-x", "--chunks", type=int, show_default=False, default=None,
               help="Number of scripts for each `--store` task")
