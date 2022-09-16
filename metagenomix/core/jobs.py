@@ -298,8 +298,8 @@ class Created(object):
         links_dir = '%s/%s' % (self.log_dir, compute_hash(self.hash))
         if not isdir(links_dir):
             os.makedirs(links_dir)
-        if not isdir('%s' % links_dir):
-            os.makedirs('%s' % links_dir)
+        if not isdir('%s/scripts' % links_dir):
+            os.makedirs('%s/scripts' % links_dir)
         return links_dir
 
     @staticmethod
