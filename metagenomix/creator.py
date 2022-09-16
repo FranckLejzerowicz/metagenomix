@@ -31,4 +31,5 @@ def creator(**kwargs):
         print('< PLEASE CONSIDER CHECKING THE COMMAND LINE SCRIPTS MANUALLY >')
         creating.display()  # show the scripts to run
     creating.write_logs()
+    creating.bring_links()
     print('\nCompleted.')
