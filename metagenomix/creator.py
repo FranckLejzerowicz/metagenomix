@@ -18,7 +18,7 @@ def creator(**kwargs):
     kwargs : dict
         All arguments passed in command line, including defaults
     """
-    print('\n === metagenomix creator ===\n')
+    print('\n>>> `metagenomix create` started >>>\n')
     # Collect all command and init the script creating instance
     creating = Created(*metagenomix(**kwargs))
     # print('* Writing database formatting commands')
@@ -28,8 +28,9 @@ def creator(**kwargs):
     print('* Writing pipeline command lines')
     creating.software_cmds()   # run the analysis pipeline
     if len(creating.run['database']) or len(creating.run['software']):
-        print('< PLEASE CONSIDER CHECKING THE COMMAND LINE SCRIPTS MANUALLY >')
+        m = '\n< PLEASE CONSIDER CHECKING THE COMMAND LINE SCRIPTS MANUALLY >'
+        print(m)
         creating.display()  # show the scripts to run
-    creating.write_logs()
     creating.bring_links()
-    print('\nCompleted.')
+    creating.write_logs()
+    print('\n<<< `metagenomix create` completed <<<\n')

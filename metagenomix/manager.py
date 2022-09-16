@@ -26,7 +26,7 @@ def manager(**kwargs):
     kwargs : dict
         All arguments passed in command line, including defaults
     """
-    print('\n === metagenomix manager ===\n')
+    print('\n>>> `metagenomix manage` started >>>\n')
 
     tasks = ['jobs', 'remove', 'rename', 'store']
     if not sum(kwargs[task] for task in tasks):
@@ -51,6 +51,8 @@ def manager(**kwargs):
         managing.renaming()
     if managing.store:
         managing.storing()
+
+    print('\n<<< `metagenomix manage` completed <<<\n')
 
 
 class Manage(object):

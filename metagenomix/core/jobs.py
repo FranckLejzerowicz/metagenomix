@@ -46,6 +46,7 @@ class Created(object):
         self.time = dt.datetime.now().strftime("%d/%m/%Y-%H:%M")
         self.scripts = []
         self.log_dir = '%s/_created' % config.dir
+        self.link_script = None
 
     def make_dirs(self):
         for name, soft in self.commands.softs.items():
@@ -240,6 +241,8 @@ class Created(object):
         with open(fp, 'w') as o:
             for log in logs:
                 o.write('%s\n' % log)
+            if self.link_script:
+                o.write(self.link_script)
         print('\n[config] Written: %s' % fp)
 
     def get_logs(self, dates):
@@ -325,12 +328,11 @@ class Created(object):
         scripts = self.get_bring_links_scripts(links_dir)
         if scripts:
             sh = self.write_screen_jobs(links_dir, scripts)
-            print('\n[!!!] Some data is stored away at "%s"' % self.config.disk)
-            message = 'Please run the following script to bring this data'
-            print('\t-> %s' % message)
-            print('\t   sh %s' % sh)
-        else:
-            print('\t-> nothing to store')
+            m = '\n[!!!] Some data is stored away at "%s"\n' % self.config.disk
+            m += '\t -> Please run the following script to bring this data\n'
+            m += '\t   sh %s\n' % sh
+            self.link_script = m
+            print(m)
 
     def get_bring_links_scripts(self, links_dir):
         scripts = {}

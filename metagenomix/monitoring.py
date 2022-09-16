@@ -17,7 +17,9 @@ from metagenomix.core.output import Output
 
 def monitoring(**kwargs):
     """Show the status of the planned outputs."""
-    print('\n === metagenomix checker ===\n')
+
+    print('\n>>> `metagenomix monitor` started >>>\n')
+
     # Collect all command and init the script creating instance
     monitored = Monitored(**kwargs)
 
@@ -31,6 +33,8 @@ def monitoring(**kwargs):
 
     monitored.parse_softs()
     monitored.monitor_softs()
+
+    print('\n<<< `metagenomix monitor` completed <<<\n')
 
 
 class Monitored(object):

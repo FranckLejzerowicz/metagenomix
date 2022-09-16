@@ -25,7 +25,7 @@ def exporter(**kwargs):
     kwargs : dict
         All arguments passed in command line, including defaults
     """
-    print('\n === metagenomix exporter ===\n')
+    print('\n>>> `metagenomix export` started >>>\n')
     kwargs['command'] = 'export'
     exporting = Exported(**kwargs)
     exporting.get_folder_exp()
@@ -36,6 +36,7 @@ def exporter(**kwargs):
     exporting.get_commands()
     exporting.write_job()
     exporting.showdown()
+    print('\n<<< `metagenomix export` completed <<<\n')
 
 
 class Exported(object):

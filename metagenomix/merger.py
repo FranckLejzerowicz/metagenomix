@@ -18,10 +18,13 @@ def merger(**kwargs):
     kwargs : dict
         All arguments passed in command line, including defaults
     """
-    print('\n === metagenomix exporter ===\n')
+    print('\n>>> `metagenomix merge` started >>>\n')
+
     # Collect all command and init the script creating instance
     merging = Created(*metagenomix(**kwargs))
     # print('* Writing database formatting commands')
     # scripting.database_cmds()  # build the databases
     print('* Writing pipeline command lines')
     merging.software_cmds()   # run the analysis pipeline
+
+    print('\n<<< `metagenomix merge` completed <<<\n')
