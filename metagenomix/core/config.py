@@ -245,7 +245,7 @@ class AnalysesConfig(object):
                 setattr(self, arg[:-4], yaml)
             if arg == 'pipeline_tsv':
                 with open(self.__dict__[arg]) as f:
-                    read = [['edit']] + [
+                    read = [
                         x.strip().split() for x in f.readlines()
                         if x[0] != '#' and len(x.strip().split())]
                     setattr(self, arg[:-4], read)
