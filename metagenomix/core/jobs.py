@@ -16,7 +16,7 @@ import subprocess
 import pkg_resources
 import numpy as np
 import datetime as dt
-from os.path import abspath, dirname, isdir, isfile, islink, splitext
+from os.path import dirname, isdir, isfile, islink, splitext
 
 from metagenomix._io_utils import (
     mkdr, get_roundtrip, print_status_table, compute_hash, get_md5, get_dates)
@@ -283,9 +283,10 @@ class Created(object):
 
     def get_links_chunks(self):
         cmds = {}
-        if self.chunks and 1 < self.chunks <= len(self.commands.links):
+        n_chunks = self.config.chunks
+        if n_chunks and 1 < n_chunks <= len(self.commands.links):
             cmds_ = dict(enumerate(self.commands.links))
-            chunks = [list(x) for x in np.array_split(list(cmds_), self.chunks)]
+            chunks = [list(x) for x in np.array_split(list(cmds_), n_chunks)]
             for cdx, c in enumerate(chunks):
                 if len(c):
                     cmds['-%s' % str(cdx + 1)] = [cmds_[x] for x in c]
