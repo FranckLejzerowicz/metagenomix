@@ -32,6 +32,8 @@ from metagenomix import __version__
 @click.option(
     "-d", "--databases", show_default=True, help="Databases (yaml file)")
 @click.option(
+    "-k", "--disk", default='', help="Path to the storage disk where sits data")
+@click.option(
     "-u", "--user-params", show_default=True,
     help="Parameters for the softwares of the pipeline (yaml file)")
 @click.option(
@@ -101,6 +103,7 @@ def create(
         metadata,
         pipeline,
         databases,
+        disk,
         user_params,
         co_assembly,
         strains,
@@ -131,6 +134,7 @@ def create(
         meta_fp=metadata,
         pipeline_tsv=pipeline,
         databases_yml=databases,
+        disk=disk,
         user_params_yml=user_params,
         coassembly_yml=co_assembly,
         strains_yml=strains,
