@@ -29,6 +29,7 @@ class Soft(object):
         self.defaults = {}
         self.cmds = {}
         self.path = []
+        self.links = []
         self.status = []
         self.tables = []
         self.dirs = set()
@@ -56,9 +57,10 @@ class Soft(object):
             row.append('To do')
         else:
             if isinstance(dec, list):
-                row.append(tuple(dec))
+                dec = tuple(dec)
             elif isinstance(dec, str):
-                row.append((dec,))
+                dec = (dec,)
+            row.append(dec)
         row.extend([None if not x else x for x in [group, message, genome]])
         self.status.append(row)
 
