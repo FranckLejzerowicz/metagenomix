@@ -47,6 +47,7 @@ class Commands(object):
         self.dir = ''
         self.out = []
         self.struc = list
+        self.links = []
         self.holistics = [
             'antismash'
             'simka',
@@ -61,29 +62,14 @@ class Commands(object):
 
     def collect(self):
         for sdx, softs in enumerate(self.config.pipeline):
-            # print()
-            # print('*' * 30)
-            # print('>>>', softs)
-            # print('*' * 30)
-            # print()
+            print(' - %s' % softs[-1])
             self.soft = self.softs[softs[-1]]
             self.soft.add_soft_path(self.softs)
             self.get_inputs()
             self.get_hash()
-            # print()
-            # print('-' * 100)
-            # print(self.inputs)
-            # print('-' * 100)
             self.get_dir()
             self.generic_command()
             self.show_messages()
-            # print(' * ' * 75)
-            # import yaml
-            # print(yaml.dump(self.softs[self.soft.name].cmds))
-            # print(' * ' * 75)
-            # print('- ' * 50)
-            # print(self.soft.outputs)
-            # print('- ' * 50)
 
     def get_inputs(self):
         """Update the `inputs` attribute of the software object."""
