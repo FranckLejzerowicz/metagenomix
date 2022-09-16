@@ -283,6 +283,7 @@ class Created(object):
 
     def get_links_chunks(self):
         cmds = {}
+        print(sorted(self.commands.links))
         n_chunks = self.config.chunks
         if n_chunks and 1 < n_chunks <= len(self.commands.links):
             cmds_ = dict(enumerate(self.commands.links))
