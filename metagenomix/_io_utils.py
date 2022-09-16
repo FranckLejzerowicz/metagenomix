@@ -15,8 +15,7 @@ import hashlib
 import itertools
 import pandas as pd
 from tabulate import tabulate
-from os.path import basename, dirname, isdir, isfile
-
+from os.path import basename, dirname, isdir, isfile, islink
 
 
 def read_yaml(
@@ -278,7 +277,7 @@ def status_update(
     genome : str
         MAGs/Genomes folder name or empty string (for assembly contigs)
     """
-    to_dos = [x for x in inputs if to_do(x)]
+    to_dos = get_to_dos(self, inputs)
     if to_dos:
         if pool:
             self.soft.add_status(tech, pool, to_dos,
@@ -286,6 +285,38 @@ def status_update(
         else:
             self.soft.add_status(tech, self.sam_pool, to_dos,
                                  group=group, genome=genome)
+
+
+def get_to_dos(self, inputs):
+    """Potentially add the fastq files to the status (files to generate).
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .sam_pool : str
+            Sample name
+        .soft
+            Software class instance
+    inputs : list
+        Paths to input files
+
+    Returns
+    -------
+    to_dos : list
+        Paths to input file that need to be created (or whether they are links)
+    """
+    to_dos = []
+    for inp in inputs:
+        if to_do(inp):
+            to_dos.append(inp)
+        else:
+            if isinstance(inp, list):
+                inps = inp
+            else:
+                inps = [inp]
+            inps = [x.replace('${SCRATCH_FOLDER}', '') for x in inps]
+            self.links.extend([x for x in inps if islink(x)])
+    return to_dos
 
 
 def get_roundtrip(io) -> dict:
