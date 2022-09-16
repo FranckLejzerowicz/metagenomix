@@ -325,7 +325,7 @@ class Created(object):
         scripts = self.get_bring_links_scripts(links_dir)
         if scripts:
             sh = self.write_screen_jobs(links_dir, scripts)
-            print('\n[!!!] Some data is stored away at %s' % self.config.disk)
+            print('\n[!!!] Some data is stored away at "%s"' % self.config.disk)
             message = 'Please run the following script to bring this data'
             print('\t-> %s' % message)
             print('\t   sh %s' % sh)
