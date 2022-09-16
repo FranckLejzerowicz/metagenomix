@@ -345,10 +345,9 @@ class Created(object):
                 message = 'Bringing data from %s%s' % (self.config.disk, part)
                 o.write('echo "%s"\n' % message)
                 for key in keys:
-                    print(key)
-                    print(self.config.disk)
-                    print(selffgd)
-                    o.write('cp -r %s %s\n' % ())
+                    o.write('cp -r %s %s\n' % (key.replace(self.config.dir,
+                                                           self.config.disk),
+                                               key))
                 o.write('echo "done"\n')
         return scripts
 
