@@ -903,7 +903,7 @@ def binning(self):
 
         binned = {binner: '%s/%s_bins' % (out, binner)
                   for binner in self.soft.params['binners']}
-        bin_dirs = sorted(binned.values()) + ['work_files']
+        bin_dirs = sorted(binned.values()) + ['%s/work_files' % out]
         self.outputs['outs'][key] = bin_dirs
 
         cmd = binning_cmd(self, fastqs, out, inputs[0], binned)
