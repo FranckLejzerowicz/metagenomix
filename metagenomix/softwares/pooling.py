@@ -336,7 +336,6 @@ def get_pools(
         # get the fasta files of the pools (per orientation)
         fasta_fps = get_fasta_pools(self, tech, out, sams, pool, group)
         # fill the data structures
-        add_to_pool_io(self, ('O', 'd'), tech, pool, group, [out])
         add_to_pool_io(self, ('O', 'f'), tech, pool, group, fasta_fps)
         self.soft.outputs[pool][group][tech] = fasta_fps
 
