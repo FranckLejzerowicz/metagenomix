@@ -311,14 +311,14 @@ def get_to_dos(self, inputs):
         print(inp)
         if to_do(inp):
             to_dos.append(inp)
+            print(1)
         else:
+            print(2)
             if isinstance(inp, list):
                 inps = inp
             else:
                 inps = [inp]
             inps = [x.replace('${SCRATCH_FOLDER}', '') for x in inps]
-            print("inps")
-            print(inps)
             self.links.update({x: os.readlink(x) for x in inps if islink(x)})
     return to_dos
 
