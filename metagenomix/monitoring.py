@@ -21,18 +21,18 @@ def monitoring(**kwargs):
     print('\n>>> `metagenomix monitor` started >>>\n')
 
     # Collect all command and init the script creating instance
-    monitored = Monitored(**kwargs)
+    monitor = Monitored(**kwargs)
 
     print('* setting up the output file name')
-    monitored.make_status_dir()
-    monitored.get_out()
+    monitor.make_status_dir()
+    monitor.get_out()
 
     print('* collecting and showing the current status of the analyses')
-    monitored.monitor_status()
-    monitored.write_status()
+    monitor.monitor_status()
+    monitor.write_status()
 
-    monitored.parse_softs()
-    monitored.monitor_softs()
+    monitor.parse_softs()
+    monitor.monitor_softs()
 
     print('\n<<< `metagenomix monitor` completed <<<\n')
 
@@ -60,7 +60,7 @@ class Monitored(object):
         self.time = dt.datetime.now().strftime("%d-%m-%Y_%H-%M")
         self.log_dir = '%s/_monitors' % config.dir
         self.roles = {}
-        self.data = {}
+        self.monitored = {}
 
     def monitor_status(self):
         m = max(len(x) for x in self.commands.softs) + 1
@@ -107,23 +107,26 @@ class Monitored(object):
             if isdir(self.output_dir + '/' + name):
                 output = Output(self.output_dir, name)
                 output.get_afters()
-                # output.init_table()
-                output.manage()
-                self.data[name] = output
+                output.get_outputs()
+                self.monitored[name] = output.outputs
 
     def monitor_softs(self):
-        for name, soft in self.data.items():
+        for name, outputs in self.monitored.items():
+            print()
+            print()
             print()
             print()
             print()
             print('#' * 40)
             print('software:', name)
             print('#' * 40)
-            print()
-            print(soft.__dict__.keys())
-            for key, value in soft.__dict__.items():
+            for (after, hash_value), data in outputs.items():
                 print()
-                print("key:", key)
-                print(value)
+                print()
+                print("after, hash_value", after, hash_value)
+                for k, d in data.items():
+                    print()
+                    print(k)
+                    print(d)
             # print(pd.DataFrame(soft.jobs))
 

@@ -305,7 +305,8 @@ def check_input(
             typ = 'assemble'
         is_type = (self.softs['plass'].params['type'] != typ)
         if prev == 'plass' and is_type and not raw:
-            print('[%s] illumina annotation if plass type: %s' % (name, typ))
+            message = 'Illumina annotation if plass type: %s' % typ
+            self.soft.messages.add(message)
             return True
     return False
 
