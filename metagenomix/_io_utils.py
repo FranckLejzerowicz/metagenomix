@@ -805,7 +805,9 @@ def get_input_info(dat):
 
 
 def get_res_info(dat):
-    d = [(len(v), [len(x) for x in v.values()]) for v in dat.values()]
+    d = [(len(v), [len(x) for x in v.values()]) for v in dat.values() if v]
+    if not d:
+        return 'no data'
     tech = '%s tech' % len(d)
     if len(d) > 1:
         tech += 's'
@@ -817,14 +819,11 @@ def get_res_info(dat):
     files = '%s file' % av
     if av > 1:
         files += 's'
-    info = '%s; (%s and %s per folder)' % (tech, folders, files)
+    info = '%s (%s and %s per folder)' % (tech, folders, files)
     return info
 
 
 def get_size_info(dat):
-    fs = '%s folder' % len(dat)
-    if len(dat) > 1:
-        fs += 's'
     sizes = {}
     for folder, size_ in dat.items():
         if size_ < 1024:
@@ -839,5 +838,8 @@ def get_size_info(dat):
             size = str(size_)
         if size_ > 0:
             sizes[folder] = size
+    fs = '%s folder' % len(sizes)
+    if len(sizes) > 1:
+        fs += 's'
     info = '%s (./%s)' % (fs, '; ./'.join(['='.join(x) for x in sizes.items()]))
     return info, sizes
