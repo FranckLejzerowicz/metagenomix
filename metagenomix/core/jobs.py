@@ -332,7 +332,6 @@ class Created(object):
             m += '\t -> Please run the following script to bring this data\n'
             m += '\t   sh %s\n' % sh
             self.link_script = m
-            print(m)
 
     def get_bring_links_scripts(self, links_dir):
         scripts = {}
