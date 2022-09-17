@@ -347,7 +347,7 @@ class Created(object):
                 message = 'Bringing data from storage%s' % part
                 o.write('echo "%s"\n' % message)
                 for link in links:
-                    o.write('cp -r %s %s\n' % (link, self.commands.links[link]))
+                    o.write('cp -r %s %s\n' % (self.commands.links[link], link))
                 o.write('echo "done"\n')
         return scripts
 
