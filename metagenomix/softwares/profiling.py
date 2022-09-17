@@ -2032,13 +2032,14 @@ def get_kraken2_db(
     if db == 'default':
         return self.databases.paths['kraken2']
     elif db in self.databases.paths:
-        db_path = '%s/kraken2' % self.databases.paths[db]
-        if self.config.dev:
-            return db_path
-        if not isfile('%s/hash.k2d' % db_path):
-            nested = glob.glob('%s/*/hash.k2d' % db_path)
-            if nested:
-                return dirname(nested[0])
+        for path in ['', '/databases']:
+            db_path = '%s%s/kraken2' % (self.databases.paths[db], path)
+            if self.config.dev:
+                return db_path
+            if not isfile('%s/hash.k2d' % db_path):
+                nested = glob.glob('%s/*/hash.k2d' % db_path)
+                if nested:
+                    return dirname(nested[0])
     sys.exit('[kraken2] Database not found: %s' % db)
 
 
