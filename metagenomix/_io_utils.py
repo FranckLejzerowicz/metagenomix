@@ -307,6 +307,8 @@ def get_to_dos(self, inputs):
     """
     to_dos = []
     for inp in inputs:
+        print("inp")
+        print(inp)
         if to_do(inp):
             to_dos.append(inp)
         else:
@@ -315,6 +317,8 @@ def get_to_dos(self, inputs):
             else:
                 inps = [inp]
             inps = [x.replace('${SCRATCH_FOLDER}', '') for x in inps]
+            print("inps")
+            print(inps)
             self.links.update({x: os.readlink(x) for x in inps if islink(x)})
     return to_dos
 
