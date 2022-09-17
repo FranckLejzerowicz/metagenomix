@@ -118,23 +118,28 @@ class Manage(object):
                 self.managed[soft] = output.outputs
 
     def manage(self):
-        for soft, afters in self.managed.items():
-            self.soft = soft
-            term = 'after %s software' % len(afters)
-            if len(afters) > 1:
-                term += 's'
-            m = '[%s] %s (%s)' % (soft, term, '; '.join([x[0] for x in afters]))
-            sep = ('*' * len(m))
-            print('\n\n\n%s\n%s\n%s' % (sep, m, sep))
-            if self.jobs:
-                self.task = 'jobs'
-                self.manage_jobs(afters)
-            if self.rename:
-                self.task = 'rename'
-                self.rename_folders(afters)
-            if self.store:
-                self.task = 'store'
-                self.store_data(afters)
+        for role, softs in self.softwares.softs.items():
+            for soft in softs:
+                self.soft = soft
+                afters = self.managed[self.soft]
+                term = 'after %s software' % len(afters)
+                if len(afters) > 1:
+                    term += 's'
+                m = '[%s: %s] %s (%s)' % (
+                    role, soft, term, '; '.join([x[0] for x in afters]))
+                sep = ('*' * len(m))
+                print('\n\n\n%s\n%s\n%s' % (sep, m, sep))
+                if self.jobs:
+                    self.task = 'jobs'
+                    self.manage_jobs(afters)
+                if self.rename:
+                    self.task = 'rename'
+                    self.rename_folders(afters)
+                if self.store:
+                    self.task = 'store'
+                    self.store_data(afters)
+                if not self.removes and not self.stores and not self.renames:
+                    print('  -> No management')
 
     def store_data(self, afters):
         for (after, h), data in afters.items():
@@ -311,7 +316,7 @@ class Manage(object):
         self.done = {}
         if len(self.data['oe']):
             oe = self.data['oe'].iloc[:, :3].pivot_table(
-                index=['name'], columns=['done'], aggfunc=list)
+                index=['name'], columns=['done'], aggfunc=set)
             oe.columns = oe.columns.droplevel()
             self.done = oe.fillna('').T.to_dict()
 
@@ -356,7 +361,7 @@ class Manage(object):
             paths = ['\t\t- %s{o,e}' % x.split(self.h)[-1][1:-1] for x in paths]
         else:
             paths = ['\t\t- %s' % x.split(self.h)[-1][1:] for x in paths]
-        paths = '\n  %s\n\ty/[n] ' % '\n'.join(paths)
+        paths = '\n  %s\n\ty/[n] ' % '\n'.join(sorted(paths))
         return paths
 
     def remove_scripts(self):
