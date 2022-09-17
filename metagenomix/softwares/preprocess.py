@@ -230,10 +230,10 @@ def count(self) -> None:
             continue
         status_update(self, tech, fastxs)
 
-        out_dir = '%s/%s' % (self.dir, tech)
+        out_dir = '%s/%s/%s' % (self.dir, tech, sam)
         self.outputs['dirs'].append(out_dir)
 
-        out = '%s/%s_read_count.tsv' % (out_dir, self.sam_pool)
+        out = '%s/read_count.tsv' % out_dir
         outs[(tech, self.sam_pool)] = out
 
         if self.config.force or to_do(out):
