@@ -328,7 +328,7 @@ class Created(object):
         scripts = self.get_bring_links_scripts(links_dir)
         if scripts:
             sh = self.write_screen_jobs(links_dir, scripts)
-            m = '\n[!!!] Some data is stored away at "%s"\n' % self.config.disk
+            m = '\n[!!!] Some data is stored away [!!!]\n'
             m += '\t -> Please run the following script to bring this data\n'
             m += '\t   sh %s\n' % sh
             self.link_script = m
@@ -344,7 +344,7 @@ class Created(object):
             sh = '%s/scripts/move%s.sh' % (links_dir, chunk)
             scripts[part] = sh
             with open(sh, 'w') as o:
-                message = 'Bringing data from %s%s' % (self.config.disk, part)
+                message = 'Bringing data from storage%s' % part
                 o.write('echo "%s"\n' % message)
                 for link in links:
                     o.write('cp -r %s %s\n' % (link, self.commands.links[link]))

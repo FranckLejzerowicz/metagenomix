@@ -23,7 +23,6 @@ class AnalysesConfig(object):
     """Collect the data associated with each dataset passed but the user."""
     def __init__(self, **kwargs) -> None:
         self.__dict__.update(kwargs)
-        self.disk = abspath(self.disk)
         self.meta = pd.DataFrame()
         self.tools = {}
         self.pooling_groups = []
