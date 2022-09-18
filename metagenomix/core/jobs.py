@@ -347,6 +347,7 @@ class Created(object):
                 o.write('echo "%s"\n' % message)
                 for link_ in links:
                     link = link_.replace('${SCRATCH_FOLDER}', '')
+                    o.write('rm -rf %s\n' % link)
                     o.write('cp -r %s %s\n' % (self.commands.links[link], link))
                 o.write('echo "done"\n')
         return scripts
