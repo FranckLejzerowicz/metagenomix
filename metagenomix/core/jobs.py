@@ -332,7 +332,6 @@ class Created(object):
             m += '\t -> Please run the following script to bring this data\n'
             m += '\t   sh %s\n' % sh
             self.link_script = m
-            print(m)
 
     def get_bring_links_scripts(self, links_dir):
         scripts = {}
@@ -348,11 +347,8 @@ class Created(object):
                 o.write('echo "%s"\n' % message)
                 for link_ in links:
                     link = link_.replace('${SCRATCH_FOLDER}', '')
-                    print(link, link_)
                     o.write('cp -r %s %s\n' % (self.commands.links[link], link))
                 o.write('echo "done"\n')
-            print('>>>', sh)
-        print(scripts)
         return scripts
 
     def software_cmds(self):
