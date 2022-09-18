@@ -314,13 +314,14 @@ class Created(object):
                     name = 'move_%s_of_%s' % (part.split()[1], part.split()[3])
                 else:
                     name = 'move'
-                echo = 'echo "Running screen in detached mode: %s"' % name
-                screen = 'screen -dm -S %s /bin/bash "%s"' % (name, script)
-                o.write('%s\n' % screen)
+                echo = 'Running screen in detached mode: %s' % name
+                screen = 'screen -dmS %s /bin/bash "%s"' % (name, script)
                 o.write('echo "%s"\n' % echo)
-            o.write('echo "`screen -ls` to list running screen session(s)"\n')
-            o.write('echo "<ctrl-d> to detach when within screen session"\n')
-            o.write('echo "<ctrl-k> to kill a screen session from within"\n')
+                o.write('%s\n' % screen)
+            o.write('screen -ls"\n')
+            o.write('echo "To list running screen session(s): screen -ls"\n')
+            o.write('echo "To detach when within screen session: <ctrl-d>"\n')
+            o.write('echo "To kill a screen session from within: <ctrl-k>"\n')
         return sh
 
     def bring_links(self):
@@ -341,15 +342,23 @@ class Created(object):
             part = ''
             if chunk:
                 part += ' [ %s / %s ]' % (chunk[1:], len(chunks))
-            sh = '%s/scripts/move%s.sh' % (links_dir, chunk)
+            base = '%s/scripts/move%s' % (links_dir, chunk)
+            out = '%s_out.txt' % base
+            sh = '%s.sh' % base
             scripts[part] = sh
             with open(sh, 'w') as o:
                 message = 'Bringing data from storage%s' % part
+                o.write('touch %s\n' % out)
                 o.write('echo "%s"\n' % message)
                 for link_ in links:
-                    link = link_.replace('${SCRATCH_FOLDER}', '')
-                    o.write('rm -rf %s\n' % link)
-                    o.write('cp -r %s %s\n' % (self.commands.links[link], link))
+                    dest = link_.replace('${SCRATCH_FOLDER}', '')
+                    src = self.commands.links[dest]
+                    o.write('m0=`md5sum %s | cut -d' ' -f 1`\n' % src)
+                    o.write('rm -rf %s\n' % dest)
+                    o.write('cp -r %s %s\n' % (src, dest))
+                    o.write('m1=`md5sum %s | cut -d' ' -f 1`\n' % dest)
+                    o.write('if [ "$m0" != "$m1" ]; then echo ' % dest)
+                    o.write('"$m0 $m1 %s %s" >> %s; fi\n' % (src, dest, out))
                 o.write('echo "done"\n')
         return scripts
 
