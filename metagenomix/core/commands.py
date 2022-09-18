@@ -49,9 +49,9 @@ class Commands(object):
         self.struc = list
         self.links = {}
         self.holistics = [
-            'antismash'
+            'antismash',
             'simka',
-            'quast'
+            'quast',
             'qiita_wol',
             'mag_data',
             'metamarker',
@@ -108,11 +108,15 @@ class Commands(object):
         self.is_pool()
         self.soft.io = {}
         if self.soft.name in self.holistics:
+            print("******** 1 ******", self.soft.name)
+            print("----------", self.sam_pool)
             self.prep_job()
         elif self.soft.name == 'pooling':
             self.pooling()
         else:
             for sam_or_pool in sorted(self.inputs):
+                print("******* 2 ******", self.soft.name)
+                print("----------", self.sam_pool)
                 self.sam_pool = sam_or_pool
                 self.prep_job()
         self.register_command()
