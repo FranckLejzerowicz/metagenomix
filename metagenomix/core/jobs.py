@@ -309,18 +309,20 @@ class Created(object):
     def write_screen_jobs(links_dir, scripts):
         sh = '%s/move.sh' % links_dir
         with open(sh, 'w') as o:
-            for part, script in sorted(scripts.items()):
+            for part, (script, out) in sorted(scripts.items()):
                 if part:
                     name = 'move_%s_of_%s' % (part.split()[1], part.split()[3])
                 else:
                     name = 'move'
-                echo = 'Running screen in detached mode: %s' % name
                 screen = 'screen -dmS %s /bin/bash "%s"' % (name, script)
-                o.write('echo "%s"\n' % echo)
                 o.write('%s\n' % screen)
+                echo = 'Running screen in detached mode: %s' % name
+                echo += '\nCheck whether some moves went wrong: %s' % out
+                o.write('echo "%s"\n' % echo)
             o.write('screen -ls"\n')
             o.write('echo "To list running screen session(s): screen -ls"\n')
             o.write('echo "To detach when within screen session: <ctrl-d>"\n')
+            o.write('echo "To kill a screen session from within: <ctrl-k>"\n')
             o.write('echo "To kill a screen session from within: <ctrl-k>"\n')
         return sh
 
@@ -345,7 +347,7 @@ class Created(object):
             base = '%s/scripts/move%s' % (links_dir, chunk)
             out = '%s_out.txt' % base
             sh = '%s.sh' % base
-            scripts[part] = sh
+            scripts[part] = (sh, out)
             with open(sh, 'w') as o:
                 message = 'Bringing data from storage%s' % part
                 o.write('touch %s\n' % out)
