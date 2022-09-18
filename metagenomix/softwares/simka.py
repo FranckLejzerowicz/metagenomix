@@ -7,7 +7,7 @@
 # ----------------------------------------------------------------------------
 
 import pkg_resources
-from os.path import isdir
+from os.path import isdir, isfile
 
 from metagenomix._io_utils import io_update, to_do, status_update
 from metagenomix.core.parameters import tech_params
@@ -322,8 +322,8 @@ def simka(self) -> None:
                     cmd = simka_pcoa_cmd(self, mat)
                     if cmd:
                         cmds += cmd
-                        self.outputs['cmds'].setdefault((tech,), []).append(cmd)
-                        io_update(self, o_d=out_dir, key=tech)
+                        if isfile(mat):
+                            io_update(self, i_f=mat, o_d=out_dir, key=tech)
         if cmds:
             cmd = input_cmd + cmd
             self.outputs['cmds'].setdefault((tech,), []).append(cmd)
