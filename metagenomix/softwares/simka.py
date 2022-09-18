@@ -222,7 +222,7 @@ def simka_pcoa_cmd(
     if self.config.force or to_do(mat_o):
         if mat.endswith('gz'):
             mat_fp = mat.replace('.csv.gz', '.csv')
-            if not to_do(mat_fp):
+            if to_do(mat_fp):
                 sym_cmd += 'gunzip %s\n' % mat
         else:
             mat_fp = mat
