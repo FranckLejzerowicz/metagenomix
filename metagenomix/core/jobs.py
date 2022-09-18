@@ -314,7 +314,7 @@ class Created(object):
                     name = 'move_%s_of_%s' % (part.split()[1], part.split()[3])
                 else:
                     name = 'move'
-                echo = 'To monitor moving, please run: `screen -r %s`' % name
+                echo = 'echo "Running screen in detached mode: %s"' % name
                 screen = 'screen -dm -S %s /bin/bash "%s"' % (name, script)
                 o.write('%s\n' % screen)
                 o.write('echo "%s"\n' % echo)
