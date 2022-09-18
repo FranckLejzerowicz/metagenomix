@@ -332,6 +332,7 @@ class Created(object):
             m += '\t -> Please run the following script to bring this data\n'
             m += '\t   sh %s\n' % sh
             self.link_script = m
+            print(m)
 
     def get_bring_links_scripts(self, links_dir):
         scripts = {}
@@ -346,7 +347,6 @@ class Created(object):
                 message = 'Bringing data from storage%s' % part
                 o.write('echo "%s"\n' % message)
                 for link_ in links:
-                    print(link_)
                     link = link_.replace('${SCRATCH_FOLDER}', '')
                     o.write('cp -r %s %s\n' % (self.commands.links[link], link))
                 o.write('echo "done"\n')
