@@ -397,6 +397,7 @@ def megahit_cmd(
         Path to the input files
     """
     cmd = 'mkdir -p %s\n' % tmp
+    cmd += 'rm -rf %s\n' % out
     cmd += 'megahit'
     cmd += ' --tmp-dir %s' % tmp
     cmd += ' --out-prefix %s' % group
