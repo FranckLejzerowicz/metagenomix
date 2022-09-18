@@ -326,7 +326,7 @@ class Created(object):
             o.write('echo "To kill a screen session from within: <ctrl-k>"\n')
         return sh
 
-    def bring_links(self):
+    def write_links(self):
         links_dir = self.get_links_dir()
         scripts = self.get_bring_links_scripts(links_dir)
         if scripts:
@@ -371,12 +371,16 @@ class Created(object):
             if not len(soft.cmds):
                 continue
             self.hash += str(soft.hash)
+            self.get_links(soft)
             self.get_modules(name)
             self.get_cmds(soft)
             self.get_chunks(soft.params['chunks'])
             self.write_jobs(name, soft)
             self.write_main(name, soft)
             self.write_provenance(name, soft)
+
+    def get_links(self, soft):
+        self.commands.links.update(soft.links)
 
     def get_sh(self, name: str, chunk: str, soft=None) -> None:
         """

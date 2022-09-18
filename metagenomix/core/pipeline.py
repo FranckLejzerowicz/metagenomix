@@ -24,6 +24,7 @@ class Soft(object):
         self.params = dict(config.params)  # init with default params
         # key attributes to be filled by each tool-specific code
         self.io = {}  # contains the input/output for the movement to scratch
+        self.links = {}
         self.inputs = {}
         self.outputs = {}
         self.defaults = {}

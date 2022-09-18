@@ -31,6 +31,6 @@ def creator(**kwargs):
         m = '\n< PLEASE CONSIDER CHECKING THE COMMAND LINE SCRIPTS MANUALLY >'
         print(m)
         creating.display()  # show the scripts to run
-    creating.bring_links()
+    creating.write_links()
     creating.write_logs()
     print('\n<<< `metagenomix create` completed <<<\n')
