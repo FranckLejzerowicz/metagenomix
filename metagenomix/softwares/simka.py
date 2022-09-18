@@ -49,9 +49,9 @@ def get_simka_input(
         if not fs:
             continue
         if sdx:
-            cmd += 'echo -e "%s: %s\\n" >> %s\n' % (sam, '; '.join(fs), out)
+            cmd += 'echo -e "%s: %s" >> %s\n' % (sam, '; '.join(fs), out)
         else:
-            cmd += 'echo -e "%s: %s\\n" > %s\n' % (sam, '; '.join(fs), out)
+            cmd += 'echo -e "%s: %s" > %s\n' % (sam, '; '.join(fs), out)
     if cmd:
         cmd += 'envsubst < %s > %s.tmp\n' % (out, out)
         cmd += 'mv %s.tmp %s\n' % (out, out)
@@ -325,7 +325,7 @@ def simka(self) -> None:
                         if isfile(mat):
                             io_update(self, i_f=mat, o_d=out_dir, key=tech)
         if cmds:
-            cmd = input_cmd + cmd
+            cmd = input_cmd + cmds
             self.outputs['cmds'].setdefault((tech,), []).append(cmd)
             self.soft.add_status(tech, 'all samples', 1)
         else:
