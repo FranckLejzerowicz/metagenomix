@@ -345,7 +345,8 @@ class Created(object):
             with open(sh, 'w') as o:
                 message = 'Bringing data from storage%s' % part
                 o.write('echo "%s"\n' % message)
-                for link in links:
+                for link_ in links:
+                    link = link_.replace('${SCRATCH_FOLDER}', '')
                     o.write('cp -r %s %s\n' % (self.commands.links[link], link))
                 o.write('echo "done"\n')
         return scripts
