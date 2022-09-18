@@ -232,7 +232,7 @@ def simka_pcoa_cmd(
     imp_cmd = ''
     mat_dm = mat_o.replace('.tsv', '_dm.qza')
     if self.config.force or to_do(mat_dm):
-        imp_cmd += '\nqiime softwares import'
+        imp_cmd += '\nqiime tools import'
         imp_cmd += ' --input-path %s' % mat_o
         imp_cmd += ' --output-path %s' % mat_dm
         imp_cmd += ' --type DistanceMatrix\n'
@@ -254,7 +254,7 @@ def simka_pcoa_cmd(
         ordi_dir = ordi_fp.replace('.qza', '')
         ordi_txt = ordi_fp.replace('.qza', '.txt')
         if self.config.force or to_do(ordi_txt):
-            exp_cmd += '\nqiime softwares export'
+            exp_cmd += '\nqiime tools export'
             exp_cmd += ' --input-path %s' % ordi_fp
             exp_cmd += ' --output-path %s\n' % ordi_dir
             exp_cmd += 'mv %s/ordination.txt %s\n' % (ordi_dir, ordi_txt)
