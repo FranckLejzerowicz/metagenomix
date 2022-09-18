@@ -216,12 +216,12 @@ def spades_cmd(
     cmd += ' --memory %s' % self.soft.params['mem']
     cmd += ' --threads %s' % self.soft.params['cpus']
     cmd += ' --tmp-dir %s' % tmp
-    for boolean in ['meta', 'careful', 'disable_gzip_output',
-                    'disable_rr', 'cov_cutoff']:
+    for boolean in ['meta', 'careful', 'disable_gzip_output', 'disable_rr']:
         if self.soft.params[boolean]:
             cmd += ' --%s' % boolean.replace('_', '-')
 
     cmd += ' --checkpoints %s' % self.soft.params['checkpoints']
+    cmd += ' --cov-cutoff %s' % self.soft.params['cov_cutoff']
 
     if self.soft.params['only_assembler']:
         cmd += ' --only-assembler'
