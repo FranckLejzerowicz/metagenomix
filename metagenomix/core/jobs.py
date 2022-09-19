@@ -355,10 +355,10 @@ class Created(object):
                 for link_ in links:
                     dest = link_.replace('${SCRATCH_FOLDER}', '')
                     src = self.commands.links[dest]
-                    o.write('m0=`md5sum %s | cut -d' ' -f 1`\n' % src)
+                    o.write("m0=`md5sum %s | cut -d' ' -f 1`\n" % src)
                     o.write('rm -rf %s\n' % dest)
                     o.write('cp -r %s %s\n' % (src, dest))
-                    o.write('m1=`md5sum %s | cut -d' ' -f 1`\n' % dest)
+                    o.write("m1=`md5sum %s | cut -d' ' -f 1`\n" % dest)
                     o.write('if [ "$m0" != "$m1" ]; then echo ')
                     o.write('"$m0 $m1 %s %s" >> %s; fi\n' % (src, dest, out))
                 o.write('echo "done"\n')
