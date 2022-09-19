@@ -100,10 +100,7 @@ class Manage(object):
             sys.exit(error)
 
     def get_output_path(self):
-        if self.out is None:
-            name = self.time.replace('/', '-').replace(', ', '_')
-        else:
-            name = splitext(basename(self.out))[0]
+        name = self.time.replace('/', '-').replace(', ', '_')
         self.out = self.manage_dir + '/' + name
 
     def get_softs_data(self):
@@ -456,12 +453,13 @@ class Manage(object):
                     name = 'store_%s_of_%s' % (part.split()[1], part.split()[3])
                 else:
                     name = 'store'
-                echo = 'Running screen in detached mode: %s' % name
+                echo = 'Running screen in detached mode (ID: %s)' % name
                 screen = 'screen -dmS %s /bin/bash "%s"' % (name, script)
                 o.write('%s\n' % screen)
                 o.write('echo "%s"\n' % echo)
             o.write('screen -ls\n')
             o.write('echo "To list running screen session(s): screen -ls"\n')
+            o.write('echo "To get into a screen session: screen -r <ID>"\n')
             o.write('echo "To detach when within screen session: <ctrl-d>"\n')
             o.write('echo "To kill a screen session from within: <ctrl-k>"\n')
         return sh

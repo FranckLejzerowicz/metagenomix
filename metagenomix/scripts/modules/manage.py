@@ -15,8 +15,6 @@ from metagenomix import __version__
 @click.command()
 @click.option("-i", "--folder", required=True,
               help='Path to pipeline output folder (`-o` for "create" module)')
-@click.option("-o", "--output", default=None, show_default=True,
-              help='Output folder (will be in "<`-i`>/_management")')
 @click.option("-p", "--pipeline", default=None, show_default=True,
               help="Path to the file containing the softwares to run in order")
 @click.option("-s", "--software", multiple=True,
@@ -38,7 +36,6 @@ from metagenomix import __version__
 @click.version_option(__version__, prog_name="metagenomix")
 def manage(
         folder,
-        output,
         pipeline,
         software,
         disk,
@@ -52,7 +49,6 @@ def manage(
     """Deal with the contents of your pipeline output folder."""
     manager(
         dir=folder,
-        out=output,
         pipeline=pipeline,
         softwares=software,
         disk=disk,
