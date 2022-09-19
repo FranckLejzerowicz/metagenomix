@@ -456,13 +456,14 @@ class Manage(object):
                     name = 'store_%s_of_%s' % (part.split()[1], part.split()[3])
                 else:
                     name = 'store'
-                echo = 'To monitor storage, please run: `screen -r %s`' % name
-                screen = 'screen -dm -S %s /bin/bash "%s"' % (name, script)
+                echo = 'Running screen in detached mode: %s' % name
+                screen = 'screen -dmS %s /bin/bash "%s"' % (name, script)
                 o.write('%s\n' % screen)
                 o.write('echo "%s"\n' % echo)
-            o.write('echo "`screen -ls` to list running screen session(s)"\n')
-            o.write('echo "<ctrl-d> to detach when within screen session"\n')
-            o.write('echo "<ctrl-k> to kill a screen session from within"\n')
+            o.write('screen -ls"\n')
+            o.write('echo "To list running screen session(s): screen -ls"\n')
+            o.write('echo "To detach when within screen session: <ctrl-d>"\n')
+            o.write('echo "To kill a screen session from within: <ctrl-k>"\n')
         return sh
 
     def write_scripts(self):
