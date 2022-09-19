@@ -101,7 +101,7 @@ class Manage(object):
 
     def get_output_path(self):
         if self.out is None:
-            name = self.time
+            name = self.time.replace('/', '-').replace(', ', '_')
         else:
             name = splitext(basename(self.out))[0]
         self.out = self.manage_dir + '/' + name
