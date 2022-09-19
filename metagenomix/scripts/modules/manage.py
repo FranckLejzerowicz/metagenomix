@@ -15,12 +15,12 @@ from metagenomix import __version__
 @click.command()
 @click.option("-i", "--folder", required=True,
               help='Path to pipeline output folder (`-o` for "create" module)')
+@click.option("-o", "--storage", default='', required=True,
+              help="Path to a storage disk for `--store` task")
 @click.option("-p", "--pipeline", default=None, show_default=True,
               help="Path to the file containing the softwares to run in order")
 @click.option("-s", "--software", multiple=True,
               help="Software(s) to manage (or all in `-i/-p`)")
-@click.option("-k", "--disk", default='',
-              help="Path to a storage disk for `--store` task")
 @click.option("-x", "--chunks", type=int, show_default=False, default=None,
               help="Number of scripts for each `--store` task")
 @click.option("--jobs/--no-jobs", show_default=True,
@@ -36,9 +36,9 @@ from metagenomix import __version__
 @click.version_option(__version__, prog_name="metagenomix")
 def manage(
         folder,
+        storage,
         pipeline,
         software,
-        disk,
         chunks,
         jobs,
         remove,
@@ -49,9 +49,9 @@ def manage(
     """Deal with the contents of your pipeline output folder."""
     manager(
         dir=folder,
+        disk=storage,
         pipeline=pipeline,
         softwares=software,
-        disk=disk,
         chunks=chunks,
         jobs=jobs,
         remove=remove,

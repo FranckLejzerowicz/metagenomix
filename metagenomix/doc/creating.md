@@ -271,6 +271,25 @@ first warn to `< PLEASE CONSIDER CHECKING THE COMMAND LINE SCRIPTS MANUALLY>` -
 as it is worth checking the written commands before running them - and then 
 provide the main `run.sh` bash script to run.
 
+### Stored inputs
+
+It is possible that the input files necessary for a job to run are located 
+away from the computing nodes, as it should be on a well-
+[managed file system](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/managing.md#managing),
+for example using `metagemoics manage`. In this case, the very last output 
+from `metagenomix create` will be an invitation for the user to first run a 
+bash script that will move all necessary files back from the storage 
+to the computing location:
+
+```
+[!!!] Some data is stored away at /path/to/storage/disk
+        -> Please run the following script to bring this data
+           sh /path/to/output/_created/<HASH_VALUE>/move.sh
+```
+
+These scripts will spawn screen sessions that 
+need to completed before starting the `run.sh` scripts:  
+
 ### Creations
 
 To keep track of the commands to run (and hence, in order not to have to 
