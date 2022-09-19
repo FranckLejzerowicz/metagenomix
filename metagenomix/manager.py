@@ -460,7 +460,7 @@ class Manage(object):
                 screen = 'screen -dmS %s /bin/bash "%s"' % (name, script)
                 o.write('%s\n' % screen)
                 o.write('echo "%s"\n' % echo)
-            o.write('screen -ls"\n')
+            o.write('screen -ls\n')
             o.write('echo "To list running screen session(s): screen -ls"\n')
             o.write('echo "To detach when within screen session: <ctrl-d>"\n')
             o.write('echo "To kill a screen session from within: <ctrl-k>"\n')
