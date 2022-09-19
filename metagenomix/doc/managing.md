@@ -70,7 +70,7 @@ will manage any of `checkm`, `checkm_tetra`, `checkm_tree`, `checkm_treeqa`,
 `checkm_lineageset`, `checkm_analyze`, `checkm_qa`, `checkm_coverage`, 
 `checkm_unbinned`, and `checkm2`.
 
-### Management tasks
+## Management tasks
 
 The `metagenomix manage` command allows performing three tasks, including 
 [storage](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/managing.md#storage)
@@ -85,7 +85,7 @@ jobs, files and folders during these various tasks (`--remove`).
 All management tasks will be performed interactively, i.e., by asking the 
 user for input for each task and for each software, as follows:   
 
-#### 1. Storage
+### 1. Storage
 
 If `--store` is activated (default is `--no-store`), this task will help the 
 user collecting software outputs, in order to copy their files to a storage 
@@ -167,21 +167,19 @@ with the data of creation) will be generated that must be executed:
 ### x. Removal
 
 
-### Multipe screen sessions
+### Multiple screen sessions
 
 If many/large files are to be stored away, the transfer can take a lot of 
 time. Hence, it is possible to evenly split the total amount of transfers into 
 multiple screen sessions, that will be detached to run in parallel:
 * `-x` / `--chunks`: number of screen sessions to spawn
 
- 
-
 
 ## Outputs
 
 All management tasks consist of file system operations, that can be executed 
 by running output
-[screen]()
+[screen](https://www.gnu.org/software/screen/manual/screen.html)
 scripts. These scripts are written in a `_managed/DD-MM-YY_HHh` folder 
 placed directly inside the main pipeline output folder (given using `-i`).
 
