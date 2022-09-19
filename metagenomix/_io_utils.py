@@ -449,10 +449,14 @@ def to_do(
         file: str = None,
         folder: str = None
 ) -> bool:
-    if file and isfile(file.replace('${SCRATCH_FOLDER}', '')):
-        return False
-    if folder and isdir(folder.replace('${SCRATCH_FOLDER}', '')):
-        return False
+    if file:
+        file = file.replace('${SCRATCH_FOLDER}', '')
+        if isfile(file) or islink(file):
+            return False
+    if folder:
+        folder = folder.replace('${SCRATCH_FOLDER}', '')
+        if isdir(folder) or islink(folder):
+            return False
     return True
 
 

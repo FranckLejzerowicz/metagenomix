@@ -1058,7 +1058,6 @@ def filtering(self):
         fastqs_gz = ['%s.gz' % x for x in fastqs]
         self.outputs['outs'].setdefault(
             (tech, self.sam_pool), []).extend(fastqs_gz)
-        print([(x, to_do(x)) for x in fastqs_gz])
         if (self.config.force or sum([to_do(x) for x in fastqs_gz])) and cmds:
             self.outputs['cmds'][(tech,)] = [cmds]
             io_update(self, i_f=fastqs_, i_d=out_dirs, o_f=fastqs_gz, key=tech)
