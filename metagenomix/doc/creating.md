@@ -257,8 +257,8 @@ always has the following nomenclature:
 The terminal will display information about the current pipeline, including 
 whether the provided database paths point to existing and properly-formatted 
 builds for the various aligners / formats that are requested (see docs on 
-[databases]()
-), as well as information about the jobs being written and their current 
+[databases](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/databases.md)),
+as well as information about the jobs being written and their current 
 analysis status. For more info on the progress of the software analyses, 
 some command-line 
 [arguments](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/creating.md#monitoring-and-behaviour)
@@ -274,8 +274,8 @@ provide the main `run.sh` bash script to run.
 ### Stored inputs
 
 It is possible that the input files necessary for a job to run are located 
-away from the computing nodes, as it should be on a well-
-[managed file system](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/managing.md#managing),
+away from the computing nodes, as it should be on a
+[well-managed file system](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/managing.md#managing),
 for example using `metagemoics manage`. In this case, the very last output 
 from `metagenomix create` will be an invitation for the user to first run a 
 bash script that will move all necessary files back from the storage 
