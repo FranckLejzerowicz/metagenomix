@@ -881,7 +881,6 @@ def woltka_tax_cmd(
     taxid = '%s/taxonomy/taxid.map' % database
     nodes = '%s/taxonomy/nodes.dmp' % database
     names = '%s/taxonomy/names.dmp' % database
-    io_update(self, i_f=[taxid, nodes, names], key=key)
     if len(tax_to_do):
         cur_cmd = '\n# taxonomic\n'
         cur_cmd += 'woltka classify'
@@ -943,8 +942,7 @@ def woltka_go(
 
     out_dir = '%s/%s/%s/%s/go' % (self.dir, tech, aligner, pairing)
     key = (tech, aligner)
-    io_update(self, i_f=[coords, uniref_map, uniref_names],
-              o_d=out_dir, key=key)
+    io_update(self, o_d=out_dir, key=key)
     for go in gos:
         cmd = '\n# %s [no stratification]\n' % go
         cmd += 'woltka classify'
@@ -956,7 +954,6 @@ def woltka_go(
         cmd += ' --to-tsv'
         cur_map = '%s/%s.map.xz' % (go_rt, go)
         cmd += ' --map %s' % cur_map
-        io_update(self, i_f=cur_map, key=key)
         cur_out = '%s/%s.tsv' % (out_dir, go)
         cmd += ' -o %s' % cur_out
         if to_do(cur_out):
