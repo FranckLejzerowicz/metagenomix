@@ -414,7 +414,9 @@ class Manage(object):
             if input('\ty/[n] ') == 'y':
                 for (name, rename) in renames:
                     os.rename(name, rename)
-            print('\t-> done')
+                print('\t-> done')
+            else:
+                print('\t-> aborted')
         else:
             print('\t-> nothing to rename')
 

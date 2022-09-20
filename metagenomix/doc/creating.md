@@ -246,7 +246,7 @@ As a result, all the jobs `.o` and `.e` output files will be written in this
 `jobs/output` location and nowhere else. This notably eases the
 [monitoring](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/monitoring.md)
 and
-[management](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/managing.md)
+[management](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/managing.md#2-Jobs-cleansing)
 for each step of the pipeline. The naming of these (slurm) job output files 
 always has the following nomenclature:
 `slurm-<software>.<project-name>.<input_unit_1 / chunk_1>_<JOBID>.e`

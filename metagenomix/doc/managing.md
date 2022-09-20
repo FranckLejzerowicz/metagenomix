@@ -82,35 +82,34 @@ output cleansing (`---jobs`), and file/folder
 [remove](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/managing.md#removal)
 jobs, files and folders during these various tasks (`--remove`). 
 
-All management tasks will be performed interactively, i.e., by asking the 
-user for input for each task and for each software, as follows:   
+All management tasks will be performed interactively for each software, by 
+asking the user for `y/[n]` input (defaults to "no") for each task, as 
+follows.
 
 ### 1. Storage
 
-If `--store` is activated (default is `--no-store`), this task will help the 
-user collecting software outputs, in order to copy their files to a storage 
-location, so that the original files from the computing location can be 
-replaced by symlinks. These symlinks can later be followed by `metagenomix 
-create` in order to create scripts necessary to fetch stored-away files 
-before running new jobs (see section on
+This task will help the user collecting software outputs, in order to copy 
+their files to a storage location, so that the original files from the 
+computing location can be replaced by symlinks. These symlinks can later be 
+followed by `metagenomix create` in order to create scripts necessary to 
+fetch stored-away files before running new jobs (see section on
 [stored inputs](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/creating.md#stored-inputs)).
 
-For this task to be possible, it is mandatory to provide the storage path:  
-* `-o` / `--storage`: path to the storage location where the files and the 
-  folder input folder structure will be copied (it is recommended to create a 
-  folder name with the same name as the input folder), e.g. 
-
-```
-metagenomix manage \
-  -i /path/on/cluster/for/some/output_folder \
-  -o /path/on/storage/for/the_same/output_folder
-```
+* `--rename` (default: `--no-rename`) must be activated to perform this task  
+* `-o` / `--storage` (mandatory) path to the storage location where the files 
+  and the folder input folder structure will be copied (it is recommended to 
+  create a folder name with the same name as the input folder), e.g.
+  ```
+  metagenomix manage \
+    -i /path/on/cluster/for/some/output_folder \
+    -o /path/on/storage/for/the_same/output_folder
+  ```
 
 ##### Interaction
 
 For each software and its previous software (see
-[after](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/creating.md#limitation)
-), the user will be interactively asked whether an entire folder should be 
+[after](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/creating.md#limitation)),
+the user will be interactively asked whether an entire folder should be 
 stored away, e.g.:
 
 ```
@@ -147,12 +146,16 @@ stored or not:
 
 ##### Output
 
-If the user enter `y` for at least one folder/sub-folder, a script (labelled 
+If the user entered `y` for at least one folder/sub-folder, a script (labelled 
 with the data of creation) will be generated that must be executed:
 
 ```
 ==================================================
 * Applying management decisions:
+  - Removing
+        -> nothing to remove
+  - Renaming
+        -> nothing to rename
   - Storing
         -> please run the following script to spawn screen sessions
            sh <PATH>/output/_managed/DD-MM-YY_HHh/store.sh
@@ -160,12 +163,211 @@ with the data of creation) will be generated that must be executed:
 
 ### 2. Jobs cleansing
 
+This task will show all job outputs for each software, in order to help the 
+user identify which job outputs must be removed:
+* `--jobs` (default: `--no-jobs`) must be activated to perform this task  
+* `--confirm` (default: `--no-confirm`) will ask the user to confirmation 
+  before operating all removals
+* `--remove` (default: `--no-remove`) must be activated for completed job 
+  outputs to be considered for removal 
+
+Job outputs are identified based on the IDs and names of the jobs. Indeed, see 
+the docs on creating
+[job scripts](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/creating.md#jobs):
+jobs that are re-run several times (e.g., if more memory or time if needed), 
+will have multiple files with different `_<JOBID>` in their `.o` and `.e` names.
+
+##### Interaction
+
+For each software and its previous software (see
+[after](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/creating.md#limitation)),
+the user will be interactively asked whether COMPLETED or ERRONEOUS job  
+outputs should be removed, e.g.:
+
+First, a summary table of the current software's job outputs is printed:
+```
+  -----------------------
+   Management task: Jobs 
+  -----------------------
+  > 4 scripts (9 input units): 
+
+        +------------+----------+------+-------------------------------------+-----------------+
+        | sample     | tech     | done | job name                            | job IDs         |
+        +------------+----------+------+-------------------------------------+-----------------+
+        | ERR5948198 | illumina | Y    | cutadapt.tst.Nn_cddfc7813cb19f0b6.0 | 0000002         |
+        | ERR5948199 | illumina | Y    | cutadapt.tst.Nn_cddfc7813cb19f0b6.0 | 0000002         |
+        | ERR5948211 | illumina | Y    | cutadapt.tst.Nn_cddfc7813cb19f0b6.0 | 0000002         |
+        | ERR5948212 | illumina | Y    | cutadapt.tst.Nn_cddfc7813cb19f0b6.1 | 0000002         |
+        | ERR5948213 | illumina | Y    | cutadapt.tst.Nn_cddfc7813cb19f0b6.1 | 0000002         |
+        | ERR5948214 | illumina | N    | cutadapt.tst.Nn_cddfc7813cb19f0b6.2 | 0000001;0000002 |
+        | ERR5948215 | illumina | N    | cutadapt.tst.Nn_cddfc7813cb19f0b6.2 | 0000001;0000002 |
+        | ERR5948216 | illumina | Y    | cutadapt.tst.Nn_cddfc7813cb19f0b6.3 | 0000002         |
+        | ERR5948217 | illumina | Y    | cutadapt.tst.Nn_cddfc7813cb19f0b6.3 | 0000002         |
+        +------------+----------+------+-------------------------------------+-----------------+
+```
+Then, for each job, the user is asked whether to remove the ERRONEOUS job 
+outputs (with "N" in the `done` columns), as well as the COMPLETED job 
+outputs (only if option `--remove` was set)
+
+  - 1<sup>st</sup> job
+  ```
+          [0] 3 input units for "cutadapt.tst.Nn_cddfc7813cb19f0b6.0"
+  
+  
+               sample     | tech
+              ------------+----------
+               ERR5948198 | illumina
+               ERR5948199 | illumina
+               ERR5948211 | illumina
+  
+               Remove 1 COMPLETED jobs?
+                  - jobs/output/slurm-cutadapt.tst.Nn_cddfc7813cb19f0b6.0_0000001.{o,e}
+          y/[n] 
+  
+               Remove 1 ERRONEOUS jobs?
+                  - jobs/output/slurm-cutadapt.tst.Nn_cddfc7813cb19f0b6.0_0000002.{o,e}
+          y/[n] 
+  ```
+  - 2<sup>nd</sup> job
+  ```
+          [1] 2 input units for "cutadapt.tst.Nn_cddfc7813cb19f0b6.1"
+  ```
+  - etc...
+  
+  ```
+          [2] 2 input units for "cutadapt.tst.Nn_cddfc7813cb19f0b6.2"
+          [3] 2 input units for "cutadapt.tst.Nn_cddfc7813cb19f0b6.3"
+  ```
+
+##### Output
+
+
+If the user entered `y` for at least one job output, their removals will be 
+done automatically.
+
+```
+==================================================
+* Applying management decisions:
+  - Removing
+        -> done
+  - Renaming
+        -> nothing to rename
+  - Storing
+        -> nothing to store
+```
+
+If `--confirm` was activated, a final user input will ask for confirmation 
+before removing all job outputs
+
+```
+  Remove?
+  - <file_selected_for_removal_1.{o,e}>
+  - <file_selected_for_removal_2.{o,e}>
+  - <file_selected_for_removal_n.{o,e}>
+  y/[n]
+```
+so that the removal can be aborted
+```
+==================================================
+* Applying management decisions:
+  - Removing
+        -> aborted
+  - Renaming
+        -> nothing to rename
+  - Storing
+        -> nothing to store
+```
+        
 
 ### 3. Renaming
 
+This task will show all the data outputs for each software, in order to 
+help the user rename either folders of files:
+* `--rename` (default: `--no-rename`) must be activated to perform this task  
+* `--confirm` (default: `--no-confirm`) will ask the user to confirmation 
+  before operating all renaming
 
-### x. Removal
+##### Interaction
 
+For each software and its previous software (see
+[after](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/creating.md#limitation)),
+the user will be interactively asked which file/folder to select, and then 
+with which name it should be renamed, e.g.:
+
+First, a table with all outputs is shown, each with an index
+```
+  -------------------------
+   Management task: Rename 
+  -------------------------
+  > 1 tech; (9 folders and 1.67 files per folder) 
+
+        +-------+----------+-------------------------------------------+------------------------+
+        | index | dir/file | path (in:)                                | name (to rename)       |
+        |       |          | cutadapt/after_None_acaddfc7813cb19af0b6/ |                        |
+        +-------+----------+-------------------------------------------+------------------------+
+        | 0     | folder   | .                                         | illumina               |
+        | 0.0   | folder   | illumina                                  | ERR5948198             |
+        | 0.0.0 | file     | illumina/ERR5948198                       | ERR5948198.R1.fastq.gz |
+        | 0.0.1 | file     | illumina/ERR5948198                       | ERR5948198.R2.fastq.gz |
+        | 0.1   | folder   | illumina                                  | ERR5948199             |
+        | 0.1.0 | file     | illumina/ERR5948199                       | ERR5948199.R2.fastq.gz |
+        | 0.1.1 | file     | illumina/ERR5948199                       | ERR5948199.R1.fastq.gz |
+        | 0.2   | folder   | illumina                                  | ERR5948212             |
+        | 0.2.0 | file     | illumina/ERR5948212                       | ERR5948212.R1.fastq.gz |
+        | 0.3   | folder   | illumina                                  | ERR5948215             |
+        | 0.3.0 | file     | illumina/ERR5948215                       | ERR5948215.R1.fastq.gz |
+        | 0.3.1 | file     | illumina/ERR5948215                       | ERR5948215.R2.fastq.gz |
+        +-------+----------+-------------------------------------------+------------------------+
+```
+And then the user is asked to enter any index from the table and a new name 
+for this index (for the corresponding folder/file):
+
+```
+        Enter index and text to rename these paths (Enter to exit):
+        index  : 0
+        rename : NEW_NAME_1
+        index  : 0.3.0
+        rename : NEW_NAME_2
+        index  : 
+```
+
+In this example:
+  * path`cutadapt/after_None_acaddfc7813cb19af0b6/illumina` (folder; index 
+    `0`), will become:
+    - `cutadapt/after_None_acaddfc7813cb19af0b6/NEW_NAME_1`
+  * path`cutadapt/after_None_acaddfc7813cb19af0b6/illumina/ERR5948215/ERR5948215.R1.fastq.gz`
+    (file; index `0.3.0`), will become:
+    * `cutadapt/after_None_acaddfc7813cb19af0b6/illumina/ERR5948215/NEW_NAME_2` 
+
+##### Output
+
+If the user specified at least one index/name pair for at least on software 
+output, their renaming will be done automatically.
+
+```
+==================================================
+* Applying management decisions:
+  - Removing
+        -> nothing to remove
+  - Renaming
+        -> done
+  - Storing
+        -> nothing to store
+```
+
+If `--confirm` was activated, a summary of all the planned renaming will 
+be printed so that this task can still be aborted.
+
+```
+==================================================
+* Applying management decisions:
+  - Removing
+        -> nothing to remove
+  - Renaming
+        -> aborted
+  - Storing
+        -> nothing to store
+```
 
 ### Multiple screen sessions
 
