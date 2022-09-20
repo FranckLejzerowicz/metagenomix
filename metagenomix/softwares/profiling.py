@@ -1121,7 +1121,7 @@ def woltka_uniref(
     uniref = '%s/uniref.biom' % out_dir
     if to_do(uniref):
         cmd = '\n# uniref\n'
-        cmd += 'woltka softwares collapse'
+        cmd += 'woltka tools collapse'
         cmd += ' --input %s' % genes
         cmd += ' --map %s' % uniref_map
         cmd += ' --names %s' % uniref_names
@@ -1141,7 +1141,7 @@ def woltka_uniref(
         uniref_tax[stratif] = genes
         if to_do(uniref):
             cmd = '\n# uniref [%s]\n' % stratif
-            cmd += 'woltka softwares collapse'
+            cmd += 'woltka tools collapse'
             cmd += ' --input %s' % genes_tax[stratif]
             cmd += ' --map %s' % uniref_map
             cmd += ' --names %s' % uniref_names
@@ -1195,7 +1195,7 @@ def woltka_eggnog(
     out_dir = '/'.join([self.dir, tech, aligner, pairing])
     biom = '%s/eggnog/eggnog.biom' % out_dir
     if to_do(biom):
-        cmd = 'woltka softwares collapse'
+        cmd = 'woltka tools collapse'
         cmd += '--input %s' % uniref
         cmd += ' --map %s/function/eggnog/eggnog.map.xz' % database
         cmd += ' --output %s\n\n' % biom
@@ -1218,7 +1218,7 @@ def woltka_eggnog(
     for stratif in stratifs:
         biom = '%s/eggnog/eggnog_%s.biom' % (out_dir, stratif)
         if to_do(biom):
-            cmd = 'woltka softwares collapse'
+            cmd = 'woltka tools collapse'
             cmd += '--input %s' % uniref_tax[stratif]
             cmd += ' --map %s/function/eggnog/eggnog.map.xz' % database
             cmd += ' --field 2'
@@ -1280,7 +1280,7 @@ def woltka_cazy(
     out_dir = '/'.join([self.dir, tech, aligner, pairing])
     biom = '%s/cazy/cazy.biom' % out_dir
     if to_do(biom):
-        cmd = 'woltka softwares collapse'
+        cmd = 'woltka tools collapse'
         cmd += '--input %s' % genes
         cmd += ' --map %s' % cazy_map
         cmd += ' --output %s\n\n' % biom
@@ -1304,7 +1304,7 @@ def woltka_cazy(
         cazy_map = '%s/function/cazy/3tools.txt' % database
         biom = '%s/cazy/cazy_%s.biom' % (out_dir, stratif)
         if to_do(biom):
-            cmd = 'woltka softwares collapse'
+            cmd = 'woltka tools collapse'
             cmd += '--input %s' % genes_tax[stratif]
             cmd += ' --map %s' % cazy_map
             cmd += ' --field 2'
@@ -1383,7 +1383,7 @@ def woltka_metacyc(
         tsv = '%s.tsv' % splitext(biom)[0]
         if to_do(biom):
             cmd += '\n# %s [no stratification]\n' % level
-            cmd += 'woltka softwares collapse'
+            cmd += 'woltka tools collapse'
             cmd += ' --input %s' % input_biom
             if names:
                 cmd += ' --names %s/%s' % (metacyc_dir, names)
@@ -1422,7 +1422,7 @@ def woltka_metacyc(
             tsv = '%s.tsv' % splitext(biom)[0]
             if to_do(biom):
                 cmd += '\n# %s [%s]\n' % (level, stratif)
-                cmd += 'woltka softwares collapse'
+                cmd += 'woltka tools collapse'
                 cmd += ' --input %s' % input_biom
                 if names:
                     cmd += ' --names %s/%s' % (metacyc_dir, names)
@@ -1538,7 +1538,7 @@ def woltka_kegg(
             if not prev:
                 if to_do(tsv):
                     cmd += '\n# kegg [no stratification]\n'
-                    cmd += 'woltka softwares collapse'
+                    cmd += 'woltka tools collapse'
                     cmd += ' --input %s' % uniref
                     cmd += ' --names %s/function/kegg/%s' % (database, name)
                     cmd += ' --map %s/function/kegg/%s' % (database, maps)
@@ -1559,7 +1559,7 @@ def woltka_kegg(
             else:
                 input_fp = '%s/kegg/%s.biom' % (out_dir, level)
                 if to_do(tsv):
-                    cmd += 'woltka softwares collapse'
+                    cmd += 'woltka tools collapse'
                     cmd += ' --input %s' % input_fp
                     if name:
                         cmd += ' --names %s/%s' % (kegg_maps, name)
@@ -1580,7 +1580,7 @@ def woltka_kegg(
                 if not prev:
                     if to_do(tsv):
                         cmd += '\n# kegg [%s]\n' % stratif
-                        cmd += 'woltka softwares collapse'
+                        cmd += 'woltka tools collapse'
                         cmd += ' --input %s' % uniref_tax[stratif]
                         cmd += ' --names %s/function/kegg/%s' % (database, name)
                         cmd += ' --map %s/function/kegg/%s' % (database, maps)
@@ -1604,7 +1604,7 @@ def woltka_kegg(
                 else:
                     input_fp = '%s/kegg/%s_%s.biom' % (out_dir, level, stratif)
                     if to_do(tsv):
-                        cmd += 'woltka softwares collapse'
+                        cmd += 'woltka tools collapse'
                         cmd += ' --input %s' % input_fp
                         if name:
                             cmd += ' --names %s/%s' % (kegg_maps, name)
