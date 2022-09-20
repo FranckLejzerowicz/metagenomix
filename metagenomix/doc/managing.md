@@ -6,9 +6,12 @@ a pipeline with
 [configuration files](https://github.com/FranckLejzerowicz/metagenomix/wiki/Configuration),
 the user is provided with 
 [job scripts](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/creating.md#jobs)
-to run the scheduled analyses, which write results in software outputs that 
-are all organized according to a systematic 
+to run the scheduled analyses, which will write may result files and folders in 
+software outputs that are all organized according to a systematic 
 [folder structure](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/creating.md#general-structure).  
+
+This explains how to use the `metagenomix manage` command to keep these jobs 
+and outputs tidy, including long-term storage.
 
 ## Rationale
 
