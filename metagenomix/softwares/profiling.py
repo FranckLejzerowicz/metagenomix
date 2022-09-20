@@ -2089,24 +2089,21 @@ def get_kraken2_cmd(
     cmd += ' --report %s/report.tsv' % out
     cmd += ' --threads %s' % params['cpus']
     cmd += ' --confidence %s' % params['confidence']
+    names = ['classified', 'unclassified']
     if len(inputs) > 1:
-        unclass = ['%s/unclassified_%s.fastq' % (out, r) for r in [1, 2]]
-        classif = ['%s/classified_%s.fastq' % (out, r) for r in [1, 2]]
+        fqs = ['%s/%s_%s.fastq' % (out, x, r) for r in [1, 2] for x in names]
         cmd += ' --unclassified-out %s/unclassified#.fastq' % out
         cmd += ' --classified-out %s/classified#.fastq' % out
         cmd += ' --paired'
     else:
-        unclass = ['%s/unclassified.fastq' % out]
-        classif = ['%s/classified.fastq' % out]
+        fqs = ['%s/%s.fastq' % (out, x) for x in names]
         cmd += ' --unclassified-out %s/unclassified.fastq' % out
         cmd += ' --classified-out %s/classified.fastq' % out
     if inputs[0].endswith('.gz'):
         cmd += ' --gzip-compressed'
-    #     outs = ['%s.gz' % x for x in unclass] + ['%s.gz' % x for x in classif]
-    #     io_update(self, o_f=outs, key=tech)
-    # else:
-    #     io_update(self, o_f=(unclass + classif), key=tech)
-    cmd += ' %s > %s/result.tsv' % (' '.join(inputs), out)
+    cmd += ' %s > %s/result.tsv\n' % (' '.join(inputs), out)
+    for fq in fqs:
+        cmd += 'if [ -e %s ]; then gzip %s; fi\n' % (fq, fq)
     return cmd
 
 
