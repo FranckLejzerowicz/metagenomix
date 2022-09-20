@@ -404,7 +404,7 @@ def fastp_cmd(
 
     for boolean in ['dont_overwrite', 'phred64', 'verbose', 'dedup',
                     'dont_eval_duplication', 'trim_poly_g', 'trim_poly_x',
-                    'average_qual', 'cut_front', 'cut_tail', 'cut_right']:
+                    'cut_front', 'cut_tail', 'cut_right']:
         if params[boolean]:
             if boolean == 'trim_poly_g' and not params['disable_trim_poly_g']:
                 cmd += ' --%s' % boolean

@@ -1085,12 +1085,13 @@ def check_fastp(self, params, soft):
         'average_qual': 20,
     }
     int1 = [
-        'overlap_len_require', 'overlap_diff_limit','filter_by_index_threshold',
-        'length_required', 'length_limit', 'average_qual', 'n_base_limit',
-        'qualified_quality_phred', 'cut_window_size', 'cut_front_window_size',
-        'cut_tail_window_size', 'cut_right_window_size', 'poly_g_min_len',
-        'poly_x_min_len', 'trim_front1', 'trim_tail1', 'max_len1',
-        'trim_front2', 'trim_tail2', 'max_len2', 'reads_to_process']
+        'overlap_len_require', 'overlap_diff_limit',
+        'filter_by_index_threshold', 'length_required', 'length_limit',
+        'average_qual', 'n_base_limit', 'qualified_quality_phred',
+        'cut_window_size', 'cut_front_window_size', 'cut_tail_window_size',
+        'cut_right_window_size', 'poly_g_min_len', 'poly_x_min_len',
+        'trim_front1', 'trim_tail1', 'max_len1', 'trim_front2', 'trim_tail2',
+        'max_len2', 'reads_to_process']
     for adapter in ['adapter_sequence', 'adapter_sequence_r2', 'adapter_fasta']:
         if adapter not in params:
             params[adapter] = None
