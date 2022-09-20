@@ -1537,7 +1537,7 @@ def tiara(self) -> None:
         .config
             Configurations
     """
-    if self.soft.prev != 'spades':
+    if self.config.tools[self.soft.prev] != 'assembling':
         sys.exit('[tiara] can only be run on assembly output')
     for (tech, group), spades in self.inputs[self.sam_pool].items():
         out_dir = '/'.join([self.dir, tech, self.sam_pool, group])
