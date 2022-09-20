@@ -47,28 +47,30 @@ Only one input argument is **mandatory**:
 [pipeline output folder](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/creating.md#output)
 (i.e., the `-o` argument to `metagenomix create`).
 
-Yet, if no 
-[management task]()
+Yet, if no
+[management task](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/managing.md#management-tasks)
 is specified, `metagenomix manage` will end without anything to manage. 
 
-It is possible to restrict the management to the union of softwares that 
-match what the user may provide as input to:
+It is possible to restrict management to the union of softwares that match 
+what the user may provide as input to:
 * `-p` / `--pipeline`: the softwares listed in the
   [pipeline configuration file](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/pipeline.md)
 * `-s` / `--software`: regular expressions to match software name(s) (can be 
-  used multiple times).
+  used multiple times). For example:
+    ```
+    metagenomix manage \
+      -i /path/on/cluster/for/some/output_folder \
+      -k /path/on/storage/for/the_same/output_folder \
+      -s checkm*
+    ```
+    
+    will manage any of `checkm`, `checkm_tetra`, `checkm_tree` etc...
 
-For example:
-```
-metagenomix manage \
-  -i /path/on/cluster/for/some/output_folder \
-  -k /path/on/storage/for/the_same/output_folder \
-  -s checkm*
-```
 
-will manage any of `checkm`, `checkm_tetra`, `checkm_tree`, `checkm_treeqa`, 
-`checkm_lineageset`, `checkm_analyze`, `checkm_qa`, `checkm_coverage`, 
-`checkm_unbinned`, and `checkm2`.
+* `-x` / `--chunks`: number of screen sessions to spawn (only for
+  [storage](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/managing.md#storage)
+  task): will evenly split the total amount of transfers if many/large 
+  files are to be storage away.
 
 ## Management tasks
 
@@ -89,10 +91,10 @@ follows.
 ### 1. Storage
 
 This task will help the user collecting software outputs, in order to copy 
-their files to a storage location, so that the original files from the 
-computing location can be replaced by symlinks. These symlinks can later be 
-followed by `metagenomix create` in order to create scripts necessary to 
-fetch stored-away files before running new jobs (see section on
+files to a storage location, so that the original files from the computing 
+location can be replaced by negligible-sized symlinks. These symlinks can 
+later be followed by `metagenomix create` in order to create scripts 
+necessary to fetch stored-away files before running new jobs (see section on
 [stored inputs](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/creating.md#stored-inputs)).
 
 * `--rename` (default: `--no-rename`) must be activated to perform this task  
@@ -105,7 +107,7 @@ fetch stored-away files before running new jobs (see section on
     -o /path/on/storage/for/the_same/output_folder
   ```
 
-##### Interaction
+##### 1.1. Interaction
 
 For each software and its previous software (see
 [after](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/creating.md#limitation)),
@@ -144,10 +146,14 @@ stored or not:
         * nanopore (600 bytes): Store? y/[n]: 
 ```
 
-##### Output
+##### 1.2. Output
 
-If the user entered `y` for at least one folder/sub-folder, a script (labelled 
-with the data of creation) will be generated that must be executed:
+If the user entered `y` for at least one folder/sub-folder, a main `store.sh` 
+script (placed in the folder labeled with the management date/time) will be 
+generated that must be executed. This script consists of spawning one (or 
+more, if `-x` was used)
+[screen](https://www.gnu.org/software/screen/manual/screen.html)
+session(s).
 
 ```
 ==================================================
@@ -177,7 +183,7 @@ the docs on creating
 jobs that are re-run several times (e.g., if more memory or time if needed), 
 will have multiple files with different `_<JOBID>` in their `.o` and `.e` names.
 
-##### Interaction
+##### 2.1. Interaction
 
 For each software and its previous software (see
 [after](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/creating.md#limitation)),
@@ -239,7 +245,7 @@ outputs (only if option `--remove` was set)
           [3] 2 input units for "cutadapt.tst.Nn_cddfc7813cb19f0b6.3"
   ```
 
-##### Output
+##### 2.2. Output
 
 
 If the user entered `y` for at least one job output, their removals will be 
@@ -287,7 +293,7 @@ help the user rename either folders of files:
 * `--confirm` (default: `--no-confirm`) will ask the user to confirmation 
   before operating all renaming
 
-##### Interaction
+##### 3.1. Interaction
 
 For each software and its previous software (see
 [after](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/creating.md#limitation)),
@@ -339,7 +345,7 @@ In this example:
     (file; index `0.3.0`), will become:
     * `cutadapt/after_None_acaddfc7813cb19af0b6/illumina/ERR5948215/NEW_NAME_2` 
 
-##### Output
+##### 3.2. Output
 
 If the user specified at least one index/name pair for at least on software 
 output, their renaming will be done automatically.
@@ -368,22 +374,6 @@ be printed so that this task can still be aborted.
   - Storing
         -> nothing to store
 ```
-
-### Multiple screen sessions
-
-If many/large files are to be stored away, the transfer can take a lot of 
-time. Hence, it is possible to evenly split the total amount of transfers into 
-multiple screen sessions, that will be detached to run in parallel:
-* `-x` / `--chunks`: number of screen sessions to spawn
-
-
-## Outputs
-
-All management tasks consist of file system operations, that can be executed 
-by running output
-[screen](https://www.gnu.org/software/screen/manual/screen.html)
-scripts. These scripts are written in a `_managed/DD-MM-YY_HHh` folder 
-placed directly inside the main pipeline output folder (given using `-i`).
 
 ## Usage
 
