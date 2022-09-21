@@ -282,13 +282,20 @@ bash script that will move all necessary files back from the storage
 to the computing location:
 
 ```
-[!!!] Some data is stored away at /path/to/storage/disk
-        -> Please run the following script to bring this data
+**********************************************
+Some data needed for these jobs is stored away
+**********************************************
+        -  soft_1              : # files
+        -  soft_2              : # files
+        -  ....                : ...
+  -> Run this script to bring this data (4 screen sessions)
            sh /path/to/output/_created/<HASH_VALUE>/move.sh
 ```
 
-These scripts will spawn screen sessions that 
-need to completed before starting the `run.sh` scripts:  
+These scripts will spawn screen sessions that need to completed before 
+starting the `run.sh` scripts (to monitor these scripts, use `screen -ls`, 
+or re-attach to a session with `screen -r <ID>` and either kill it when 
+completed with `crtl-A + K` or detach to let it run with `ctrl-A + D`).
 
 ### Creations
 

@@ -48,6 +48,7 @@ class Commands(object):
         self.out = []
         self.struc = list
         self.links = {}
+        self.links_stats = {}
         self.holistics = [
             'antismash',
             'simka',

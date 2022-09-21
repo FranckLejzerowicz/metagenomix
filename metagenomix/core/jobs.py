@@ -16,6 +16,7 @@ import subprocess
 import pkg_resources
 import numpy as np
 import datetime as dt
+from tabulate import tabulate
 from os.path import dirname, isdir, isfile, islink, splitext
 
 from metagenomix._io_utils import (
@@ -331,11 +332,22 @@ class Created(object):
         scripts = self.get_bring_links_scripts(links_dir)
         if scripts:
             sh = self.write_screen_jobs(links_dir, scripts)
-            m = '\n[!!!] Some data is stored away [!!!]\n'
-            m += '\t -> Please run the following script to bring this data\n'
-            m += '\t   sh %s\n' % sh
-            self.link_script = m
-            print(m)
+            self.print_links(sh, scripts)
+
+    def print_links(self, sh, scripts):
+        s = '\n%s\n' % ('*' * 46)
+        m = '%sSome data needed for these jobs is stored away%s' % (s, s)
+        t = tabulate([x for x in self.commands.links_stats.items() if x[1]],
+                     headers='', tablefmt='presto', showindex=False)
+        m += '\t- %s' % t.replace('\n', ' files\n\t- ').replace('|', '\t:')
+        m += ' files\n  -> Run this script to bring this data '
+        n = len(scripts)
+        m += '(%s screen session' % n
+        if n > 1:
+            m += 's'
+        m += ')\n       sh %s\n' % sh
+        self.link_script = m
+        print(m)
 
     def get_bring_links_scripts(self, links_dir):
         scripts = {}
@@ -380,6 +392,7 @@ class Created(object):
             self.write_provenance(name, soft)
 
     def get_links(self, soft):
+        self.commands.links_stats[soft.name] = len(soft.links)
         self.commands.links.update(soft.links)
 
     def get_sh(self, name: str, chunk: str, soft=None) -> None:

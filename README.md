@@ -28,7 +28,10 @@ Any software? Well, if not already in the
 someone will need to add it to metagenomix, following the instructions to 
 [contribute code](https://github.com/FranckLejzerowicz/metagenomix/wiki/Contributing).
 
-Please read the documentation using the [Wiki pages](https://github.com/FranckLejzerowicz/metagenomix/wiki)
+In a nutshell, 
+
+Please read the full documentation for more details, using the
+[Wiki pages](https://github.com/FranckLejzerowicz/metagenomix/wiki)
 
 ## Installation
 
