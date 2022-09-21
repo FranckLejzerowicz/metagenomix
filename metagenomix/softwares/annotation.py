@@ -1436,12 +1436,7 @@ def get_antismash(
         self.outputs['outs'].setdefault((tech, sam_group), []).append(out_dir)
 
         key = genome_key(tech, sam_group, genome)
-        if genome:
-            condition = to_do(folder=fasta)
-        else:
-            condition = to_do(fasta)
-        if condition:
-            status_update(self, tech, [fasta], group=sam_group, genome=genome)
+        status_update(self, tech, [fasta], group=sam_group, genome=genome)
 
         if self.config.force or not glob.glob('%s/*' % out_dir):
             cmd = antismash_cmd(self, fasta, out_dir)

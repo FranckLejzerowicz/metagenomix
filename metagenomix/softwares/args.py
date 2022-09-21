@@ -394,7 +394,7 @@ def get_metamarc(
         out_dir = genome_out_dir(self, tech, fasta, sam_group, genome)
         self.outputs['outs'].setdefault((tech, sam_group), []).append(out_dir)
         status_update(
-            self, tech, self.sam_pool, inputs, group=sam_group, genome=genome)
+            self, tech, inputs, self.sam_pool, group=sam_group, genome=genome)
 
         outs, cmd = [], ''
         key = genome_key(tech, sam_group, genome)
