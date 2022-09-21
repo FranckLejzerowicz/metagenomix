@@ -303,11 +303,12 @@ def check_input(
         typ = 'nuclassemble'
         if name in ['search_diamond', 'search_hmmer', 'macsyfinder']:
             typ = 'assemble'
-        is_type = (self.softs['plass'].params['type'] != typ)
-        if prev == 'plass' and is_type and not raw:
-            message = 'Illumina annotation if plass type: %s' % typ
-            self.soft.messages.add(message)
-            return True
+        if not raw:
+            is_type = (self.softs['plass'].params['type'] != typ)
+            if prev == 'plass' and is_type:
+                message = 'Illumina annotation if plass type: %s' % typ
+                self.soft.messages.add(message)
+                return True
     return False
 
 
