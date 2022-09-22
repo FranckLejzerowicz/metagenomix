@@ -45,6 +45,7 @@ class Exported(object):
         self.__dict__.update(kwargs)
         self.softs = Softwares(**kwargs)
         self.time = dt.datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
+        self.dir = abspath(self.dir)
         self.export_dir = abspath('%s/_exports' % self.dir)
         self.out = ''
         self.extensions = []
@@ -68,14 +69,10 @@ class Exported(object):
                 r'%s' % '|'.join(list(self.regex)), flags=re.IGNORECASE)
 
         m = ''
-        for root, dirs, files in os.walk(self.out):
-            if root == self.out:
+        for root, dirs, files in os.walk(self.dir):
+            if root == self.dir:
                 continue
-            print()
-            print()
-            print(root)
-            print(files)
-            soft = root.split('%s/' % self.out)[-1].split('/')[0]
+            soft = root.split('%s/' % self.dir)[-1].split('/')[0]
             if self.softs.names and soft not in self.softs.names:
                 continue
 
