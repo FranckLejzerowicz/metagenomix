@@ -45,7 +45,7 @@ class Exported(object):
         self.__dict__.update(kwargs)
         self.softs = Softwares(**kwargs)
         self.time = dt.datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
-        self.export_dir = abspath('%s/_exports' % self.folder)
+        self.export_dir = abspath('%s/_exports' % self.dir)
         self.dir = ''
         self.extensions = []
         self.to_exports = []

@@ -53,7 +53,7 @@ def export(
 ):
     """Prepare an archive for specific pipeline outputs."""
     exporter(
-        folder=folder,
+        dir=folder,
         out=output,
         pipeline=pipeline,
         softwares=software,
