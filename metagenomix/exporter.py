@@ -59,7 +59,9 @@ class Exported(object):
     def get_extensions(self):
         if self.exts:
             print('* Getting extensions to target specific files')
+            print(self.exts)
             self.exts = ['.%s' % x if x[0] != '.' else x for x in self.exts]
+            print(self.exts)
 
     def get_inputs(self):
         print('\n* Getting files to export:')
