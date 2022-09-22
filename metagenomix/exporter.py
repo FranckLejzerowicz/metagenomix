@@ -81,9 +81,10 @@ class Exported(object):
                         self.to_exports.append('%s/%s' % (root, fil))
                         continue
                 ext = splitext(fil)[1]
-                if self.exts and ext in self.exts:
-                    m = '(with extensions "%s" )' % '", "'.join(self.exts)
-                    self.to_exports.append('%s/%s' % (root, fil))
+                if self.exts:
+                    if ext in self.exts or ext[1:] in self.exts:
+                        m = '(with extensions "%s" )' % '", "'.join(self.exts)
+                        self.to_exports.append('%s/%s' % (root, fil))
                 else:
                     self.to_exports.append('%s/%s' % (root, fil))
 
