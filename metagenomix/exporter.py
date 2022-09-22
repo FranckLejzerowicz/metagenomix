@@ -46,15 +46,15 @@ class Exported(object):
         self.softs = Softwares(**kwargs)
         self.time = dt.datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
         self.export_dir = abspath('%s/_exports' % self.dir)
-        self.dir = ''
+        self.out = ''
         self.extensions = []
         self.to_exports = []
         self.commands = []
 
     def get_folder_exp(self):
-        self.dir = '%s/%s' % (self.export_dir, self.time)
+        self.out = '%s/%s' % (self.export_dir, self.time)
         if not self.local and self.location in os.environ:
-            self.dir = '%s/exports_%s' % (os.environ[self.location], self.time)
+            self.out = '%s/exports_%s' % (os.environ[self.location], self.time)
 
     def get_extensions(self):
         if self.exts:
@@ -68,10 +68,10 @@ class Exported(object):
                 r'%s' % '|'.join(list(self.regex)), flags=re.IGNORECASE)
 
         m = ''
-        for root, dirs, files in os.walk(self.folder):
-            if root == self.folder:
+        for root, dirs, files in os.walk(self.out):
+            if root == self.out:
                 continue
-            soft = root.split('%s/' % self.folder)[-1].split('/')[0]
+            soft = root.split('%s/' % self.out)[-1].split('/')[0]
             if self.softs.names and soft not in self.softs.names:
                 continue
 
@@ -91,10 +91,11 @@ class Exported(object):
 
     def get_output(self):
         print('* Getting output archive path')
-        self.out = abspath(self.out)
+        self.output = abspath(self.output)
         if not self.local and self.location in os.environ:
-            self.out = '%s/%s' % (os.environ[self.location], basename(self.out))
-        self.out = '%s.tar.gz' % splitext(expandvars(self.out))[0]
+            self.output = '%s/%s' % (os.environ[self.location],
+                                     basename(self.output))
+        self.output = '%s.tar.gz' % splitext(expandvars(self.output))[0]
 
     def get_commands(self):
         print('* Getting copying commmands')
@@ -104,7 +105,7 @@ class Exported(object):
 
     def get_copy_commands(self):
         for to_export in self.to_exports:
-            exp = to_export.replace(self.folder.rstrip('/'), self.dir)
+            exp = to_export.replace(self.output.rstrip('/'), self.out)
             if isfile(exp):
                 continue
             if not isdir(dirname(exp)):
@@ -112,8 +113,8 @@ class Exported(object):
             self.commands.append('cp %s %s' % (to_export, exp))
 
     def get_archiving_commands(self):
-        tar_cmd = 'tar czf %s -C %s .' % (self.out, self.dir)
-        rm_cmd = 'rm -rf %s' % self.dir
+        tar_cmd = 'tar czf %s -C %s .' % (self.output, self.out)
+        rm_cmd = 'rm -rf %s' % self.out
         self.commands.append(tar_cmd)
         self.commands.append(rm_cmd)
 
@@ -129,9 +130,11 @@ class Exported(object):
     def run_xhpc(self, sh):
         if self.torque:
             hpc = '%s.pbs' % splitext(sh)[0]
+            pbs = ' --torque'
         else:
             hpc = '%s.slm' % splitext(sh)[0]
-        cmd = 'Xhpc -i %s -o %s -j xpt_%s -t 2 --no-stat' % (sh, hpc, self.time)
+            pbs = ''
+        cmd = 'Xhpc -i %s -o %s -j xpt_%s -t 2%s' % (sh, hpc, self.time, pbs)
         if self.account:
             cmd += ' -a %s' % self.account
         cmd += ' --quiet'
@@ -156,4 +159,4 @@ class Exported(object):
         user = expanduser('~').split('/')[-1]
         hostname = socket.gethostname()
         print('* Then, copy(-edit)-paste to download from server to local:')
-        print('scp %s@%s:%s .' % (user, hostname, self.out))
+        print('scp %s@%s:%s .' % (user, hostname, self.output))
