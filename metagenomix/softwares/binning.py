@@ -198,7 +198,7 @@ def quantify(self):
                 self.outputs['dirs'].append(out)
 
                 cmd = quantify_cmd(self, bins, fastq, out, contigs)
-                if self.config.force or glob.glob('%s/*' % out):
+                if self.config.force or not glob.glob('%s/*' % out):
                     self.outputs['outs'][key][mode][sam] = out
                     self.outputs['cmds'].setdefault(key, []).append(cmd)
                     io_update(self, i_f=fastq, o_d=out, key=key)
@@ -782,11 +782,11 @@ def refine(self):
                                      self.soft.params['min_contamination'])
         stats, bins = '%s.stats' % out, '%s_bins' % out
         self.outputs['outs'][key] = [bins, stats]
-        if not self.config.force and not to_do(folder=bins):
+        if not self.config.force and glob.glob('%s/*.fa' % bins):
             self.soft.add_status(tech, self.sam_pool, 0, group=group)
             continue
-        if n_bins == len(bin_folders):
-            self.outputs['cmds'].setdefault(key, []).append(cmd)
+        # if n_bins == len(bin_folders):
+        self.outputs['cmds'].setdefault(key, []).append(cmd)
         io_update(self, i_d=bin_folders, o_f=stats, o_d=bins, key=key)
         self.soft.add_status(tech, self.sam_pool, 1, group=group)
 

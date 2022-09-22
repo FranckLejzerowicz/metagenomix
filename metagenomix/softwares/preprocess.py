@@ -291,7 +291,7 @@ def fastqc(self) -> None:
         out = ['%s_fastqc.html' % x.rsplit('.fastq', 1)[0] for x in fastxs]
         outs[(tech, self.sam_pool)] = out
 
-        if self.config.force or not sum([to_do(x) for x in out]):
+        if self.config.force or sum([to_do(x) for x in out]):
             cmd = 'fastqc %s -o %s' % (' '.join(fastxs), out_dir)
             self.outputs['cmds'][(tech,)] = [cmd]
             io_update(self, i_f=fastxs, o_d=out_dir, key=tech)
