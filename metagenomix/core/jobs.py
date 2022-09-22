@@ -423,7 +423,7 @@ class Created(object):
             '-t', str(params['time']),
             '-c', str(params['cpus']),
             '-M', str(params['mem']), params['mem_dim'],
-            '--no-stat']
+            '--no-stat', '--no-abspath']
         # whether the cpus requests is per node
         if params['nodes']:
             self.cmd.extend(['-n', str(params['nodes'])])
