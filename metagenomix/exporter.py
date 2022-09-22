@@ -59,9 +59,7 @@ class Exported(object):
     def get_extensions(self):
         if self.exts:
             print('* Getting extensions to target specific files')
-            print(self.exts)
             self.exts = ['.%s' % x if x[0] != '.' else x for x in self.exts]
-            print(self.exts)
 
     def get_inputs(self):
         print('\n* Getting files to export:')
@@ -73,6 +71,10 @@ class Exported(object):
         for root, dirs, files in os.walk(self.out):
             if root == self.out:
                 continue
+            print()
+            print()
+            print(root)
+            print(files)
             soft = root.split('%s/' % self.out)[-1].split('/')[0]
             if self.softs.names and soft not in self.softs.names:
                 continue
