@@ -257,11 +257,7 @@ class Workflow(object):
             check_ = getattr(parameters, func)
             soft.defaults = check_(self, user_params, soft)
             self.ignored_params(user_params, soft)
-
         self.check_basic_params(user_params, soft)
-        if isinstance(soft.params['scratch'], int):
-            soft.params['mem'] = soft.params['scratch']
-            soft.params['mem_dim'] = 'gb'
 
     def skip_params(self, soft) -> bool:
         if '_' in soft.name:
