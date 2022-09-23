@@ -1196,7 +1196,7 @@ def woltka_eggnog(
     biom = '%s/eggnog/eggnog.biom' % out_dir
     if to_do(biom):
         cmd = 'woltka tools collapse'
-        cmd += '--input %s' % uniref
+        cmd += ' --input %s' % uniref
         cmd += ' --map %s/function/eggnog/eggnog.map.xz' % database
         cmd += ' --output %s\n\n' % biom
         self.outputs['cmds'].setdefault(key, []).append(cmd)
@@ -1219,7 +1219,7 @@ def woltka_eggnog(
         biom = '%s/eggnog/eggnog_%s.biom' % (out_dir, stratif)
         if to_do(biom):
             cmd = 'woltka tools collapse'
-            cmd += '--input %s' % uniref_tax[stratif]
+            cmd += ' --input %s' % uniref_tax[stratif]
             cmd += ' --map %s/function/eggnog/eggnog.map.xz' % database
             cmd += ' --field 2'
             cmd += ' --output %s\n\n' % biom
@@ -1281,7 +1281,7 @@ def woltka_cazy(
     biom = '%s/cazy/cazy.biom' % out_dir
     if to_do(biom):
         cmd = 'woltka tools collapse'
-        cmd += '--input %s' % genes
+        cmd += ' --input %s' % genes
         cmd += ' --map %s' % cazy_map
         cmd += ' --output %s\n\n' % biom
         self.outputs['cmds'].setdefault(key, []).append(cmd)
@@ -1305,7 +1305,7 @@ def woltka_cazy(
         biom = '%s/cazy/cazy_%s.biom' % (out_dir, stratif)
         if to_do(biom):
             cmd = 'woltka tools collapse'
-            cmd += '--input %s' % genes_tax[stratif]
+            cmd += ' --input %s' % genes_tax[stratif]
             cmd += ' --map %s' % cazy_map
             cmd += ' --field 2'
             cmd += ' --output %s\n\n' % biom
