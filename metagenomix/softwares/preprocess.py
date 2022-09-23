@@ -288,7 +288,8 @@ def fastqc(self) -> None:
         out_dir = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
         self.outputs['dirs'].append(out_dir)
 
-        out = ['%s_fastqc.html' % x.rsplit('.fastq', 1)[0] for x in fastxs]
+        out = ['%s/%s_fastqc.html' % (
+            out_dir, basename(x).rsplit('.fastq', 1)[0]) for x in fastxs]
         outs[(tech, self.sam_pool)] = out
 
         if self.config.force or sum([to_do(x) for x in out]):
