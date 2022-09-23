@@ -452,7 +452,8 @@ class Created(object):
             self.cmd.append('--scratch')
         elif params['scratch'] == 'userscratch':
             self.cmd.append('--userscratch')
-        self.cmd.append('--quiet')
+        if not self.config.verbose:
+            self.cmd.append('--quiet')
 
     def call_cmd(self):
         cmd = ' '.join(self.cmd)
