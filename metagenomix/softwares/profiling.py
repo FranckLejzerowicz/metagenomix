@@ -774,7 +774,6 @@ def woltka_aligments(
                     if aligner not in alignments:
                         alignments[aligner] = {}
                     alignments[aligner][sample] = sam
-                    io_update(self, i_f=sam, key=(tech, aligner))
     return alignments
 
 
@@ -784,7 +783,7 @@ def woltka_write_map(
         pairing: str,
         aligner: str,
         alis: dict
-) -> str:
+) -> tuple:
     """Write the mapping file that servers as input to Woltka.
 
     Parameters
@@ -806,25 +805,25 @@ def woltka_write_map(
     Returns
     -------
     map_fp : str
-        Path to the output woltka samples file.
+        Path to the output woltka samples file
+    map_cmds : str
+        Command to created the samples.map file
     """
-
     out_dir = '/'.join([self.dir, tech, aligner, pairing])
     self.outputs['dirs'].append(out_dir)
 
-    cmd = ''
+    map_cmds = ''
     map_fp = '%s/samples.map' % out_dir
     for idx, sam in enumerate(alis.keys()):
         echo = 'echo -e "%s\\t%s"' % (sam, alis[sam])
         if idx:
-            cmd += '%s >> %s\n' % (echo, map_fp)
+            map_cmds += '%s >> %s\n' % (echo, map_fp)
         else:
-            cmd += '%s > %s\n' % (echo, map_fp)
-    if cmd:
-        cmd += 'envsubst < %s > %s.tmp\n' % (map_fp, map_fp)
-        cmd += 'mv %s.tmp %s\n' % (map_fp, map_fp)
-        self.outputs['cmds'].setdefault((tech, aligner), []).append(cmd)
-    return map_fp
+            map_cmds += '%s > %s\n' % (echo, map_fp)
+    if map_cmds:
+        map_cmds += 'envsubst < %s > %s.tmp\n' % (map_fp, map_fp)
+        map_cmds += 'mv %s.tmp %s\n' % (map_fp, map_fp)
+    return map_fp, map_cmds
 
 
 def woltka_tax_cmd(
@@ -832,9 +831,9 @@ def woltka_tax_cmd(
         tech: str,
         pairing: str,
         aligner: str,
-        woltka_map: str,
+        map: str,
         database: str
-) -> str:
+) -> tuple:
     """Get the taxonomic classification outputs and prepare the
     Woltka commands for this classification.
 
@@ -851,15 +850,17 @@ def woltka_tax_cmd(
         Type of reads pairing during alignment
     aligner : str
         Aligner used to create the input alignments
-    woltka_map : str
-        Path to the Woltka input file.
+    map : str
+        Path to the Woltka input file
     database : str
-        WOL database path
+        Path to the WOL database
 
     Returns
     -------
     tax_outmap : str
         Path to the folder containing the taxonomic maps.
+    tax_to_do : list
+        Empty if nothing is to be done
     """
     key = (tech, aligner)
     out = '/'.join([self.dir, tech, aligner, pairing])
@@ -884,7 +885,7 @@ def woltka_tax_cmd(
     if len(tax_to_do):
         cur_cmd = '\n# taxonomic\n'
         cur_cmd += 'woltka classify'
-        cur_cmd += ' -i %s' % woltka_map
+        cur_cmd += ' -i %s' % map
         cur_cmd += ' --map %s' % taxid
         cur_cmd += ' --nodes %s' % nodes
         cur_cmd += ' --names %s' % names
@@ -899,7 +900,7 @@ def woltka_tax_cmd(
         io_update(self, o_d=tax_outmap, key=key)
     else:
         io_update(self, i_d=tax_outmap, key=key)
-    return tax_outmap
+    return tax_outmap, tax_to_do
 
 
 def woltka_go(
@@ -907,10 +908,10 @@ def woltka_go(
         tech: str,
         pairing: str,
         aligner: str,
-        woltka_map: str,
+        map: str,
         taxmap: str,
         database: str
-) -> None:
+) -> list:
     """Get the taxonomic classification outputs and prepare the Woltka
     commands for this classification.
 
@@ -927,26 +928,31 @@ def woltka_go(
         Type of reads pairing during alignment
     aligner : str
         Aligner used to create the input alignments
-    woltka_map : str
+    map : str
         Path to the Woltka input file.
     taxmap : str
         Path to the folder containing the taxonomic maps.
     database : str
         WOL database path
+
+    Returns
+    -------
+    go_to_do : list
+        Empty if nothing is to done
     """
     coords = '%s/proteins/coords.txt.xz' % database
     uniref_map = '%s/function/uniref/uniref.map.xz' % database
-    uniref_names = '%s/function/uniref/uniref.name.xz' % database
     go_rt = '%s/function/go' % database
-    gos = ['process', 'function', 'component']
 
+    go_to_do = []
+    gos = ['process', 'function', 'component']
     out_dir = '%s/%s/%s/%s/go' % (self.dir, tech, aligner, pairing)
     key = (tech, aligner)
     io_update(self, o_d=out_dir, key=key)
     for go in gos:
         cmd = '\n# %s [no stratification]\n' % go
         cmd += 'woltka classify'
-        cmd += ' -i %s' % woltka_map
+        cmd += ' -i %s' % map
         cmd += ' --coords %s' % coords
         cmd += ' --map-as-rank'
         cmd += ' --rank %s' % go
@@ -957,6 +963,7 @@ def woltka_go(
         cur_out = '%s/%s.tsv' % (out_dir, go)
         cmd += ' -o %s' % cur_out
         if to_do(cur_out):
+            go_to_do.append(cur_out)
             self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, o_f=cur_out, key=key)
             self.soft.add_status(tech, 'all samples', 1, group='go',
@@ -974,7 +981,7 @@ def woltka_go(
         for go in gos:
             cmd = '\n# %s [%s]\n' % (go, stratif)
             cmd += 'woltka classify'
-            cmd += ' -i %s' % woltka_map
+            cmd += ' -i %s' % map
             cmd += ' --coords %s' % coords
             cmd += ' --map-as-rank'
             cmd += ' --rank %s' % go
@@ -986,6 +993,7 @@ def woltka_go(
             go_out = '%s/%s.tsv' % (out_dir_strat, go)
             cmd += ' -o %s' % go_out
             if to_do(go_out):
+                go_to_do.append(go_out)
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
                 self.soft.add_status(tech, 'all samples', 1,
                                      group='go (%s)' % stratif, genome=go)
@@ -993,6 +1001,7 @@ def woltka_go(
                 self.soft.add_status(tech, 'all samples', 0,
                                      group='go (%s)' % stratif, genome=go)
             self.outputs['outs'].setdefault(key, []).append(go_out)
+    return go_to_do
 
 
 def woltka_genes(
@@ -1029,15 +1038,19 @@ def woltka_genes(
     Returns
     -------
     genes : str
-        Path to the genes classification output.
+        Path to the genes classification output
     genes_tax : dict
-        Path to the stratified genes classification output.
+        Path to the stratified genes classification output
+    genes_to_do : list
+        Empty if nothing to be done
     """
     key = (tech, aligner)
     coords = '%s/proteins/coords.txt.xz' % database
     out_dir = '/'.join([self.dir, tech, aligner, pairing])
     genes = '%s/genes.biom' % out_dir
+    genes_to_do = []
     if to_do(genes):
+        genes_to_do.append(genes)
         cmd = '\n# per gene\n'
         cmd += 'woltka classify'
         cmd += ' -i %s' % woltka_map
@@ -1057,6 +1070,7 @@ def woltka_genes(
         genes = '%s/genes_%s.biom' % (out_dir, stratif)
         genes_tax[stratif] = genes
         if to_do(genes):
+            genes_to_do.append(genes)
             cmd = '\n# per gene [%s]\n' % stratif
             cmd += 'woltka classify'
             cmd += ' -i %s' % woltka_map
@@ -1073,7 +1087,7 @@ def woltka_genes(
                 tech, 'all samples', 0, group='genes (%s)' % stratif)
 
         self.outputs['outs'].setdefault(key, []).append(genes)
-    return genes, genes_tax
+    return genes, genes_tax, genes_to_do
 
 
 def woltka_uniref(
@@ -1706,12 +1720,16 @@ def woltka(self) -> None:
             continue
         for aligner, alis in alignments.items():
             status_update(self, tech, list(alis.values()), group=aligner)
-
-            maps = woltka_write_map(self, tech, pairing, aligner, alis)
-            taxmap = woltka_tax_cmd(self, tech, pairing, aligner, maps, db)
-            woltka_go(self, tech, pairing, aligner, maps, taxmap, db)
-            genes, genes_tax = woltka_genes(
-                self, tech, pairing, aligner, maps, taxmap, db)
+            map, map_cmds = woltka_write_map(self, tech, pairing, aligner, alis)
+            taxmap, tdo = woltka_tax_cmd(self, tech, pairing, aligner, map, db)
+            gdo = woltka_go(self, tech, pairing, aligner, map, taxmap, db)
+            genes, genes_tax, edo = woltka_genes(
+                self, tech, pairing, aligner, map, taxmap, db)
+            if tdo or gdo or edo:
+                io_update(self, i_f=list(alis.values()), key=(tech, aligner))
+                if (tech, aligner) in self.outputs['cmds']:
+                    prev_cmds = self.outputs['cmds'][(tech, aligner)]
+                    self.outputs['cmds'][(tech, aligner)] = map_cmds + prev_cmds
             uniref, uniref_tax = woltka_uniref(
                 self, tech, pairing, aligner, genes, genes_tax, db)
             woltka_eggnog(self, tech, pairing, aligner, uniref, uniref_tax, db)
