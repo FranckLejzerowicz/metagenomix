@@ -44,7 +44,7 @@ def viralverify_cmd(
     if self.soft.params['p']:
         cmd += ' --p'
     cmd += ' -t %s' % self.soft.params['cpus']
-    cmd += ' -thr %s' % self.soft.params['thr']
+    cmd += ' --thr %s' % self.soft.params['thr']
     cmd += ' --hmm %s' % '%s/Pfam-A.hmm' % self.databases.paths.get('pfam')
     return cmd
 
