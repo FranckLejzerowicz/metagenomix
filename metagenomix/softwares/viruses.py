@@ -208,8 +208,9 @@ def coconet_cmd(
     ]:
         cmd += ' --%s %s' % (p.replace('_', '-'), self.soft.params[p])
     for p in ['tlen_range', 'compo_neurons', 'cover_neurons']:
-        cmd += ' --%s %s' % (p.replace('_', '-'),
-                             ' '.join(map(str, self.soft.params[p])))
+        if self.soft.params[p]:
+            cmd += ' --%s %s' % (p.replace('_', '-'),
+                                 ' '.join(map(str, self.soft.params[p])))
     if bam:
         for b in bam:
             print(kjsrbf)
