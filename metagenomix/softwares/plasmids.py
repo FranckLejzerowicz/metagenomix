@@ -126,7 +126,7 @@ def plasmidfinder_cmd(
     """
     tmp_dir = '$TMPDIR/plasmidfinder_%s' % '_'.join(key)
     cmd = 'mkdir -p %s\n' % tmp_dir
-    cmd += 'plasmidfinder.py'
+    cmd += '%s' % self.soft.params['binary']
     if len(fasta) == 2:
         cmd += ' --infile %s' % ' '.join(fasta)
     else:

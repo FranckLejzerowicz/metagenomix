@@ -1391,6 +1391,7 @@ def check_plasmidfinder(self, params, soft):
     check_default(self, params, defaults, soft.name, ints)
     check_binary(self, soft.name, params, defaults, 'binary')
     defaults['kma'] = '<Path to the "kma" binary>'
+    defaults['binary'] = '<Path to the "plasmidfinder.py" binary>'
     defaults['databasePath'] = '<Path databases folder (with a "config" file)>'
     defaults['databases'] = "<Comma-separated databases (first field of the " \
                             "databasePath's 'config' file)>"
