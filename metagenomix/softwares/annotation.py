@@ -109,15 +109,15 @@ def get_prodigal(
         self.outputs['dirs'].append(out)
         self.outputs['outs'].setdefault((tech, sam_group), []).append(out)
         status_update(self, tech, [fasta[0]], group=sam_group, genome=genome)
-        if not exists(fasta[0]):
-            continue
         proteins = '%s/protein.translations.fasta' % out
         if self.config.force or to_do(proteins):
             cmd = prodigal_cmd(self, tech, fasta[0], out)
-            self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, i_f=fasta[0], o_d=out, key=key)
             self.soft.add_status(
                 tech, self.sam_pool, 1, group=sam_group, genome=genome)
+            if exists(fasta[0]):
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
+
         else:
             self.soft.add_status(
                 tech, self.sam_pool, 0, group=sam_group, genome=genome)
