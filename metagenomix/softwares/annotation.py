@@ -9,7 +9,7 @@
 import glob
 import sys
 import pkg_resources
-from os.path import basename, isdir, splitext
+from os.path import basename, exists, isdir, splitext
 
 from metagenomix._inputs import (sample_inputs, group_inputs,
                                  genome_key, genome_out_dir)
@@ -109,7 +109,8 @@ def get_prodigal(
         self.outputs['dirs'].append(out)
         self.outputs['outs'].setdefault((tech, sam_group), []).append(out)
         status_update(self, tech, [fasta[0]], group=sam_group, genome=genome)
-
+        if not exists(fasta[0]):
+            continue
         proteins = '%s/protein.translations.fasta' % out
         if self.config.force or to_do(proteins):
             cmd = prodigal_cmd(self, tech, fasta[0], out)
