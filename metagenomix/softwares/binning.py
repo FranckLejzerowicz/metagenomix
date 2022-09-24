@@ -8,7 +8,7 @@
 
 import sys
 import glob
-from metagenomix._io_utils import caller, io_update, to_do
+from metagenomix._io_utils import caller, status_update, io_update, to_do
 
 
 def get_sams_fastqs(
@@ -892,8 +892,10 @@ def binning(self):
         fastqs = [fastq for sam in self.pools[self.sam_pool][group] for fastq
                   in self.config.fastq_mv[sam].get(('illumina', sam), [])]
         if not fastqs:
-            self.soft.add_status(tech, self.sam_pool, [fastqs], group=group,
-                                 message='no illumina data')
+            status_update(
+                self, tech, fastqs, group=group, message='no illumina data')
+            # self.soft.add_status(tech, self.sam_pool, [fastqs], group=group,
+            #                      message='no illumina data')
             print('[metawrap_binning] No illumina reads for group %s' % group)
             continue
 
