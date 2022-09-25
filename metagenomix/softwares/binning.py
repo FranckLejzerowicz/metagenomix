@@ -58,10 +58,19 @@ def get_fqs(
     cmd = ''
     for f in fastq_fps:
         if f.endswith('.gz'):
-            cmd += 'gunzip -c %s > %s\n' % (f, f.replace('.gz', ''))
-            fqs.append(f.replace('.gz', ''))
+            f_q = f.replace('.gz', '')
+            cmd += 'gunzip -c %s > %s\n' % (f, f_q)
         else:
-            fqs.append(f)
+            f_q = f
+        if f_q.endswith('_R1.fastq'):
+            f_q_ = f_q.replace('_R1.fastq', '_1.fastq')
+            cmd += 'mv %s %s\n' % (f_q, f_q_)
+        elif f_q.endswith('_R2.fastq'):
+            f_q_ = f_q.replace('_R2.fastq', '_2.fastq')
+            cmd += 'mv %s %s\n' % (f_q, f_q_)
+        else:
+            f_q_ = f_q
+        fqs.append(f_q_)
     return fqs, cmd
 
 
