@@ -892,12 +892,12 @@ def binning(self):
         fastqs = [fastq for sam in self.pools[self.sam_pool][group] for fastq
                   in self.config.fastq_mv[sam].get(('illumina', sam), [])]
         if not fastqs:
-            status_update(
-                self, tech, fastqs, group=group, message='no illumina data')
             # self.soft.add_status(tech, self.sam_pool, [fastqs], group=group,
             #                      message='no illumina data')
             print('[metawrap_binning] No illumina reads for group %s' % group)
             continue
+        status_update(
+            self, tech, fastqs, group=group, message='no illumina data')
 
         tmp = '$TMPDIR/mtwrp_%s_%s_%s' % (self.sam_pool, tech, group)
         out = '/'.join([self.dir, tech, self.sam_pool, group])

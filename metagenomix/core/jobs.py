@@ -7,7 +7,6 @@
 # ----------------------------------------------------------------------------
 
 import os
-import sys
 import yaml
 import glob
 import shutil
