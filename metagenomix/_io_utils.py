@@ -255,7 +255,8 @@ def status_update(
         inputs: list,
         pool: str = None,
         group: str = None,
-        genome: str = None
+        genome: str = None,
+        message: str = None
 ) -> None:
     """Potentially add the fastq files to the status (files to generate).
 
@@ -276,15 +277,17 @@ def status_update(
         Name of the current co-assembly group
     genome : str
         MAGs/Genomes folder name or empty string (for assembly contigs)
+    message : str
+        Warning to show
     """
     to_dos = get_to_dos(self, inputs)
     if to_dos:
         if pool:
             self.soft.add_status(tech, pool, to_dos,
-                                 group=group, genome=genome)
+                                 group=group, genome=genome, message=message)
         else:
             self.soft.add_status(tech, self.sam_pool, to_dos,
-                                 group=group, genome=genome)
+                                 group=group, genome=genome, message=message)
 
 
 def get_to_dos(self, inputs):
