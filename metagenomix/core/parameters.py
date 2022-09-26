@@ -2318,16 +2318,52 @@ def check_metaphlan(self, params, soft):
     return defaults
 
 
-# def check_ToolName(self, params, soft):
-#     defaults = {
-#     }
-#     ints = []
-#     check_nums(self, params, defaults, ints, int, soft.name)
-#     floats = []
-#     check_nums(self, params, defaults, floats, float, soft.name)
-#     check_default(self, params, defaults, soft.name, (ints + floats))
-#     defaults[''] = '<>'
-#     return defaults
+def check_mapdamage2(self, params, soft):
+    defaults = {
+        'downsample': None,
+        'downsample_seed': 1234,
+        'merge_reference_sequences': [False, True],
+        'length': 70,
+        'around': 10,
+        'min_basequal': 0,
+        'fasta': [False, True],
+        'plot_only': [False, True],
+        'quiet': [False, True],
+        'verbose': [False, True],
+        'mapdamage_modules': [False, True],
+        'ymax': 0.3,
+        'readplot': 25,
+        'refplot': 10,
+        'rand': 30,
+        'burn': 10000,
+        'adjust': 10,
+        'iter': 50000,
+        'forward': [False, True],
+        'reverse': [False, True],
+        'var_disp': [False, True],
+        'jukes_cantor': [False, True],
+        'diff_hangs': [False, True],
+        'fix_nicks': [False, True],
+        'use_raw_nick_freq': [False, True],
+        'single_stranded': [False, True],
+        'theme_bw': [False, True],
+        'seq_length':12,
+        'stats_only': [False, True],
+        'no_stats': [True, False],
+        'check_R_packages': [True, False],
+        'rescale': [False, True],
+        'rescale_only': [False, True],
+        'rescale_length_5p': 12,
+        'rescale_length_3p': 12
+    }
+    ints = ['downsample_seed', 'length', 'around', 'min_basequal', 'readplot',
+            'refplot', 'rand', 'burn', 'adjust', 'iter' 'seq_length',
+            'rescale_length_5p', 'rescale_length_3p']
+    check_nums(self, params, defaults, ints, int, soft.name)
+    floats = ['ymax']
+    check_nums(self, params, defaults, floats, float, soft.name)
+    check_default(self, params, defaults, soft.name, (ints + floats))
+    return defaults
 
 
 # def check_ToolName(self, params, soft):
