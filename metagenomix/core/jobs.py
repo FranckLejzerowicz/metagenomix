@@ -16,7 +16,7 @@ import pkg_resources
 import numpy as np
 import datetime as dt
 from tabulate import tabulate
-from os.path import dirname, isdir, isfile, islink, splitext
+from os.path import dirname, exists, isdir, islink, splitext
 
 from metagenomix._io_utils import (
     mkdr, get_roundtrip, print_status_table, compute_hash, get_md5, get_dates)
@@ -83,10 +83,10 @@ class Created(object):
                 chunkey = '%s_%s' % (key[0], '-'.join(key[1]).replace('/', '_'))
                 self.chunks[chunkey] = [key]
 
-    def get_main_sh(self, name, soft=None) -> str:
+    def get_main_sh(self, name, soft=None, local='') -> str:
         if soft:
-            main = '%s/run.sh' % soft.dir
-            self.run['software'][name] = main
+            main = '%s/run%s.sh' % (soft.dir, local)
+            self.run['software']['%s%s' % (name, local)] = main
         else:
             main = '%s/run_%s.sh' % (self.sh.rsplit('/', 2)[0], name)
             self.run['database'][name] = main
@@ -102,6 +102,13 @@ class Created(object):
                 for jdx, job_fp in enumerate(self.job_fps):
                     o.write('%s %s\n' % (self.scheduler, job_fp))
                 self.job_fps = []
+
+    def write_bash(self, name, soft) -> None:
+        if soft.bash:
+            main = self.get_main_sh(name, soft, '_locally')
+            with open(main, 'w') as o:
+                for cmd in soft.bash:
+                    o.write('%s\n' % cmd)
 
     def get_provenance_fp(self, name, soft=None) -> str:
         if soft:
@@ -170,9 +177,9 @@ class Created(object):
                     continue
                 fil_loc = fil_.replace('${SCRATCH_FOLDER}', '')
                 fil_sto = fil_loc.replace(dirname(self.config.dir), STORAGE)
-                if isfile(fil_loc) or islink(fil_loc):
+                if exists(fil_loc):
                     os.remove(fil_loc)
-                if isfile(fil_sto):
+                if exists(fil_sto):
                     os.remove(fil_sto)
 
             for fol_ in soft.io[key].get(('O', 'd'), []):
@@ -189,17 +196,6 @@ class Created(object):
 
             if random.choice([0, 1]):
 
-                for fol_ in soft.io[key].get(('O', 'd'), []):
-                    if fol_.endswith('*'):
-                        continue
-                    fol_loc = fol_.replace('${SCRATCH_FOLDER}', '')
-                    fol_sto = fol_loc.replace(dirname(self.config.dir), STORAGE)
-                    if not isdir(fol_sto):
-                        os.makedirs(fol_sto)
-                    if not isdir(dirname(fol_loc)):
-                        os.makedirs(dirname(fol_loc))
-                    os.symlink(fol_sto, fol_loc)
-
                 for fil_ in soft.io[key].get(('O', 'f'), []):
                     if fil_.endswith('*'):
                         continue
@@ -213,6 +209,18 @@ class Created(object):
                         for r in range(10, random.randrange(11, 100)):
                             o.write('test\n')
                     os.symlink(fil_sto, fil_loc)
+
+                for fol_ in soft.io[key].get(('O', 'd'), []):
+                    if fol_.endswith('*'):
+                        continue
+                    fol_loc = fol_.replace('${SCRATCH_FOLDER}', '')
+                    fol_sto = fol_loc.replace(dirname(self.config.dir), STORAGE)
+                    if not isdir(fol_sto):
+                        os.makedirs(fol_sto)
+                    if not isdir(dirname(fol_loc)):
+                        os.makedirs(dirname(fol_loc))
+                    if not isdir(fol_loc):
+                        os.symlink(fol_sto, fol_loc)
 
     def get_cmds(self, soft):
         self.cmds = {}
@@ -390,6 +398,7 @@ class Created(object):
             self.write_jobs(name, soft)
             self.write_main(name, soft)
             self.write_provenance(name, soft)
+            self.write_bash(name, soft)
 
     def get_links(self, soft):
         self.commands.links_stats[soft.name] = len(soft.links)
