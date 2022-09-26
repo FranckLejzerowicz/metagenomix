@@ -417,3 +417,7 @@ def lorikeet(self) -> None:
         for (tech, bin_algo), inputs in self.inputs[''].items():
             folders = group_inputs(self, inputs, True)
             __module_call__(self, tech, folders, reads, bin_algo)
+
+
+def instrain(self):
+    pass
