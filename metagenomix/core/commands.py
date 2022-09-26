@@ -26,6 +26,7 @@ from metagenomix.softwares.profiling import *
 from metagenomix.softwares.simka import *
 from metagenomix.softwares.strains import *
 from metagenomix.softwares.viruses import *
+from metagenomix.softwares.mapping import mapping
 
 
 class Commands(object):
@@ -127,7 +128,7 @@ class Commands(object):
                                    for x in self.outputs['dirs']]))
 
     def init_outputs(self):
-        self.outputs = {'cmds': {}, 'outs': {}, 'dirs': [],
+        self.outputs = {'cmds': {}, 'outs': {}, 'dirs': [], 'bash': [],
                         'io': {('I', 'd'): {}, ('I', 'f'): {},
                                ('O', 'd'): {}, ('O', 'f'): {}}}
 
@@ -153,6 +154,7 @@ class Commands(object):
             self.soft.outputs = self.outputs['outs']
         else:
             self.soft.outputs[self.sam_pool] = self.outputs['outs']
+        self.soft.bash = self.outputs['bash']
 
     def prep_job(self):
         self.init_outputs()     # initialize data structure collection
@@ -170,156 +172,12 @@ class Commands(object):
         """Call the command-preparing method from this class (for the
         softwares that are easy to deal with), or from auxillary modules
         located in the softwares submodules path."""
-        func = self.soft.name.split('_')[0]
-        if func in globals():
-            globals()[func](self)
-        # ---------------------- TEMPORARY -----------------------
-        # this is for the functions that might be defined here
-        elif func in dir(self) and callable(getattr(self, func)):
-            getattr(self, func)()
+        names = self.soft.name.split('_')
+        name = names[0]
+        if name in globals():
+            globals()[name](self)
         else:
             raise ValueError('No method for software %s' % self.soft.name)
-
-    # IN PROGRESS
-    def mapping(self):
-        refs = {}
-        fastqs, group_fps = self.config.fastq, self.inputs[self.pool]
-        if self.soft.prev == 'drep':
-            for algo, fp in self.inputs[self.pool].items():
-                ref_fasta = '%s.fa' % fp
-                if not isfile(ref_fasta):
-                    cmd = 'if [ ! -f %s ]; then cat %s/*.fa > %s; fi' % (
-                        ref_fasta, fp, ref_fasta)
-                    self.outputs['cmds'].setdefault(
-                        (self.pool, algo), []).append(cmd)
-                refs[algo] = ref_fasta
-        elif self.soft.prev == 'metawrap_reassemble':
-            # needs revision...
-            refs = {'': glob.glob(self.inputs[self.pool][self.sam][1])}
-        elif self.soft.prev == 'spades':
-            refs = {group: fps[1] for group, fps in group_fps.items()}
-
-        self.outputs['outs'] = {}
-        for group, fasta in refs.items():
-            self.outputs['outs'][group] = {}
-            out_dir = '%s/%s' % (self.dir, self.pool)
-            if group:
-                out_dir += '/%s' % group
-            self.outputs['dirs'].append(out_dir)
-            for sam in self.pools[self.pool][group]:
-                bam_out = '%s/%s.bam' % (out_dir, sam)
-                self.outputs['outs'][group][sam] = bam_out
-                cmd = 'minimap2'
-                cmd += ' -a -x sr'
-                cmd += ' %s' % fasta
-                cmd += ' %s' % fastqs[sam][0]
-                cmd += ' %s' % fastqs[sam][1]
-                cmd += ' | samtools view -F 0x104 -b -'
-                cmd += ' | samtools sort -o %s - ' % bam_out
-                if not isfile(bam_out) or self.config.force:
-                    self.outputs['cmds'].setdefault(
-                        (self.pool, group), []).append(cmd)
-                bam_out_bai = '%s.bai' % bam_out
-                cmd = 'samtools index %s' % bam_out
-                if not isfile(bam_out_bai) or self.config.force:
-                    self.outputs['cmds'].setdefault(
-                        (self.pool, group), []).append(cmd)
-                io_update(self, i_f=([fasta] + fastqs[sam]),
-                          o_f=[bam_out, bam_out_bai])
-
-    def prep_map__spades_prodigal(self):
-        if 'prodigal' not in self.softs or 'mapping' not in self.softs:
-            return None
-        if self.softs['prodigal'].prev != 'spades':
-            return None
-        if self.softs['mapping'].prev != 'spades':
-            return None
-        prodigals_fps = self.softs['prodigal'].outputs
-        sams_fps = self.softs['mapping'].outputs
-        group_fps = self.inputs[self.pool]
-        self.outputs['outs'] = {}
-        for group, fps in group_fps.items():
-            self.outputs['outs'][group] = {}
-            for sam in self.pools[self.pool][group]:
-                bam = sams_fps[self.pool][group][sam]
-                prot = prodigals_fps[self.pool][group][1]
-                out_dir = '%s/%s/%s' % (self.dir, self.pool, sam)
-                out = '%s/reads.txt' % out_dir
-                if not isfile(out):
-                    cmd = 'pysam_reads_to_prodigal.py \\\n'
-                    cmd += '-prodigal %s \\\n' % prot
-                    cmd += '-bam %s \\\n' % bam
-                    cmd += '-out %s\n' % out
-                    self.outputs['cmds'].setdefault(
-                        (self.pool, group), []).append(cmd)
-                self.outputs['outs'][group][sam] = out
-                io_update(self, i_f=[prot, bam, out])
-
-    def prep_mocat(self):
-        self.cmds = {}
-
-    def prep_mapDamage(self):
-        self.cmds = {}
-
-    def prep_metaclade(self):
-        self.cmds = {}
-
-    def prep_ezTree(self):
-        self.cmds = {}
-
-    def prep_instrain(self):
-        self.cmds = {}
-
-    def prep_map__cazy_spades(self):
-        self.cmds = {}
-
-    def prep_map__cazy_macsyfinder(self):
-        self.cmds = {}
-
-    def prep_map__spades_bins(self):
-        self.cmds = {}
-
-    def prep_map__drep(self):
-        self.cmds = {}
-
-    def prep_mag_data(self):
-        self.cmds = {}
-
-    def prep_yamb(self):
-        self.cmds = {}
-
-    def prep_summarize_yamb(self):
-        self.cmds = {}
-
-    def prep_mycc(self):
-        self.cmds = {}
-
-    def prep_graspx(self):
-        self.cmds = {}
-
-    def prep_deepvirfinder(self):
-        self.cmds = {}
-
-    def prep_deepvirfinder_extractVirs(self):
-        self.cmds = {}
-
-    def prep_closed_ref_qiime1(self):
-        self.cmds = {}
-
-    def prep_phyloflash(self):
-        self.cmds = {}
-
-    def prep_wish(self):
-        self.cmds = {}
-
-    def prep_thmm(self):
-        self.cmds = {}
-
-    def prep_cazy(self):
-        self.cmds = {}
-
-    def prep_itasser(self):
-        self.cmds = {}
 
     def register_command(self):
         self.softs[self.soft.name].cmds = dict(self.cmds)
