@@ -15,260 +15,6 @@ from metagenomix._io_utils import (io_update, to_do, tech_specificity,
 # scripts = pkg_resources.resource_filename('metagenomix', 'resources/scripts')
 
 
-def grep_sam_tail_cmd(
-        cmd: str,
-        reads: str,
-        sam: str
-) -> str:
-    """Grep the end of the alignment and compare is to end of input to make
-    sure that the alignment was not aborted and hence that the output file is
-    not incomplete.
-
-    Notes
-    -----
-    It is possible that the last sequences of the input file do not align,
-    but it is safer to recompute the alignment than to assume that and
-    potentially leave many sequences out.
-
-    Parameters
-    ----------
-    cmd : str
-        Alignment commands
-    reads : str
-        last reads of the input sequences file
-    sam : str
-        Path to the output .sam alignment file
-
-    Returns
-    -------
-    grep_cmd : str
-        Command to grep the end of the alignment and compare is to end of input
-    """
-    grep_cmd = '\nlast_reads=`%s`\n' % reads
-    grep_cmd += 'GREPOK=0\n'
-    grep_cmd += 'for i in $listVar\n'
-    grep_cmd += 'do\n'
-    grep_cmd += '    if grep -q "$i" %s\n' % sam
-    grep_cmd += '        then\n'
-    grep_cmd += '            GREPOK=1\n'
-    grep_cmd += '            break\n'
-    grep_cmd += '    fi\n'
-    grep_cmd += 'done\n'
-    grep_cmd += "if [ $GREPOK = 0 ]\n"
-    grep_cmd += 'then\n'
-    grep_cmd += '%s\n' % cmd
-    grep_cmd += 'fi\n'
-    return grep_cmd
-
-
-def condition_ali_command(
-        fastxs: list,
-        cmd: str,
-        sam: str
-) -> str:
-    """Add the conditional statements checking that the alignment
-    already available was not aborted, in which case the alignment
-    will be re-run.
-
-    Parameters
-    ----------
-    fastxs : list
-        Path to the input fasta/fastq/fastq.gz files
-    cmd : str
-        Alignment command
-    sam : str
-        Path to the alignment file
-
-    Returns
-    -------
-    cmd : str
-        Alignment command potentially decorated with unix check to rerun
-    """
-    if fastxs[-1].endswith('fastq.gz'):
-        reads = 'zcat %s | tail -n 80 | grep "^@"' % fastxs[-1]
-    elif fastxs[-1].endswith('fastq'):
-        reads = 'tail -n 80 %s | grep "^@"' % fastxs[-1]
-    elif fastxs[-1].endswith('fasta'):
-        reads = 'tail -n 40 %s | grep "^>"' % fastxs[-1]
-    else:
-        return cmd
-
-    cmd = grep_sam_tail_cmd(cmd, reads, sam)
-    return cmd
-
-
-# def get_burst_cmd(self, tech: str, fastx: str, db_path: str, out: str) -> str:
-#     """Get the burst alignment command.
-#
-#     Parameters
-#     ----------
-#     tech : str
-#         Technology: 'illumina', 'pacbio', or 'nanopore'
-#     fastx : str
-#         Path to the input fasta file
-#     db_path : str
-#         Path to the burst database
-#     out : str
-#         Path to the output folder
-#
-#     Returns
-#     -------
-#     cmd : str
-#         Alignment command
-#     """
-#     params = tech_params(self, tech)
-#     cmd = 'burst'
-#     cmd += ' -q %s' % fastx
-#     cmd += ' -r %s.edx' % db_path
-#     cmd += ' -a %s.acx' % db_path
-#     cmd += ' -sa'
-#     cmd += ' -fr'
-#     cmd += ' -i 0.98'
-#     cmd += ' -t %s' % params['cpus']
-#     cmd += ' -o %s' % out
-#     return cmd
-
-
-def get_bowtie2_cmd(
-        self,
-        tech: str,
-        fastx: list,
-        db_path: str,
-        db_out: str
-) -> tuple:
-    """Get the bowtie2 alignment command.
-
-    Parameters
-    ----------
-    self : Commands class instance
-        .soft.params
-            Parameters for humann
-    tech : str
-        Technology: 'illumina', 'pacbio', or 'nanopore'
-    fastx : list
-        Path to the input fasta/fastq/fastq.gz files
-    db_path : str
-        Path to the bowtie2 database
-    db_out: str
-        Path to the output folder
-
-    Returns
-    -------
-    cmd : str
-        Alignment command
-    sam : str
-        Alignment .sam file
-    """
-    params = tech_params(self, tech)
-    cmd = 'bowtie2'
-    cmd += ' -p %s' % params['cpus']
-    cmd += ' -x %s' % db_path
-    sam = '%s/alignment.bowtie2' % db_out
-    if len(fastx) == 2 and params['pairing'] == 'paired':
-        cmd += ' -1 %s' % fastx[0]
-        cmd += ' -2 %s' % fastx[1]
-        if not params['discordant']:
-            cmd += ' --no-discordant'
-            sam += '.nodiscordant'
-    else:
-        cmd += ' -U %s' % ','.join(fastx)
-    sam += '.sam'
-    cmd += ' -S %s' % sam
-    cmd += ' --seed 12345'
-    cmd += ' --very-sensitive'
-    cmd += ' -k %s' % params['k']
-    cmd += ' --np %s' % params['np']
-    cmd += ' --mp "%s"' % params['mp']
-    cmd += ' --rdg "%s"' % params['rdg']
-    cmd += ' --rfg "%s"' % params['rfg']
-    cmd += ' --score-min "%s"' % params['score-min']
-    cmd += ' --met-file %s.met' % splitext(sam)[0]
-    cmd += ' --met 240'
-    cmd += ' --no-unal'
-    return cmd, sam
-
-
-def get_alignment_cmd(
-        fastxs: list,
-        cmd: str,
-        ali: str
-) -> str:
-    """Get the alignment command with ot without unix checks to decide
-    whether the alignment (if exists) was aligned to completion, and not
-    aborted (e.g., for lack of memory reasons).
-
-    Parameters
-    ----------
-    fastxs : list
-        Path to the input fasta/fastq/fastq.gz files
-    cmd : str
-        Alignment command
-    ali : str
-        Path to the alignment file
-
-    Returns
-    -------
-    cmd : str
-        Alignment command potentially decorated with unix check to rerun
-    """
-    if to_do(ali):
-        return cmd
-    else:
-        return condition_ali_command(fastxs, cmd, ali)
-
-
-def bowtie2(self) -> None:
-    """Get the full command lines to perform sequence alignment using
-     bowtie2 and potentially, re-run if the output was existing but
-     possibly aborted.
-
-    References
-    ----------
-    Langmead, B., & Salzberg, S. L. (2012). Fast gapped-read alignment with
-    Bowtie 2. Nature methods, 9(4), 357-359.
-
-    Notes
-    -----
-    GitHub  : https://github.com/BenLangmead/bowtie2
-    Docs    : http://bowtie-bio.sourceforge.net/bowtie2/index.shtml
-    Paper   : https://doi.org/10.1038/nmeth.1923
-
-    Parameters
-    ----------
-    self : Commands class instance
-        .dir : str
-            Path to pipeline output folder for humann
-        .sam_pool : str
-            Sample name
-        .inputs : dict
-            Input files
-        .outputs : dict
-            All outputs
-        .soft.params
-            Parameters for humann
-        .config
-            Configurations
-    """
-    for (tech, sample), fastxs in self.inputs[self.sam_pool].items():
-        if tech_specificity(self, fastxs, tech, sample):
-            continue
-        status_update(self, tech, fastxs)
-        out = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
-        self.outputs['outs'][(tech, self.sam_pool)] = dict()
-        for db, db_path in self.soft.params['databases'].items():
-            db_out = '%s/%s/%s' % (out, db, self.soft.params['pairing'])
-            cmd, sam = get_bowtie2_cmd(self, tech, fastxs, db_path, db_out)
-            self.outputs['outs'][(tech, self.sam_pool)][(db, 'bowtie2')] = sam
-            if self.config.force or to_do(sam):
-                cmd = get_alignment_cmd(fastxs, cmd, sam)
-                self.outputs['cmds'].setdefault((tech,), []).append(cmd)
-                io_update(self, i_f=fastxs, i_d=db_out, o_d=db_out, key=tech)
-                self.soft.add_status(tech, self.sam_pool, 1)
-            else:
-                self.soft.add_status(tech, self.sam_pool, 0)
-            self.outputs['dirs'].append(db_out)
-
-
 def flash_cmd(
         self,
         tech: str,
@@ -755,6 +501,260 @@ def bbmerge(self) -> None:
             self.soft.add_status(tech, sam, 1)
         else:
             self.soft.add_status(tech, sam, 0)
+
+
+def grep_sam_tail_cmd(
+        cmd: str,
+        reads: str,
+        sam: str
+) -> str:
+    """Grep the end of the alignment and compare is to end of input to make
+    sure that the alignment was not aborted and hence that the output file is
+    not incomplete.
+
+    Notes
+    -----
+    It is possible that the last sequences of the input file do not align,
+    but it is safer to recompute the alignment than to assume that and
+    potentially leave many sequences out.
+
+    Parameters
+    ----------
+    cmd : str
+        Alignment commands
+    reads : str
+        last reads of the input sequences file
+    sam : str
+        Path to the output .sam alignment file
+
+    Returns
+    -------
+    grep_cmd : str
+        Command to grep the end of the alignment and compare is to end of input
+    """
+    grep_cmd = '\nlast_reads=`%s`\n' % reads
+    grep_cmd += 'GREPOK=0\n'
+    grep_cmd += 'for i in $listVar\n'
+    grep_cmd += 'do\n'
+    grep_cmd += '    if grep -q "$i" %s\n' % sam
+    grep_cmd += '        then\n'
+    grep_cmd += '            GREPOK=1\n'
+    grep_cmd += '            break\n'
+    grep_cmd += '    fi\n'
+    grep_cmd += 'done\n'
+    grep_cmd += "if [ $GREPOK = 0 ]\n"
+    grep_cmd += 'then\n'
+    grep_cmd += '%s\n' % cmd
+    grep_cmd += 'fi\n'
+    return grep_cmd
+
+
+def condition_ali_command(
+        fastxs: list,
+        cmd: str,
+        sam: str
+) -> str:
+    """Add the conditional statements checking that the alignment
+    already available was not aborted, in which case the alignment
+    will be re-run.
+
+    Parameters
+    ----------
+    fastxs : list
+        Path to the input fasta/fastq/fastq.gz files
+    cmd : str
+        Alignment command
+    sam : str
+        Path to the alignment file
+
+    Returns
+    -------
+    cmd : str
+        Alignment command potentially decorated with unix check to rerun
+    """
+    if fastxs[-1].endswith('fastq.gz'):
+        reads = 'zcat %s | tail -n 80 | grep "^@"' % fastxs[-1]
+    elif fastxs[-1].endswith('fastq'):
+        reads = 'tail -n 80 %s | grep "^@"' % fastxs[-1]
+    elif fastxs[-1].endswith('fasta'):
+        reads = 'tail -n 40 %s | grep "^>"' % fastxs[-1]
+    else:
+        return cmd
+
+    cmd = grep_sam_tail_cmd(cmd, reads, sam)
+    return cmd
+
+
+# def get_burst_cmd(self, tech: str, fastx: str, db_path: str, out: str) -> str:
+#     """Get the burst alignment command.
+#
+#     Parameters
+#     ----------
+#     tech : str
+#         Technology: 'illumina', 'pacbio', or 'nanopore'
+#     fastx : str
+#         Path to the input fasta file
+#     db_path : str
+#         Path to the burst database
+#     out : str
+#         Path to the output folder
+#
+#     Returns
+#     -------
+#     cmd : str
+#         Alignment command
+#     """
+#     params = tech_params(self, tech)
+#     cmd = 'burst'
+#     cmd += ' -q %s' % fastx
+#     cmd += ' -r %s.edx' % db_path
+#     cmd += ' -a %s.acx' % db_path
+#     cmd += ' -sa'
+#     cmd += ' -fr'
+#     cmd += ' -i 0.98'
+#     cmd += ' -t %s' % params['cpus']
+#     cmd += ' -o %s' % out
+#     return cmd
+
+
+def get_bowtie2_cmd(
+        self,
+        tech: str,
+        fastx: list,
+        db_path: str,
+        db_out: str
+) -> tuple:
+    """Get the bowtie2 alignment command.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .soft.params
+            Parameters for humann
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    fastx : list
+        Path to the input fasta/fastq/fastq.gz files
+    db_path : str
+        Path to the bowtie2 database
+    db_out: str
+        Path to the output folder
+
+    Returns
+    -------
+    cmd : str
+        Alignment command
+    sam : str
+        Alignment .sam file
+    """
+    params = tech_params(self, tech)
+    cmd = 'bowtie2'
+    cmd += ' -p %s' % params['cpus']
+    cmd += ' -x %s' % db_path
+    sam = '%s/alignment.bowtie2' % db_out
+    if len(fastx) == 2 and params['pairing'] == 'paired':
+        cmd += ' -1 %s' % fastx[0]
+        cmd += ' -2 %s' % fastx[1]
+        if not params['discordant']:
+            cmd += ' --no-discordant'
+            sam += '.nodiscordant'
+    else:
+        cmd += ' -U %s' % ','.join(fastx)
+    sam += '.sam'
+    cmd += ' -S %s' % sam
+    cmd += ' --seed 12345'
+    cmd += ' --very-sensitive'
+    cmd += ' -k %s' % params['k']
+    cmd += ' --np %s' % params['np']
+    cmd += ' --mp "%s"' % params['mp']
+    cmd += ' --rdg "%s"' % params['rdg']
+    cmd += ' --rfg "%s"' % params['rfg']
+    cmd += ' --score-min "%s"' % params['score-min']
+    cmd += ' --met-file %s.met' % splitext(sam)[0]
+    cmd += ' --met 240'
+    cmd += ' --no-unal'
+    return cmd, sam
+
+
+def get_alignment_cmd(
+        fastxs: list,
+        cmd: str,
+        ali: str
+) -> str:
+    """Get the alignment command with ot without unix checks to decide
+    whether the alignment (if exists) was aligned to completion, and not
+    aborted (e.g., for lack of memory reasons).
+
+    Parameters
+    ----------
+    fastxs : list
+        Path to the input fasta/fastq/fastq.gz files
+    cmd : str
+        Alignment command
+    ali : str
+        Path to the alignment file
+
+    Returns
+    -------
+    cmd : str
+        Alignment command potentially decorated with unix check to rerun
+    """
+    if to_do(ali):
+        return cmd
+    else:
+        return condition_ali_command(fastxs, cmd, ali)
+
+
+def bowtie2(self) -> None:
+    """Get the full command lines to perform sequence alignment using
+     bowtie2 and potentially, re-run if the output was existing but
+     possibly aborted.
+
+    References
+    ----------
+    Langmead, B., & Salzberg, S. L. (2012). Fast gapped-read alignment with
+    Bowtie 2. Nature methods, 9(4), 357-359.
+
+    Notes
+    -----
+    GitHub  : https://github.com/BenLangmead/bowtie2
+    Docs    : http://bowtie-bio.sourceforge.net/bowtie2/index.shtml
+    Paper   : https://doi.org/10.1038/nmeth.1923
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for humann
+        .sam_pool : str
+            Sample name
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters for humann
+        .config
+            Configurations
+    """
+    for (tech, sample), fastxs in self.inputs[self.sam_pool].items():
+        if tech_specificity(self, fastxs, tech, sample):
+            continue
+        status_update(self, tech, fastxs)
+        out = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
+        self.outputs['outs'][(tech, self.sam_pool)] = dict()
+        for db, db_path in self.soft.params['databases'].items():
+            db_out = '%s/%s/%s' % (out, db, self.soft.params['pairing'])
+            cmd, sam = get_bowtie2_cmd(self, tech, fastxs, db_path, db_out)
+            self.outputs['outs'][(tech, self.sam_pool)][(db, 'bowtie2')] = sam
+            if self.config.force or to_do(sam):
+                cmd = get_alignment_cmd(fastxs, cmd, sam)
+                self.outputs['cmds'].setdefault((tech,), []).append(cmd)
+                io_update(self, i_f=fastxs, i_d=db_out, o_d=db_out, key=tech)
+                self.soft.add_status(tech, self.sam_pool, 1)
+            else:
+                self.soft.add_status(tech, self.sam_pool, 0)
+            self.outputs['dirs'].append(db_out)
 
 
 def salmon(self) -> None:
