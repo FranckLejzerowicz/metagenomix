@@ -286,3 +286,15 @@ def coconet(self) -> None:
             self.soft.add_status(tech, self.sam_pool, 1, group=group)
         else:
             self.soft.add_status(tech, self.sam_pool, 0, group=group)
+
+
+def deepvirfinder(self):
+    pass
+
+
+def deepvirfinder_extractVirs(self):
+    pass
+
+
+def wish(self):
+    pass
