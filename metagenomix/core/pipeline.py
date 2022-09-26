@@ -142,9 +142,6 @@ class Workflow(object):
         self.make_graph()
         self.get_paths()
 
-    def parametrize(self) -> None:
-        self.set_params()
-
     def validate_softs(self, softs: list):
         """Verify that each software is run only once in the pipeline (yet,
         a software can be used multiple times as input to another software).
@@ -276,13 +273,19 @@ class Workflow(object):
                 params = {'search': {soft.name.split('_')[-1]: params_show,
                                      'databases': databases}}
                 print(yaml.dump(params))
+            # elif soft.name.startswith('mapping'):
+            #     databases = params_show['databases']
+            #     del params_show['databases']
+            #     params = {'search': {soft.name.split('_')[-1]: params_show,
+            #                          'databases': databases}}
+            #     print(yaml.dump(params))
             else:
                 print(yaml.dump(params_show))
             print('%s defaults %s' % ('-' * 10, '-' * 10))
             print(yaml.dump(soft.defaults))
             print('=' * 30)
 
-    def set_params(self) -> None:
+    def parametrize(self) -> None:
         """
         Update the default params assigned to each software with the
         params passed by the user for each of the software.
