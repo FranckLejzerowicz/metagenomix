@@ -1042,3 +1042,81 @@ def amrplusplus2(self) -> None:
         tech_fastqs = sample_inputs(self, raw=True)
         for tech, fastqs in tech_fastqs.items():
             get_amrplusplus2(self, tech, fastqs[''], self.sam_pool)
+
+
+def amrfinderplus(self) -> None:
+    """.
+
+    References
+    ----------
+
+    Notes
+    -----
+    GitHub  :
+    Docs    :
+    Paper   :
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for AMRFinderPlus
+        .sam_pool : str
+            Sample of co-assembly group name
+        .pools : dict
+            Co-assembly pools and sample per group
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.name : str
+            Name of the current software in the pipeline
+        .soft.prev : str
+            Name of the previous software in the pipeline
+        .soft.status
+            Current status of the pipeline in terms of available outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    """
+    pass
+
+
+def argsoap(self) -> None:
+    """.
+
+    References
+    ----------
+
+    Notes
+    -----
+    GitHub  :
+    Docs    :
+    Paper   :
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for ARGs-OAP
+        .sam_pool : str
+            Sample of co-assembly group name
+        .pools : dict
+            Co-assembly pools and sample per group
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.name : str
+            Name of the current software in the pipeline
+        .soft.prev : str
+            Name of the previous software in the pipeline
+        .soft.status
+            Current status of the pipeline in terms of available outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    """
+    pass
