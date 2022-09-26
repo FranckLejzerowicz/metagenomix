@@ -946,10 +946,13 @@ def woltka_go(
 
     go_to_do = []
     gos = ['process', 'function', 'component']
-    out_dir = '%s/%s/%s/%s/go' % (self.dir, tech, aligner, pairing)
+    out_dir = '/'.join([self.dir, tech, aligner, pairing])
+    go_dir = '%s/go' % out_dir
     key = (tech, aligner)
     io_update(self, o_d=out_dir, key=key)
     for go in gos:
+        cur_out = '%s/%s.tsv' % (go_dir, go)
+        cur_map = '%s/%s.map.xz' % (go_rt, go)
         cmd = '\n# %s [no stratification]\n' % go
         cmd += 'woltka classify'
         cmd += ' -i %s' % map
@@ -958,9 +961,7 @@ def woltka_go(
         cmd += ' --rank %s' % go
         cmd += ' --map %s' % uniref_map
         cmd += ' --to-tsv'
-        cur_map = '%s/%s.map.xz' % (go_rt, go)
         cmd += ' --map %s' % cur_map
-        cur_out = '%s/%s.tsv' % (out_dir, go)
         cmd += ' -o %s' % cur_out
         if to_do(cur_out):
             go_to_do.append(cur_out)
@@ -976,9 +977,9 @@ def woltka_go(
 
     stratifs = ['phylum', 'family', 'genus', 'species']
     for stratif in stratifs:
-        out_dir_strat = '%s_%s' % (out_dir, stratif)
-        io_update(self, o_d=out_dir_strat, key=key)
         for go in gos:
+            go_out = '%s/%s_%s.tsv' % (go_dir, go, stratif)
+            cur_map = '%s/%s.map.xz' % (go_rt, go)
             cmd = '\n# %s [%s]\n' % (go, stratif)
             cmd += 'woltka classify'
             cmd += ' -i %s' % map
@@ -987,10 +988,8 @@ def woltka_go(
             cmd += ' --rank %s' % go
             cmd += ' --stratify %s/%s' % (taxmap, stratif)
             cmd += ' --map %s' % uniref_map
-            cmd += ' --to-tsv'
-            cur_map = '%s/%s.map.xz' % (go_rt, go)
             cmd += ' --map %s' % cur_map
-            go_out = '%s/%s.tsv' % (out_dir_strat, go)
+            cmd += ' --to-tsv'
             cmd += ' -o %s' % go_out
             if to_do(go_out):
                 go_to_do.append(go_out)
@@ -1554,8 +1553,7 @@ def woltka_kegg(
                     cmd += ' --names %s/function/kegg/%s' % (database, name)
                     cmd += ' --map %s/function/kegg/%s' % (database, maps)
                     cmd += ' --output %s\n' % biom
-
-                    cmd += ' biom convert -i %s' % biom
+                    cmd += 'biom convert -i %s' % biom
                     cmd += ' -o %s.tmp --to-tsv\n' % tsv
                     cmd += ' tail -n +2 %s.tmp\n' % tsv
                     cmd += ' > %s\n' % tsv
@@ -1578,7 +1576,7 @@ def woltka_kegg(
                         cmd += ' --names %s/%s' % (kegg_maps, name)
                     cmd += ' --map %s/%s' % (kegg_maps, maps)
                     cmd += ' --output %s\n' % biom
-                    cmd += 'biom convert -i %s\n' % biom
+                    cmd += 'biom convert -i %s' % biom
                     cmd += ' -o %s.tmp --to-tsv\n' % tsv
                     cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
                     cmd += 'rm %s.tmp\n\n' % tsv
@@ -1601,11 +1599,9 @@ def woltka_kegg(
                         cmd += ' --map %s/function/kegg/%s' % (database, maps)
                         cmd += ' --field 2'
                         cmd += ' --output %s\n' % biom
-
-                        cmd += ' biom convert -i %s' % biom
+                        cmd += 'biom convert -i %s' % biom
                         cmd += ' -o %s.tmp --to-tsv\n' % tsv
-                        cmd += ' tail -n +2 %s.tmp\n' % tsv
-                        cmd += ' > %s\n' % tsv
+                        cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
                         cmd += ' rm %s.tmp\n' % tsv
                         self.outputs['cmds'].setdefault(key, []).append(cmd)
                         io_update(self, o_d=kegg_out, key=key)
@@ -1628,7 +1624,7 @@ def woltka_kegg(
                         cmd += ' --map %s/%s' % (kegg_maps, maps)
                         cmd += ' --field 2'
                         cmd += ' --output %s\n' % biom
-                        cmd += 'biom convert -i %s\n' % biom
+                        cmd += 'biom convert -i %s' % biom
                         cmd += ' -o %s.tmp --to-tsv\n' % tsv
                         cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
                         cmd += 'rm %s.tmp\n\n' % tsv
