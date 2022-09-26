@@ -806,7 +806,7 @@ def woltka_write_map(
     -------
     map_fp : str
         Path to the output woltka samples file
-    map_cmds : str
+    map_cmds : list
         Command to created the samples.map file
     """
     out_dir = '/'.join([self.dir, tech, aligner, pairing])
@@ -823,7 +823,7 @@ def woltka_write_map(
     if map_cmds:
         map_cmds += 'envsubst < %s > %s.tmp\n' % (map_fp, map_fp)
         map_cmds += 'mv %s.tmp %s\n' % (map_fp, map_fp)
-    return map_fp, map_cmds
+    return map_fp, [map_cmds]
 
 
 def woltka_tax_cmd(
@@ -2426,3 +2426,47 @@ def metaxa2(self) -> None:
             self.outputs['cmds'].setdfault((tech,), []).append(cmd)
         self.outputs['outs'].setdefault((tech, self.sam_pool), []).extend(
             [summary, taxonomy, reltax, redist_tax])
+
+
+def mocat2(self):
+    """MOCAT2 has been developed at EMBL to process large metagenomic
+    datasets. But can of course also process small datasets.
+
+    References
+    ----------
+    Kultima, J.R., Sunagawa, S., Li, J., Chen, W., Chen, H., Mende, D.R.,
+    Arumugam, M., Pan, Q., Liu, B., Qin, J. and Wang, J., 2012. MOCAT: a
+    metagenomics assembly and gene prediction toolkit.
+
+    Notes
+    -----
+    Docs    : http://mocat.embl.de/about.html
+    Paper   : https://doi.org/10.1371/journal.pone.0047656
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for MOCAT
+        .sam : str
+            Sample name
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .databases
+            All databases class instance
+        .config
+            Configurations
+    """
+    pass
+
+
+def phyloflash(self):
+    pass
+
+
+def closed_ref_qiime1(self):
+    pass
