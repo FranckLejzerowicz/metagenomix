@@ -1630,8 +1630,9 @@ def woltka_kegg(
                         cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
                         cmd += 'rm %s.tmp\n\n' % tsv
                         self.outputs['cmds'].setdefault(key, []).append(cmd)
-                        io_update(self, i_f=input_fp, i_d=kegg_maps,
-                                  o_d=kegg_out, key=key)
+                        io_update(self, i_d=kegg_maps, o_d=kegg_out, key=key)
+                        if isfile(input_fp):
+                            io_update(self, i_f=input_fp, key=key)
                     else:
                         io_update(self, i_f=biom, key=key)
         else:
