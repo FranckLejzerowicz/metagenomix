@@ -1381,7 +1381,7 @@ def woltka_metacyc(
         if '-to-' in maps:
             input_biom = files[maps.split('-to-')[0]]
         else:
-            input_biom = genes
+            input_biom = genes_tax['']
         biom = '%s/%s.biom' % (woltka_fun_out, level)
         tsv = '%s.tsv' % splitext(biom)[0]
         if to_do(biom):
