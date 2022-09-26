@@ -1417,3 +1417,8 @@ def checkm2(self) -> None:
         for (tech, bin_algo), inputs in self.inputs[''].items():
             folders = group_inputs(self, inputs, True)
             get_checkm2(self, tech, folders, bin_algo)
+
+
+def mag_data(self):
+    pass
+
