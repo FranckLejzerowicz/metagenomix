@@ -968,3 +968,60 @@ def metawrap(self) -> None:
     # the last underscore-separated field (which is in this module)
     module_call = caller(self, __name__)
     module_call(self)
+
+
+def yamb(self):
+    """
+    YAMB (Yet Another Metagenome Binner) - semi-automatic pipeline for
+    metagenomic contigs binning. It's based on t-Distributed Stochastic
+    Neighbor Embedding (t-SNE) technique for dimensionality reduction,
+    that uses tetranucleotide frequency distribution in metagenomic contigs
+    and mean contig coverage, and HDBSCAN clustering method.
+
+    References
+    ----------
+    Korzhenkov, A., 2019. YAMB: metagenome binning using nonlinear
+    dimensionality reduction and density-based clustering. bioRxiv, p.521286.
+
+    Notes
+    -----
+    GitHub  : https://github.com/laxeye/YAMB
+    Paper   : https://doi.org/10.1101/521286
+
+    Parameters
+    ----------
+    self : Commands class instance
+        Contains all the attributes needed for binning on the current sample
+    """
+    pass
+
+
+def summarize_yamb(self):
+    pass
+
+
+def mycc(self):
+    """
+    Automated binning tool that combines genomic signatures, marker genes and
+    optional contig coverages within one or multiple samples, in order to
+    visualize the metagenomes and to identify the reconstructed genomic
+    fragments.
+
+    References
+    ----------
+    Lin, H.H. and Liao, Y.C., 2016. Accurate binning of metagenomic
+    contigs via automated clustering sequences using information of genomic
+    signatures and marker genes. Scientific reports, 6(1), pp.1-8.
+
+    Notes
+    -----
+    Code    : https://sourceforge.net/projects/sb2nhri/files/MyCC/
+    Docs    : http://sourceforge.net/projects/sb2nhri/files/MyCC/.
+    Paper   : https://doi.org/10.1038/srep24175
+
+    Parameters
+    ----------
+    self : Commands class instance
+        Contains all the attributes needed for binning on the current sample
+    """
+    pass
