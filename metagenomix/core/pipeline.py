@@ -29,6 +29,7 @@ class Soft(object):
         self.outputs = {}
         self.defaults = {}
         self.cmds = {}
+        self.bash = []
         self.path = []
         self.status = []
         self.tables = []
