@@ -1045,7 +1045,9 @@ def woltka_genes(
     key = (tech, aligner)
     coords = '%s/proteins/coords.txt.xz' % database
     out_dir = '/'.join([self.dir, tech, aligner, pairing])
-    genes = '%s/genes.biom' % out_dir
+    genes_out = '%s/genes' % out_dir
+    io_update(self, o_d=genes_out, key=key)
+    genes = '%s/genes.biom' % genes_out
     genes_tax = {'': genes}
     genes_to_do = []
     if to_do(genes):
@@ -1065,7 +1067,7 @@ def woltka_genes(
 
     stratifs = ['phylum', 'family', 'genus', 'species']
     for stratif in stratifs:
-        genes = '%s/genes_%s.biom' % (out_dir, stratif)
+        genes = '%s/genes_%s.biom' % (genes_out, stratif)
         genes_tax[stratif] = genes
         if to_do(genes):
             genes_to_do.append(genes)
@@ -1125,7 +1127,9 @@ def woltka_uniref(
     uniref_map = '%s/function/uniref/uniref.map.xz' % database
     uniref_names = '%s/function/uniref/uniref.name.xz' % database
     out_dir = '/'.join([self.dir, tech, aligner, pairing])
-    uniref = '%s/uniref.biom' % out_dir
+    uniref_out = '%s/uniref' % out_dir
+    io_update(self, o_d=uniref_out, key=key)
+    uniref = '%s/uniref.biom' % uniref_out
     uniref_tax = {'': uniref}
     if to_do(uniref):
         cmd = '\n# uniref\n'
@@ -1144,7 +1148,7 @@ def woltka_uniref(
 
     stratifs = ['phylum', 'family', 'genus', 'species']
     for stratif in stratifs:
-        uniref = '%s/uniref_%s.biom' % (out_dir, stratif)
+        uniref = '%s/uniref_%s.biom' % (uniref_out, stratif)
         uniref_tax[stratif] = uniref
         if to_do(uniref):
             cmd = '\n# uniref [%s]\n' % stratif
@@ -1197,7 +1201,9 @@ def woltka_eggnog(
     """
     key = (tech, aligner)
     out_dir = '/'.join([self.dir, tech, aligner, pairing])
-    biom = '%s/eggnog/eggnog.biom' % out_dir
+    eggnog_out = '%s/eggnog' % out_dir
+    io_update(self, o_d=eggnog_out, key=key)
+    biom = '%s/eggnog.biom' % eggnog_out
     if to_do(biom):
         cmd = '\n# eggnog [no stratification]\n'
         cmd += 'woltka tools collapse'
@@ -1221,7 +1227,7 @@ def woltka_eggnog(
 
     stratifs = ['phylum', 'family', 'genus', 'species']
     for stratif in stratifs:
-        biom = '%s/eggnog/eggnog_%s.biom' % (out_dir, stratif)
+        biom = '%s/eggnog_%s.biom' % (eggnog_out, stratif)
         if to_do(biom):
             cmd = '\n# eggnog [%s]\n' % stratif
             cmd += 'woltka tools collapse'
@@ -1284,7 +1290,9 @@ def woltka_cazy(
     key = (tech, aligner)
     cazy_map = '%s/function/cazy/3tools.txt' % database
     out_dir = '/'.join([self.dir, tech, aligner, pairing])
-    biom = '%s/cazy/cazy.biom' % out_dir
+    cazy_out = '%s/cazy' % out_dir
+    io_update(self, o_d=cazy_out, key=key)
+    biom = '%s/cazy.biom' % cazy_out
     if to_do(biom):
         cmd = 'woltka tools collapse'
         cmd += ' --input %s' % genes
@@ -1308,7 +1316,7 @@ def woltka_cazy(
     stratifs = ['phylum', 'family', 'genus', 'species']
     for stratif in stratifs:
         cazy_map = '%s/function/cazy/3tools.txt' % database
-        biom = '%s/cazy/cazy_%s.biom' % (out_dir, stratif)
+        biom = '%s/cazy_%s.biom' % (cazy_out, stratif)
         if to_do(biom):
             cmd = 'woltka tools collapse'
             cmd += ' --input %s' % genes_tax[stratif]
@@ -1530,10 +1538,12 @@ def woltka_kegg(
     files = []
     key = (tech, aligner)
     out_dir = '/'.join([self.dir, tech, aligner, pairing])
+    kegg_out = '%s/kegg' % out_dir
+    io_update(self, o_d=kegg_out, key=key)
     kegg_maps = '%s/kegg_queried' % out_dir
     for (level, name, maps, prev) in ko_names_maps:
         if maps:
-            biom = '%s/kegg/%s.biom' % (out_dir, level)
+            biom = '%s/%s.biom' % (kegg_out, level)
             tsv = '%s.tsv' % splitext(biom)[0]
             if not prev:
                 if to_do(tsv):
@@ -1557,7 +1567,7 @@ def woltka_kegg(
                     self.soft.add_status(tech, 'all samples', 0,
                                          group='kegg', genome=level)
             else:
-                input_fp = '%s/kegg/%s.biom' % (out_dir, level)
+                input_fp = '%s/%s.biom' % (kegg_out, level)
                 if to_do(tsv):
                     cmd += '\n# kegg: %s [no stratification]\n' % name
                     cmd += 'woltka tools collapse'
@@ -1576,7 +1586,7 @@ def woltka_kegg(
 
             stratifs = ['phylum', 'family', 'genus', 'species']
             for stratif in stratifs:
-                biom = '%s/kegg/%s_%s.biom' % (out_dir, level, stratif)
+                biom = '%s/%s_%s.biom' % (kegg_out, level, stratif)
                 tsv = '%s.tsv' % splitext(biom)[0]
                 if not prev:
                     if to_do(tsv):
@@ -1603,7 +1613,7 @@ def woltka_kegg(
                                              group='kegg (%s)' % stratif,
                                              genome=level)
                 else:
-                    input_fp = '%s/kegg/%s_%s.biom' % (out_dir, level, stratif)
+                    input_fp = '%s/%s_%s.biom' % (kegg_out, level, stratif)
                     if to_do(tsv):
                         cmd += '\n# kegg: %s [%s]\n' % (name, stratif)
                         cmd += 'woltka tools collapse'
