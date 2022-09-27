@@ -521,8 +521,8 @@ def main():
     f = partial(parse_flat, skeys=skeys, mkeys=mkeys)
     data = batch_query(kos, 'get', f, name='KOs')
     for ko, datum in data.items():
-        if 'definition' in datum:
-            ecs = get_ecs(datum['definition'])
+        if 'name' in datum:
+            ecs = get_ecs(datum['name'])
             if ecs:
                 datum['ec'] = ecs
     names = extract_targets(data, ('module', 'pathway', 'disease'))
