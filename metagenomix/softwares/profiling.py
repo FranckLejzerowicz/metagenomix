@@ -953,7 +953,7 @@ def woltka_go(
     for go in gos:
         cur_out = '%s/%s.tsv' % (go_dir, go)
         cur_map = '%s/%s.map.xz' % (go_rt, go)
-        cmd = '\n# %s [no stratification]\n' % go
+        cmd = '\n# go: %s [no stratification]\n' % go
         cmd += 'woltka classify'
         cmd += ' -i %s' % map
         cmd += ' --coords %s' % coords
@@ -980,7 +980,7 @@ def woltka_go(
         for go in gos:
             go_out = '%s/%s_%s.tsv' % (go_dir, go, stratif)
             cur_map = '%s/%s.map.xz' % (go_rt, go)
-            cmd = '\n# %s [%s]\n' % (go, stratif)
+            cmd = '\n# go: %s [%s]\n' % (go, stratif)
             cmd += 'woltka classify'
             cmd += ' -i %s' % map
             cmd += ' --coords %s' % coords
@@ -1293,7 +1293,8 @@ def woltka_cazy(
     io_update(self, o_d=cazy_out, key=key)
     biom = '%s/cazy.biom' % cazy_out
     if to_do(biom):
-        cmd = 'woltka tools collapse'
+        cmd = '\n# cazy\n'
+        cmd += 'woltka tools collapse'
         cmd += ' --input %s' % genes
         cmd += ' --map %s' % cazy_map
         cmd += ' --output %s\n\n' % biom
@@ -1317,7 +1318,8 @@ def woltka_cazy(
         cazy_map = '%s/function/cazy/3tools.txt' % database
         biom = '%s/cazy_%s.biom' % (cazy_out, stratif)
         if to_do(biom):
-            cmd = 'woltka tools collapse'
+            cmd = '\n# cazy [%s]\n' % stratif
+            cmd += 'woltka tools collapse'
             cmd += ' --input %s' % genes_tax[stratif]
             cmd += ' --map %s' % cazy_map
             cmd += ' --field 2'
