@@ -1539,6 +1539,7 @@ def woltka_kegg(
     out_dir = '/'.join([self.dir, tech, aligner, pairing])
     kegg_out = '%s/kegg' % out_dir
     kegg_maps = '%s/kegg_queried' % kegg_out
+    io_update(self, i_d=kegg_maps, key=key)
     kegg_maps_local = kegg_maps.replace('${SCRATCH_FOLDER}', '')
     queried = len(glob.glob('%s/*' % kegg_maps_local))
     for (level, name, maps, prev) in ko_names_maps:
@@ -1547,53 +1548,67 @@ def woltka_kegg(
             tsv = '%s.tsv' % splitext(biom)[0]
             tsv_ = str(tsv)
             if not prev:
-                if to_do(tsv):
+
+                if to_do(biom):
                     cmd = '\n# kegg: %s [no stratification]\n' % name
                     cmd += 'woltka tools collapse'
                     cmd += ' --input %s' % uniref_tax['']
                     cmd += ' --names %s/function/kegg/%s' % (database, name)
                     cmd += ' --map %s/function/kegg/%s' % (database, maps)
                     cmd += ' --output %s\n' % biom
-                    cmd += 'biom convert -i %s' % biom
-                    cmd += ' -o %s.tmp --to-tsv\n' % tsv
-                    cmd += ' tail -n +2 %s.tmp\n' % tsv
-                    cmd += ' > %s\n' % tsv
-                    cmd += ' rm %s.tmp\n' % tsv
                     self.outputs['cmds'].setdefault(key, []).append(cmd)
-                    io_update(self, o_d=kegg_out, key=key)
+                    io_update(self, o_f=biom, key=key)
                     self.soft.add_status(tech, 'all samples', 1,
                                          group='kegg', genome=level)
                 else:
                     io_update(self, i_f=biom, key=key)
                     self.soft.add_status(tech, 'all samples', 0,
                                          group='kegg', genome=level)
-            elif queried:
-                input_fp = '%s/%s.biom' % (kegg_out, level)
                 if to_do(tsv):
+                    cmd = 'biom convert -i %s' % biom
+                    cmd += ' -o %s.tmp --to-tsv\n' % tsv
+                    cmd += ' tail -n +2 %s.tmp\n' % tsv
+                    cmd += ' > %s\n' % tsv
+                    cmd += ' rm %s.tmp\n' % tsv
+                    self.outputs['cmds'].setdefault(key, []).append(cmd)
+                    io_update(self, o_f=tsv, key=key)
+                else:
+                    io_update(self, i_f=biom, key=key)
+
+            elif queried:
+                input_biom = '%s/%s.biom' % (kegg_out, prev)
+                if to_do(biom):
                     cmd = '\n# kegg: %s [no stratification]\n' % name
                     cmd += 'woltka tools collapse'
-                    cmd += ' --input %s' % input_fp
+                    cmd += ' --input %s' % input_biom
                     if name:
                         cmd += ' --names %s/%s' % (kegg_maps, name)
                     cmd += ' --map %s/%s' % (kegg_maps, maps)
                     cmd += ' --output %s\n' % biom
-                    cmd += 'biom convert -i %s' % biom
+                    self.outputs['cmds'].setdefault(key, []).append(cmd)
+                    io_update(self, o_f=biom, key=key)
+                    self.soft.add_status(tech, 'all samples', 1,
+                                         group='kegg', genome=level)
+                else:
+                    io_update(self, i_f=biom, key=key)
+                    self.soft.add_status(tech, 'all samples', 0,
+                                         group='kegg', genome=level)
+                if to_do(tsv):
+                    cmd = 'biom convert -i %s' % biom
                     cmd += ' -o %s.tmp --to-tsv\n' % tsv
                     cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
                     cmd += 'rm %s.tmp\n\n' % tsv
                     self.outputs['cmds'].setdefault(key, []).append(cmd)
-                    io_update(self, i_d=kegg_maps, o_d=kegg_out, key=key)
-                    if isfile(input_fp):
-                        io_update(self, i_f=input_fp, key=key)
+                    io_update(self, o_f=tsv, key=key)
                 else:
-                    io_update(self, i_f=biom, i_d=kegg_maps, key=key)
+                    io_update(self, i_f=tsv, key=key)
 
             stratifs = ['phylum', 'family', 'genus', 'species']
             for stratif in stratifs:
                 biom = '%s/%s_%s.biom' % (kegg_out, level, stratif)
                 tsv = '%s.tsv' % splitext(biom)[0]
                 if not prev:
-                    if to_do(tsv):
+                    if to_do(biom):
                         cmd = '\n# kegg: %s [%s]\n' % (name, stratif)
                         cmd += 'woltka tools collapse'
                         cmd += ' --input %s' % uniref_tax[stratif]
@@ -1601,12 +1616,8 @@ def woltka_kegg(
                         cmd += ' --map %s/function/kegg/%s' % (database, maps)
                         cmd += ' --field 2'
                         cmd += ' --output %s\n' % biom
-                        cmd += 'biom convert -i %s' % biom
-                        cmd += ' -o %s.tmp --to-tsv\n' % tsv
-                        cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
-                        cmd += ' rm %s.tmp\n' % tsv
                         self.outputs['cmds'].setdefault(key, []).append(cmd)
-                        io_update(self, o_d=kegg_out, key=key)
+                        io_update(self, o_f=biom, key=key)
                         self.soft.add_status(tech, 'all samples', 1,
                                              group='kegg (%s)' % stratif,
                                              genome=level)
@@ -1615,27 +1626,46 @@ def woltka_kegg(
                         self.soft.add_status(tech, 'all samples', 0,
                                              group='kegg (%s)' % stratif,
                                              genome=level)
-                elif queried:
-                    input_fp = '%s/%s_%s.biom' % (kegg_out, level, stratif)
                     if to_do(tsv):
+                        cmd = 'biom convert -i %s' % biom
+                        cmd += ' -o %s.tmp --to-tsv\n' % tsv
+                        cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
+                        cmd += ' rm %s.tmp\n' % tsv
+                        self.outputs['cmds'].setdefault(key, []).append(cmd)
+                        io_update(self, o_f=tsv, key=key)
+                    else:
+                        io_update(self, i_f=biom, key=key)
+
+                elif queried:
+                    input_biom = '%s/%s_%s.biom' % (kegg_out, prev, stratif)
+                    if to_do(biom):
                         cmd = '\n# kegg: %s [%s]\n' % (name, stratif)
                         cmd += 'woltka tools collapse'
-                        cmd += ' --input %s' % input_fp
+                        cmd += ' --input %s' % input_biom
                         if name:
                             cmd += ' --names %s/%s' % (kegg_maps, name)
                         cmd += ' --map %s/%s' % (kegg_maps, maps)
                         cmd += ' --field 2'
                         cmd += ' --output %s\n' % biom
-                        cmd += 'biom convert -i %s' % biom
+                        self.outputs['cmds'].setdefault(key, []).append(cmd)
+                        io_update(self, o_f=biom, key=key)
+                        self.soft.add_status(tech, 'all samples', 1,
+                                             group='kegg (%s)' % stratif,
+                                             genome=level)
+                    else:
+                        io_update(self, i_f=biom, key=key)
+                        self.soft.add_status(tech, 'all samples', 0,
+                                             group='kegg (%s)' % stratif,
+                                             genome=level)
+                    if to_do(tsv):
+                        cmd = 'biom convert -i %s' % biom
                         cmd += ' -o %s.tmp --to-tsv\n' % tsv
                         cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
                         cmd += 'rm %s.tmp\n\n' % tsv
                         self.outputs['cmds'].setdefault(key, []).append(cmd)
-                        io_update(self, i_d=kegg_maps, o_d=kegg_out, key=key)
-                        if isfile(input_fp):
-                            io_update(self, i_f=input_fp, key=key)
+                        io_update(self, o_f=tsv, key=key)
                     else:
-                        io_update(self, i_f=biom, key=key)
+                        io_update(self, i_f=tsv, key=key)
         else:
             if to_do('%s/kegg_info.txt' % kegg_maps_local):
                 cmd = 'mkdir -p %s\n' % kegg_maps_local
