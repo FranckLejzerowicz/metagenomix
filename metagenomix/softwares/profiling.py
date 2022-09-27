@@ -1429,7 +1429,6 @@ def woltka_metacyc(
                 input_biom = files_tax[stratif][maps.split('-to-')[0]]
             else:
                 input_biom = genes_tax[stratif]
-            cmd += '\n# %s [%s]\n' % (level, stratif)
             biom = '%s/%s_%s.biom' % (woltka_fun_out, level, stratif)
             tsv = '%s.tsv' % splitext(biom)[0]
             if to_do(biom):
