@@ -72,7 +72,7 @@ from metagenomix import __version__
     help="Use the userscratch folder to move files and compute")
 @click.option(
     "--move-back/--no-move-back", default=True, show_default=True,
-    help="Do not move back from scrach (makes sense only for --userscratch)")
+    help="Do not move back from scratch (makes sense only for --userscratch)")
 @click.option(
     "--show-params/--no-show-params", default=False, show_default=False,
     help="Show all possible parameters for each software")
