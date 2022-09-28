@@ -226,16 +226,6 @@ class Created(object):
         self.cmds = {}
         for sam_or_pool, cmds in soft.cmds.items():
             self.scratch(soft, sam_or_pool, cmds)
-            # if isinstance(cmds, list):
-            #     self.scratch(soft, sam_or_pool, cmds)
-            # elif isinstance(cmds, dict):
-            #     if sam_or_pool in self.commands.pools:
-            #         for group, group_cmds in cmds.items():
-            #             self.scratch(soft, (sam_or_pool, group), group_cmds)
-            #     else:
-            #         self.scratch(soft, sam_or_pool, cmds)
-            # else:
-            #     sys.exit('Collected commands are neither a list or a dict!')
 
     def print_status(self, m, sdx, name, soft):
         gap = (m - len(name) - len(str(sdx))) + 1
