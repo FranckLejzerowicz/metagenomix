@@ -419,6 +419,21 @@ def fastp_cmd(
                     mean_quality = '%s_mean_quality' % boolean
                     cmd += ' --%s %s' % (window_size, params[window_size])
                     cmd += ' --%s %s' % (mean_quality, params[mean_quality])
+            if boolean == 'cut_front':
+                cmd += ' --cut_front_mean_quality %s' % (
+                    params['cut_front_mean_quality'])
+                cmd += ' --cut_front_window_size %s' % (
+                    params['cut_front_window_size'])
+            if boolean == 'cut_tail':
+                cmd += ' --cut_tail_mean_quality %s' % (
+                    params['cut_tail_mean_quality'])
+                cmd += ' --cut_tail_window_size %s' % (
+                    params['cut_tail_window_size'])
+            if boolean == 'cut_right':
+                cmd += ' --cut_right_mean_quality %s' % (
+                    params['cut_right_mean_quality'])
+                cmd += ' --cut_right_window_size %s' % (
+                    params['cut_right_window_size'])
 
     return cmd, outs
 
