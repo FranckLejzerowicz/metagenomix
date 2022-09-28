@@ -18,6 +18,7 @@ simka:
   simkaMin: yes
   scratch: 9
 
+# --------------- fastp -----------------
 fastp:
   cut_window_size:
     illumina: 10
@@ -97,12 +98,14 @@ metawrap:
   blobology:
     - coassembly
     - sample
+  env: metawrap-env
+  mem: 10
+  chunks: 4
 
 # --------------- metawrap_specific -----------------
 metawrap_blobology:
   env: metawrap-env
   mem: 50
-  mem_dim: gb
   chunks: 5
   scratch: scratch
 
@@ -326,3 +329,21 @@ hifiadapterfilt:
 # --------------- amrplusplus2 --------------
 amrplusplus2:
   path: /some/path/to/bin
+
+# --------------- mappings --------------
+mapping:
+  aligners:
+    - bwa
+    - bowtie2
+    - minimap2
+    - bbmap
+  mem: 100
+  chunks: 1
+
+mapping_spades:
+  mem: 25
+  chunks: 2
+
+mapping_metawrap_refine:
+  mem: 50
+  chunks: 5
