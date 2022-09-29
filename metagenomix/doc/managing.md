@@ -102,13 +102,15 @@ necessary to fetch stored-away files before running new jobs (see section on
 
 * `--rename` (default: `--no-rename`) must be activated to perform this task  
 * `-o` / `--storage` (mandatory) path to the storage location where the files 
-  and the folder input folder structure will be copied (it is recommended to 
-  create a folder name with the same name as the input folder), e.g.
+  and folders and their structure will be copied, e.g.:
   ```
   metagenomix manage \
     -i /path/on/cluster/for/some/output_folder \
-    -o /path/on/storage/for/the_same/output_folder
+    -o /path/on/storage/where/to/store/this/output_folder
   ```
+  will store the targeted files and folder of
+  `/path/on/cluster/for/some/output_folder` inside
+  `/path/on/storage/where/to/store/this/output_folder`.
 
 ##### 1.1. Interaction
 

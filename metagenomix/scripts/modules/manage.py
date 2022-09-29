@@ -14,9 +14,11 @@ from metagenomix import __version__
 
 @click.command()
 @click.option("-i", "--folder", required=True,
-              help='Path to pipeline output folder (`-o` for "create" module)')
+              help='Path to pipeline output folder (the folder passed to `-o` '
+                   'for "metagenomix create")')
 @click.option("-o", "--storage", default='', required=True,
-              help="Path to a storage disk for `--store` task")
+              help="Path to pipeline output folder on storage disk "
+                   "(for `--store` task)")
 @click.option("-p", "--pipeline", default=None, show_default=True,
               help="Path to the file containing the softwares to run in order")
 @click.option("-s", "--software", multiple=True,
