@@ -88,11 +88,11 @@ class Created(object):
         if soft:
             n = 'software'
             key = '%s%s' % (name, local)
-            if self.cmds is None:
-                self.run[n][key] = 'Input needed (output from %s)' % soft.prev
-            else:
+            if self.cmds:
                 self.main_sh = '%s/run%s.sh' % (soft.dir, local)
                 self.run[n][key] = self.main_sh
+            else:
+                self.run[n][key] = 'Input needed (output from %s)' % soft.prev
         else:
             self.main_sh = '%s/run_%s.sh' % (self.sh.rsplit('/', 2)[0], name)
             self.run['database'][name] = self.main_sh
@@ -226,20 +226,11 @@ class Created(object):
                     if not isdir(fol_loc):
                         os.symlink(fol_sto, fol_loc)
 
-    @staticmethod
-    def check_input_availability(soft):
-        availability = 0
-        for cmds in soft.cmds.values():
-            availability += sum(map(bool, cmds))
-        return availability
-
     def get_cmds(self, soft):
         self.cmds = {}
-        if self.check_input_availability(soft):
-            for sam_or_pool, cmds in soft.cmds.items():
+        for sam_or_pool, cmds in soft.cmds.items():
+            if sum(map(bool, cmds)):
                 self.scratch(soft, sam_or_pool, cmds)
-        else:
-            self.cmds = None
 
     def print_status(self, m, sdx, name, soft):
         gap = (m - len(name) - len(str(sdx))) + 1
@@ -399,7 +390,7 @@ class Created(object):
             self.get_modules(name)
             self.get_cmds(soft)
             self.get_main_sh(name, soft)
-            if self.cmds is not None:
+            if self.cmds:
                 self.get_chunks(soft.params['chunks'])
                 self.write_jobs(name, soft)
                 self.write_main()
