@@ -669,7 +669,7 @@ def get_bowtie2_cmd(
         cmd += ' -2 %s' % fastx[1]
         if not params['discordant']:
             cmd += ' --no-discordant'
-            sam += '    .nodiscordant'
+            sam += '.nodiscordant'
     else:
         cmd += ' -U %s' % ','.join(fastx)
     sam += '.sam'
