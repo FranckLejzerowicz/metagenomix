@@ -316,7 +316,6 @@ def sample_inputs(
         self,
         techs=None,
         raw: bool = False,
-        index: int = 1
 ) -> dict:
     """Get per-sample input files per technology, depending on the current
     softwares.
@@ -357,7 +356,7 @@ def sample_inputs(
     Returns
     -------
     inputs : dict
-        Paths to inputs per-sample input files per technology
+        Paths to inputs per-sample input files and per technology
     """
     if techs is None:
         techs = ['illumina', 'pacbio', 'nanopore']
