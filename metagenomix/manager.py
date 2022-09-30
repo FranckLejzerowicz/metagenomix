@@ -13,7 +13,7 @@ import datetime as dt
 import numpy as np
 import pandas as pd
 from tabulate import tabulate
-from os.path import abspath, basename, dirname, isdir, splitext
+from os.path import abspath, basename, dirname, isdir
 from metagenomix.core.output import Softwares, Output
 from metagenomix._io_utils import get_input_info, get_res_info, get_size_info
 
@@ -150,7 +150,7 @@ class Manage(object):
 
     def set_stores(self):
         stores_pd = pd.DataFrame(self.stores, columns=[
-            'local', 'output', 'root', 'tech_dir', 'folder', 'fil'])
+            'local', 'root', 'tech_dir', 'folder', 'fil'])
         for row in stores_pd.values:
             fil = '/'.join(row)
             folder = dirname(fil)
@@ -183,12 +183,11 @@ class Manage(object):
             sys.exit('Error: "%s" is unknown (not in ["y", "n", "d"])' % inp)
 
     def store_all(self):
-        local, out = self.dir.rsplit('/', 1)
         root = '%s/after_%s_%s' % (self.soft, self.after, self.h)
         for tech_dir, folders_files in self.folders.items():
             for folder, files in folders_files.items():
                 for fp in files:
-                    self.stores.append([local, out, root, tech_dir, folder, fp])
+                    self.stores.append([self.dir, root, tech_dir, folder, fp])
 
     def store_details(self):
         for folder in self.data['sizes']:
@@ -500,4 +499,3 @@ class Manage(object):
         folder = '%s/scripts' % self.out
         if not isdir(folder):
             os.makedirs(folder)
-
