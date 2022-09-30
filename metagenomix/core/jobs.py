@@ -255,7 +255,7 @@ class Created(object):
                 o.write('%s\n' % log)
             if self.link_script:
                 o.write(self.link_script)
-        print('\n[config] Written: %s' % fp)
+        print('\nLog file: %s' % fp)
 
     def get_logs(self, dates):
         logs = self.scripts
