@@ -51,7 +51,7 @@ class Created(object):
     def make_dirs(self):
         for name, soft in self.commands.softs.items():
             for directory in sorted(soft.dirs):
-                if not isdir(directory):
+                if not islink(directory) and not isdir(directory):
                     os.makedirs(directory)
 
     def get_scheduler(self):
