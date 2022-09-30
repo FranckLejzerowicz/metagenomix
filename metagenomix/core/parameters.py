@@ -2366,43 +2366,19 @@ def check_mapdamage2(self, params, soft):
     return defaults
 
 
-# def check_ToolName(self, params, soft):
-#     defaults = {
-#     }
-#     ints = []
-#     check_nums(self, params, defaults, ints, int, soft.name)
-#     floats = []
-#     check_nums(self, params, defaults, floats, float, soft.name)
-#     check_default(self, params, defaults, soft.name, (ints + floats))
-#     defaults[''] = '<>'
-#     return defaults
+def check_amrfinderplus(self, params, soft):
+    defaults = {
+    }
+    ints = []
+    check_nums(self, params, defaults, ints, int, soft.name)
+    floats = []
+    check_nums(self, params, defaults, floats, float, soft.name)
+    check_default(self, params, defaults, soft.name, (ints + floats))
+    defaults[''] = '<>'
+    return defaults
 
 
-# def check_ToolName(self, params, soft):
-#     defaults = {
-#     }
-#     ints = []
-#     check_nums(self, params, defaults, ints, int, soft.name)
-#     floats = []
-#     check_nums(self, params, defaults, floats, float, soft.name)
-#     check_default(self, params, defaults, soft.name, (ints + floats))
-#     defaults[''] = '<>'
-#     return defaults
-
-
-# def check_ToolName(self, params, soft):
-#     defaults = {
-#     }
-#     ints = []
-#     check_nums(self, params, defaults, ints, int, soft.name)
-#     floats = []
-#     check_nums(self, params, defaults, floats, float, soft.name)
-#     check_default(self, params, defaults, soft.name, (ints + floats))
-#     defaults[''] = '<>'
-#     return defaults
-
-
-# def check_circlator(self, params, soft):
+# def check_SOFTNAME(self, params, soft):
 #     # list here all the parameters and their default values
 #     defaults = {
 #         '<PARAM_1>': 10,
@@ -2444,6 +2420,30 @@ def check_mapdamage2(self, params, soft):
 #
 #     # Finally add to "defaults" dict those params that need not to be checked
 #     defaults['<PARAM_NAME>'] = '<SOME USEFUL DESCRIPTION (for --show-params)>'
+#     return defaults
+
+
+# def check_ToolName(self, params, soft):
+#     defaults = {
+#     }
+#     ints = []
+#     check_nums(self, params, defaults, ints, int, soft.name)
+#     floats = []
+#     check_nums(self, params, defaults, floats, float, soft.name)
+#     check_default(self, params, defaults, soft.name, (ints + floats))
+#     defaults[''] = '<>'
+#     return defaults
+
+
+# def check_ToolName(self, params, soft):
+#     defaults = {
+#     }
+#     ints = []
+#     check_nums(self, params, defaults, ints, int, soft.name)
+#     floats = []
+#     check_nums(self, params, defaults, floats, float, soft.name)
+#     check_default(self, params, defaults, soft.name, (ints + floats))
+#     defaults[''] = '<>'
 #     return defaults
 
 
