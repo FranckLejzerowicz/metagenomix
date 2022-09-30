@@ -346,7 +346,6 @@ class Created(object):
         m = '%sSome data needed for these jobs is stored away%s' % (s, s)
         tab = [x for x in self.links_stats.items() if x[1]]
         tab = [tuple(list(x) + self.move_shs.get(x[0], [''])) for x in tab]
-        print(tab)
         t = tabulate(tab, headers='', tablefmt='presto', showindex=False)
         m += '\t- %s' % t.replace(
             '\n', '\n\t- '
