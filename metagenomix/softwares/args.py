@@ -138,7 +138,7 @@ def get_predict(
                     self.outputs['cmds'].setdefault(key, []).append(False)
                 else:
                     self.outputs['cmds'].setdefault(key, []).append(cmd)
-                io_update(self, i_f=fasta[0], o_d=out_dir, key=key)
+                io_update(self, i_f=seq, o_d=out_dir, key=key)
                 self.soft.add_status(
                     tech, self.sam_pool, 1, group=sam_group, genome=genome)
             else:
