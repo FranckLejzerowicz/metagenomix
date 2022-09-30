@@ -52,6 +52,10 @@ from metagenomix import __version__
     "-x", "--chunks", type=int, show_default=False, default=None,
     help="Number of jobs to split the commands into for each tool")
 @click.option(
+    "-y", "--links-chunks", type=int, default=None,
+    help="Number of chunks for script copying back from storage (default: to "
+         "one per software)")
+@click.option(
     "--force/--no-force", default=False, show_default=True,
     help="Force the re-writing of scripts for all commands"
          "(default is to not re-run if output file exists)")
@@ -108,6 +112,7 @@ def create(
         modules,
         account,
         chunks,
+        links_chunks,
         force,
         jobs,
         torque,
@@ -141,6 +146,7 @@ def create(
         torque=torque,
         account=account,
         chunks=chunks,
+        links_chunks=links_chunks,
         localscratch=localscratch,
         scratch=scratch,
         userscratch=userscratch,
