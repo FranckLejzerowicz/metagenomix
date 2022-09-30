@@ -675,7 +675,8 @@ def get_bowtie2_cmd(
     sam += '.sam'
     cmd += ' -S %s' % sam
     cmd += ' --seed 12345'
-    cmd += ' --very-sensitive'
+    if params['presets']:
+        cmd += ' --%s' % params['presets']
     cmd += ' -k %s' % params['k']
     cmd += ' --np %s' % params['np']
     cmd += ' --mp %s' % params['mp']

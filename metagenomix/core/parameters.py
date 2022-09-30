@@ -755,6 +755,9 @@ def check_shogun(self, params, soft):
 
 def check_bowtie2(self, params, soft):
     defaults = {
+        'presets': [None, 'very-sensitive', 'very-fast', 'fast', 'sensitive',
+                    'very-fast-local', 'fast-local', 'sensitive-local',
+                    'very-sensitive-local'],
         'pairing': ['paired', 'concat', 'single'],
         'discordant': [True, False],
         'k': 16,
