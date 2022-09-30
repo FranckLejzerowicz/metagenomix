@@ -87,6 +87,8 @@ class Commands(object):
     def get_hash(self):
         avoid = {'time', 'nodes', 'mem', 'mem_dim', 'env', 'chunks',
                  'scratch', 'machine', 'partition'}
+        if self.soft.name not in ['filtering', 'databases']:
+            avoid.add('databases')
         params = dict(x for x in self.soft.params.items() if x[0] not in avoid)
         path = self.soft.path
         hashes = [self.softs[x].hash for x in self.soft.path[1:-1]]
