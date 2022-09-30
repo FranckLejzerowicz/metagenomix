@@ -33,11 +33,17 @@ class Created(object):
         self.graph = workflow.graph
         self.cmd = []
         self.cmds = {}
+        self.links = {}
+        self.soft_links = {}
+        self.links_stats = {}
+        self.avail = {}
         self.chunks = {}
         self.soft = ''
         self.hash = ''
         self.sh = ''
         self.main_sh = ''
+        self.move_sh = ''
+        self.move_shs = {}
         self.run = {'database': {}, 'software': {}}
         self.job_fps = []
         self.job_name = ''
@@ -46,6 +52,7 @@ class Created(object):
         self.scheduler = self.get_scheduler()
         self.time = dt.datetime.now().strftime("%d/%m/%Y-%H:%M")
         self.scripts = []
+        self.scripts_parts = []
         self.log_dir = '%s/_created' % config.dir
         self.link_script = None
 
@@ -229,8 +236,9 @@ class Created(object):
     def get_cmds(self, soft):
         self.cmds = {}
         for sam_or_pool, cmds in soft.cmds.items():
-            if sum(map(bool, cmds)):
+            if sum(map(bool, cmds)) or soft.name == 'pooling':
                 self.scratch(soft, sam_or_pool, cmds)
+                self.avail.setdefault(soft.name, []).append(sam_or_pool)
 
     def print_status(self, m, sdx, name, soft):
         gap = (m - len(name) - len(str(sdx))) + 1
@@ -290,15 +298,21 @@ class Created(object):
 
     def get_links_chunks(self):
         cmds = {}
-        n_chunks = self.config.chunks
-        if n_chunks and 1 < n_chunks <= len(self.commands.links):
-            cmds_ = dict(enumerate(list(self.commands.links)))
-            chunks = [list(x) for x in np.array_split(list(cmds_), n_chunks)]
-            for cdx, c in enumerate(chunks):
-                if len(c):
-                    cmds['-%s' % str(cdx + 1)] = [cmds_[x] for x in c]
-        elif self.commands.links:
-            cmds[''] = list(self.commands.links)
+        if self.config.links_chunks:
+            n_chunks = self.config.links_chunks
+            links = set([y for x in self.soft_links.values() for y in x])
+            if n_chunks and 1 < n_chunks <= len(links):
+                cmds_ = dict(enumerate(list(links)))
+                chunk = [list(x) for x in np.array_split(list(cmds_), n_chunks)]
+                for cdx, c in enumerate(chunk):
+                    if len(c):
+                        cmds['-%s' % str(cdx + 1)] = [cmds_[x] for x in c]
+            elif links:
+                cmds[''] = list(links)
+        else:
+            for name, links in self.soft_links.items():
+                if links:
+                    cmds['-%s' % name] = links
         return cmds
 
     def get_links_dir(self):
@@ -309,74 +323,91 @@ class Created(object):
             os.makedirs('%s/scripts' % links_dir)
         return links_dir
 
-    @staticmethod
-    def write_screen_jobs(links_dir, scripts):
-        sh = '%s/move.sh' % links_dir
-        with open(sh, 'w') as o:
-            for part, (script, out) in sorted(scripts.items()):
-                if part:
-                    name = 'move_%s_of_%s' % (part.split()[1], part.split()[3])
-                else:
-                    name = 'move'
-                screen = 'screen -dmS %s /bin/bash "%s"' % (name, script)
-                o.write('%s\n' % screen)
-                echo = 'Running screen in detached mode (ID: %s)' % name
-                echo += '\nCheck whether some moves went wrong: %s' % out
-                o.write('echo "%s"\n' % echo)
+    def write_screen_jobs(self, links_dir, scripts):
+        self.move_sh = '%s/move.sh' % links_dir
+        with open(self.move_sh, 'w') as o:
+            for name, (screen_sh, out) in sorted(scripts.items()):
+                o.write('sh %s\n' % screen_sh)
             o.write('screen -ls\n')
             o.write('echo "To list running screen session(s): screen -ls"\n')
             o.write('echo "To get into a screen session: screen -r <ID>"\n')
             o.write('echo "To detach when within screen session: <ctrl-d>"\n')
             o.write('echo "To kill a screen session from within: <ctrl-k>"\n')
-        return sh
 
     def write_links(self):
         links_dir = self.get_links_dir()
         scripts = self.get_bring_links_scripts(links_dir)
         if scripts:
-            sh = self.write_screen_jobs(links_dir, scripts)
-            self.print_links(sh, scripts)
+            self.write_screen_jobs(links_dir, scripts)
+            self.print_links(scripts)
 
-    def print_links(self, sh, scripts):
+    def print_links(self, scripts):
         s = '\n%s\n' % ('*' * 46)
         m = '%sSome data needed for these jobs is stored away%s' % (s, s)
-        t = tabulate([x for x in self.commands.links_stats.items() if x[1]],
-                     headers='', tablefmt='presto', showindex=False)
-        m += '\t- %s' % t.replace('\n', ' files\n\t- ').replace('|', '\t:')
-        m += ' files\n  -> Run this script to bring this data '
+        tab = [x for x in self.links_stats.items() if x[1]]
+        tab = [tuple(list(x) + self.move_shs.get(x[0], [''])) for x in tab]
+        print(tab)
+        t = tabulate(tab, headers='', tablefmt='presto', showindex=False)
+        m += '\t- %s' % t.replace(
+            '\n', '\n\t- '
+        ).replace(
+            '|', ' :'
+        ).replace(
+            ' : sh', ' files  -> sh'
+        )
+        m += '\n\t-> all softwares '
         n = len(scripts)
         m += '(%s screen session' % n
         if n > 1:
             m += 's'
-        m += ')\n       sh %s\n' % sh
+        m += ')  -> sh %s\n' % self.move_sh
         self.link_script = m
         print(m)
 
     def get_bring_links_scripts(self, links_dir):
         scripts = {}
         chunks = self.get_links_chunks()
-        for chunk, links in chunks.items():
-            part = ''
-            if chunk:
-                part += ' [ %s / %s ]' % (chunk[1:], len(chunks))
+        for cdx, (chunk, links) in enumerate(chunks.items()):
+
             base = '%s/scripts/move%s' % (links_dir, chunk)
             out = '%s_out.txt' % base
+            screen_sh = '%s_screen.sh' % base
             sh = '%s.sh' % base
-            scripts[part] = (sh, out)
+
+            part, name = '', 'move'
+            if chunk[1:].isdigit():
+                part += ' [ %s / %s ]' % (chunk[1:], len(chunks))
+                name += '_%s_of_%s' % (chunk[1:], len(chunks))
+            else:
+                part += ' [ %s ]' % chunk[1:]
+                name += '_%s' % chunk[1:]
+                self.move_shs[chunk[1:]] = ['sh %s' % screen_sh]
+
+            scripts[name] = (screen_sh, out)
+            with open(screen_sh, 'w') as screen_o:
+                echo = 'Started screen in detached mode (ID: %s)' % name
+                echo += '\nCheck whether some moves went wrong: %s' % out
+                screen_o.write('screen -dmS %s /bin/bash "%s"\n' % (name, sh))
+                screen_o.write('echo "%s"\n' % echo)
+
             with open(sh, 'w') as o:
                 message = 'Bringing data from storage%s' % part
                 o.write('touch %s\n' % out)
                 o.write('echo "%s"\n' % message)
+                o.write('sleep %s\n' % (cdx + 2))
                 for link_ in links:
                     dest = link_.replace('${SCRATCH_FOLDER}', '')
-                    src = self.commands.links[dest]
-                    o.write("m0=`md5sum %s | cut -d' ' -f 1`\n" % src)
-                    o.write('rm -rf %s\n' % dest)
-                    o.write('cp -r %s %s\n' % (src, dest))
-                    o.write("m1=`md5sum %s | cut -d' ' -f 1`\n" % dest)
-                    o.write('if [ "$m0" != "$m1" ]; then echo ')
+                    src = self.links[dest]
+                    o.write('if [ -L %s ]; then\n' % dest)
+                    o.write("    m0=`md5sum %s | cut -d' ' -f 1`\n" % src)
+                    o.write('    rm -rf %s\n' % dest)
+                    o.write('    cp -r %s %s\n' % (src, dest))
+                    o.write("    m1=`md5sum %s | cut -d' ' -f 1`\n" % dest)
+                    o.write('    if [ "$m0" != "$m1" ]; then echo ')
                     o.write('"$m0 $m1 %s %s" >> %s; fi\n' % (src, dest, out))
+                    o.write('fi\n\n')
                 o.write('echo "done"\n')
+
         return scripts
 
     def software_cmds(self):
@@ -398,8 +429,9 @@ class Created(object):
             self.write_provenance(name, soft)
 
     def get_links(self, soft):
-        self.commands.links_stats[soft.name] = len(soft.links)
-        self.commands.links.update(soft.links)
+        self.links_stats[soft.name] = len(soft.links)
+        self.soft_links[soft.name] = soft.links
+        self.links.update(soft.links)
 
     def get_sh(self, name: str, chunk: str, soft=None) -> None:
         """
