@@ -15,6 +15,7 @@ from metagenomix.core.parameters import *
 class Soft(object):
 
     def __init__(self, config):
+        self.config = config
         self.name = ''
         self.hash = ''
         self.hashed = ''
@@ -39,6 +40,9 @@ class Soft(object):
     def get_softs(self, softs):
         if len(softs) == 1:
             self.name = softs[0]
+        elif len(softs) > 2:
+            pipeline_tsv = self.config.pipeline_tsv
+            sys.exit('[config] Max 2 names per line in "%s"' % pipeline_tsv)
         else:
             self.prev, self.name = softs
 
