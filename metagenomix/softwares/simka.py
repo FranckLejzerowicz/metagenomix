@@ -304,7 +304,7 @@ def simka(self) -> None:
     for tech in self.config.techs:
         params = tech_params(self, tech)
         input_cmd, input_fastqs, input_file = get_simka_input(self, tech)
-        status_update(self, tech, input_fastqs)
+        to_dos = status_update(self, tech, input_fastqs)
         cmds = ''
         for k in map(int, params['kmer']):
             for n in map(int, params['log_reads']):
@@ -326,7 +326,10 @@ def simka(self) -> None:
                             io_update(self, i_f=mat, o_d=out_dir, key=tech)
         if cmds:
             cmd = input_cmd + cmds
-            self.outputs['cmds'].setdefault((tech,), []).append(cmd)
+            if to_dos:
+                self.outputs['cmds'].setdefault((tech,), []).append(False)
+            else:
+                self.outputs['cmds'].setdefault((tech,), []).append(cmd)
             self.soft.add_status(tech, 'all samples', 1)
         else:
             self.soft.add_status(tech, 'all samples', 0)

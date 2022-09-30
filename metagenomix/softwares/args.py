@@ -921,15 +921,19 @@ def amrplusplus2_cmd(
     cmd += 'cd %s/copy\n' % out_dir
 
     cmd += 'nextflow run main_AmrPlusPlus_v2.nf'
+    # input argument
     if len(fastqs) > 1:
         cmd += ' --reads "%s"' % fastqs[0].replace('R1', '{R1,R2}')
     else:
         cmd += ' --reads %s' % fastqs[0]
-    for path in ['adapters', 'fqc_adapters', 'host_index', 'host',
+
+    # optional arguments - "valued"
+    for param in ['adapters', 'fqc_adapters', 'host_index', 'host',
                  'kraken_db', 'amr_index', 'amr', 'annotation',
                  'snp_annotation', 'snp_confirmation']:
-        if self.soft.params[path]:
-            cmd += ' --%s "%s"' % (path, self.soft.params[path])
+        if self.soft.params[param]:
+            cmd += ' --%s "%s"' % (param, self.soft.params[param])
+
     for param in ['leading', 'trailing', 'slidingwindow', 'minlen',
                   'threshold', 'min', 'max', 'skip', 'samples']:
         cmd += ' --%s %s' % (param, self.soft.params[param])
@@ -954,7 +958,6 @@ def get_amrplusplus2(
         self,
         tech: str,
         fastqs: list,
-        sam: str
 ) -> None:
     """
 
@@ -973,12 +976,10 @@ def get_amrplusplus2(
         Technology: 'illumina', 'pacbio', or 'nanopore'
     fastqs : list
         Paths to the input fastqs files
-    sam : str
-        Name of the current sample
     """
-    out_dir = genome_out_dir(self, tech, fastqs[0], sam)
+    out_dir = genome_out_dir(self, tech, fastqs[0], self.sam_pool)
     self.outputs['dirs'].append(out_dir)
-    self.outputs['outs'].setdefault((tech, sam), []).append(out_dir)
+    self.outputs['outs'].setdefault((tech, self.sam_pool), []).append(out_dir)
 
     status_update(self, tech, fastqs)
 
@@ -988,7 +989,7 @@ def get_amrplusplus2(
         # collect the command line
         cmd = amrplusplus2_cmd(self, fastqs, out_dir)
         # add is to the 'cmds'
-        key = genome_key(tech, sam)
+        key = genome_key(tech, self.sam_pool)
         self.outputs['cmds'].setdefault(key, []).append(cmd)
         io_update(self, i_f=fastqs, o_d=out_dir, key=key)
         self.soft.add_status(tech, self.sam_pool, 1)
@@ -1041,20 +1042,31 @@ def amrplusplus2(self) -> None:
     else:
         tech_fastqs = sample_inputs(self, raw=True)
         for tech, fastqs in tech_fastqs.items():
-            get_amrplusplus2(self, tech, fastqs[''], self.sam_pool)
+            get_amrplusplus2(self, tech, fastqs[''])
 
 
 def amrfinderplus(self) -> None:
-    """.
+    """This software and the accompanying database are designed to find
+    acquired antimicrobial resistance genes and some point mutations in
+    protein or assembled nucleotide sequences. We have also added "plus"
+    stress, head, and biocide resistance as well as some virulence factors
+    and E. coli antigens.
 
     References
     ----------
+    Feldgarden, M., Brover, V., Gonzalez-Escalona, N., Frye, J.G., Haendiges,
+    J., Haft, D.H., Hoffmann, M., Pettengill, J.B., Prasad, A.B., Tillman,
+    G.E. and Tyson, G.H., 2021. AMRFinderPlus and the Reference Gene Catalog
+    facilitate examination of the genomic links among antimicrobial
+    resistance, stress response, and virulence. Scientific reports, 11(1),
+    pp.1-9.
 
     Notes
     -----
-    GitHub  :
-    Docs    :
-    Paper   :
+    GitHub  : https://github.com/ncbi/amr
+    Docs    : https://www.ncbi.nlm.nih.gov/pathogens/antimicrobial-resistance/AMRFinder/
+    Wiki    : https://github.com/ncbi/amr/wiki
+    Paper   : https://doi.org/10.1038/s41598-021-91456-0
 
     Parameters
     ----------
@@ -1080,6 +1092,20 @@ def amrfinderplus(self) -> None:
         .config
             Configurations
     """
+    # # iterate over the inputs
+    #
+    #     # make the output directory
+    #
+    #     # get the expected names of some of the ouptuts:
+    #     # - those you want to collect in 'outs' because they will be future inpt
+    #     # - at least one that will help knowing whether the software already run
+    #
+    #     # check if the tool already run (or if --force) to allow getting command
+    #     if self.config.force or :
+    #         # collect the command line
+    #         # add is to the 'cmds'
+    #     else:
+    #
     pass
 
 

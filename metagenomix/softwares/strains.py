@@ -7,7 +7,7 @@
 # ----------------------------------------------------------------------------
 
 import glob
-from metagenomix._io_utils import caller, io_update, to_do
+from metagenomix._io_utils import caller, io_update, to_do, status_update
 from metagenomix._inputs import (group_inputs, genome_key, genome_out_dir,
                                  get_extension, get_reads, add_folder)
 
@@ -285,15 +285,11 @@ def get_lorikeet(
 
         key = genome_key(tech, group, genome)
         if genome:
-            condition = to_do(folder=fasta_folder)
+            to_dos = status_update(self, tech, [fasta_folder], folder=True)
         else:
-            condition = to_do(fasta_folder)
-        if condition:
-            self.soft.add_status(
-                tech, self.sam_pool, [fasta_folder], group=group, genome=genome)
+            to_dos = status_update(self, tech, [fasta_folder])
 
         if self.config.force or not glob.glob('%s/*' % out_dir):
-
             if self.sam_pool:
                 groups = self.pools[self.sam_pool][group]
                 group_reads = dict(x for x in reads.items() if x[0] in groups)
@@ -302,7 +298,10 @@ def get_lorikeet(
 
             cmd = lorikeet_cmd(
                 self, genome, fasta_folder, group_reads, out_dir, key, step)
-            self.outputs['cmds'].setdefault(key, []).append(cmd)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
             if genome:
                 io_update(self, i_d=fasta_folder, o_d=out_dir, key=key)
             else:

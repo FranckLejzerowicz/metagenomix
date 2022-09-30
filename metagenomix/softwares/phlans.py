@@ -128,7 +128,7 @@ def analyses(
                     if params['min_ab']:
                         cms += ' --min_ab %s' % params['min_ab']
                     if self.config.force or to_do(clade_out):
-                        self.outputs['cmds'].setdefault((tech,), []).append(cms)
+                        self.outputs['cmds'].setdefault((tech,), []).append(cmd)
                         io_update(self, o_f=clade_out, key=tech)
                         self.soft.add_status(
                             tech, self.sam_pool, 1, message=t, genome='strain')
@@ -576,6 +576,7 @@ def humann(self) -> None:
 
 def get_sample_to_marker(
         self,
+        tech,
         sam_dir: str,
         markers_dir: str
 ) -> None:
@@ -588,21 +589,28 @@ def get_sample_to_marker(
             All outputs
         .config
             Configurations
+    tech : str
     sam_dir : str
     markers_dir : str
     """
 
     sam_dir_ = sam_dir.replace('${SCRATCH_FOLDER}', '')
+    to_dos = status_update(self, tech, [sam_dir], folder=True)
     if self.config.force or len(glob.glob('%s/*.sam.bz2' % sam_dir_)):
         cmd = 'sample2markers.py'
         cmd += ' -i %s/*.sam.bz2' % sam_dir
         cmd += ' -o %s' % markers_dir
         cmd += ' -n %s' % self.soft.params['cpus']
-        self.outputs['cmds'].setdefault(key, []).append(cmd)
+        if to_dos:
+            self.outputs['cmds'].setdefault((tech,), []).append(False)
+        else:
+            self.outputs['cmds'].setdefault((tech,), []).append(cmd)
 
 
 def extract_markers(
         self,
+        tech,
+        key,
         st: str,
         strain_dir: str,
         db_dir: str
@@ -614,15 +622,21 @@ def extract_markers(
     self : Commands class instance
         .config
             Configurations
+    tech
+    key
     st : str
     strain_dir : str
     db_dir : str
     """
+    to_dos = status_update(self, tech, [strain_dir], folder=True)
     if self.config.force or to_do('%s/%s.fna' % (strain_dir, st)):
         cmd = 'extract_markers.py'
         cmd += ' -c %s' % st
         cmd += ' -o %s' % db_dir
-        self.outputs['cmds'].setdefault(key, []).append(cmd)
+        if to_dos:
+            self.outputs['cmds'].setdefault(key, []).append(False)
+        else:
+            self.outputs['cmds'].setdefault(key, []).append(cmd)
 
 
 def strainphlan(self) -> None:
@@ -676,13 +690,12 @@ def strainphlan(self) -> None:
 
         self.outputs['outs'] = dict({})
         self.outputs['dirs'].extend([db_dir, meta_dir])
-        get_sample_to_marker(self, sam_dir, markers_dir)
+        get_sample_to_marker(self, tech, sam_dir, markers_dir)
 
         for strain_group, strains in self.config.strains.items():
 
             tmp = '$TMPDIR/strainphlan_%s' % strain_group
             key = (tech, strain_group)
-            self.outputs['cmds'].setdefault(key, []).append('mkdir -p %s' % tmp)
             io_update(self, i_d=sam_dir, o_d=[markers_dir, db_dir, meta_dir],
                       key=key)
 
@@ -691,12 +704,14 @@ def strainphlan(self) -> None:
             for strain in [x.replace(' ', '_') for x in strains]:
                 if strain[0] != 's':
                     continue
-                extract_markers(self, strain, strain_dir, db_dir)
+                extract_markers(self, tech, key, strain, strain_dir, db_dir)
                 odir = '%s/output/%s' % (self.dir, strain_group)
                 self.outputs['dirs'].append(odir)
                 self.outputs['outs'][(strain_group, strain)] = odir
                 io_update(self, o_d=odir, key=key)
                 tree = '%s/RAxML_bestTree.%s.StrainPhlAn3.tre' % (odir, strain)
+                to_dos = status_update(self, tech, [markers_dir, db_dir],
+                                       folder=True)
                 if self.config.force or to_do(tree):
                     cmd = 'strainphlan'
                     cmd += ' -s %s/*.pkl' % markers_dir
@@ -711,7 +726,11 @@ def strainphlan(self) -> None:
                     cmd += ' -n %s' % self.soft.params['cpus']
                     cmd += ' -c %s' % strain
                     cmd += ' --mutation_rates'
-                    self.outputs['cmds'].setdefault(key, []).append(cmd)
+                    cmd = 'mkdir -p %s\n' % tmp + cmd
+                    if to_dos:
+                        self.outputs['cmds'].setdefault(key, []).append(False)
+                    else:
+                        self.outputs['cmds'].setdefault(key, []).append(cmd)
                     self.soft.add_status(
                         tech, sam, 1, group=strain_group, genome=strain)
                 else:

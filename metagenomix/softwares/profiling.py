@@ -722,14 +722,14 @@ def shogun(self) -> None:
         io_update(self, o_d=out, key=tech)
 
         if self.soft.prev == 'bowtie2':
-            status_update(self, tech, list(inputs.values()))
+            to_dos = status_update(self, tech, list(inputs.values()))
             for (db, aligner), sam in inputs.items():
                 ali = format_sam(sam, ali_cmds, self.sam_pool)
                 self.outputs['outs'][(tech, self.sam_pool)].setdefault(
                     (db, 'bowtie2'), []).append(ali)
                 shogun_taxonomy(self, tech, out, 'bowtie2', ali, db)
         elif params['databases']:
-            status_update(self, tech, inputs)
+            to_dos = status_update(self, tech, inputs)
             fasta = combine_inputs(self, tech, inputs, out, combine_cmds)
             for db, aligners in params['databases'].items():
                 for aligner in aligners:
@@ -739,7 +739,10 @@ def shogun(self) -> None:
                     shogun_function(self, tech, out, aligner, ali, db, norm)
         if self.outputs['cmds']:
             cmd = combine_cmds + ali_cmds + self.outputs['cmds'][(tech,)]
-            self.outputs['cmds'][(tech,)] = cmd
+            if to_dos:
+                self.outputs['cmds'][(tech,)] = [False]
+            else:
+                self.outputs['cmds'][(tech,)] = cmd
             self.soft.add_status(tech, sam, 1)
         else:
             self.soft.add_status(tech, sam, 0)
@@ -1753,7 +1756,8 @@ def woltka(self) -> None:
             continue
         for aligner, alis in alignments.items():
             key = (tech, aligner)
-            status_update(self, tech, list(alis.values()), group=aligner)
+            to_dos = status_update(
+                self, tech, list(alis.values()), group=aligner)
             map, map_cmds = woltka_write_map(self, tech, pairing, aligner, alis)
             taxmap, tdo = woltka_tax_cmd(self, tech, pairing, aligner, map, db)
             gdo = woltka_go(self, tech, pairing, aligner, map, taxmap, db)
@@ -1763,14 +1767,18 @@ def woltka(self) -> None:
                 io_update(self, i_f=list(alis.values()), key=key)
                 if key in self.outputs['cmds']:
                     prev_cmds = self.outputs['cmds'][key]
-                    self.outputs['cmds'][key] = map_cmds + prev_cmds
-
-            uniref_tax = woltka_uniref(self, tech, pairing, aligner,
-                                       genes_tax, db)
-            woltka_eggnog(self, tech, pairing, aligner, uniref_tax, db)
-            # woltka_cazy(self, tech, pairing, aligner, genes, genes_tax, db)
-            woltka_metacyc(self, tech, pairing, aligner, genes_tax, db)
-            woltka_kegg(self, tech, pairing, aligner, uniref_tax, db)
+                    if to_dos:
+                        self.outputs['cmds'][key] = [False]
+                    else:
+                        self.outputs['cmds'][key] = map_cmds + prev_cmds
+            if not to_dos:
+                uniref_tax = woltka_uniref(self, tech, pairing, aligner,
+                                           genes_tax, db)
+                woltka_eggnog(self, tech, pairing, aligner, uniref_tax, db)
+                # woltka_cazy(
+                #     self, tech, pairing, aligner, genes, genes_tax, db)
+                woltka_metacyc(self, tech, pairing, aligner, genes_tax, db)
+                woltka_kegg(self, tech, pairing, aligner, uniref_tax, db)
 
 
 def get_midas_cmd(
@@ -1841,7 +1849,8 @@ def midas_species(
         tech: str,
         inputs: list,
         focus_dir: str,
-        analysis: str
+        analysis: str,
+        to_dos: list
 ) -> None:
     """Collect the MIDAS commands for the species level.
 
@@ -1860,6 +1869,8 @@ def midas_species(
         Path to the species output folder
     analysis : str
         Current analysis: 'species', 'genes', or 'snps'
+    to_dos : list
+        Paths to input file that need to be created (or whether they are links)
     """
     spcs_out = '%s/species' % focus_dir
     spcs_profile = '%s/species_profile.txt' % spcs_out
@@ -1868,7 +1879,10 @@ def midas_species(
         self.soft.add_status(tech, self.sam_pool, 1, group='species')
     else:
         cmd = get_midas_cmd(self, tech, inputs, focus_dir, analysis)
-        self.outputs['cmds'].setdefault((tech,), []).append(cmd)
+        if to_dos:
+            self.outputs['cmds'].setdefault((tech,), []).append(False)
+        else:
+            self.outputs['cmds'].setdefault((tech,), []).append(cmd)
         io_update(self, i_f=inputs, o_d=spcs_out, key=tech)
         self.soft.add_status(tech, self.sam_pool, 0, group='species')
     self.outputs['outs'].setdefault((tech, self.sam_pool), []).append(spcs_out)
@@ -1882,7 +1896,8 @@ def midas_genes(
         focus_dir: str,
         genes_out: str,
         analysis: str,
-        select: set
+        select: set,
+        to_dos: list
 ) -> None:
     """Collect the MIDAS commands for the genes level.
 
@@ -1905,10 +1920,15 @@ def midas_genes(
         Current analysis: 'species', 'genes', or 'snps'
     select : set
         Set of taxa to focus
+    to_dos : list
+        Paths to input file that need to be created (or whether they are links)
     """
     if self.config.force or to_do('%s/readme.txt' % genes_out):
         cmd = get_midas_cmd(self, tech, inputs, focus_dir, analysis, select)
-        self.outputs['cmds'].setdefault((tech,), []).append(cmd)
+        if to_dos:
+            self.outputs['cmds'].setdefault((tech,), []).append(False)
+        else:
+            self.outputs['cmds'].setdefault((tech,), []).append(cmd)
         io_update(self, o_d=genes_out, key=tech)
         self.soft.add_status(tech, self.sam_pool, 1, group='genes')
     else:
@@ -1924,7 +1944,8 @@ def midas_snps(
         focus_dir: str,
         snps_out: str,
         analysis: str,
-        select: set
+        select: set,
+        to_dos: list
 ) -> None:
     """Collect the MIDAS commands for the species level.
 
@@ -1947,10 +1968,15 @@ def midas_snps(
         Current analysis: 'species', 'genes', or 'snps'
     select : set
         Set of taxa to focus
+    to_dos : list
+        Paths to input file that need to be created (or whether they are links)
     """
     if self.config.force or to_do('%s/readme.txt' % snps_out):
         cmd = get_midas_cmd(self, tech, inputs, focus_dir, analysis, select)
-        self.outputs['cmds'].setdefault((tech,), []).append(cmd)
+        if to_dos:
+            self.outputs['cmds'].setdefault((tech,), []).append(False)
+        else:
+            self.outputs['cmds'].setdefault((tech,), []).append(cmd)
         io_update(self, o_d=snps_out, key=tech)
         self.soft.add_status(tech, self.sam_pool, 1, group='snps')
     else:
@@ -2031,17 +2057,20 @@ def midas(self) -> None:
     for (tech, sam), inputs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, inputs, tech, sam):
             continue
-        status_update(self, tech, inputs)
+        to_dos = status_update(self, tech, inputs)
 
         params = tech_params(self, tech)
         for focus, species_list in params['focus'].items():
             focus_dir = '/'.join([self.dir, tech, focus, self.sam_pool])
-            midas_species(self, tech, inputs, focus_dir, 'species')
+            midas_species(
+                self, tech, inputs, focus_dir, 'species', to_dos)
             select = set(get_species_select(self, species_list))
             genes = '%s/genes' % focus_dir
-            midas_genes(self, tech, inputs, focus_dir, genes, 'genes', select)
+            midas_genes(
+                self, tech, inputs, focus_dir, genes, 'genes', select, to_dos)
             snps = '%s/snps' % focus_dir
-            midas_snps(self, tech, inputs, focus_dir, snps, 'snps', select)
+            midas_snps(
+                self, tech, inputs, focus_dir, snps, 'snps', select, to_dos)
 
 
 def get_kraken2_db(
@@ -2202,7 +2231,7 @@ def kraken2(self) -> None:
     for (tech, sam), inputs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, inputs, tech, sam):
             continue
-        status_update(self, tech, inputs)
+        to_dos = status_update(self, tech, inputs)
 
         params = tech_params(self, tech)
         for db in params['databases']:
@@ -2212,7 +2241,10 @@ def kraken2(self) -> None:
             if self.config.force or to_do('%s/result.tsv' % out):
                 db_path = get_kraken2_db(self, db)
                 cmd = get_kraken2_cmd(self, tech, inputs, out, db_path)
-                self.outputs['cmds'].setdefault((tech,), []).append(cmd)
+                if to_dos:
+                    self.outputs['cmds'].setdefault((tech,), []).append(False)
+                else:
+                    self.outputs['cmds'].setdefault((tech,), []).append(cmd)
                 io_update(self, i_f=inputs, o_d=out, key=tech)
                 self.soft.add_status(tech, sam, 1, group=db)
             else:
@@ -2357,7 +2389,7 @@ def bracken(self) -> None:
         if tech_specificity(self, inputs, tech, sam):
             continue
         for (db, k2) in inputs:
-            status_update(self, tech, [k2])
+            to_dos = status_update(self, tech, [k2])
             db_path = get_bracken_db(self, db)
             out = '/'.join([self.dir, tech, self.sam_pool, db])
             self.outputs['dirs'].append(out)
@@ -2365,7 +2397,10 @@ def bracken(self) -> None:
             if self.config.force or to_do('%s/results.tsv' % out):
                 report = '%s/report.tsv' % k2
                 cmd = bracken_cmd(self, tech, db_path, report, out)
-                self.outputs['cmds'].setdefault((tech,), []).append(cmd)
+                if to_dos:
+                    self.outputs['cmds'].setdefault((tech,), []).append(False)
+                else:
+                    self.outputs['cmds'].setdefault((tech,), []).append(cmd)
                 io_update(self, i_f=report, o_d=out, key=tech)
                 self.soft.add_status(tech, sam, 1, group=(db + ' / ' + k2))
             else:

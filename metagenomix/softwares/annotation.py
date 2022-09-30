@@ -9,7 +9,7 @@
 import glob
 import sys
 import pkg_resources
-from os.path import basename, exists, isdir, splitext
+from os.path import basename, isdir, splitext
 
 from metagenomix._inputs import (sample_inputs, group_inputs,
                                  genome_key, genome_out_dir)
@@ -108,14 +108,18 @@ def get_prodigal(
             key += (genome,)
         self.outputs['dirs'].append(out)
         self.outputs['outs'].setdefault((tech, sam_group), []).append(out)
-        status_update(self, tech, [fasta[0]], group=sam_group, genome=genome)
+        to_dos = status_update(
+            self, tech, [fasta[0]], group=sam_group, genome=genome)
         proteins = '%s/protein.translations.fasta' % out
         if self.config.force or to_do(proteins):
             cmd = prodigal_cmd(self, tech, fasta[0], out)
             self.soft.add_status(
                 tech, self.sam_pool, 1, group=sam_group, genome=genome)
             # if exists(fasta[0]):
-            self.outputs['cmds'].setdefault(key, []).append(cmd)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, i_f=fasta[0], o_d=out, key=key)
         else:
             self.soft.add_status(
@@ -295,15 +299,18 @@ def get_macsyfinder(
         proteins = fasta[0]
         if self.soft.prev == 'prodigal':
             proteins = '%s/protein.translations.fasta' % fasta[0]
-        status_update(self, tech, [proteins], group=sam_group, genome=genome)
+        to_dos = status_update(
+            self, tech, [proteins], group=sam_group, genome=genome)
 
         models_dir = self.databases.paths['macsyfinder']
         cmd, outs = macsyfinder_cmd(
             self, tech, proteins, sam_group, genome, out_dir, models_dir)
         self.outputs['outs'].setdefault((tech, sam_group), []).append(outs)
-        # if cmd and exists(proteins):
         if cmd:
-            self.outputs['cmds'].setdefault(key, []).append(cmd)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, i_f=proteins, i_d=models_dir, o_d=out_dir, key=key)
 
 
@@ -505,13 +512,16 @@ def get_integronfinder(
         fasta = fasta_[0]
         if self.soft.prev == 'prodigal':
             fasta = '%s/nucleotide.sequences.fasta' % fasta_[0]
-        status_update(self, tech, [fasta], group=sam_group, genome=genome)
+        to_dos = status_update(
+            self, tech, [fasta], group=sam_group, genome=genome)
 
         fpo = '%s/Results_Integron_Finder_mysequences/mysequences.summary' % out
         if self.config.force or to_do(fpo):
             cmd = integronfinder_cmd(self, tech, fasta, out)
-            # if exists(fasta):
-            self.outputs['cmds'].setdefault(key, []).append(cmd)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, i_f=fasta, o_d=out, key=key)
             self.soft.add_status(
                 tech, self.sam_pool, 1, group=sam_group, genome=genome)
@@ -631,7 +641,8 @@ def search_cmd(
         sam_group: str,
         proteins: str,
         out_dir: str,
-        key: tuple
+        key: tuple,
+        to_dos: list
 ) -> dict:
     """Dispatch the command line creation for hmmer or diamond and
     for the different reference databases.
@@ -678,8 +689,10 @@ def search_cmd(
 
             if self.config.force or to_do(out):
                 cmd = module_call(params, proteins, db_path, out, tmp)
-                # if exists(proteins):
-                self.outputs['cmds'].setdefault(key, []).append(cmd)
+                if to_dos:
+                    self.outputs['cmds'].setdefault(key, []).append(False)
+                else:
+                    self.outputs['cmds'].setdefault(key, []).append(cmd)
                 io_update(self, i_f=proteins, o_d=db_out_dir, key=key)
                 self.soft.add_status(
                     tech, self.sam_pool, 1, group=sam_group, genome=db)
@@ -826,9 +839,9 @@ def get_search(
         proteins = fasta[0]
         if self.soft.prev == 'prodigal':
             proteins = '%s/protein.translations.fasta' % fasta[0]
-        status_update(self, tech, [proteins], group=sam_group, genome=genome)
-
-        outs = search_cmd(self, tech, sam_group, proteins, out_dir, key)
+        to_dos = status_update(
+            self, tech, [proteins], group=sam_group, genome=genome)
+        outs = search_cmd(self, tech, sam_group, proteins, out_dir, key, to_dos)
         if outs:
             self.outputs['outs'].setdefault((tech, sam_group), {}).update(outs)
 
@@ -1019,9 +1032,10 @@ def get_prokka(
     """
     cmd = ''
     configs, cols = prokka_configs(self)
+    to_dos = []
     for config in configs:
-
-        status_update(self, tech, [inputs[0]], group=group, genome=config)
+        to_dos.extend(status_update(
+            self, tech, [inputs[0]], group=group, genome=config))
         pref = '_'.join([config[x] for x in cols if config[x]])
         if config.get('proteins'):
             pref += '_%s' % splitext(basename(config['proteins']))[0]
@@ -1034,7 +1048,7 @@ def get_prokka(
             self.soft.add_status(
                 tech, self.sam_pool, 0, group=group, genome=config)
 
-    return cmd
+    return to_dos, cmd
 
 
 def prokka(self) -> None:
@@ -1077,11 +1091,14 @@ def prokka(self) -> None:
             self.outputs['dirs'].append(out_dir)
             self.outputs['outs'].setdefault(group, []).append(out_dir)
 
-            cmd = get_prokka(self, tech, group, inputs, out_dir)
-            # if cmd and exists(inputs[0]):
+            to_dos, cmd = get_prokka(self, tech, group, inputs, out_dir)
             if cmd:
-                self.outputs['cmds'].setdefault((tech, group), []).append(cmd)
-                io_update(self, i_f=inputs[0], o_d=out_dir, key=(tech, group))
+                key = (tech, group)
+                if to_dos:
+                    self.outputs['cmds'].setdefault(key, []).append(False)
+                else:
+                    self.outputs['cmds'].setdefault(key, []).append(cmd)
+                io_update(self, i_f=inputs[0], o_d=out_dir, key=key)
 
 
 def barrnap_cmd(
@@ -1208,14 +1225,17 @@ def get_ccfind(
         out_dir = genome_out_dir(self, tech, fasta[0], sam_group, genome)
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'].setdefault((tech, sam_group), []).append(out_dir)
-        status_update(self, tech, [fasta[0]], group=sam_group, genome=genome)
+        to_dos = status_update(
+            self, tech, [fasta[0]], group=sam_group, genome=genome)
 
         out = '%s/circ.detected.list' % out_dir
         if self.config.force or not to_do(out):
             cmd = ccfind_cmd(self, tech, fasta[0], out_dir)
             key = genome_key(tech, sam_group, genome)
-            # if exists(fasta[0]):
-            self.outputs['cmds'].setdefault(key, []).append(cmd)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, i_f=fasta[0], o_d=out_dir, key=key)
             self.soft.add_status(
                 tech, self.sam_pool, 1, group=sam_group, genome=genome)
@@ -1263,12 +1283,15 @@ def get_barrnap(
 
         out = '%s/rrna_seqs.fas' % out_dir
         self.outputs['outs'].setdefault((tech, sam_group), []).append(out)
-        status_update(self, tech, [fasta[0]], group=sam_group, genome=genome)
+        to_dos = status_update(
+            self, tech, [fasta[0]], group=sam_group, genome=genome)
 
         if self.config.force or not to_do(out):
             cmd = barrnap_cmd(self, tech, fasta[0], out)
-            # if exists(fasta[0]):
-            self.outputs['cmds'].setdefault(key, []).append(cmd)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, i_f=fasta[0], o_d=out_dir, key=key)
             self.soft.add_status(
                 tech, self.sam_pool, 1, group=sam_group, genome=genome)
@@ -1441,12 +1464,15 @@ def get_antismash(
         self.outputs['outs'].setdefault((tech, sam_group), []).append(out_dir)
 
         key = genome_key(tech, sam_group, genome)
-        status_update(self, tech, [fasta], group=sam_group, genome=genome)
+        to_dos = status_update(
+            self, tech, [fasta], group=sam_group, genome=genome)
 
         if self.config.force or not glob.glob('%s/*' % out_dir):
             cmd = antismash_cmd(self, fasta, out_dir)
-            # if exists(fasta):
-            self.outputs['cmds'].setdefault(key, []).append(cmd)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, i_f=fasta, o_d=out_dir, key=key)
             self.soft.add_status(
                 tech, self.sam_pool, 1, group=sam_group, genome=genome)
@@ -1546,7 +1572,7 @@ def tiara(self) -> None:
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'][group] = out_dir
         out_fp = '%s/classifications.txt' % out_dir
-        status_update(self, tech, [spades[0]], group=group)
+        to_dos = status_update(self, tech, [spades[0]], group=group)
 
         if self.config.force or to_do(out_fp):
             cmd = 'cd %s\n' % out_dir
@@ -1562,8 +1588,10 @@ def tiara(self) -> None:
             for param in ['prob_cutoff', 'to_fasta']:
                 cmd += ' --%s %s' % (param, ' '.join(self.soft.params[param]))
             key = (tech, group)
-            # if exists(spades[0]):
-            self.outputs['cmds'].setdefault(key, []).append(cmd)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, i_f=spades[0], o_d=out_dir, key=key)
             self.soft.add_status(tech, self.sam_pool, 1, group=group)
         else:

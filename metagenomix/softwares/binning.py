@@ -200,7 +200,9 @@ def quantify(self):
                 self.dir, tech, self.sam_pool, group, mode)
             sams_fastqs = get_sams_fastqs(mode, fastqs)
             for sam, fastq in sams_fastqs.items():
-                status_update(self, tech, fastq, group=group)
+                to_dos = status_update(self, tech, fastq, group=group)
+                to_dos.extend(status_update(
+                    self, tech, [bins], group=group, folder=True))
                 if sam:
                     out = out_ + '/%s' % sam
                 else:
@@ -210,7 +212,10 @@ def quantify(self):
                 cmd = quantify_cmd(self, bins, fastq, out, contigs)
                 if self.config.force or not glob.glob('%s/*' % out):
                     self.outputs['outs'][key][mode][sam] = out
-                    self.outputs['cmds'].setdefault(key, []).append(cmd)
+                    if to_dos:
+                        self.outputs['cmds'].setdefault(key, []).append(False)
+                    else:
+                        self.outputs['cmds'].setdefault(key, []).append(cmd)
                     io_update(self, i_f=fastq, o_d=out, key=key)
                     self.soft.add_status(
                         tech, self.sam_pool, 1, group=group, genome=sam)
@@ -367,16 +372,17 @@ def classify_or_annotate(
                 out = classify_or_annotate_out(self, tech, bin_dir, group, sam)
                 self.outputs['dirs'].append(out)
 
-                # if to_do(folder=bin_dir):
-                #     self.soft.add_status(
-                #         tech, self.sam_pool, [bin_dir], group=group, genome=sam)
-                status_update(self, tech, [bin_dir], group=group, genome=sam)
+                to_dos = status_update(
+                    self, tech, [bin_dir], group=group, genome=sam)
                 cmd = classify_or_annotate_cmd(self, command, bin_dir, out)
                 self.outputs['outs'][key][sam] = [out]
 
                 condition = classify_or_annotate_condition(command, out)
                 if self.config.force or condition:
-                    self.outputs['cmds'].setdefault(key, []).append(cmd)
+                    if to_dos:
+                        self.outputs['cmds'].setdefault(key, []).append(False)
+                    else:
+                        self.outputs['cmds'].setdefault(key, []).append(cmd)
                     io_update(self, i_d=bin_dir, o_d=out, key=key)
                     self.soft.add_status(
                         tech, self.sam_pool, 1, group=group, genome=sam)
@@ -548,7 +554,10 @@ def blobology(self):
             out = '/'.join([self.dir, tech, self.sam_pool, group, mode])
             sams_fastqs = get_sams_fastqs(mode, fastqs)
             for sam, fastq_fps in sams_fastqs.items():
-                status_update(self, tech, fastq_fps, group=group, genome=sam)
+                to_dos = status_update(
+                    self, tech, fastq_fps, group=group, genome=sam)
+                to_dos.extend(status_update(self, tech, [bins], group=group,
+                                            genome=sam, folder=True))
                 if sam:
                     out += '/%s' % sam
                 self.outputs['dirs'].append(out)
@@ -556,7 +565,10 @@ def blobology(self):
                 self.outputs['outs'][key][mode][sam] = out
                 if self.config.force or to_do(plot):
                     cmd = blobology_cmd(self, fastq_fps, out, contigs, bins)
-                    self.outputs['cmds'].setdefault(key, []).append(cmd)
+                    if to_dos:
+                        self.outputs['cmds'].setdefault(key, []).append(False)
+                    else:
+                        self.outputs['cmds'].setdefault(key, []).append(cmd)
                     io_update(self, i_f=fastq_fps, o_d=out, key=key)
                     self.soft.add_status(
                         tech, self.sam_pool, 1, group=group, genome=sam)
@@ -697,18 +709,21 @@ def reassemble(self):
         fastqs = get_fastqs(self, group)
         for sam, fastq in fastqs.items():
             if not fastq:
-                # self.soft.add_status(tech, self.sam_pool, [fastq], group=group,
-                #                      message='no illumina data')
                 print('[metawrap_reassemble] No illumina reads for %s' % sam)
                 continue
-            status_update(self, tech, fastq, group=group, genome=sam)
+            to_dos = status_update(self, tech, fastq, group=group, genome=sam)
+            to_dos.extend(status_update(
+                self, tech, [bins], group=group, genome=sam, folder=True))
 
             out = '/'.join([self.dir, tech, self.sam_pool, group, sam])
             self.outputs['dirs'].append(out)
 
             cmd = reassembly_cmd(self, fastq, bins, tech, group, out, key)
             if cmd:
-                self.outputs['cmds'].setdefault(key, []).append(cmd)
+                if to_dos:
+                    self.outputs['cmds'].setdefault(key, []).append(False)
+                else:
+                    self.outputs['cmds'].setdefault(key, []).append(cmd)
                 io_update(self, i_f=self.config.fastq[sam], i_d=bins,
                           o_d=out, key=key)
                 self.soft.add_status(
@@ -784,11 +799,8 @@ def refine(self):
         self.outputs['dirs'].append(out_dir)
 
         bin_folders = inputs[:-1]
-        status_update(self, tech, bin_folders, group=group)
-
-        # to_dos = [x for x in bin_folders if to_do(folder=x)]
-        # if to_dos:
-        #     self.soft.add_status(tech, self.sam_pool, to_dos, group=group)
+        to_dos = status_update(
+            self, tech, bin_folders, group=group, folder=True)
 
         cmd, n_bins = refine_cmd(self, out_dir, bin_folders)
         out = '%s/metawrap_%s_%s' % (out_dir,
@@ -799,8 +811,10 @@ def refine(self):
         if not self.config.force and glob.glob('%s/*.fa' % bins):
             self.soft.add_status(tech, self.sam_pool, 0, group=group)
             continue
-        # if n_bins == len(bin_folders):
-        self.outputs['cmds'].setdefault(key, []).append(cmd)
+        if to_dos:
+            self.outputs['cmds'].setdefault(key, []).append(False)
+        else:
+            self.outputs['cmds'].setdefault(key, []).append(cmd)
         io_update(self, i_d=bin_folders, o_f=stats, o_d=bins, key=key)
         self.soft.add_status(tech, self.sam_pool, 1, group=group)
 
@@ -901,17 +915,21 @@ def binning(self):
             Configurations
     """
     for (tech, group), inputs in self.inputs[self.sam_pool].items():
-        key = (tech, group)
 
         fastqs = [fastq for sam in self.pools[self.sam_pool][group] for fastq
                   in self.config.fastq_mv[sam].get(('illumina', sam), [])]
+
+        to_dos = []
         if not fastqs:
             self.soft.add_status(tech, self.sam_pool, [fastqs], group=group,
                                  message='no illumina data')
             print('[metawrap_binning] No illumina reads for group %s' % group)
             continue
         else:
-            status_update(self, tech, fastqs, group=group)
+            to_dos.extend(status_update(self, tech, fastqs, group=group))
+
+        contigs = inputs[0]
+        to_dos.extend(status_update(self, tech, [contigs], group=group))
 
         tmp = '$TMPDIR/mtwrp_%s_%s_%s' % (self.sam_pool, tech, group)
         out = '/'.join([self.dir, tech, self.sam_pool, group])
@@ -920,12 +938,17 @@ def binning(self):
         binned = {binner: '%s/%s_bins' % (out, binner)
                   for binner in self.soft.params['binners']}
         bin_dirs = sorted(binned.values()) + ['%s/work_files' % out]
+
+        key = (tech, group)
         self.outputs['outs'][key] = bin_dirs
 
-        cmd = binning_cmd(self, fastqs, out, inputs[0], binned)
+        cmd = binning_cmd(self, fastqs, out, contigs, binned)
         if cmd:
-            self.outputs['cmds'].setdefault(key, []).append(cmd)
-            io_update(self, i_f=([inputs[0]] + fastqs), i_d=tmp,
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
+            io_update(self, i_f=([contigs] + fastqs), i_d=tmp,
                       o_d=bin_dirs, key=key)
             self.soft.add_status(tech, self.sam_pool, 1, group=group)
         else:

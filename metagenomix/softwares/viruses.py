@@ -108,7 +108,7 @@ def viralverify(self) -> None:
 
     for (tech, group), inputs in self.inputs[self.sam_pool].items():
 
-        status_update(self, tech, [inputs[0]], group=group)
+        to_dos = status_update(self, tech, [inputs[0]], group=group)
 
         out = '/'.join([self.dir, tech, self.sam_pool, group])
         self.outputs['dirs'].append(out)
@@ -121,7 +121,10 @@ def viralverify(self) -> None:
         if self.config.force or to_do(out_fp):
             key = (tech, group)
             cmd = viralverify_cmd(self, contigs, out)
-            self.outputs['cmds'].setdefault(key, []).append(cmd)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, i_f=contigs, o_d=out, key=key)
             self.soft.add_status(tech, self.sam_pool, 1, group=group)
         else:
@@ -268,7 +271,7 @@ def coconet(self) -> None:
 
     for (tech, group), inputs in self.inputs[self.sam_pool].items():
 
-        status_update(self, tech, [inputs[0]], group=group)
+        to_dos = status_update(self, tech, [inputs[0]], group=group)
 
         bam = bams.get((tech, group), [])
 
@@ -281,7 +284,10 @@ def coconet(self) -> None:
             contigs = inputs[0]
             cmd = coconet_cmd(self, contigs, bam, out_dir)
             key = (tech, group)
-            self.outputs['cmds'].setdefault(key, []).append(cmd)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, i_f=contigs, o_d=out_dir, key=key)
             self.soft.add_status(tech, self.sam_pool, 1, group=group)
         else:

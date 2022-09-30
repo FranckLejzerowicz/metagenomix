@@ -89,9 +89,10 @@ def quast_cmd(
         QUAST command
     contigs : list
         Paths to the contigs assembly files
+    to_dos : list
     """
     contigs, labels = quast_data(self, tech, pool, group_samples)
-    status_update(self, tech, contigs, pool=pool)
+    to_dos = status_update(self, tech, contigs, pool=pool)
 
     cmd = 'metaquast.py'
     cmd += ' %s' % ' '.join(contigs)
@@ -111,7 +112,7 @@ def quast_cmd(
                         'no_snps', 'no_gc', 'no_sv', 'no_read_stats']:
             if self.soft.params[boolean]:
                 cmd += ' --%s' % boolean.replace('_', '-')
-    return cmd, contigs
+    return cmd, contigs, to_dos
 
 
 def quast(self) -> None:
@@ -161,9 +162,13 @@ def quast(self) -> None:
             self.outputs['outs'][pool] = out_dir
 
             if self.config.force or not to_do('%s/report.html' % out_dir):
-                cmd, contigs = quast_cmd(self, tech, pool, group_sams, out_dir)
+                cmd, contigs, to_dos = quast_cmd(
+                    self, tech, pool, group_sams, out_dir)
                 key = (tech, pool)
-                self.outputs['cmds'].setdefault(key, []).append(cmd)
+                if to_dos:
+                    self.outputs['cmds'].setdefault(key, []).append(False)
+                else:
+                    self.outputs['cmds'].setdefault(key, []).append(cmd)
                 io_update(self, i_f=contigs, o_d=out_dir, key=key)
                 self.soft.add_status(tech, pool, 1)
             else:
@@ -208,6 +213,7 @@ def spades_cmd(
         SPAdes.py command
     inputs : list
         Path to the input files
+    to_dos : list
     """
     cmd = 'mkdir -p %s\n' % tmp
     cmd += 'spades.py'
@@ -237,13 +243,14 @@ def spades_cmd(
         cmd += ' --metaviral'
 
     inputs = []
+    to_dos = []
     if self.soft.params['continue'] and not to_do(log):
         cmd += ' --continue'
     else:
         for tech, fastqs in techs_inputs.items():
             if tech not in techs:
                 continue
-            status_update(self, hybrid, fastqs, group=group)
+            to_dos.append(status_update(self, hybrid, fastqs, group=group))
             inputs.extend(fastqs)
             if tech != 'illumina':
                 if len(fastqs):
@@ -269,7 +276,7 @@ def spades_cmd(
     cmd += ' then rm -rf %s/pipeline_state; fi\n' % out
     for k in self.soft.params['k']:
         cmd += 'if [ -d %s/K%s ]; then rm -rf %s/K%s; fi\n' % (out, k, out, k)
-    return cmd, inputs
+    return cmd, inputs, to_dos
 
 
 def hybridize_tech(
@@ -361,10 +368,13 @@ def spades(self) -> None:
 
         # check if there is a need to run
         if self.config.force or to_do(contigs):
-            cmd, inputs = spades_cmd(
+            cmd, inputs, to_dos = spades_cmd(
                 self, techs_inputs, techs, tmp, out, log, hybrid, group)
             key = (hybrid, group)
-            self.outputs['cmds'].setdefault(key, []).append(cmd)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, i_f=inputs, i_d=out, o_d=out, key=key)
             self.soft.add_status(hybrid, self.sam_pool, 1, group=group)
         else:
@@ -476,7 +486,7 @@ def megahit(self) -> None:
         if tech not in techs_inputs:
             sys.exit('[megahit] Illumina reads are required (skipped)')
         inputs = techs_inputs[tech]
-        status_update(self, tech, inputs, group=group)
+        to_dos = status_update(self, tech, inputs, group=group)
 
         tmp = '$TMPDIR/megahit_%s_%s' % (self.sam_pool, group)
         out = '%s/%s/%s' % (self.dir, self.sam_pool, group)
@@ -488,7 +498,10 @@ def megahit(self) -> None:
         if self.config.force or to_do(contigs):
             cmd = megahit_cmd(self, inputs, group, tmp, out)
             key = (tech, group)
-            self.outputs['cmds'].setdefault(key, []).append(cmd)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, i_f=inputs, i_d=out, o_d=out, key=key)
             self.soft.add_status(tech, self.sam_pool, 1, group=group)
         else:
@@ -598,7 +611,7 @@ def plass(self) -> None:
             continue
         out = '/'.join([self.dir, tech, self.sam_pool])
         self.outputs['dirs'].append(out)
-        status_update(self, tech, fastqs)
+        to_dos = status_update(self, tech, fastqs)
 
         if self.soft.params['type'] == 'nuclassemble':
             contigs = '%s/nucl_contigs.fasta' % out
@@ -609,7 +622,10 @@ def plass(self) -> None:
         if self.config.force or to_do(contigs):
             tmp_dir = '$TMPDIR/plass_%s' % self.sam_pool
             cmd = plass_cmd(self, fastqs, contigs, tmp_dir)
-            self.outputs['cmds'].setdefault((tech,), []).append(cmd)
+            if to_dos:
+                self.outputs['cmds'].setdefault((tech,), []).append(False)
+            else:
+                self.outputs['cmds'].setdefault((tech,), []).append(cmd)
             io_update(self, i_f=fastqs, o_d=out, key=tech)
             self.soft.add_status(tech, sam, 1)
         else:
@@ -707,7 +723,7 @@ def flye(self) -> None:
             out = '/'.join([self.dir, tech, self.sam_pool, group])
             self.outputs['dirs'].append(out)
 
-            status_update(self, tech, inputs, group=group)
+            to_dos = status_update(self, tech, inputs, group=group)
 
             contigs = '%s/assembly.fasta' % out
             gfa = '%s/assembly_graph.gfa' % out
@@ -718,7 +734,10 @@ def flye(self) -> None:
             if self.config.force or to_do(contigs):
                 cmd = flye_cmd(self, tech, inputs, out)
                 key = (tech, group)
-                self.outputs['cmds'].setdefault(key, []).append(cmd)
+                if to_dos:
+                    self.outputs['cmds'].setdefault(key, []).append(False)
+                else:
+                    self.outputs['cmds'].setdefault(key, []).append(cmd)
                 io_update(self, i_f=inputs, i_d=out, o_d=out, key=key)
                 self.soft.add_status(tech, self.sam_pool, 1, group=group)
             else:
@@ -834,7 +853,7 @@ def canu(self) -> None:
             if tech == 'illumina':
                 continue
 
-            status_update(self, tech, inputs, group=group)
+            to_dos = status_update(self, tech, inputs, group=group)
 
             out = '/'.join([self.dir, tech, self.sam_pool, group])
             self.outputs['dirs'].append(out)
@@ -846,7 +865,10 @@ def canu(self) -> None:
             if self.config.force or to_do(contigs):
                 cmd = canu_cmd(self, tech, inputs, group, out)
                 key = (tech, group)
-                self.outputs['cmds'].setdefault(key, []).append(cmd)
+                if to_dos:
+                    self.outputs['cmds'].setdefault(key, []).append(False)
+                else:
+                    self.outputs['cmds'].setdefault(key, []).append(cmd)
                 io_update(self, i_f=inputs, i_d=out, o_d=out, key=key)
                 self.soft.add_status(tech, self.sam_pool, 1, group=group)
             else:
@@ -986,8 +1008,11 @@ def unicycler(self) -> None:
 
         if self.config.force or to_do(fasta):
             cmd, inputs = unicycler_cmd(self, techs_inputs, key, out, techs)
-            status_update(self, hybrid, inputs, group=sam_group)
-            self.outputs['cmds'].setdefault(key, []).append(cmd)
+            to_dos = status_update(self, hybrid, inputs, group=sam_group)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, i_f=inputs, o_d=out, key=key)
             self.soft.add_status(hybrid, self.sam_pool, 1, group=sam_group)
         else:
@@ -1168,7 +1193,7 @@ def necat(self) -> None:
         # define the output folder
         out = '%s/%s/%s' % (self.dir, self.sam_pool, group)
 
-        status_update(self, tech, fastxs, group=group)
+        to_dos = status_update(self, tech, fastxs, group=group)
 
         # get some of the expected outputs files
         final = '%s/1-consensus/cns_final.fasta' % out
@@ -1189,7 +1214,10 @@ def necat(self) -> None:
             cmd = necat_cmd(self, group, fastxs, out)
             # [machinery] Collect the command line
             key = (tech, group)
-            self.outputs['cmds'].setdefault(key, []).append(cmd)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, i_f=fastxs, o_d=out, key=key)
             self.soft.add_status(tech, self.sam_pool, 1, group=group)
         else:

@@ -8,7 +8,7 @@
 
 import glob
 import sys
-from metagenomix._io_utils import caller, io_update, to_do
+from metagenomix._io_utils import caller, io_update, to_do, status_update
 from metagenomix._inputs import (group_inputs, genome_key, genome_out_dir,
                                  get_extension, get_assembler, add_folder)
 
@@ -226,6 +226,8 @@ def drep(self):
                 dereps = '%s/dereplicated_genomes' % drep_out
                 self.outputs['outs'][''][(tech, pool_binning_algo)] = [dereps]
 
+                to_dos = status_update(
+                    self, tech, paths, group=bin_algo, folder=True)
                 cmd, drep_in, bin_paths = get_drep_inputs(self, drep_out, paths)
                 if not bin_paths:
                     self.soft.add_status(tech, pool, paths, group=bin_algo,
@@ -239,7 +241,10 @@ def drep(self):
                     continue
                 key = (tech, pool_binning_algo)
                 cmd = drep_cmd(self, algo, drep_in, drep_out, bin_paths, cmd)
-                self.outputs['cmds'].setdefault(key, []).append(cmd)
+                if to_dos:
+                    self.outputs['cmds'].setdefault(key, []).append(False)
+                else:
+                    self.outputs['cmds'].setdefault(key, []).append(cmd)
                 io_update(self, i_d=paths, o_d=drep_out, key=key)
                 self.soft.add_status(tech, pool, 1, group=bin_algo)
 
@@ -316,13 +321,15 @@ def tree(
         self.outputs['outs'].setdefault((tech, group), {}).update(outs)
 
         key = genome_key(tech, group, genome)
-        if self.soft.name != 'checkm' and to_do(folder=genome_dir):
-            self.soft.add_status(
-                tech, self.sam_pool, [genome_dir], group=group, genome=genome)
+        to_dos = status_update(self, tech, [genome_dir], group=group,
+                               genome=genome, folder=True, software='checkm')
 
         if self.config.force or glob.glob('%s/*' % tree_dir):
             cmd = tree_cmd(self, genome_dir, tree_dir)
-            self.outputs['cmds'].setdefault(key, []).append(cmd)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, i_d=genome_dir, o_d=tree_dir, key=key)
             self.soft.add_status(
                 tech, self.sam_pool, 1, group=group, genome=genome)
@@ -425,14 +432,16 @@ def treeqa(
         self.outputs['outs'].setdefault((tech, group), {}).update(outs)
 
         key = genome_key(tech, group, genome)
-        if self.soft.name != 'checkm' and to_do(folder=tree_dir):
-            self.soft.add_status(
-                tech, self.sam_pool, [tree_dir], group=group, genome=genome)
+        to_dos = status_update(self, tech, [tree_dir], group=group,
+                               genome=genome, folder=True, software='checkm')
 
         out = '%s/1_tree_placement_summary.txt' % qa_dir
         if self.config.force or to_do(out):
             cmd = treeqa_cmd(self, tree_dir, qa_dir)
-            self.outputs['cmds'].setdefault(key, []).append(cmd)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, i_d=tree_dir, o_d=qa_dir, key=key)
             self.soft.add_status(
                 tech, self.sam_pool, 1, group=group, genome=genome)
@@ -526,13 +535,15 @@ def lineageset(
 
         key = genome_key(tech, group, genome)
         lineage_ms = '%s/lineage.ms' % lineage_dir
-        if self.soft.name != 'checkm' and to_do(lineage_ms):
-            self.soft.add_status(
-                tech, self.sam_pool, [lineage_ms], group=group, genome=genome)
+        to_dos = status_update(self, tech, [lineage_ms], group=group,
+                               genome=genome, software='checkm')
 
         if self.config.force or to_do(lineage_ms):
             cmd = lineageset_cmd(self, tree_dir, lineage_ms)
-            self.outputs['cmds'].setdefault(key, []).append(cmd)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, i_d=tree_dir, o_d=lineage_dir, key=key)
             self.soft.add_status(
                 tech, self.sam_pool, 1, group=group, genome=genome)
@@ -633,13 +644,15 @@ def analyze(
 
         key = genome_key(tech, group, genome)
         out = '%s/lineage.ms' % lineage_dir
-        if self.soft.name != 'checkm' and to_do(out):
-            self.soft.add_status(
-                tech, self.sam_pool, [out], group=group, genome=genome)
+        to_dos = status_update(self, tech, [out], group=group,
+                               genome=genome, software='checkm')
 
         if self.config.force or glob.glob('%s/*' % analyze_dir):
             cmd = analyze_cmd(self, genomes_dir, lineage_dir, analyze_dir)
-            self.outputs['cmds'].setdefault(key, []).append(cmd)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(
                 self, i_d=[genomes_dir, lineage_dir], o_d=analyze_dir, key=key)
             self.soft.add_status(
@@ -782,13 +795,15 @@ def coverage(
                 self.outputs['outs'].setdefault((tech, group), {}).update(outs)
 
                 key = genome_key(tech, group, genome)
-                if self.soft.name != 'checkm' and to_do(cov):
-                    self.soft.add_status(
-                        tech, self.sam_pool, [cov], group=group, genome=genome)
+                to_dos = status_update(self, tech, [cov], group=group,
+                                       genome=genome, software='checkm')
 
                 if self.config.force or to_do(cov):
                     cmd = coverage_cmd(self, genome_dir, cov, bams)
-                    self.outputs['cmds'].setdefault(key, []).append(cmd)
+                    if to_dos:
+                        self.outputs['cmds'].setdefault(key, []).append(False)
+                    else:
+                        self.outputs['cmds'].setdefault(key, []).append(cmd)
                     io_update(self, i_f=bams, i_d=genome_dir, o_f=cov, key=key)
                     self.soft.add_status(
                         tech, self.sam_pool, 1, group=group, genome=genome)
@@ -966,14 +981,16 @@ def qa(
 
         key = genome_key(tech, group, genome)
         lineage_ms = '%s/lineage.ms' % lineage_dir
-        if self.soft.name != 'checkm' and to_do(lineage_ms):
-            self.soft.add_status(
-                tech, self.sam_pool, [lineage_ms], group=group, genome=genome)
+        to_dos = status_update(self, tech, [lineage_ms], group=group,
+                               genome=genome, software='checkm')
 
         out = '%s/1_completeness_contamination.txt' % qa_dir
         if self.config.force or to_do(out):
             cmd = qa_cmd(self, lineage_ms, analyze_dir, qa_dir, cov)
-            self.outputs['cmds'].setdefault(key, []).append(cmd)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, i_f=[lineage_ms, cov], i_d=analyze_dir,
                       o_d=qa_dir, key=key)
             self.soft.add_status(
@@ -1065,13 +1082,15 @@ def unbinned(
         self.outputs['outs'].setdefault((tech, group), {}).update(outs)
 
         key = genome_key(tech, group, genome)
-        if self.soft.name != 'checkm' and not glob.glob('%s/*' % genomes_dir):
-            self.soft.add_status(
-                tech, self.sam_pool, [genomes_dir], group=group, genome=genome)
+        to_dos = status_update(self, tech, [genomes_dir], group=group,
+                               genome=genome, folder=True, software='checkm')
 
         if self.config.force or to_do('%s/unbinned.fa' % unbinned_dir):
             cmd = unbinned_cmd(self, genomes_dir, contigs, unbinned_dir)
-            self.outputs['cmds'].setdefault(key, []).append(cmd)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(
                 self, i_f=contigs, i_d=genomes_dir, o_d=unbinned_dir, key=key)
             self.soft.add_status(
@@ -1145,19 +1164,22 @@ def tetra(
     """
     for fasta in fastas.values():
 
-        out_dir = genome_out_dir(self, tech, fasta[0], group)
+        contigs = fasta[0]
+        out_dir = genome_out_dir(self, tech, contigs, group)
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
 
         key = genome_key(tech, group)
-        if to_do(fasta[0]):
-            self.soft.add_status(tech, self.sam_pool, [fasta[0]], group=group)
+        to_dos = status_update(self, tech, [contigs], group=group)
 
         out = '%s/tetra.txt' % out_dir
         if self.config.force or to_do(out):
-            cmd = tetra_cmd(self, fasta[0], out)
-            self.outputs['cmds'].setdefault(key, []).append(cmd)
-            io_update(self, i_f=fasta[0], o_d=out_dir, key=key)
+            cmd = tetra_cmd(self, contigs, out)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
+            io_update(self, i_f=contigs, o_d=out_dir, key=key)
             self.soft.add_status(tech, self.sam_pool, 1, group=group)
         else:
             self.soft.add_status(tech, self.sam_pool, 0, group=group)
@@ -1340,14 +1362,16 @@ def get_checkm2(
         self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
 
         key = genome_key(tech, group, genome)
-        if to_do(folder=folder):
-            self.soft.add_status(
-                tech, self.sam_pool, [folder], group=group, genome=genome)
+        to_dos = status_update(self, tech, [folder], group=group,
+                               genome=genome, folder=True)
 
         out = '%s/quality_report.tsv' % out_dir
         if self.config.force or to_do(out):
             cmd = checkm2_cmd(self, folder, out_dir)
-            self.outputs['cmds'].setdefault(key, []).append(cmd)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, i_f=folder, o_d=out_dir, key=key)
             self.soft.add_status(
                 tech, self.sam_pool, 1, group=group, genome=genome)

@@ -228,7 +228,7 @@ def count(self) -> None:
     for (tech, sam), fastxs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, fastxs, tech, sam):
             continue
-        status_update(self, tech, fastxs)
+        to_dos = status_update(self, tech, fastxs)
 
         out_dir = '%s/%s/%s' % (self.dir, tech, sam)
         self.outputs['dirs'].append(out_dir)
@@ -238,8 +238,11 @@ def count(self) -> None:
 
         if self.config.force or to_do(out):
             for idx, fastx in enumerate(fastxs):
-                cmd = count_cmd(self, idx, fastx, out)
-                self.outputs['cmds'].setdefault((tech,), []).append(cmd)
+                if to_dos:
+                    cmd = count_cmd(self, idx, fastx, out)
+                    self.outputs['cmds'].setdefault((tech,), []).append(cmd)
+                else:
+                    self.outputs['cmds'].setdefault((tech,), []).append(False)
             io_update(self, i_f=fastxs, i_d=out_dir, o_f=out, key=tech)
             self.soft.add_status(tech, sam, 1)
         else:
@@ -283,7 +286,7 @@ def fastqc(self) -> None:
     for (tech, sam), fastxs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, fastxs, tech, sam):
             continue
-        status_update(self, tech, fastxs)
+        to_dos = status_update(self, tech, fastxs)
 
         out_dir = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
         self.outputs['dirs'].append(out_dir)
@@ -294,7 +297,10 @@ def fastqc(self) -> None:
 
         if self.config.force or sum([to_do(x) for x in out]):
             cmd = 'fastqc %s -o %s' % (' '.join(fastxs), out_dir)
-            self.outputs['cmds'][(tech,)] = [cmd]
+            if to_dos:
+                self.outputs['cmds'][(tech,)] = [False]
+            else:
+                self.outputs['cmds'][(tech,)] = [cmd]
             io_update(self, i_f=fastxs, o_d=out_dir, key=tech)
             self.soft.add_status(tech, sam, 1)
         else:
@@ -472,7 +478,7 @@ def fastp(self) -> None:
     for (tech, sam), fastqs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, fastqs, tech, sam):
             continue
-        status_update(self, tech, fastqs)
+        to_dos = status_update(self, tech, fastqs)
 
         out_dir = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
         self.outputs['dirs'].append(out_dir)
@@ -481,7 +487,10 @@ def fastp(self) -> None:
         self.outputs['outs'].setdefault((tech, self.sam_pool), []).extend(outs)
 
         if self.config.force or sum([to_do(x) for x in outs]):
-            self.outputs['cmds'][(tech,)] = [cmd]
+            if to_dos:
+                self.outputs['cmds'][(tech,)] = [False]
+            else:
+                self.outputs['cmds'][(tech,)] = [cmd]
             io_update(self, i_f=fastqs, o_d=out_dir, key=tech)
             self.soft.add_status(tech, sam, 1)
         else:
@@ -591,7 +600,7 @@ def cutadapt(self) -> None:
     for (tech, sam), fastqs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, fastqs, tech, sam, ['illumina']):
             continue
-        status_update(self, tech, fastqs)
+        to_dos = status_update(self, tech, fastqs)
 
         out_dir = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
         self.outputs['dirs'].append(out_dir)
@@ -600,7 +609,10 @@ def cutadapt(self) -> None:
         self.outputs['outs'].setdefault((tech, self.sam_pool), []).extend(outs)
 
         if self.config.force or sum([to_do(x) for x in outs]):
-            self.outputs['cmds'][(tech,)] = [cmd]
+            if to_dos:
+                self.outputs['cmds'][(tech,)] = [False]
+            else:
+                self.outputs['cmds'][(tech,)] = [cmd]
             io_update(self, i_f=fastqs, o_f=outs, key=tech)
             self.soft.add_status(tech, sam, 1)
         else:
@@ -733,7 +745,7 @@ def atropos(self) -> None:
     for (tech, sam), fastqs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, fastqs, tech, sam, ['illumina']):
             continue
-        status_update(self, tech, fastqs)
+        to_dos = status_update(self, tech, fastqs)
 
         out_dir = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
         self.outputs['dirs'].append(out_dir)
@@ -741,7 +753,10 @@ def atropos(self) -> None:
 
         cmd = atropos_cmd(self, tech, fastqs, out_dir, outs)
         if self.config.force or sum([to_do(x) for x in outs]):
-            self.outputs['cmds'][(tech,)] = [cmd]
+            if to_dos:
+                self.outputs['cmds'][(tech,)] = [False]
+            else:
+                self.outputs['cmds'][(tech,)] = [cmd]
             io_update(self, i_f=fastqs, o_f=outs, key=tech)
             self.soft.add_status(tech, sam, 1)
         else:
@@ -827,7 +842,7 @@ def hifiadapterfilt(self) -> None:
     for (tech, sam), fastqs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, fastqs, tech, sam, ['pacbio']):
             continue
-        status_update(self, tech, fastqs)
+        to_dos = status_update(self, tech, fastqs)
 
         out_dir = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
         self.outputs['dirs'].append(out_dir)
@@ -838,7 +853,10 @@ def hifiadapterfilt(self) -> None:
         if self.config.force or to_do(out):
             cmd = hifiadapterfilt_cmd(self, fastqs, out_dir, sam)
             key = (tech, sam)
-            self.outputs['cmds'].setdefault(key, []).append(cmd)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, i_f=fastqs, o_d=out_dir, key=key)
             self.soft.add_status(tech, sam, 1)
         else:
@@ -950,7 +968,7 @@ def kneaddata(self) -> None:
     for (tech, sam), fastqs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, fastqs, tech, sam, ['illumina']):
             continue
-        status_update(self, tech, fastqs)
+        to_dos = status_update(self, tech, fastqs)
 
         out_dir = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
         self.outputs['dirs'].append(out_dir)
@@ -958,7 +976,10 @@ def kneaddata(self) -> None:
         cmd, outputs = kneaddata_cmd(self, tech, fastqs, out_dir)
 
         if self.config.force or sum([to_do(x) for x in outputs]):
-            self.outputs['cmds'][(tech,)] = [cmd]
+            if to_dos:
+                self.outputs['cmds'][(tech,)] = [False]
+            else:
+                self.outputs['cmds'][(tech,)] = [cmd]
             io_update(self, i_f=fastqs, o_d=out_dir, key=tech)
             self.soft.add_status(tech, sam, 1)
         else:
@@ -1044,7 +1065,7 @@ def filtering(self):
     for (tech, sam), fastqs_ in self.inputs[self.sam_pool].items():
         if tech_specificity(self, fastqs_, tech, sam):
             continue
-        status_update(self, tech, fastqs_)
+        to_dos = status_update(self, tech, fastqs_)
 
         fastqs = fastqs_
         cmds = ''
@@ -1075,7 +1096,10 @@ def filtering(self):
         self.outputs['outs'].setdefault(
             (tech, self.sam_pool), []).extend(fastqs_gz)
         if (self.config.force or sum([to_do(x) for x in fastqs_gz])) and cmds:
-            self.outputs['cmds'][(tech,)] = [cmds]
+            if to_dos:
+                self.outputs['cmds'][(tech,)] = [False]
+            else:
+                self.outputs['cmds'][(tech,)] = [cmds]
             io_update(self, i_f=fastqs_, i_d=out_dirs, o_f=fastqs_gz, key=tech)
             self.soft.add_status(tech, sam, 1)
         else:

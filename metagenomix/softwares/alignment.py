@@ -95,7 +95,7 @@ def flash(self) -> None:
             continue
         if not_paired(self, tech, sam, fastqs):
             continue
-        status_update(self, tech, fastqs)
+        to_dos = status_update(self, tech, fastqs)
 
         out = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
         self.outputs['dirs'].append(out)
@@ -109,7 +109,10 @@ def flash(self) -> None:
 
         if self.config.force or sum([to_do(x) for x in outs]):
             cmd = flash_cmd(self, tech, fastqs, out)
-            self.outputs['cmds'][(tech,)] = [cmd]
+            if to_dos:
+                self.outputs['cmds'][(tech,)] = [False]
+            else:
+                self.outputs['cmds'][(tech,)] = [cmd]
             io_update(self, i_f=fastqs, o_d=out, key=tech)
             self.soft.add_status(tech, sam, 1)
         else:
@@ -214,7 +217,7 @@ def ngmerge(self) -> None:
             continue
         if not_paired(self, tech, sam, fastqs):
             continue
-        status_update(self, tech, fastqs)
+        to_dos = status_update(self, tech, fastqs)
 
         out = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
         self.outputs['dirs'].append(out)
@@ -234,7 +237,10 @@ def ngmerge(self) -> None:
 
         if self.config.force or sum([to_do(x) for x in outs]):
             cmd = ngmerge_cmd(self, tech, fastqs, ext, log, fail)
-            self.outputs['cmds'][(tech,)] = [cmd]
+            if to_dos:
+                self.outputs['cmds'][(tech,)] = [False]
+            else:
+                self.outputs['cmds'][(tech,)] = [cmd]
             io_update(self, i_f=fastqs, o_d=out, key=tech)
             self.soft.add_status(tech, sam, 1)
         else:
@@ -336,7 +342,7 @@ def pear(self) -> None:
             continue
         if not_paired(self, tech, sam, fastqs):
             continue
-        status_update(self, tech, fastqs)
+        to_dos = status_update(self, tech, fastqs)
 
         out = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
         self.outputs['dirs'].append(out)
@@ -355,7 +361,10 @@ def pear(self) -> None:
 
         if self.config.force or sum([to_do(x) for x in outs]):
             cmd = pear_cmd(self, tech, fastqs, rad, outs, outs_, na)
-            self.outputs['cmds'][(tech,)] = [cmd]
+            if to_dos:
+                self.outputs['cmds'][(tech,)] = [False]
+            else:
+                self.outputs['cmds'][(tech,)] = [cmd]
             io_update(self, i_f=fastqs, o_d=out, key=tech)
             self.soft.add_status(tech, sam, 1)
         else:
@@ -471,7 +480,7 @@ def bbmerge(self) -> None:
             continue
         if not_paired(self, tech, sam, fastqs):
             continue
-        status_update(self, tech, fastqs)
+        to_dos = status_update(self, tech, fastqs)
 
         # make the output directory
         out = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
@@ -496,7 +505,10 @@ def bbmerge(self) -> None:
             # collect the command line
             cmd = bbmerge_cmd(self, tech, fastqs, outs_cmd)
             # add is to the 'cmds'
-            self.outputs['cmds'][(tech,)] = [cmd]
+            if to_dos:
+                self.outputs['cmds'][(tech,)] = [False]
+            else:
+                self.outputs['cmds'][(tech,)] = [cmd]
             io_update(self, i_f=fastqs, o_d=out, key=tech)
             self.soft.add_status(tech, sam, 1)
         else:
@@ -740,7 +752,7 @@ def bowtie2(self) -> None:
     for (tech, sample), fastxs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, fastxs, tech, sample):
             continue
-        status_update(self, tech, fastxs)
+        to_dos = status_update(self, tech, fastxs)
         out = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
         self.outputs['outs'][(tech, self.sam_pool)] = dict()
         for db, db_path in self.soft.params['databases'].items():
@@ -749,7 +761,10 @@ def bowtie2(self) -> None:
             self.outputs['outs'][(tech, self.sam_pool)][(db, 'bowtie2')] = sam
             if self.config.force or to_do(sam):
                 cmd = get_alignment_cmd(fastxs, cmd, sam)
-                self.outputs['cmds'].setdefault((tech,), []).append(cmd)
+                if to_dos:
+                    self.outputs['cmds'].setdefault((tech,), []).append(False)
+                else:
+                    self.outputs['cmds'].setdefault((tech,), []).append(cmd)
                 io_update(self, i_f=fastxs, i_d=db_out, o_d=db_out, key=tech)
                 self.soft.add_status(tech, self.sam_pool, 1)
             else:

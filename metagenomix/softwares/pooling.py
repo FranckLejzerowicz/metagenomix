@@ -16,7 +16,8 @@ def pool_cmd(
         pool: str,
         paths: list,
         fasta: str,
-        group: str
+        group: str,
+        to_dos: list
 ) -> None:
     """Write the pooling command and collect the output and io for FLASh.
 
@@ -37,6 +38,7 @@ def pool_cmd(
         Path to an output fasta file
     group : str
         Name of the sample group within the pool
+    to_dos : list
     """
     if self.config.force or to_do(fasta):
         cmd = ''
@@ -46,7 +48,10 @@ def pool_cmd(
             else:
                 cmd += 'cat %s > %s\n' % (path, fasta)
         if cmd:
-            self.cmds.setdefault((tech, (pool, group)), []).append(cmd)
+            if to_dos:
+                self.cmds.setdefault((tech, (pool, group)), []).append(False)
+            else:
+                self.cmds.setdefault((tech, (pool, group)), []).append(cmd)
 
 
 def extension_paths(
@@ -183,8 +188,9 @@ def get_fasta_pools(
         combine_single(paths_to_merge)
     fasta_fps = []
     for extension, paths in sorted(paths_to_merge.items()):
-        status_update(self, tech, paths, group=group)
-        fasta = pool_fasta(self, tech, out, extension, paths, pool, group)
+        to_dos = status_update(self, tech, paths, group=group)
+        fasta = pool_fasta(
+            self, tech, out, extension, paths, pool, group, to_dos)
         fasta_fps.append(fasta)
     return fasta_fps
 
@@ -221,7 +227,8 @@ def make_pool(
         pool: str,
         group: str,
         paths: list,
-        fasta: str
+        fasta: str,
+        to_dos: list
 ) -> None:
     """
 
@@ -244,11 +251,12 @@ def make_pool(
         Path to the input files to merge
     fasta : str
         Fasta file name for the merging result
+    to_dos : list
     """
     # collect the inputs to pool as to move to scratch
     add_to_pool_io(self, ('I', 'f'), tech, pool, group, paths)
     # collect the pooling command line
-    pool_cmd(self, tech, pool, paths, fasta, group)
+    pool_cmd(self, tech, pool, paths, fasta, group, to_dos)
 
 
 def pool_fasta(
@@ -258,7 +266,8 @@ def pool_fasta(
         extension: str,
         paths: list,
         pool: str,
-        group: str
+        group: str,
+        to_dos: list
 ) -> str:
     """
 
@@ -283,6 +292,7 @@ def pool_fasta(
         Name of the pool
     group : str
         Name of the sample group within the pool
+    to_dos : list
 
     Returns
     -------
@@ -292,7 +302,7 @@ def pool_fasta(
     # only pool if there is min 2 samples being merged
     if len(paths) > 1:
         fasta = fasta_fp(out, group, extension)
-        make_pool(self, tech, pool, group, paths, fasta)
+        make_pool(self, tech, pool, group, paths, fasta, to_dos)
     else:
         fasta = paths[0]
     return fasta

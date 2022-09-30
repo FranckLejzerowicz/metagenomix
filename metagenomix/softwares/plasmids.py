@@ -83,12 +83,16 @@ def get_plasforest(
 
         out_fp = '%s/plasmids.csv' % out_dir
         self.outputs['outs'].setdefault((tech, sam_group), []).append(out_fp)
-        status_update(self, tech, [fasta[0]], group=sam_group, genome=genome)
+        to_dos = status_update(self, tech, [fasta[0]], group=sam_group,
+                               genome=genome)
 
         if self.config.force or to_do(out_fp):
             key = genome_key(tech, sam_group, genome)
             cmd = plasforest_cmd(self, fasta[0], out_fp, out_dir)
-            self.outputs['cmds'].setdefault(key, []).append(cmd)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, i_f=fasta[0], i_d=out_dir, o_f=out_fp, key=key)
             self.soft.add_status(
                 tech, self.sam_pool, 1, group=sam_group, genome=genome)
@@ -170,13 +174,17 @@ def get_plasmidfinder(
         out_dir = genome_out_dir(self, tech, fasta[0], sam_group, genome)
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'].setdefault((tech, sam_group), []).append(out_dir)
-        status_update(self, tech, [fasta[0]], group=sam_group, genome=genome)
+        to_dos = status_update(
+            self, tech, [fasta[0]], group=sam_group, genome=genome)
 
         json_fp = '%s/data.json' % out_dir
         if self.config.force or to_do(json_fp):
             key = genome_key(tech, sam_group, genome)
             cmd = plasmidfinder_cmd(self, fasta, out_dir, key)
-            self.outputs['cmds'].setdefault(key, []).append(cmd)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, i_f=fasta, i_d=out_dir, o_d=out_dir, key=key)
             self.soft.add_status(
                 tech, self.sam_pool, 1, group=sam_group, genome=genome)
