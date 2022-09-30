@@ -120,7 +120,8 @@ def get_predict(
         for typ, seq in typ_seqs.items():
 
             key = genome_key(tech, sam_group, genome)
-            status_update(self, tech, [seq], group=sam_group, genome=genome)
+            to_dos = status_update(
+                self, tech, [seq], group=sam_group, genome=genome)
 
             base = splitext(basename(seq))[0]
             prefix = '%s/%s' % (out_dir, base)
@@ -133,8 +134,10 @@ def get_predict(
             if self.config.force or to_do(arg):
                 # collect the command line
                 cmd = predict_cmd(self, seq, prefix, typ)
-                # add is to the 'cmds'
-                self.outputs['cmds'].setdefault(key, []).append(cmd)
+                if to_dos:
+                    self.outputs['cmds'].setdefault(key, []).append(False)
+                else:
+                    self.outputs['cmds'].setdefault(key, []).append(cmd)
                 io_update(self, i_f=fasta[0], o_d=out_dir, key=key)
                 self.soft.add_status(
                     tech, self.sam_pool, 1, group=sam_group, genome=genome)
@@ -237,7 +240,7 @@ def short(self) -> None:
             continue
         if not_paired(self, tech, sam, fastqs):
             continue
-        status_update(self, tech, fastqs)
+        to_dos = status_update(self, tech, fastqs)
 
         # make the output directory
         out = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
@@ -256,8 +259,10 @@ def short(self) -> None:
         if self.config.force or to_do(arg):
             # collect the commmand line
             cmd = short_cmd(self, fastqs, prefix)
-            # add is to the 'cmds'
-            self.outputs['cmds'][(tech,)] = [cmd]
+            if to_dos:
+                self.outputs['cmds'][(tech,)] = [False]
+            else:
+                self.outputs['cmds'][(tech,)] = [cmd]
             io_update(self, i_f=fastqs, o_d=out, key=tech)
             self.soft.add_status(tech, sam, 1)
         else:
@@ -393,7 +398,7 @@ def get_metamarc(
         fasta = inputs[0]
         out_dir = genome_out_dir(self, tech, fasta, sam_group, genome)
         self.outputs['outs'].setdefault((tech, sam_group), []).append(out_dir)
-        status_update(
+        to_dos = status_update(
             self, tech, inputs, self.sam_pool, group=sam_group, genome=genome)
 
         outs, cmd = [], ''
@@ -418,8 +423,10 @@ def get_metamarc(
             full_cmd += cmd
             full_cmd += '\nrm -rf bin\n'
             full_cmd += 'rm -rf hmmer-3.1b2\n'
-            # add is to the 'cmds'
-            self.outputs['cmds'].setdefault(key, []).append(full_cmd)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(full_cmd)
             io_update(self, i_f=inputs, o_d=outs, key=key)
             self.soft.add_status(
                 tech, self.sam_pool, 1, group=sam_group, genome=genome)
@@ -560,7 +567,8 @@ def get_karga_kargva(
         fastx = inputs[0]
         out_dir = genome_out_dir(self, tech, fastx, sam_group)
         self.outputs['outs'].setdefault((tech, sam_group), []).append(out_dir)
-        status_update(self, tech, inputs, group=sam_group, genome=genome)
+        to_dos = status_update(
+            self, tech, inputs, group=sam_group, genome=genome)
 
         merge_cmd = ''
         if len(inputs) == 1:
@@ -596,9 +604,11 @@ def get_karga_kargva(
             for p in ps:
                 full_cmd += 'rm -rf %s\n' % p
 
-            # add is to the 'cmds'
             key = genome_key(tech, sam_group)
-            self.outputs['cmds'].setdefault(key, []).append(full_cmd)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(full_cmd)
             io_update(self, i_f=inputs, o_d=outs, key=key)
             self.soft.add_status(
                 tech, self.sam_pool, 1, group=sam_group, genome=genome)
@@ -827,16 +837,19 @@ def get_abricate(
         self.outputs['dirs'].append(out_d)
         self.outputs['outs'].setdefault((tech, sam_group), []).append(out_d)
 
-        status_update(self, tech, [fasta], group=sam_group, genome=genome)
+        to_dos = status_update(
+            self, tech, [fasta], group=sam_group, genome=genome)
 
         outs = ['%s/%s.txt' % (out_d, x) for x in self.soft.params['databases']]
         # check if tool already run (or if --force) to allow getting command
         if self.config.force or sum([to_do(x) for x in outs]):
             # collect the command line
             cmd = abricate_cmd(self, tech, inputs, out_d)
-            # add is to the 'cmds'
             key = genome_key(tech, sam_group, genome)
-            self.outputs['cmds'].setdefault(key, []).append(cmd)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, i_f=inputs, o_d=out_d, key=key)
             self.soft.add_status(
                 tech, self.sam_pool, 1, group=sam_group, genome=genome)
@@ -981,16 +994,18 @@ def get_amrplusplus2(
     self.outputs['dirs'].append(out_dir)
     self.outputs['outs'].setdefault((tech, self.sam_pool), []).append(out_dir)
 
-    status_update(self, tech, fastqs)
+    to_dos = status_update(self, tech, fastqs)
 
     # check if tool already run (or if --force) to allow getting command
     out = '%s/ResistomeResults/AMR_analytic_matrix.csv' % out_dir
     if self.config.force or to_do(out):
         # collect the command line
         cmd = amrplusplus2_cmd(self, fastqs, out_dir)
-        # add is to the 'cmds'
         key = genome_key(tech, self.sam_pool)
-        self.outputs['cmds'].setdefault(key, []).append(cmd)
+        if to_dos:
+            self.outputs['cmds'].setdefault(key, []).append(False)
+        else:
+            self.outputs['cmds'].setdefault(key, []).append(cmd)
         io_update(self, i_f=fastqs, o_d=out_dir, key=key)
         self.soft.add_status(tech, self.sam_pool, 1)
     else:
