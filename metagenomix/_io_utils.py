@@ -256,8 +256,10 @@ def status_update(
         pool: str = None,
         group: str = None,
         genome: str = None,
-        message: str = None
-) -> None:
+        message: str = None,
+        folder: bool = False,
+        software: str = ''
+) -> list:
     """Potentially add the fastq files to the status (files to generate).
 
     Parameters
@@ -279,18 +281,32 @@ def status_update(
         MAGs/Genomes folder name or empty string (for assembly contigs)
     message : str
         Warning to show
+    folder : bool
+        Whether the paths are folders
+    software : str
+        Software name to allow collecting status
+
+    Returns
+    -------
+    to_dos : list
+        Paths to input file that need to be created (or whether they are links)
     """
-    to_dos = get_to_dos(self, inputs)
-    if to_dos:
+    to_dos = get_to_dos(self, inputs, folder)
+    if to_dos and self.soft.name != software:
         if pool:
             self.soft.add_status(tech, pool, to_dos,
                                  group=group, genome=genome, message=message)
         else:
             self.soft.add_status(tech, self.sam_pool, to_dos,
                                  group=group, genome=genome, message=message)
+    return to_dos
 
 
-def get_to_dos(self, inputs):
+def get_to_dos(
+        self,
+        inputs: list,
+        folder: bool
+) -> list:
     """Potentially add the fastq files to the status (files to generate).
 
     Parameters
@@ -302,6 +318,8 @@ def get_to_dos(self, inputs):
             Software class instance
     inputs : list
         Paths to input files
+    folder : bool
+        Whether the paths are folders
 
     Returns
     -------
@@ -310,7 +328,11 @@ def get_to_dos(self, inputs):
     """
     to_dos = []
     for inp in inputs:
-        if to_do(inp):
+        if folder:
+            to_do_inp = to_do(folder=inp)
+        else:
+            to_do_inp = to_do(inp)
+        if to_do_inp:
             to_dos.append(inp)
         if isinstance(inp, list):
             inps = inp
@@ -458,7 +480,7 @@ def to_do(
             return False
     if folder:
         folder = folder.replace('${SCRATCH_FOLDER}', '')
-        if isdir(folder) or islink(folder):
+        if (isdir(folder) or islink(folder)) and glob.glob('%s/*' % folder):
             return False
     return True
 
