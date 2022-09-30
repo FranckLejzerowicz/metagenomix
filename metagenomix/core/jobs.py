@@ -37,6 +37,7 @@ class Created(object):
         self.soft = ''
         self.hash = ''
         self.sh = ''
+        self.main_sh = ''
         self.run = {'database': {}, 'software': {}}
         self.job_fps = []
         self.job_name = ''
@@ -83,18 +84,21 @@ class Created(object):
                 chunkey = '%s_%s' % (key[0], '-'.join(key[1]).replace('/', '_'))
                 self.chunks[chunkey] = [key]
 
-    def get_main_sh(self, name, soft=None, local='') -> str:
+    def get_main_sh(self, name, soft=None, local='') -> None:
         if soft:
-            main = '%s/run%s.sh' % (soft.dir, local)
-            self.run['software']['%s%s' % (name, local)] = main
+            n = 'software'
+            key = '%s%s' % (name, local)
+            if self.cmds is None:
+                self.run[n][key] = 'Input needed (output from %s)' % soft.prev
+            else:
+                self.main_sh = '%s/run%s.sh' % (soft.dir, local)
+                self.run[n][key] = self.main_sh
         else:
-            main = '%s/run_%s.sh' % (self.sh.rsplit('/', 2)[0], name)
-            self.run['database'][name] = main
-        return main
+            self.main_sh = '%s/run_%s.sh' % (self.sh.rsplit('/', 2)[0], name)
+            self.run['database'][name] = self.main_sh
 
-    def write_main(self, name, soft=None) -> None:
-        main = self.get_main_sh(name, soft)
-        with open(main, 'w') as o:
+    def write_main(self) -> None:
+        with open(self.main_sh, 'w') as o:
             if len(self.job_fps):
                 job_dir = dirname(self.job_fps[0])
                 o.write('mkdir -p %s/output\n' % job_dir)
@@ -105,8 +109,8 @@ class Created(object):
 
     def write_bash(self, name, soft) -> None:
         if soft.bash:
-            main = self.get_main_sh(name, soft, '_locally')
-            with open(main, 'w') as o:
+            self.get_main_sh(name, soft, '_locally')
+            with open(self.main_sh, 'w') as o:
                 for cmd in soft.bash:
                     o.write('%s\n' % cmd)
 
@@ -222,10 +226,20 @@ class Created(object):
                     if not isdir(fol_loc):
                         os.symlink(fol_sto, fol_loc)
 
+    @staticmethod
+    def check_input_availability(soft):
+        availability = 0
+        for cmds in soft.cmds.values():
+            availability += sum(map(bool, cmds))
+        return availability
+
     def get_cmds(self, soft):
         self.cmds = {}
-        for sam_or_pool, cmds in soft.cmds.items():
-            self.scratch(soft, sam_or_pool, cmds)
+        if self.check_input_availability(soft):
+            for sam_or_pool, cmds in soft.cmds.items():
+                self.scratch(soft, sam_or_pool, cmds)
+        else:
+            self.cmds = None
 
     def print_status(self, m, sdx, name, soft):
         gap = (m - len(name) - len(str(sdx))) + 1
@@ -384,11 +398,13 @@ class Created(object):
             self.get_links(soft)
             self.get_modules(name)
             self.get_cmds(soft)
-            self.get_chunks(soft.params['chunks'])
-            self.write_jobs(name, soft)
-            self.write_main(name, soft)
+            self.get_main_sh(name, soft)
+            if self.cmds is not None:
+                self.get_chunks(soft.params['chunks'])
+                self.write_jobs(name, soft)
+                self.write_main()
+                self.write_bash(name, soft)
             self.write_provenance(name, soft)
-            self.write_bash(name, soft)
 
     def get_links(self, soft):
         self.commands.links_stats[soft.name] = len(soft.links)
@@ -523,6 +539,9 @@ class Created(object):
                 print(soft_print)
                 self.scripts.append(soft_print)
             for name, main in name_main.items():
-                main_print = '>%s\nsh %s' % (name, main)
+                if main.startswith('Input'):
+                    main_print = '>%s\n%s' % (name, main)
+                else:
+                    main_print = '>%s\nsh %s' % (name, main)
                 print(main_print)
                 self.scripts.append(main_print)
