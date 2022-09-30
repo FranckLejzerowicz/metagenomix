@@ -234,7 +234,6 @@ def short(self) -> None:
         .config
             Configurations
     """
-    # iterate over the inputs
     for (tech, sam), fastqs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, fastqs, tech, sam, ['illumina']):
             continue
@@ -242,22 +241,16 @@ def short(self) -> None:
             continue
         to_dos = status_update(self, tech, fastqs)
 
-        # make the output directory
         out = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
         self.outputs['dirs'].append(out)
 
-        # get the expected names of some of the ouptuts:
-        # - those you want to collect in 'outs': will be used as future inputs
-        # - at least one: will help to know whether the software already run
         prefix = out + '/' + self.sam_pool
         arg = '%s.mapping.ARG' % prefix
         pot_arg = '%s.potential.ARG' % prefix
         outs = [arg, pot_arg]
         self.outputs['outs'].setdefault((tech, self.sam_pool), []).extend(outs)
 
-        # check if the tool already run (or if --force) to allow getting command
         if self.config.force or to_do(arg):
-            # collect the commmand line
             cmd = short_cmd(self, fastqs, prefix)
             if to_dos:
                 self.outputs['cmds'][(tech,)] = [False]

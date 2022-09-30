@@ -669,7 +669,7 @@ def get_bowtie2_cmd(
         cmd += ' -2 %s' % fastx[1]
         if not params['discordant']:
             cmd += ' --no-discordant'
-            sam += '.nodiscordant'
+            sam += '    .nodiscordant'
     else:
         cmd += ' -U %s' % ','.join(fastx)
     sam += '.sam'
@@ -678,10 +678,10 @@ def get_bowtie2_cmd(
     cmd += ' --very-sensitive'
     cmd += ' -k %s' % params['k']
     cmd += ' --np %s' % params['np']
-    cmd += ' --mp "%s"' % params['mp']
-    cmd += ' --rdg "%s"' % params['rdg']
-    cmd += ' --rfg "%s"' % params['rfg']
-    cmd += ' --score-min "%s"' % params['score-min']
+    cmd += ' --mp %s' % params['mp']
+    cmd += ' --rdg %s' % params['rdg']
+    cmd += ' --rfg %s' % params['rfg']
+    cmd += ' --score-min %s' % params['score-min']
     cmd += ' --met-file %s.met' % splitext(sam)[0]
     cmd += ' --met 240'
     cmd += ' --no-unal'
