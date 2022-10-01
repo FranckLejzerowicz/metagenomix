@@ -215,18 +215,20 @@ def macsyfinder_cmd(
     outs : dict
         Paths to the output folder per model
     """
-    cmd = ''
     proteins_fp = proteins
     params = tech_params(self, tech)
+    cmd_header = ''
     if tech in ['illumina', 'pacbio', 'nanopore']:
         proteins_fp = '%s_edit.fasta' % proteins.replace('.fasta', '')
-        cmd += '%s/header_space_replace.py -i %s -o %s --n\n' % (
+        cmd_header += '%s/header_space_replace.py -i %s -o %s --n\n' % (
             RESOURCES, proteins, proteins_fp)
 
+    cmd = ''
     outs = {}
     for model in params['models']:
         model_dir = '%s/%s' % (out_dir, model)
         if not self.config.dev and not isdir(model_dir):
+            print(model_dir)
             self.soft.add_status(tech, self.sam_pool, 1, group=sam_group,
                                  message='no model %s' % model, genome=genome)
             continue
@@ -264,7 +266,8 @@ def macsyfinder_cmd(
         else:
             self.soft.add_status(
                 tech, self.sam_pool, 0, group=sam_group, genome=genome)
-
+    if cmd:
+        cmd = cmd_header + cmd
     return cmd, outs
 
 
