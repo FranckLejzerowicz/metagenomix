@@ -241,12 +241,17 @@ def macsyfinder_cmd(
             cmd += 'macsyfinder'
             if self.soft.prev == 'plass':
                 cmd += ' --db-type unordered'
-            elif '_spades_' in model_out_dir:
+            elif self.soft.prev in self.config.tools['assembling']:
                 cmd += ' --db-type ordered_replicon'
-                cmd += ' --replicon-topology linear'
+                if self.soft.prev == 'spades_plasmid':
+                    cmd += ' --replicon-topology circular'
+                else:
+                    cmd += ' --replicon-topology linear'
             elif '_drep_' in model_out_dir or '_metawrap' in model_out_dir:
                 cmd += ' --db-type ordered_replicon'
                 cmd += ' --replicon-topology circular'
+            else:
+                cmd += ' --db-type unordered'
             for param in [
                 'e_value_search', 'i_evalue_sel', 'coverage_profile',
                 'mandatory_weight', 'accessory_weight', 'exchangeable_weight',
