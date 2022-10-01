@@ -226,39 +226,39 @@ def macsyfinder_cmd(
     cmd = ''
     outs = {}
     for model in params['models']:
-        model_dir = '%s/%s' % (out_dir, model)
+        model_dir = '%s/models' % models_dir
         if not self.config.dev and not isdir(model_dir):
-            print(model_dir)
             self.soft.add_status(tech, self.sam_pool, 1, group=sam_group,
                                  message='no model %s' % model, genome=genome)
             continue
-        outs[model] = model_dir
-        self.outputs['dirs'].append(model_dir)
-        res = '%s/macsyfinder.log' % model_dir
+
+        model_out_dir = '%s/%s' % (out_dir, model)
+        self.outputs['dirs'].append(model_out_dir)
+        outs[model] = model_out_dir
+
+        res = '%s/macsyfinder.log' % model_out_dir
         if self.config.force or to_do(res):
             cmd += 'macsyfinder'
-
             if self.soft.prev == 'plass':
                 cmd += ' --db-type unordered'
-            elif '_spades_' in out_dir:
+            elif '_spades_' in model_out_dir:
                 cmd += ' --db-type ordered_replicon'
                 cmd += ' --replicon-topology linear'
-            elif '_drep_' in out_dir or '_metawrap' in out_dir:
+            elif '_drep_' in model_out_dir or '_metawrap' in model_out_dir:
                 cmd += ' --db-type ordered_replicon'
                 cmd += ' --replicon-topology circular'
-
             for param in [
                 'e_value_search', 'i_evalue_sel', 'coverage_profile',
                 'mandatory_weight', 'accessory_weight', 'exchangeable_weight',
                 'redundancy_penalty', 'out_of_cluster'
             ]:
                 cmd += ' --%s %s' % (param.replace('_', '-'), params[param])
-            cmd += ' --out-dir %s' % model_dir
+            cmd += ' --out-dir %s' % model_out_dir
             cmd += ' --res-search-suffix _hmm.tsv'
             cmd += ' --res-extract-suffix _out.tsv'
             cmd += ' --worker %s' % params['cpus']
             cmd += ' --sequence-db %s' % proteins_fp
-            cmd += ' --models-dir %s/models' % models_dir
+            cmd += ' --models-dir %s' % model_dir
             cmd += ' --models %s all' % model
             cmd += ' --verbosity\n'
             self.soft.add_status(
