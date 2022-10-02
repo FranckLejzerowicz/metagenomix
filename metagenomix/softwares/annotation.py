@@ -239,9 +239,7 @@ def macsyfinder_cmd(
         res = '%s/macsyfinder.log' % model_out_dir
         if self.config.force or to_do(res):
             cmd += 'macsyfinder'
-            if self.soft.prev == 'plass':
-                cmd += ' --db-type unordered'
-            elif self.soft.prev in self.config.tools['assembling']:
+            if self.soft.prev in self.config.tools['assembling']:
                 cmd += ' --db-type ordered_replicon'
                 if self.soft.prev == 'spades_plasmid':
                     cmd += ' --replicon-topology circular'
