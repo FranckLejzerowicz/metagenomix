@@ -1369,12 +1369,11 @@ def check_bracken(self, params, soft):
 def check_plasmidfinder(self, params, soft):
     defaults = {
         'extented_output': [True, False],
-        'methodPath': ['kma', 'blastn'],
         'threshold': 70,
         'mincov': 75,
     }
     if 'methodPath' not in params:
-        sys.exit('[plasmidfinder] Param "methodPath" missing (kma or blast '
+        sys.exit('[plasmidfinder] Param "methodPath" missing (kma or blastn '
                  'binary)')
     elif not self.config.dev and not isfile(params['methodPath']):
         sys.exit('[plasmidfinder] "methodPath" binary not found'
@@ -1395,7 +1394,7 @@ def check_plasmidfinder(self, params, soft):
     check_nums(self, params, defaults, ints, int, soft.name, 0, 100)
     check_default(self, params, defaults, soft.name, ints)
     check_binary(self, soft.name, params, defaults, 'binary')
-    defaults['kma'] = '<Path to the "kma" binary>'
+    defaults['methodPath'] = '<Path to the "kma" or "blastn" binary>'
     defaults['binary'] = '<Path to the "plasmidfinder.py" binary>'
     defaults['databasePath'] = '<Path databases folder (with a "config" file)>'
     defaults['databases'] = "<Comma-separated databases (first field of the " \
