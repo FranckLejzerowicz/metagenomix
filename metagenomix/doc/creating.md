@@ -238,18 +238,17 @@ mkdir -p <output folder>/<software>/after_<previous software>/jobs/output
 # move to this jobs/output folder before spawning the jobs
 cd <output folder>/<software>/after_<previous software>/jobs/output
 # spawn the jobs (here using Slurm)
-sbatch <output folder>/<software>/after_<previous software>/jobs/run_<input_unit_1 / chunk_1>.slm
-sbatch <output folder>/<software>/after_<previous software>/jobs/run_<input_unit_2 / chunk_2>.slm
-sbatch <output folder>/<software>/after_<previous software>/jobs/run_<input_unit_n / chunk_n>.slm
+sbatch <output folder>/<software>/after_<previous software>/jobs/run_<input_unit_1/chunk_1>.slm
+sbatch <output folder>/<software>/after_<previous software>/jobs/run_<input_unit_2/chunk_2>.slm
+sbatch <output folder>/<software>/after_<previous software>/jobs/run_<input_unit_n/chunk_n>.slm
 ```
 As a result, all the jobs `.o` and `.e` output files will be written in this 
 `jobs/output` location and nowhere else. This notably eases the
 [monitoring](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/monitoring.md)
 and
 [management](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/managing.md#2-Jobs-cleansing)
-for each step of the pipeline. The naming of these (slurm) job output files 
-always has the following nomenclature:
-`slurm-<software>.<project-name>.<input_unit_1 / chunk_1>_<JOBID>.e`
+for each step of the pipeline. The (slurm) job output files are always named as 
+follows: `slurm-<software>.<project-name>.<input_unit_1/chunk_1>_<JOBID>.e`
 
 
 ### Terminal output
@@ -277,10 +276,19 @@ It is possible that the input files necessary for a job to run are located
 away from the computing nodes, as it should be on a
 [well-managed file system](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/managing.md#managing),
 for example using `metagemoics manage`. In this case, the very last output 
-from `metagenomix create` will be an invitation for the user to first run a 
-bash script that will move all necessary files back from the storage 
-to the computing location:
+from `metagenomix create` will be an invitation for the user to first run
+scripts that will move all necessary files back from the storage 
+to the computing location. This invitation depends on one argument:
+- `-y` (or `--links-chunks`) which takes an <INTEGER> as input.
 
+If this option is used, then all the input files and folder required for all 
+the softwares scheduled to run will be moved back in <INTEGER> different
+screen sessions, e.g.:
+```
+metagenomix create ... -y 4
+```
+
+Will return:
 ```
 **********************************************
 Some data needed for these jobs is stored away
@@ -290,6 +298,20 @@ Some data needed for these jobs is stored away
         -  ....                : ...
   -> Run this script to bring this data (4 screen sessions)
            sh /path/to/output/_created/<HASH_VALUE>/move.sh
+```
+
+If `-y` is not used, then there will be one screen session to bring inputs 
+back per software. These can be spawned individually or altogether (be 
+careful not to run two sessions bringing the files):
+
+```
+**********************************************
+Some data needed for these jobs is stored away
+**********************************************
+        -  soft_1              : # files  -> sh move-soft_1.sh
+        -  soft_2              : # files  -> sh move-soft_2.sh
+        -  soft_3              : # files  -> sh move-soft_3.sh
+        -> all softwares (3 screen sessions)  -> sh move.sh
 ```
 
 These scripts will spawn screen sessions that need to completed before 
@@ -456,8 +478,8 @@ used to cache
 [Pfam-related](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/tutorials/code/softwares/pfam_search.md)
 analyses files:
 
-* `--show-params / --no-show-params`: display all the parameters that 
-  are available to use in the
+* `--show-params / --no-show-params`: display in the terminal output all the 
+  parameters that are available to use in the
   [parameters](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/parameters.md)
   configuration file for the softwares of the pipeline.
 * `--show-status / --no-show-status`: display a summary of the amnount of
