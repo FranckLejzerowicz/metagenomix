@@ -1373,10 +1373,12 @@ def check_plasmidfinder(self, params, soft):
         'threshold': 70,
         'mincov': 75,
     }
-    if 'kma' not in params:
-        sys.exit('[plasmidfinder] Param "kma" missing (kma binary)')
-    elif not self.config.dev and not isfile(params['kma']):
-        sys.exit('[plasmidfinder] "kma" binary not found: "%s"' % params['kma'])
+    if 'methodPath' not in params:
+        sys.exit('[plasmidfinder] Param "methodPath" missing (kma or blast '
+                 'binary)')
+    elif not self.config.dev and not isfile(params['methodPath']):
+        sys.exit('[plasmidfinder] "methodPath" binary not found'
+                 ': "%s"' % params['methodPath'])
 
     db_path = 'databasePath'
     if db_path not in params:
