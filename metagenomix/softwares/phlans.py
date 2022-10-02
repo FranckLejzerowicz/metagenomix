@@ -56,7 +56,8 @@ def analyses(
         tech: str,
         sam: str,
         bowtie2out: str,
-        reads: str
+        reads: str,
+        cmds: list
 ) -> None:
     """Get the taxonomic analyses Metaphlan command.
 
@@ -81,6 +82,8 @@ def analyses(
         Input type was a bowtie2 output of the same tool
     reads : str
         Number of reads in the current sample
+    cmds : list
+        Commands per tech
     """
     params = tech_params(self, tech)
     if 'a' in params:
@@ -128,7 +131,7 @@ def analyses(
                     if params['min_ab']:
                         cms += ' --min_ab %s' % params['min_ab']
                     if self.config.force or to_do(clade_out):
-                        self.outputs['cmds'].setdefault((tech,), []).append(cmd)
+                        cmds.append(cmd)
                         io_update(self, o_f=clade_out, key=tech)
                         self.soft.add_status(
                             tech, self.sam_pool, 1, message=t, genome='strain')
@@ -139,7 +142,7 @@ def analyses(
                 ab_out = '%s.tsv' % rad
                 cmd += ' --output_file %s' % ab_out
                 if self.config.force or to_do(ab_out):
-                    self.outputs['cmds'].setdefault((tech,), []).append(cmd)
+                    cmds.append(cmd)
                     io_update(self, o_f=ab_out, key=tech)
                     self.soft.add_status(tech, self.sam_pool, 1, message=t)
                 else:
@@ -152,7 +155,8 @@ def profiling(
         sam: str,
         inputs: list,
         bowtie2out: str,
-        tmpdir: str
+        tmpdir: str,
+        cmds: list
 ) -> tuple:
     """Get the taxonomic profiling metaphlan command.
 
@@ -183,13 +187,17 @@ def profiling(
         Input type was a bowtie2 output of the same tool
     tmpdir : str
         Path to a temporary directory
+    cmds : list
+        Commands per tech
 
     Returns
     -------
-    sam_out : str
-        Alignment output
-    profile_out : str
-        Metaphlan taxonomic profile output
+    outs : list
+        sam_out : str
+            Alignment output
+        profile_out : str
+            Metaphlan taxonomic profile output
+    to_dos : list
     """
     sam_out = '%s/%s/sams/%s.sam.bz2' % (self.dir, tech, sam)
     profile_out = '%s/%s/profiles/%s.tsv' % (self.dir, tech, sam)
@@ -199,11 +207,12 @@ def profiling(
         io_update(self, o_f=profile_out, key=tech)
         cmd = 'metaphlan'
         if not to_do(bowtie2out):
+            to_dos = status_update(self, tech, [bowtie2out])
             io_update(self, i_f=bowtie2out, key=tech)
             cmd += ' %s' % bowtie2out
             cmd += ' --input_type bowtie2out'
         else:
-            status_update(self, tech, inputs)
+            to_dos = status_update(self, tech, inputs)
             io_update(self, i_f=inputs, key=tech)
             cmd += ' %s' % ','.join(inputs)
             cmd += ' --input_type fastq'
@@ -217,12 +226,14 @@ def profiling(
         cmd += ' --output_file %s' % profile_out
         cmd += ' --nproc %s' % params['cpus']
         cmd += ' --sample_id_key %s' % sam
-        self.outputs['cmds'].setdefault((tech,), []).append(cmd)
+        cmds.append(cmd)
         self.soft.add_status(tech, self.sam_pool, 1)
     else:
+        to_dos = []
         io_update(self, i_f=bowtie2out, key=tech)
         self.soft.add_status(tech, self.sam_pool, 0)
-    return sam_out, profile_out
+    outs = [sam_out, profile_out]
+    return outs, to_dos
 
 
 def metaphlan(self) -> None:
@@ -286,7 +297,9 @@ def metaphlan(self) -> None:
         tmpdir = '$TMPDIR/metaphlan_%s_%s' % (tech, self.sam_pool)
         bowtie2out = '%s/%s/bowtie2/%s.bowtie2.bz2' % (self.dir, tech, sam)
 
-        outs = profiling(self, tech, sam, inputs, bowtie2out, tmpdir)
+        cmds = []
+        outs, to_dos = profiling(
+            self, tech, sam, inputs, bowtie2out, tmpdir, cmds)
         self.outputs['outs'].setdefault(
             (tech, sam), []).extend([bowtie2out] + list(outs))
         self.outputs['dir'] = [
@@ -294,10 +307,13 @@ def metaphlan(self) -> None:
 
         reads = get_read_count(self, tech, sam)
         if reads:
-            analyses(self, tech, sam, bowtie2out, reads)
-        if self.outputs['cmds'].get((tech,)):
+            analyses(self, tech, sam, bowtie2out, reads, cmds)
+        if cmds:
             _cmd = ['mkdir -p %s\n' % tmpdir]
-            self.outputs['cmds'][(tech,)] = _cmd + self.outputs['cmds'][(tech,)]
+            if to_dos:
+                self.outputs['cmds'][(tech,)] = [False]
+            else:
+                self.outputs['cmds'][(tech,)] = _cmd + cmds
 
 
 def get_profile(self) -> list:

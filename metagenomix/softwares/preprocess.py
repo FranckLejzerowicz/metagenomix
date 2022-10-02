@@ -121,7 +121,7 @@ def get_edit_cmd(
         Technology: 'illumina', 'pacbio', or 'nanopore'
     """
     fastqs_fps = self.inputs[self.sam_pool][(tech, self.sam_pool)]
-    status_update(self, tech, fastqs_fps)
+    to_dos = status_update(self, tech, fastqs_fps)
 
     fastq_fp = fastqs_fps[num - 1]
     line = get_fastq_header(
@@ -130,7 +130,10 @@ def get_edit_cmd(
     if not line_split[0].endswith('/%s' % num):
         if len(line_split) > 1:
             cmd = edit_fastq_cmd(fastq_fp, num)
-            self.outputs['cmds'].setdefault((tech,), []).append(cmd)
+            if to_dos:
+                self.outputs['cmds'].setdefault((tech,), []).append(False)
+            else:
+                self.outputs['cmds'].setdefault((tech,), []).append(cmd)
             self.soft.add_status(tech, self.sam_pool, 1)
         else:
             self.soft.add_status(tech, self.sam_pool, 0)
