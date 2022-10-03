@@ -250,7 +250,7 @@ def spades_cmd(
         for tech, fastqs in techs_inputs.items():
             if tech not in techs:
                 continue
-            to_dos.append(status_update(self, hybrid, fastqs, group=group))
+            to_dos.extend(status_update(self, hybrid, fastqs, group=group))
             inputs.extend(fastqs)
             if tech != 'illumina':
                 if len(fastqs):
