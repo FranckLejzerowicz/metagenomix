@@ -6,7 +6,7 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-from os.path import splitext
+from os.path import basename, splitext
 from metagenomix.core.parameters import tech_params
 from metagenomix._io_utils import (io_update, to_do, tech_specificity,
                                    not_paired, status_update)
@@ -661,31 +661,84 @@ def get_bowtie2_cmd(
     """
     params = tech_params(self, tech)
     cmd = 'bowtie2'
-    cmd += ' -p %s' % params['cpus']
     cmd += ' -x %s' % db_path
     sam = '%s/alignment.bowtie2' % db_out
-    if len(fastx) == 2 and params['pairing'] == 'paired':
+    if params['paired'] and len(fastx) == 2:
         cmd += ' -1 %s' % fastx[0]
         cmd += ' -2 %s' % fastx[1]
-        if not params['discordant']:
-            cmd += ' --no-discordant'
-            sam += '.nodiscordant'
+        for boolean, name in [('no_mixed', 'noMix'),
+                              ('no_discordant', 'noDisc'),
+                              ('dovetail', 'Dove'),
+                              ('no_contain', 'noCont'),
+                              ('no_overlap', 'noOver')]:
+            if params[boolean]:
+                cmd += ' --%s' % boolean.replace('_', '-')
+                sam += '.%s' % name
+            if params['un_conc']:
+                cmd += ' --un-conc-gz %s/%s_unali_pairs.fastq.gz' % (
+                    db_out, self.sam_pool)
+            if params['al_conc']:
+                cmd += ' --al-conc-gz %s/%s_okali_pairs.fastq.gz' % (
+                    db_out, self.sam_pool)
     else:
         cmd += ' -U %s' % ','.join(fastx)
     sam += '.sam'
     cmd += ' -S %s' % sam
-    cmd += ' --seed 12345'
-    if params['presets']:
-        cmd += ' --%s' % params['presets']
-    cmd += ' -k %s' % params['k']
-    cmd += ' --np %s' % params['np']
-    cmd += ' --mp %s' % params['mp']
-    cmd += ' --rdg %s' % params['rdg']
-    cmd += ' --rfg %s' % params['rfg']
-    cmd += ' --score-min %s' % params['score-min']
-    cmd += ' --met-file %s.met' % splitext(sam)[0]
-    cmd += ' --met 240'
-    cmd += ' --no-unal'
+
+    if params['un']:
+        cmd += ' --un-gz %s/%s_unali.fastq.gz' % (db_out, self.sam_pool)
+    if params['al']:
+        cmd += ' --al-gz %s/%s_okali.fastq.gz' % (db_out, self.sam_pool)
+
+    cmd += ' -p %s' % params['cpus']
+
+    if not params['presets']:
+        cmd += ' -D %s' % params['D']
+        cmd += ' -R %s' % params['R']
+        cmd += ' -L %s' % params['L']
+        cmd += ' -N %s' % params['N']
+        cmd += ' -i %s' % params['i']
+
+    if params['end_to_end']:
+        cmd += ' --end-to-end'
+        if params['presets']:
+            cmd += ' --%s' % params['presets']
+    elif params['local']:
+        cmd += ' --local'
+        if params['presets']:
+            cmd += ' --%s-local' % params['presets']
+
+    if params['met']:
+        cmd += ' --met-file %s.met' % splitext(sam)[0]
+        cmd += ' --met %s' % params['met']
+
+    cmd += ' --%s' % params['fr']
+    for param in ['n_ceil', 'rdg', 'rfg', 'score_min']:
+        cmd += ' --%s %s' % (param.replace('_', '-'), params[param])
+    for param in ['skip', 'upto', 'trim5', 'trim3', 'trim_to', 'dpad',
+                  'gbar', 'ma', 'np', 'mp', 'minins', 'maxins', 'seed']:
+        if params[param]:
+            cmd += ' --%s %s' % (param.replace('-', '_'), params[param])
+
+    if params['all']:
+        cmd += ' --all'
+    elif params['k']:
+        cmd += ' -k %s' % params['k']
+
+    booleans = [
+        'q', 'tab5', 'tab6', 'qseq', 'f', 'r', 'c', 'phred33', 'phred64',
+        'int_quals', 'ignore_quals', 'nofw', 'norc', 'no_1mm_upfront',
+        'align_paired_reads', 'preserve_tags', 't', 'quiet', 'no_unal',
+        'no_head', 'no_sq', 'omit_sec_seq', 'sam_no_qname_trunc', 'xeq',
+        'soft_clipped_unmapped_tlen', 'sam_append_comment', 'reorder', 'mm',
+        'qc_filter', 'non_deterministic']
+    for boolean in booleans:
+        if params[boolean]:
+            if boolean == 't':
+                cmd += ' --time'
+            else:
+                cmd += ' --%s' % boolean.replace('_', '-')
+
     return cmd, sam
 
 
@@ -757,7 +810,10 @@ def bowtie2(self) -> None:
         out = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
         self.outputs['outs'][(tech, self.sam_pool)] = dict()
         for db, db_path in self.soft.params['databases'].items():
-            db_out = '%s/%s/%s' % (out, db, self.soft.params['pairing'])
+            if self.soft.params['paired'] and len(fastxs) == 2:
+                db_out = '%s/%s/paired' % (out, db)
+            else:
+                db_out = '%s/%s/unpaired' % (out, db)
             cmd, sam = get_bowtie2_cmd(self, tech, fastxs, db_path, db_out)
             self.outputs['outs'][(tech, self.sam_pool)][(db, 'bowtie2')] = sam
             if self.config.force or to_do(sam):

@@ -1706,7 +1706,6 @@ def woltka_kegg(
 
 def woltka_pairing(
         self,
-        tech: str
 ) -> str:
     """Get the type of reads pairing that was defined by the
     user if the previous software was bowtie2.
@@ -1718,19 +1717,15 @@ def woltka_pairing(
             Previous software
         .soft.params
             Parameters
-    tech : str
-        Technology: 'illumina', 'pacbio', or 'nanopore'
 
     Returns
     -------
     pairing : str
         Pairing parameter used for Bowtie2
     """
-    pairing = ''
-    if self.soft.prev == 'bowtie2':
-        pairing = self.softs['bowtie2'].params['pairing']
-        if isinstance(pairing, dict) and tech in set(pairing):
-            pairing = pairing[tech]
+    pairing = 'single'
+    if self.soft.prev == 'bowtie2' and self.softs['bowtie2'].params['paired']:
+        pairing = 'paired'
     return pairing
 
 
@@ -1772,7 +1767,7 @@ def woltka(self) -> None:
     db = self.databases.paths['wol']
     for tech in self.config.techs:
 
-        pairing = woltka_pairing(self, tech)
+        pairing = woltka_pairing(self)
         alignments = woltka_aligments(self, tech)
         if not alignments:
             continue
