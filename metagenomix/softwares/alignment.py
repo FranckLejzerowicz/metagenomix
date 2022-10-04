@@ -737,7 +737,10 @@ def get_bowtie2_cmd(
             if boolean == 't':
                 cmd += ' --time'
             else:
-                cmd += ' --%s' % boolean.replace('_', '-')
+                if len(boolean) == 1:
+                    cmd += ' -%s' % boolean
+                else:
+                    cmd += ' --%s' % boolean.replace('_', '-')
 
     return cmd, sam
 
