@@ -584,18 +584,18 @@ def get_karga_kargva(
 
         if cmd:
             if self.soft.name == 'karga':
-                ps = ['openjdk-8', 'AMRGene.class', 'KARGA$1.class',
-                      'KARGA.class', 'KARGA.java']
+                ps = ['openjdk-8', 'AMRGene.class']
             elif self.soft.name == 'kargva':
-                ps = ['AMRVariantGene.class', 'KARGVA$1.class', 'KARGVA.class',
-                      'KARGVA.java', 'kargva_db_v5.fasta']
+                ps = ['AMRVariantGene.class', 'kargva_db_v5.fasta']
             path = self.soft.params['path']
             full_cmd = 'cd %s\n' % out_dir
+            full_cmd += 'cp -r %s/KARG* %s/.\n' % (path, out_dir)
             for p in ps:
                 full_cmd += 'cp -r %s/%s %s/.\n' % (path, p, out_dir)
             full_cmd += merge_cmd + cmd
             for p in ps:
                 full_cmd += 'rm -rf %s\n' % p
+            full_cmd += 'rm -rf KARG*\n'
 
             key = genome_key(tech, sam_group)
             if to_dos:
