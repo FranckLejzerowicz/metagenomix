@@ -145,7 +145,7 @@ class Created(object):
                     continue
                 o.write('\n========== %s: %s ==========\n' % (sdx, step))
                 params_show = self.commands.softs[step].params.copy()
-                if 'databases' in params_show:
+                if step.startswith('search'):
                     databases = params_show['databases']
                     del params_show['databases']
                     params = {'search': {soft.name.split('_')[-1]: params_show,
