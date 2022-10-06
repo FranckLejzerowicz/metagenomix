@@ -538,7 +538,7 @@ def get_integronfinder(
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
-            io_update(self, i_f=fasta, o_d=out, key=key)
+            io_update(self, i_f=[fasta, hmms_sh], o_d=out, key=key)
             self.soft.add_status(
                 tech, self.sam_pool, 1, group=sam_group, genome=genome)
         else:
