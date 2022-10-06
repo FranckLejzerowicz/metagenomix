@@ -2406,7 +2406,7 @@ def bracken(self) -> None:
         if tech_specificity(self, inputs, tech, sam):
             continue
         for (db, k2) in inputs:
-            to_dos = status_update(self, tech, [k2])
+            to_dos = status_update(self, tech, [k2], folder=True)
             db_path = get_bracken_db(self, db)
             out = '/'.join([self.dir, tech, self.sam_pool, db])
             self.outputs['dirs'].append(out)
