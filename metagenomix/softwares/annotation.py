@@ -516,7 +516,7 @@ def get_integronfinder(
             os.makedirs(hmms_dir)
         with open(hmms_sh.replace('${SCRATCH_FOLDER}', ''), 'w') as o:
             o.write(hmms_cmds)
-        hmms_cmd = '\nif [ ! -f %s ]: then sh %s; fi\n' % (hmms_fp, hmms_fp)
+        hmms_cmd = '\nif [ ! -f %s ]: then sh %s; fi\n' % (hmms_fp, hmms_sh)
 
     for genome, fasta_ in fastas.items():
 
