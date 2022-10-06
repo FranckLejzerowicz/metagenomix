@@ -2419,7 +2419,7 @@ def check_mapdamage2(self, params, soft):
         'use_raw_nick_freq': [False, True],
         'single_stranded': [False, True],
         'theme_bw': [False, True],
-        'seq_length':12,
+        'seq_length': 12,
         'stats_only': [False, True],
         'no_stats': [True, False],
         'check_R_packages': [True, False],
@@ -2440,13 +2440,38 @@ def check_mapdamage2(self, params, soft):
 
 def check_amrfinderplus(self, params, soft):
     defaults = {
+        'database': '$AMRFINDER_DB',
+        'annotation_format': [None, 'bakta', 'genbank', 'microscope', 'patric',
+                              'pgap', 'prokka', 'pseudomonasdb', 'rast'],
+        'pgap': [False, True],
+        'ident_min': -1,
+        'coverage_min': 0.5,
+        'organism': [None, 'Acinetobacter_baumannii', 'Burkholderia_cepacia',
+                     'Burkholderia_pseudomallei', 'Campylobacter',
+                     'Clostridioides_difficile', 'Enterococcus_faecalis',
+                     'Enterococcus_faecium', 'Escherichia', 'Klebsiella',
+                     'Neisseria', 'Pseudomonas_aeruginosa', 'Salmonella',
+                     'Staphylococcus_aureus', 'Staphylococcus_pseudintermedius',
+                     'Streptococcus_agalactiae', 'Streptococcus_pneumoniae',
+                     'Streptococcus_pyogenes', 'Vibrio_cholerae'],
+        'translation_table': 11,
+        'plus': [False, True],
+        'report_common': [False, True],
+        'blast_bin': '$BLAST_BIN',
+        'report_all_equal': [False, True],
+        'nucleotide_flank5_size': 0,
+        'quiet': [False, True],
+        'gpipe_org': [False, True],
+        'parm': [None, 'nosame', 'noblast', 'skip_hmm_check', 'bed'],
     }
-    ints = []
-    check_nums(self, params, defaults, ints, int, soft.name)
-    floats = []
-    check_nums(self, params, defaults, floats, float, soft.name)
-    check_default(self, params, defaults, soft.name, (ints + floats))
-    defaults[''] = '<>'
+    ints1 = ['translation_table']
+    check_nums(self, params, defaults, ints1, int, soft.name, 1, 33)
+    ints2 = ['nucleotide_flank5_size']
+    check_nums(self, params, defaults, ints2, int, soft.name)
+    floats = ['ident_min', 'coverage_min']
+    check_nums(self, params, defaults, floats, float, soft.name, -1, 1)
+    check_default(self, params, defaults, soft.name,
+                  (ints1 + ints2 + floats), ['parm'])
     return defaults
 
 
