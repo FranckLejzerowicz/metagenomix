@@ -7,6 +7,7 @@
 # ----------------------------------------------------------------------------
 
 import glob
+import os
 import sys
 import pkg_resources
 from os.path import basename, isdir, splitext
@@ -395,7 +396,7 @@ def write_hmms_cmd(self) -> tuple:
     cmd = ''
     hmms_fp = ''
     if self.databases.hmms_dias:
-        hmms_fp = '%s/hmm.txt' % self.dir
+        hmms_fp = '%s/hmms.txt' % self.dir
         first = True
         for i, (target, gen_hmm) in enumerate(self.databases.hmms_dias.items()):
             if self.config.dev and i == 1:
@@ -416,6 +417,7 @@ def integronfinder_cmd(
         tech: str,
         fastx: str,
         out: str,
+        hmms_fp: str
 ) -> str:
     """Collect command for integron_finder.
 
@@ -430,6 +432,7 @@ def integronfinder_cmd(
         Path to the input fasta/fastq(.gz) file
     out : str
         Path to the output folder
+    hmms_fp : str
 
     Returns
     -------
@@ -445,9 +448,6 @@ def integronfinder_cmd(
         cmd += 'seqtk seq -a %s > %s\n' % (fastx, fasta)
 
     fasta_out = '%s_min%snt.fasta' % (splitext(fasta)[0], params['min_length'])
-    hmms_cmd, hmms = write_hmms_cmd(self)
-    if hmms_cmd:
-        cmd += hmms_cmd
 
     cmd += '\n%s/filter_on_length.py' % RESOURCES
     cmd += ' -i %s' % fasta
@@ -465,7 +465,7 @@ def integronfinder_cmd(
     cmd += ' --cpu %s' % params['cpus']
     if self.databases.hmms_dias:
         cmd += ' --func-annot'
-        cmd += ' --path-func-annot %s' % hmms
+        cmd += ' --path-func-annot %s' % hmms_fp
     if params['prot_file']:
         cmd += ' --prot-file %s' % params['prot_file']
     if params['attc_model']:
@@ -508,6 +508,16 @@ def get_integronfinder(
     sam_group : str
         Sample name or group for the current co-assembly
     """
+    hmms_cmds, hmms_fp = write_hmms_cmd(self)
+    if hmms_cmds:
+        hmms_sh = '%s/hmms.sh' % self.dir
+        hmms_dir = self.dir.replace('${SCRATCH_FOLDER}', '')
+        if not isdir(hmms_dir):
+            os.makedirs(hmms_dir)
+        with open(hmms_sh.replace('${SCRATCH_FOLDER}', ''), 'w') as o:
+            o.write(hmms_cmds)
+        hmms_cmd = '\nif [ ! -f %s ]: then sh %s; fi\n' % (hmms_sh, hmms_sh)
+
     for genome, fasta_ in fastas.items():
 
         key = genome_key(tech, sam_group, genome)
@@ -523,7 +533,7 @@ def get_integronfinder(
 
         fpo = '%s/Results_Integron_Finder_mysequences/mysequences.summary' % out
         if self.config.force or to_do(fpo):
-            cmd = integronfinder_cmd(self, tech, fasta, out)
+            cmd = hmms_cmd + integronfinder_cmd(self, tech, fasta, out, hmms_fp)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
@@ -1787,3 +1797,6 @@ def graspx(self):
 #                       o_d=o_dir, key=group)
 #
 #
+
+
+# TO ADD:  bakta, genbank, microscope, patric, pgap, prokka, pseudomonasdb, rast
