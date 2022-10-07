@@ -111,15 +111,16 @@ class Output(object):
         self.input = []
 
     def parse_slm(self):
-        directives = {}
-        with open(self.script) as f:
-            for line in f:
-                if line.startswith('#SBATCH') and '=' in line:
-                    key, value = line.strip().split('SBATCH ')[-1].split('=')
-                    if key.strip('-') in self.directives:
-                        directives[key.split('-')[-1]] = value
-        self.name = directives.get('name')
-        self.hpc.append(directives)
+        if isfile(self.script):
+            directives = {}
+            with open(self.script) as f:
+                for line in f:
+                    if line.startswith('#SBATCH') and '=' in line:
+                        key, val = line.strip().split('SBATCH ')[-1].split('=')
+                        if key.strip('-') in self.directives:
+                            directives[key.split('-')[-1]] = val
+            self.name = directives.get('name')
+            self.hpc.append(directives)
 
     def job_outputs(self, job_name: str = ''):
         o_fps = '%s/jobs/output/*%s*.o' % (self.after_dir, job_name)
