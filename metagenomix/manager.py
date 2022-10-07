@@ -341,7 +341,7 @@ class Manage(object):
             task = ' Management task: Rename '
             print_ = '%s' % get_res_info(self.data['results'])
         elif self.task == 'store':
-            task = ' Management task: Storage '
+            task = ' Management task: Storage (%s)' % self.after
             print_, self.sizes = get_size_info(self.data['sizes'])
             if not self.sizes:
                 return

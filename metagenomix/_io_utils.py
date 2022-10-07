@@ -860,10 +860,8 @@ def get_size_info(dat):
             size = "%s KB" % round(size_ / 1024, 2)
         elif size_ < 1024 * 1024 * 1024:
             size = "%s MB" % round(size_ / (1024 * 1024), 2)
-        elif size_ < 1024 * 1024 * 1024 * 1024:
-            size = "%s GB" % round(size_ / (1024 * 1024 * 1024), 2)
         else:
-            size = str(size_)
+            size = "%s GB" % round(size_ / (1024 * 1024 * 1024), 2)
         if size_ > 0:
             sizes[folder] = size
     fs = '%s folder' % len(sizes)
