@@ -481,7 +481,7 @@ class Manage(object):
                     o.write('# Storing folder: "%s"\n' % key)
                     for (step, args, j) in [
                         ('mkdir', 'p', ' '),
-                        ('rsync', 'aurqv', '/ '),
+                        ('rsync', 'rptgoDuqv', '/ '),
                         ('rm', 'rf', ' '),
                         ('ln', 's', ' '),
                     ]:
