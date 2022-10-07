@@ -141,8 +141,8 @@ def plasmidfinder_cmd(
     cmd += ' --databasePath %s' % self.soft.params['databasePath']
     if 'databases' in self.soft.params:
         cmd += ' --databases %s' % self.soft.params['databases']
-    cmd += ' --mincov %s' % self.soft.params['mincov']
-    cmd += ' --threshold %s' % self.soft.params['threshold']
+    cmd += ' --mincov %s' % (float(self.soft.params['mincov']) / 100)
+    cmd += ' --threshold %s' % (float(self.soft.params['threshold']) / 100)
     if self.soft.params['extented_output']:
         cmd += ' --extented_output'
     cmd += '\nrm -rf %s\n' % tmp_dir
