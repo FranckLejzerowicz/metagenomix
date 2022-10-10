@@ -1833,7 +1833,9 @@ def get_midas_cmd(
         Midas command line for the species level.
     """
     params = tech_params(self, tech)
-    cmd = 'run_midas.py %s' % analysis
+    cmd = 'export PATH=$PATH:%s/scripts\n' % params['path']
+    cmd += 'export PYTHONPATH=$PYTHONPATH:%s\n' % params['path']
+    cmd += '\nrun_midas.py %s' % analysis
     cmd += ' %s' % focus_dir
     cmd += ' -1 %s' % inputs[0]
     if len(inputs) > 1:
