@@ -243,9 +243,9 @@ def count(self) -> None:
             for idx, fastx in enumerate(fastxs):
                 if to_dos:
                     cmd = count_cmd(self, idx, fastx, out)
-                    self.outputs['cmds'].setdefault((tech,), []).append(cmd)
-                else:
                     self.outputs['cmds'].setdefault((tech,), []).append(False)
+                else:
+                    self.outputs['cmds'].setdefault((tech,), []).append(cmd)
             io_update(self, i_f=fastxs, i_d=out_dir, o_f=out, key=tech)
             self.soft.add_status(tech, sam, 1)
         else:
