@@ -1280,6 +1280,7 @@ def check_midas(self, params, soft):
                   (ints + floats + floats_ + ['tracking', 'focus']))
     defaults['focus'] = '<dict of key:value pair some_name: /path/to/spc.txt'
     defaults['tracking'] = '<list of metadata columns>'
+    defaults['path'] = '<path to the MIDAS installation folder>'
     return defaults
 
 
@@ -2520,16 +2521,46 @@ def check_amrfinderplus(self, params, soft):
 #     return defaults
 
 
-# def check_ToolName(self, params, soft):
-#     defaults = {
-#     }
-#     ints = []
-#     check_nums(self, params, defaults, ints, int, soft.name)
-#     floats = []
-#     check_nums(self, params, defaults, floats, float, soft.name)
-#     check_default(self, params, defaults, soft.name, (ints + floats))
-#     defaults[''] = '<>'
-#     return defaults
+def check_squeezemeta(self, params, soft):
+    defaults = {
+        'm': ['sequential', 'coassembly', 'merged'],
+        'restart': [False, True],
+        'step': None,
+        'force_overwrite': [False, True],
+        'cleaning': [False, True],
+        'cleaning_options': None,
+        'a': ['megahit', 'spades', 'rnaspades', 'canu', 'flye'],
+        'assembly_options': None,
+        'contiglen': 200,
+        'extassembly': None,
+        'singletons': [False, True],
+        'contigid': None,
+        'norename': [False, True],
+        'nocog': [False, True],
+        'nokegg': [False, True],
+        'nopfam': [False, True],
+        'euk': [False, True],
+        'consensus': 50,
+        'extdb': None,
+        'doublepass': [False, True],
+        'map': ['bowtie', 'bwa', 'minimap2-ont', 'minimap2-pb', 'minimap2-sr'],
+        'mapping_options': None,
+        'nobins': [False, True],
+        'binners': ['maxbin', 'metabat', 'concoct'],
+        'taxbinmode': ['s', 'c', 's+c', 'c+s'],
+        't': 12,
+        'block_size': None,
+        'canumem': 32,
+        'lowmem': [False, True],
+        'minion': [False, True],
+        'empty': [False, True]
+    }
+    int1 = ['step']
+    check_nums(self, params, defaults, int1, int, soft.name, 1, 21)
+    int2 = ['contiglen', 'consensus', 't', 'canumem', 'block_size']
+    check_nums(self, params, defaults, int2, int, soft.name)
+    check_default(self, params, defaults, soft.name, (int1 + int2), ['binners'])
+    return defaults
 
 
 # def check_ToolName(self, params, soft):
