@@ -1278,6 +1278,7 @@ def check_midas(self, params, soft):
     check_nums(self, params, defaults, floats_, float, soft.name)
     check_default(self, params, defaults, soft.name,
                   (ints + floats + floats_ + ['tracking', 'focus']))
+    check_binary(self, soft.name, params, defaults, 'path')
     defaults['focus'] = '<dict of key:value pair some_name: /path/to/spc.txt'
     defaults['tracking'] = '<list of metadata columns>'
     defaults['path'] = '<path to the MIDAS installation folder>'
