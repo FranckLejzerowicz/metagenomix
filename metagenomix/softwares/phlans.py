@@ -302,7 +302,7 @@ def metaphlan(self) -> None:
             self, tech, sam, inputs, bowtie2out, tmpdir, cmds)
         self.outputs['outs'].setdefault(
             (tech, sam), []).extend([bowtie2out] + list(outs))
-        self.outputs['dir'] = [
+        self.outputs['dirs'] = [
             dirname(x) for x in self.outputs['outs'][(tech, sam)]]
 
         reads = get_read_count(self, tech, sam)

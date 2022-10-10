@@ -28,16 +28,10 @@ def pool_cmd(
             Command lines
         .config
             Configurations
-    tech: str
-        Technology: 'illumina', 'pacbio', or 'nanopore'
-    pool : str
-        Name of the pool
     paths : list
         Path the input fasta files
     fasta : str
         Path to an output fasta file
-    group : str
-        Name of the sample group within the pool
     to_dos : list
     """
     if self.config.force or to_do(fasta):
@@ -49,9 +43,9 @@ def pool_cmd(
                 cmd += 'cat %s > %s\n' % (path, fasta)
         if cmd:
             if to_dos:
-                self.cmds.setdefault((tech, (pool, group)), []).append(False)
+                self.cmds.setdefault((pool, (tech, group)), []).append(False)
             else:
-                self.cmds.setdefault((tech, (pool, group)), []).append(cmd)
+                self.cmds.setdefault((pool, (tech, group)), []).append(cmd)
 
 
 def extension_paths(
@@ -379,7 +373,8 @@ def add_to_pool_io(
     values: list
         Paths to move to/from scratch for the pooling
     """
-    key = (tech, (pool, group))
+    # key = (tech, (pool, group))
+    key = (pool, (tech, group))
     if key not in self.soft.io:
         self.soft.io[key] = {}
     if io not in self.soft.io[key]:

@@ -236,7 +236,8 @@ class Created(object):
     def get_cmds(self, soft):
         self.cmds = {}
         for sam_or_pool, cmds in soft.cmds.items():
-            if sum(map(bool, cmds)) or soft.name == 'pooling':
+            if sum(map(bool, cmds)):
+            # if sum(map(bool, cmds)) or soft.name == 'pooling':
                 self.scratch(soft, sam_or_pool, cmds)
                 self.avail.setdefault(soft.name, []).append(sam_or_pool)
 

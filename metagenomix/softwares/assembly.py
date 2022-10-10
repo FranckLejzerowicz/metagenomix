@@ -919,8 +919,11 @@ def unicycler_cmd(
             elif len(illumina) == 3:
                 cmd += ' --unpaired %s --short1 %s --short2 %s' % illumina
         else:
-            cmd += ' --long %s' % techs_inputs[tech][0]
-            inputs.extend(techs_inputs[tech])
+            if len(techs_inputs[tech]):
+                cmd += ' --long %s' % techs_inputs[tech][0]
+                inputs.extend(techs_inputs[tech])
+    if not inputs:
+        return '', inputs
     cmd += ' --out %s' % out
     cmd += ' --threads %s' % self.soft.params['cpus']
     cmd += ' --spades_tmp_dir %s' % tmp
