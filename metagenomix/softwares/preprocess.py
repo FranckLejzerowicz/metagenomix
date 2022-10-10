@@ -241,8 +241,8 @@ def count(self) -> None:
 
         if self.config.force or to_do(out):
             for idx, fastx in enumerate(fastxs):
+                cmd = count_cmd(self, idx, fastx, out)
                 if to_dos:
-                    cmd = count_cmd(self, idx, fastx, out)
                     self.outputs['cmds'].setdefault((tech,), []).append(False)
                 else:
                     self.outputs['cmds'].setdefault((tech,), []).append(cmd)
