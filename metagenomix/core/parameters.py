@@ -974,7 +974,7 @@ def check_metawrap(self, params, soft):
         'max_contamination': 5,
         'min_contig_length': 1000,
         'min_completion_reassembly': 25,
-        'min_contamination_reassembly': 5,
+        'max_contamination_reassembly': 5,
         'binners': ['maxbin2', 'metabat2', 'concoct'],
         'reassembly': ['permissive', 'strict'],
         'blobology': ['coassembly', 'sample']
