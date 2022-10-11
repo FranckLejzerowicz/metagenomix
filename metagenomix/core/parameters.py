@@ -1435,6 +1435,8 @@ def check_bracken(self, params, soft):
     check_nums(self, params, defaults, ['read_len', 'threshold'],
                int, soft.name)
     check_default(self, params, defaults, soft.name, ['read_len', 'threshold'])
+    check_binary(self, soft.name, params, defaults, 'path')
+    defaults['path'] = '<path to the Bracken installation folder>'
     return defaults
 
 

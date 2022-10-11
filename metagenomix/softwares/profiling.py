@@ -2347,7 +2347,8 @@ def bracken_cmd(
         Bracken command
     """
     params = tech_params(self, tech)
-    cmd = 'bracken'
+    cmd = 'export PATH=$PATH:%s:%s/src\n' % (params['path'], params['path'])
+    cmd += 'bracken'
     cmd += ' -d %s' % db_path
     cmd += ' -i %s' % report
     cmd += ' -o %s/results.tsv' % out_dir
