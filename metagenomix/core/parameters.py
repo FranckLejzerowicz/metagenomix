@@ -989,6 +989,8 @@ def check_metawrap(self, params, soft):
     mins.append('min_contig_length')
     check_default(self, params, defaults, soft.name, mins,
                   ['binners', 'reassembly', 'blobology'])
+    check_binary(self, soft.name, params, defaults, 'path')
+    defaults['path'] = '<path to the metaWRAP installation folder>'
     return defaults
 
 

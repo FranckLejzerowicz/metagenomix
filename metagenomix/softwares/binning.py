@@ -115,7 +115,8 @@ def quantify_cmd(
         metaWRAP quantify command
     """
     fqs, fqs_cmd = get_fqs(fastq)
-    cmd = 'metawrap quant_bins'
+    cmd = 'export PATH=$PATH:%s/bin\n' % self.soft.params['path']
+    cmd += 'metawrap quant_bins'
     cmd += ' -b %s' % bins
     cmd += ' -o %s' % out
     cmd += ' -a %s' % contigs
@@ -329,7 +330,8 @@ def classify_or_annotate_cmd(
     cmd : str
         metaWRAP classify_bins or annotate command_bins
     """
-    cmd = 'metawrap %s' % command
+    cmd = 'export PATH=$PATH:%s/bin\n' % self.soft.params['path']
+    cmd += 'metawrap %s' % command
     cmd += ' -b %s' % bin_dir
     cmd += ' -o %s' % out
     cmd += ' -t %s' % self.soft.params['cpus']
@@ -502,7 +504,8 @@ def blobology_cmd(
         metaWRAP blobology command
     """
     fqs, fqs_cmd = get_fqs(fastq_fps)
-    cmd = 'metawrap blobology'
+    cmd = 'export PATH=$PATH:%s/bin\n' % self.soft.params['path']
+    cmd += 'metawrap blobology'
     cmd += ' -o %s' % out
     cmd += ' -a %s' % contigs
     cmd += ' -t %s' % self.soft.params['cpus']
@@ -603,7 +606,8 @@ def reassembly_bins_cmd(
         metaWRAP bin reassembly command
     """
     fqs, fqs_cmd = get_fqs(fastq)
-    cmd = 'metawrap reassemble_bins'
+    cmd = 'export PATH=$PATH:%s/bin\n' % self.soft.params['path']
+    cmd += 'metawrap reassemble_bins'
     cmd += ' -o %s' % out
     for idx, fq in enumerate(fqs):
         cmd += ' -%s %s' % ((idx + 1), fq)
@@ -760,7 +764,8 @@ def refine_cmd(
         Number of binners used
     """
     n_bins = 0
-    cmd = 'metawrap bin_refinement'
+    cmd = 'export PATH=$PATH:%s/bin\n' % self.soft.params['path']
+    cmd += 'metawrap bin_refinement'
     cmd += ' -o %s' % out_dir
     for fdx, folder in enumerate(bin_folders):
         folders = '%s/bin.*.fa' % folder.replace('${SCRATCH_FOLDER}', '')
@@ -881,6 +886,7 @@ def binning_cmd(
     cmd = ''
     if binners:
         fqs, fqs_cmd = get_fqs(fastq)
+        cmd += 'export PATH=$PATH:%s/bin\n' % self.soft.params['path']
         cmd += 'metawrap binning'
         cmd += ' -o %s' % out
         cmd += ' -a %s' % contigs
