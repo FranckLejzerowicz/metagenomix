@@ -508,7 +508,7 @@ class Created(object):
                 cleanup = 'cleanup rm -rf ${TMPDIR}'
                 if soft.params['scratch'] and self.config.jobs:
                     cleanup += ' ${SCRATCH_FOLDER}/*'
-            sh.write('%s\n' % cleanup)
+                sh.write('%s\n' % cleanup)
             for chunk_key in chunk_keys:
                 for cmd in self.cmds[chunk_key]:
                     if soft.params['scratch'] and self.config.jobs:
