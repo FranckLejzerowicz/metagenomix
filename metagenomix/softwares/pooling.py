@@ -377,8 +377,7 @@ def add_to_pool_io(
     key = (pool, (tech, group))
     if key not in self.soft.io:
         self.soft.io[key] = {}
-    if io not in self.soft.io[key]:
-        self.soft.io[key].setdefault(io, set()).update(values)
+    self.soft.io[key].setdefault(io, set()).update(values)
 
 
 def pooling(
