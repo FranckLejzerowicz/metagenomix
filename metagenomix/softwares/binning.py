@@ -614,7 +614,7 @@ def reassembly_bins_cmd(
     cmd += ' -t %s' % self.soft.params['cpus']
     cmd += ' -m %s' % self.soft.params['mem']
     cmd += ' -c %s' % self.soft.params['min_completion_reassembly']
-    cmd += ' -x %s' % self.soft.params['min_contamination_reassembly']
+    cmd += ' -x %s' % self.soft.params['max_contamination_reassembly']
     cmd += ' -b %s' % bins
     cmd += ' --skip-checkm'
     if self.soft.params['cpus'] > 1:
@@ -774,7 +774,7 @@ def refine_cmd(
         cmd += ' -%s %s' % (['A', 'B', 'C'][fdx], folder)
     cmd += ' -t %s' % self.soft.params['cpus']
     cmd += ' -c %s' % self.soft.params['min_completion']
-    cmd += ' -x %s' % self.soft.params['min_contamination']
+    cmd += ' -x %s' % self.soft.params['max_contamination']
     return cmd, n_bins
 
 
@@ -810,7 +810,7 @@ def refine(self):
         cmd, n_bins = refine_cmd(self, out_dir, bin_folders)
         out = '%s/metawrap_%s_%s' % (out_dir,
                                      self.soft.params['min_completion'],
-                                     self.soft.params['min_contamination'])
+                                     self.soft.params['max_contamination'])
         stats, bins = '%s.stats' % out, '%s_bins' % out
         self.outputs['outs'][key] = [bins, stats]
         if not self.config.force and glob.glob('%s/*.fa' % bins):

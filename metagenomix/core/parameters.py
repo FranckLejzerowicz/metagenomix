@@ -971,7 +971,7 @@ def check_metamarker(self, params, soft):
 def check_metawrap(self, params, soft):
     defaults = {
         'min_completion': 25,
-        'min_contamination': 5,
+        'max_contamination': 5,
         'min_contig_length': 1000,
         'min_completion_reassembly': 25,
         'min_contamination_reassembly': 5,
@@ -982,7 +982,7 @@ def check_metawrap(self, params, soft):
     if 'binners' not in params:
         params['binners'] = defaults['binners']
     mins = ['min_completion', 'min_completion_reassembly',
-            'min_contamination', 'min_contamination_reassembly']
+            'max_contamination', 'max_contamination_reassembly']
     check_nums(self, params, defaults, mins, int, 'metawrap:binning', 0, 100)
     check_nums(self, params, defaults, ['min_contig_length'],
                int, 'metawrap:binning')
