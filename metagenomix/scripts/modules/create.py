@@ -93,6 +93,9 @@ from metagenomix import __version__
     "--verbose/--no-verbose", default=False, show_default=True,
     help="Whether to show input/outputs and other details")
 @click.option(
+    "--cleanup/--no-cleanup", default=False, show_default=True,
+    help="Whether to cleanup the TMPDIR and SCRATCH_FOLDER (specific to NRIS)")
+@click.option(
     "--dev/--no-dev", default=False, show_default=True,
     help="For development...")
 @click.version_option(__version__, prog_name="metagenomix")
@@ -125,6 +128,7 @@ def create(
         show_pfams,
         purge_pfams,
         verbose,
+        cleanup,
         dev
 ):
     """Write jobs for your pipeline configuration."""
@@ -156,5 +160,6 @@ def create(
         show_pfams=show_pfams,
         purge_pfams=purge_pfams,
         verbose=verbose,
+        cleanup=cleanup,
         dev=dev
     )

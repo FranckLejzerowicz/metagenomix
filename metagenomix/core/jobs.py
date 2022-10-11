@@ -504,9 +504,10 @@ class Created(object):
                 sh.write('module purge\n')
             for module in self.modules:
                 sh.write('module load %s\n' % module)
-            cleanup = 'cleanup rm -rf ${TMPDIR}'
-            if soft.params['scratch'] and self.config.jobs:
-                cleanup += ' ${SCRATCH_FOLDER}/*'
+            if self.config.cleanup:
+                cleanup = 'cleanup rm -rf ${TMPDIR}'
+                if soft.params['scratch'] and self.config.jobs:
+                    cleanup += ' ${SCRATCH_FOLDER}/*'
             sh.write('%s\n' % cleanup)
             for chunk_key in chunk_keys:
                 for cmd in self.cmds[chunk_key]:
