@@ -197,11 +197,12 @@ trimming           alignment
 
 Hence, the names of these `after_` output folders all end with a unique hash 
 value, which is unique to all the softwares and parameters used to produce 
-this output. If these two configurations are run, there will be two outputs, 
-such as `alignment/after_trimming_X` and `alignment/after_trimming_Y` can be 
-distinguished. The unique hash value takes into account that a software step 
-is happening not only after one previous software but as a result of all 
-previous softwares. 
+this output (except params `time`, `nodes`, `mem`, `mem_dim`, `env`, `chunks`,
+`scratch`, `machine`, `partition`). If these two configurations are run, there 
+will be two outputs, such as `alignment/after_trimming_X` and 
+`alignment/after_trimming_Y` can be distinguished. The unique hash value 
+takes into account that a software step is happening not only after one 
+previous software but as a result of all previous softwares. 
 
 In order to know which output/hash corresponds to which configuration, please 
 refer to the associated
