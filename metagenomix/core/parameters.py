@@ -814,7 +814,7 @@ def check_bowtie2(self, params, soft):
         'quiet': [False, True],
         'met_file': [False, True],
         'met_stderr': [False, True],
-        'no_unal': [False, True],
+        'no_unal': [True, False],
         'no_head': [False, True],
         'no_sq': [False, True],
         'omit_sec_seq': [False, True],
@@ -1289,8 +1289,6 @@ def check_midas(self, params, soft):
 
 def check_macsyfinder(self, params, soft):
     defaults = {
-        # 'db_type': ['unordered', 'ordered_replicon', 'gembase'],
-        # 'replicon_topology': ['linear', 'circular'],
         'models': [
             'CasFinder', 'CONJScan_plasmids', 'TFFscan', 'TFF-SF', 'TXSScan'],
         'e_value_search': 0.1,
@@ -2481,51 +2479,6 @@ def check_amrfinderplus(self, params, soft):
     return defaults
 
 
-# def check_SOFTNAME(self, params, soft):
-#     # list here all the parameters and their default values
-#     defaults = {
-#         '<PARAM_1>': 10,
-#         '<PARAM_2>': 0.6,
-#         '<PARAM_3>': [True, False],
-#         '<PARAM_4>': 'something,requiring,manual,check',
-#         ...
-#     }
-#
-#     # list the names of the parameters that have unbounded integers as values
-#     ints = [<UNBOUNDED INTEGER-VALUE PARAMETER NAMES (from "defaults" DICT)>]
-#     check_nums(self, params, defaults, ints, int, soft.name)
-#
-#     # list the names of the parameters that have unbounded floats as values
-#     floats = [<UNBOUNDED FLOAT-VALUE PARAMETER NAMES (from "defaults" DICT)>]
-#     check_nums(self, params, defaults, floats, float, soft.name)
-#
-#     # list the names of the parameters that have bounded integers as values
-#     ints2 = [<BOUNDED INTEGER-VALUE PARAMETER NAMES (from "defaults" DICT)>]
-#     # same as above but replace <m> and <M> by min and max integer values
-#     check_nums(self, params, defaults, ints2, int, soft.name, <m>, <M>)
-#
-#     # list the names of the parameters that have bounded floats as values
-#     floats2 = [<BOUNDED FLOAT-VALUE PARAMETER NAMES (from "defaults" DICT)>]
-#     # same as above but replace <m> and <M> by min and max float values
-#     check_nums(self, params, defaults, floats2, float, soft.name, <m>, <M>)
-#
-#     # make manual checks (see examples above - it will depend on the tool...)
-#     manu = [<MANUALLY-CHECKED PARAMETER NAMES (from "defaults" DICT)>]
-#
-#     # make a list with all the above-checked parameters
-#     let_go = ints + floats + ints2 + floats2 + manu
-#
-#     # add the "let_go" list at the end
-#     check_default(self, params, defaults, soft.name, let_go)
-#     # if the parameter value can be a list, get these params and add it too:
-#     # multi = [<PARAMETERS THAT CAN BE A LIST>]
-#     # check_default(self, params, defaults, soft.name, let_go, multi)
-#
-#     # Finally add to "defaults" dict those params that need not to be checked
-#     defaults['<PARAM_NAME>'] = '<SOME USEFUL DESCRIPTION (for --show-params)>'
-#     return defaults
-
-
 def check_squeezemeta(self, params, soft):
     defaults = {
         'm': ['sequential', 'coassembly', 'merged'],
@@ -2568,6 +2521,109 @@ def check_squeezemeta(self, params, soft):
     return defaults
 
 
+def check_binspreader(self, params, soft):
+    defaults = {
+        'l': 0,
+        'e': 1e-5,
+        'n': 5000,
+        'la': 0.6,
+        'metaalpha': 0.6,
+        'bin_weight': 0.1,
+        'm': [False, True],
+        'Smax': [False, True],
+        'Rcorr': [False, True],
+        'cami': [False, True],
+        'zero_bin': [False, True],
+        'tall_multi': [False, True],
+        'bin_dist': [False, True],
+        'sparse_propagation': [False, True],
+        'no_unbinned_bin': [False, True],
+        'length_threshold': None,
+        'distance_bound': None,
+        'reads': [False, True]
+    }
+    ints = ['l', 'n']
+    check_nums(self, params, defaults, ints, int, soft.name)
+    floats = ['e', 'la', 'metaalpha', 'bin_weight']
+    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
+    check_default(self, params, defaults, soft.name, (ints + floats))
+    check_binary(self, self.name, params, defaults, 'path')
+    defaults['path'] = '<Path to BinSPreader installation folder>'
+    return defaults
+
+
+def check_midas2(self, params, soft):
+    defaults = {
+        'force': [False, True],
+        'word_size': 28,
+        'marker_reads': 2,
+        'marker_covered': 2,
+        'prebuilt_bowtie2_indexes': None,
+        'prebuilt_bowtie2_species': None,
+        'species_list': None,
+        'select_by': None,
+        'select_threshold': '2.0,',
+        'aln_speed': ['very-fast', 'fast', 'sensitive', 'very-sensitive'],
+        'aln_mode': ['local', 'global'],
+        'aln_interleaved': [False, True],
+        'fragment_length': None,
+        'min_copy': 0.35,
+        'cluster_pid': ['95', '75', '80', '85', '90', '99'],
+        'max_reads': None,
+        'aln_mapid': 94.0,
+        'aln_readq': 20,
+        'aln_cov': 0.75,
+        'min_cov': 1.0,
+        'read_depth': 2,
+        'chunk_size': None,
+        'aln_mapq': None,
+        'aln_baseq': 30,
+        'aln_trim': 0,
+        'paired_only': [False, True],
+        'snp_maf': None,
+        'ignore_ambiguous': [False, True],
+        'analysis_ready': [False, True],
+        'genome_depth': 5.0,
+        'genome_coverage': 0.4,
+        'sample_counts': 2,
+        'site_depth': None,
+        'site_ratio': 3.0,
+        'site_prev': 0.9,
+        'snv_type': ['common', 'rare'],
+        'snp_pooled_method': ['prevalence', 'abundance'],
+        'snp_type':  ['bi', 'tri', 'quad', 'any', 'mono'],
+        'locus_type': ['any', 'CDS', 'IGR'],
+        'advanced': [False, True],
+        'robust_chunk': [False, True],
+    }
+    if 'snp_type' not in params:
+        params['snp_type'] = ['bi', 'tri', 'quad']
+
+    if 'select_threshold' not in params:
+        params['select_threshold'] = '2.0'
+    else:
+        for p in params['select_threshold'].split(','):
+            try:
+                float(p)
+            except ValueError:
+                sys.exit('[midas2] Param "%s" error (not FLOAT,FLOAT,...)' % p)
+    ints = ['word_size', 'marker_reads', 'marker_covered', 'aln_readq',
+            'read_depth', 'aln_baseq', 'aln_trim', 'sample_counts']
+    check_nums(self, params, defaults, ints, int, soft.name)
+    ints2 = ['site_depth']
+    check_nums(self, params, defaults, ints2, int, soft.name, 2, 1000000)
+    floats = ['aln_cov', 'genome_coverage', 'site_prev']
+    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
+    floats2 = ['aln_mapid', 'min_cov', 'min_copy', 'genome_depth', 'site_ratio']
+    check_nums(self, params, defaults, floats2, float, soft.name)
+    floats3 = ['snp_maf']
+    check_nums(self, params, defaults, floats3, float, soft.name, 0, 0.5)
+    check_default(self, params, defaults, soft.name, (
+        ints + ints2 + floats + floats2 + floats3 + ['select_threshold']),
+        ['snp_type'])
+    return defaults
+
+
 # def check_ToolName(self, params, soft):
 #     defaults = {
 #     }
@@ -2589,4 +2645,61 @@ def check_squeezemeta(self, params, soft):
 #     check_nums(self, params, defaults, floats, float, soft.name)
 #     check_default(self, params, defaults, soft.name, (ints + floats))
 #     defaults[''] = '<>'
+#     return defaults
+
+
+# def check_ToolName(self, params, soft):
+#     defaults = {
+#     }
+#     ints = []
+#     check_nums(self, params, defaults, ints, int, soft.name)
+#     floats = []
+#     check_nums(self, params, defaults, floats, float, soft.name)
+#     check_default(self, params, defaults, soft.name, (ints + floats))
+#     defaults[''] = '<>'
+#     return defaults
+
+
+# def check_SOFTNAME(self, params, soft):
+#     # list here all the parameters and their default values
+#     defaults = {
+#         '<PARAM_1>': 10,
+#         '<PARAM_2>': 0.6,
+#         '<PARAM_3>': [True, False],
+#         '<PARAM_4>': 'something,requiring,manual,check',
+#         ...
+#     }
+#
+#     # list the names of the parameters that have unbounded integers as values
+#     ints = [<UNBOUNDED INTEGER-VALUE PARAMETER NAMES (from "defaults" DICT)>]
+#     check_nums(self, params, defaults, ints, int, soft.name)
+#
+#     # list the names of the parameters that have unbounded floats as values
+#     floats = [<UNBOUNDED FLOAT-VALUE PARAMETER NAMES (from "defaults" DICT)>]
+#     check_nums(self, params, defaults, floats, float, soft.name)
+#
+#     # list the names of the parameters that have bounded integers as values
+#     ints2 = [<BOUNDED INTEGER-VALUE PARAMETER NAMES (from "defaults" DICT)>]
+#     # same as above but replace <m> and <M> by min and max integer values
+#     check_nums(self, params, defaults, ints2, int, soft.name, <m>, <M>)
+#
+#     # list the names of the parameters that have bounded floats as values
+#     floats2 = [<BOUNDED FLOAT-VALUE PARAMETER NAMES (from "defaults" DICT)>]
+#     # same as above but replace <m> and <M> by min and max float values
+#     check_nums(self, params, defaults, floats2, float, soft.name, <m>, <M>)
+#
+#     # make manual checks (see examples above - it will depend on the tool...)
+#     manu = [<MANUALLY-CHECKED PARAMETER NAMES (from "defaults" DICT)>]
+#
+#     # make a list with all the above-checked parameters
+#     let_go = ints + floats + ints2 + floats2 + manu
+#
+#     # add the "let_go" list at the end
+#     check_default(self, params, defaults, soft.name, let_go)
+#     # if the parameter value can be a list, get these params and add it too:
+#     # multi = [<PARAMETERS THAT CAN BE A LIST>]
+#     # check_default(self, params, defaults, soft.name, let_go, multi)
+#
+#     # Finally add to "defaults" dict those params that need not to be checked
+#     defaults['<PARAM_NAME>'] = '<SOME USEFUL DESCRIPTION (for --show-params)>'
 #     return defaults
