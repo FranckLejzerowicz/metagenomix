@@ -832,6 +832,261 @@ def bowtie2(self) -> None:
             self.outputs['dirs'].append(db_out)
 
 
+def get_minimap2_cmd(
+        self,
+        tech: str,
+        fastx: list,
+        db_path: str,
+        db_out: str
+) -> tuple:
+    """Get the minimap2 alignment command.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .soft.params
+            Parameters for humann
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    fastx : list
+        Path to the input fasta/fastq/fastq.gz files
+    db_path : str
+        Path to the minimap2 database
+    db_out: str
+        Path to the output folder
+
+    Returns
+    -------
+    cmd : str
+        Alignment command
+    sam : str
+        Alignment .sam file
+    """
+    params = tech_params(self, tech)
+    sam = '%s/alignment.minimap2' % db_out
+
+    cmd = 'minimap2'
+    cmd += ' -t %s' % params['cpus']
+
+    x = params['x']
+    if x:
+        cmd += ' -x %s' % x
+        if x == 'sr':
+            if params['F']:
+                cmd += ' -F %s' % params['F']
+
+        elif x in ['splice', 'splice:hq']:
+            if params['G']:
+                cmd += ' -G %s' % params['G']
+            if params['C']:
+                cmd += ' -C %s' % params['C']
+
+    elif params['sr']:
+        cmd += ' --sr'
+
+    elif params['splice']:
+        cmd += ' --splice'
+        if params['G']:
+            cmd += ' -G %s' % params['G']
+        if params['C']:
+            cmd += ' -C %s' % params['C']
+        if params['end_seed_pen']:
+            cmd += ' --end-seed-pen %s' % params['end_seed_pen']
+    else:
+        if params['splice_flank']:
+            cmd += ' --splice-flank=yes'
+        else:
+            cmd += ' --splice-flank=no'
+
+    if params['frag']:
+        cmd += ' --frag=yes'
+        if params['F']:
+            cmd += ' -F %s' % params['F']
+    else:
+        cmd += ' --frag=no'
+
+    if params['X']:
+        cmd += ' -X'
+    else:
+        if params['D']:
+            cmd += ' -D'
+        if params['P']:
+            cmd += ' -P'
+        else:
+            for param in ['p', 'N']:
+                if params[param]:
+                    cmd += ' -%s %s' % (param, params[param])
+        if params['dual']:
+            cmd += ' --dual=yes'
+        else:
+            cmd += ' --dual=no'
+        if params['no_long_join']:
+            cmd += ' --no-long-join'
+
+    for param in ['k', 'w', 'I', 'f', 'U', 'q_occ_frac', 'e', 'g', 'r', 'n',
+                  'm', 'M', 'max_chain_skip', 'max_chain_iter',
+                  'chain_gap_scale', 'split_prefix', 'A', 'B', 'O', 'E', 'z',
+                  's', 'u', 'end_bonus', 'score_N', 'cap_sw_mem',
+                  'cap_kalloc', 'R', 'seed', '2', 'K', 'max_qlen']:
+        if len(param) == 1:
+            cmd += ' -%s %s' % (param, params[param])
+        else:
+            cmd += ' --%s %s' % (param.replace('_', '-'), params[param])
+
+    if params['cs']:
+        cmd += ' --cs=%s' % params['cs']
+
+    if params['hard_mask_level']:
+        cmd += ' --hard-mask-level'
+    elif params['mask_len']:
+        cmd += ' --mask-len %s' % params['mask_len']
+
+    if params['heap_sort']:
+        cmd += ' --heap-sort=yes'
+    else:
+        cmd += ' --heap-sort=no'
+
+    if params['rmq']:
+        cmd += ' --rmq=yes'
+    else:
+        cmd += ' --rmq=no'
+
+    if params['secondary']:
+        cmd += ' --secondary=yes'
+    else:
+        cmd += ' --secondary=no'
+
+    if params['junc_bed']:
+        cmd += ' --junc-bed %s' % params['junc_bed']
+        if params['junc_bonus']:
+            cmd += ' --junc-bonus %s' % params['junc_bonus']
+
+    for boolean in ['H', 'no_end_flt', 'a', 'Q', 'L', 'y', 'c', 'MD',
+                    'eqx', 'Y', 'paf_no_hit', 'sam_hit_only',
+                    'no_kalloc', 'print_qname', 'print_seeds']:
+        if params[boolean]:
+            if len(boolean) == 1:
+                cmd += ' -%s' % boolean
+            else:
+                cmd += ' --%s' % boolean.replace('_', '-')
+
+    if len(fastx) == 2 and params['paired']:
+        for param in ['for_only', 'rev_only']:
+            if params[param]:
+                cmd += ' --%s' % param.replace('_', '-')
+
+    if len(fastx) == 2 and params['no_pairing']:
+        cmd += ' --no-pairing'
+        sam += '.unpaired'
+
+    sam = '.sam'
+    cmd += ' -o %s' % sam
+
+    cmd += ' %s' % db_path
+    cmd += ' %s' % ' '.join(fastx)
+
+    return cmd, sam
+
+
+def get_minimap2_indexing_cmd(
+        self,
+        tech: str,
+        fastx: list,
+) -> tuple:
+    """Get the minimap2 alignment command.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .soft.params
+            Parameters for humann
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    fastx : list
+        Path to the input fasta/fastq/fastq.gz files
+
+    Returns
+    -------
+    cmd : str
+        Alignment command
+    sam : str
+        Alignment .sam file
+    """
+    params = tech_params(self, tech)
+    cmd = 'minimap2'
+    if params['x']:
+        cmd += ' -x %s' % params['x']
+    if params['H']:
+        cmd += ' -H'
+    if params['alt_drop']:
+        cmd += ' --alt-drop'
+    for param in ['k', 'w', 'I']:
+        cmd += ' -%s %s' % (param, params[param])
+    idx = '%s.mmi' % splitext(fastx[0])[0]
+    cmd += ' -d %s' % idx
+    cmd += ' %s' % ''.join(fastx)
+    return cmd, idx
+
+
+def minimap2(self) -> None:
+    """Minimap2 is a versatile sequence alignment program that aligns DNA or
+    mRNA sequences against a large reference database. Typical use cases
+    include: (1) mapping PacBio or Oxford Nanopore genomic reads to the human
+    genome; (2) finding overlaps between long reads with error rate up to ~15%;
+    (3) splice-aware alignment of PacBio Iso-Seq or Nanopore cDNA or Direct
+    RNA reads against a reference genome; (4) aligning Illumina single- or
+    paired-end reads; (5) assembly-to-assembly alignment; (6) full-genome
+    alignment between two closely related species with divergence below ~15%.
+
+    References
+    ----------
+    Li, H., 2018. Minimap2: pairwise alignment for nucleotide sequences.
+    Bioinformatics, 34(18), pp.3094-3100.
+
+    Notes
+    -----
+    GitHub  : https://github.com/lh3/minimap2
+    Docs    : https://lh3.github.io/minimap2/minimap2.html
+    Paper   : https://doi.org/10.1093/bioinformatics/bty191
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for humann
+        .sam_pool : str
+            Sample name
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters for humann
+        .config
+            Configurations
+    """
+    for (tech, sample), fastxs in self.inputs[self.sam_pool].items():
+        if tech_specificity(self, fastxs, tech, sample):
+            continue
+        to_dos = status_update(self, tech, fastxs)
+        out = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
+        self.outputs['outs'][(tech, self.sam_pool)] = dict()
+        for db, db_path in self.soft.params['databases'].items():
+            db_out = '%s/%s' % (out, db)
+            cmd, sam = get_minimap2_cmd(self, tech, fastxs, db_path, db_out)
+            self.outputs['outs'][(tech, self.sam_pool)][(db, 'minimap2')] = sam
+            if self.config.force or to_do(sam):
+                if to_dos:
+                    self.outputs['cmds'].setdefault((tech,), []).append(False)
+                else:
+                    self.outputs['cmds'].setdefault((tech,), []).append(cmd)
+                io_update(self, i_f=fastxs, i_d=db_out, o_d=db_out, key=tech)
+                self.soft.add_status(tech, self.sam_pool, 1)
+            else:
+                self.soft.add_status(tech, self.sam_pool, 0)
+            self.outputs['dirs'].append(db_out)
+
+
 def salmon(self) -> None:
     """Salmon is a tool for wicked-fast transcript quantification from
     RNA-seq data. It requires a set of target transcripts (either from a

@@ -189,6 +189,8 @@ def check_default(
             if param in ['aligners', 'blobology', 'reassembly', 'models']:
                 params[param] = [values[0]]
             else:
+                print(param)
+                print(values)
                 params[param] = values[0]
         else:
             vals = params[param]
@@ -869,6 +871,129 @@ def check_bowtie2(self, params, soft):
                     valid_dbs[db] = bt2_paths[0].rsplit('.', 2)[0]
             else:
                 valid_dbs[db] = bt2_path.rsplit('.', 2)[0]
+    params['databases'] = valid_dbs
+    defaults['databases'] = '<list of databases>'
+    return defaults
+
+
+def check_minimap2(self, params, soft):
+    defaults = {
+        'paired': [True, False],
+        'H': [False, True],
+        'k': 15,
+        'w': 10,
+        'I': '4G',
+        'd': [None],
+        'f': 0.0002,
+        'e': 500,
+        'g': 5000,
+        'G': '200k',
+        'F': 800,
+        'r': 500,
+        'n': 3,
+        'm': 40,
+        'X': [False, True],
+        'p': 0.8,
+        'N': 5,
+        'A': 2,
+        'B': 4,
+        'O': '4,24',
+        'E': '2,1',
+        'C': 0,
+        'z': '400,200',
+        'U': '10,1000000',
+        's': 80,
+        'u': ['n', 'f', 'b'],
+        'a': [True, False],
+        'L': [False, True],
+        'R': [None],
+        'c': [False, True],
+        'cs': [None, 'short', 'long'],
+        'MD': [False, True],
+        'eqx': [False, True],
+        'Y': [False, True],
+        'K': '500M',
+        'x': [None, 'map-pb', 'map-ont', 'map-hifi', 'ava-pb', 'ava-ont',
+              'asm5', 'asm10', 'asm20', 'splice', 'splice:hq', 'sr'],
+        'D': [False, True],
+        'P': [False, True],
+        'M': 0.5,
+        'idx_no_seq': [False, True],
+        'dual': [True, False],
+        'alt_drop': 0.15,
+        'q_occ_frac': 0.01,
+        'rmq': [False, True],
+        'hard_mask_level': [False, True],
+        'mask_len': [None],
+        'max_chain_skip': 25,
+        'max_chain_iter': 5000,
+        'chain_gap_scale': 1.0,
+        'no_long_join': [False, True],
+        'splice': [False, True],
+        'sr': [False, True],
+        'split_prefix': [None],
+        'frag': [False, True],
+        'for_only': [False, True],
+        'rev_only': [False, True],
+        'heap_sort': [False, True],
+        'no_pairing': [False, True],
+        'end_bonus': 0,
+        'score_N': 1,
+        'splice_flank': [True, False],
+        'junc_bed': [None],
+        'junc_bonus': 9,
+        'endvseed_pen': 6,
+        'no_end_flt': [False, True],
+        'cap_sw_mem': '100m',
+        'cap_kalloc': 0,
+        'no_kalloc': [False, True],
+        'print_qname': [False, True],
+        'print_seeds': [False, True],
+        'Q': [False, True],
+        'y': [False, True],
+        'seed': 11,
+        'secondary': [True, False],
+        'max_qlen': [None],
+        'paf_no_hit': [False, True],
+        'sam_hit_only': [True, False],
+        '2': [False, True],
+    }
+    for p in ['O', 'K', 'z', 'U']:
+        if p not in params:
+            params[p] = defaults[p]
+        elif len([x.isdigit() for x in str(params[p]).split(',')]) != 2:
+            sys.exit('[minimap2] "%s" option invalid (INT,INT)' % p)
+
+    for p in ['I', 'E', 'G', 'cap_sw_mem']:
+        if p not in params:
+            params[p] = defaults[p]
+        elif not str(params[p][:-1]).isdigit():
+            sys.exit('[minimap2] "%s" option invalid (NUM)' % p)
+
+    ints = ['w', 'g', 'F', 'r', 'n', 'm', 'N', 'A', 'B', 's', 'e',
+            'max_chain_skip', 'max_chain_iter', 'C', 's', 'end_bonus',
+            'score_N', 'junc_bonus', 'endvseed_pen', 'cap_kalloc', 'seed']
+    check_nums(self, params, defaults, ints, int, soft.name)
+    check_nums(self, params, defaults, ['k'], int, soft.name, 3, 28)
+
+    floats = ['f', 'p', 'alt_drop', 'M', 'chain_gap_scale', 'q_occ_frac']
+    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
+
+    check_default(self, params, defaults, soft.name, (ints + floats + ['k']))
+                  # (ints + floats + ['k', 'd', 'R', 'mask_len',
+                  #                   'split_prefix', 'junc_bed', 'max_qlen']))
+
+    dbs_existing = check_databases(soft.name, params, self.databases)
+    valid_dbs = {}
+    for db in dbs_existing:
+        if 'minimap2' in self.databases.builds[db]:
+            minimap2_path = '%s/*.mmi' % self.databases.builds[db]['minimap2']
+            if not self.config.dev:
+                bt2_paths = glob.glob(minimap2_path)
+                if bt2_paths:
+                    valid_dbs[db] = bt2_paths[0]
+            else:
+                valid_dbs[db] = minimap2_path
     params['databases'] = valid_dbs
     defaults['databases'] = '<list of databases>'
     return defaults
@@ -2624,16 +2749,113 @@ def check_midas2(self, params, soft):
     return defaults
 
 
-# def check_ToolName(self, params, soft):
-#     defaults = {
-#     }
-#     ints = []
-#     check_nums(self, params, defaults, ints, int, soft.name)
-#     floats = []
-#     check_nums(self, params, defaults, floats, float, soft.name)
-#     check_default(self, params, defaults, soft.name, (ints + floats))
-#     defaults[''] = '<>'
-#     return defaults
+def check_mapping(self, params, soft):
+    defaults = {
+        'mapper': ['minimap2', 'bowtie2', 'bwa', 'bbmap'],
+
+        'presets': ['sensitive', 'very-sensitive', 'very-fast', 'fast', None],
+        'paired': [True, False],
+        'fr': ['fr', 'rf', 'ff'],
+        'i': 'S,1,1.15',
+        'n_ceil': 'L,0,0.15',
+        'rdg': '5,3',
+        'rfg': '5,3',
+        'score_min': 'L,0,-0.05',
+        'skip': 0,
+        'upto': 0,
+        'trim5': 0,
+        'trim3': 0,
+        'trim_to': 0,
+        'N': 0,
+        'L': 22,
+        'dpad': 15,
+        'gbar': 4,
+        'ma': 0,
+        'k': 0,
+        'np': 1,
+        'mp': 6,
+        'D': 15,
+        'R': 2,
+        'minins': 0,
+        'maxins': 500,
+        'met': 240,
+        'seed': 12345,
+        'q': [True, False],
+        'tab5': [False, True],
+        'tab6': [False, True],
+        'qseq': [False, True],
+        'f': [False, True],
+        'r': [False, True],
+        'c': [False, True],
+        'phred33': [True, False],
+        'phred64': [False, True],
+        'int_quals': [False, True],
+        'ignore_quals': [False, True],
+        'nofw': [False, True],
+        'norc': [False, True],
+        'no_1mm_upfront': [False, True],
+        'end_to_end': [True, False],
+        'local': [False, True],
+        'all': [False, True],
+        'no_mixed': [False, True],
+        'no_discordant': [False, True],
+        'dovetail': [False, True],
+        'no_contain': [False, True],
+        'no_overlap': [False, True],
+        'align_paired_reads': [False, True],
+        'preserve_tags': [False, True],
+        't': [False, True],
+        'un': [False, True],
+        'al': [False, True],
+        'un_conc': [False, True],
+        'al_conc': [False, True],
+        'quiet': [False, True],
+        'met_file': [False, True],
+        'met_stderr': [False, True],
+        'no_unal': [True, False],
+        'no_head': [False, True],
+        'no_sq': [False, True],
+        'omit_sec_seq': [False, True],
+        'sam_no_qname_trunc': [False, True],
+        'xeq': [False, True],
+        'soft_clipped_unmapped_tlen': [False, True],
+        'sam_append_comment': [False, True],
+        'reorder': [False, True],
+        'mm': [False, True],
+        'qc_filter': [False, True],
+        'non_deterministic': [False, True]
+    }
+
+    for param in ['rdg', 'rfg']:
+        if param in params:
+            if len([x.isdigit() for x in str(params[param]).split(',')]) != 2:
+                sys.exit('[mapping] "%s" option invalid' % param)
+        else:
+            params[param] = defaults[param]
+
+    for param in ['i', 'n_ceil', 'score_min']:
+        if param in params:
+            s = params[param].split(',')
+            if len(s) != 3 or s[0] not in 'CLSG':
+                sys.exit('[mapping] "%s" option invalid' % param)
+            else:
+                for r in [1, 2]:
+                    try:
+                        float(s[r])
+                    except ValueError:
+                        sys.exit('[mapping] "%s" option invalid' % param)
+        else:
+            params[param] = defaults[param]
+
+    ints = ['skip', 'upto', 'trim5', 'trim3', 'trim_to', 'dpad', 'gbar', 'ma',
+            'k', 'np', 'mp', 'D', 'R', 'minins', 'maxins', 'met', 'seed']
+    check_nums(self, params, defaults, ints, int, soft.name)
+    check_nums(self, params, defaults, ['N'], int, soft.name, 0, 1)
+    check_nums(self, params, defaults, ['L'], int, soft.name, 4, 31)
+
+    let_go = ints + ['N', 'L', 'i', 'n_ceil', 'score_min', 'rdg', 'rfg']
+    check_default(self, params, defaults, soft.name, let_go)
+    return defaults
 
 
 # def check_ToolName(self, params, soft):
