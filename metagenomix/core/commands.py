@@ -23,10 +23,11 @@ from metagenomix.softwares.plasmids import *
 from metagenomix.softwares.pooling import pooling
 from metagenomix.softwares.preprocess import *
 from metagenomix.softwares.profiling import *
+from metagenomix.softwares.midas2 import *
 from metagenomix.softwares.simka import *
 from metagenomix.softwares.strains import *
 from metagenomix.softwares.viruses import *
-# from metagenomix.softwares.mapping import mapping
+from metagenomix.softwares.mapping import mapping
 
 
 class Commands(object):
@@ -59,7 +60,10 @@ class Commands(object):
             'metamarker',
             'woltka',
             'drep',
-            'strainphlan'
+            'strainphlan',
+            # 'merge_species',
+            # 'merge_snps',
+            # 'merge_genes'
         ]
 
     def collect(self):
