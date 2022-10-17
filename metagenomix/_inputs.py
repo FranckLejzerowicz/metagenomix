@@ -253,10 +253,6 @@ def genome_out_dir(
     key : str
         Concatenation of variables names for the current analytic level
     """
-    # post_prot_dir = get_post_prot_dir(self, fasta)
-    # self.soft.dir = post_prot_dir.replace('${SCRATCH_FOLDER}', '')
-
-    # out_dir = '/'.join([post_prot_dir, tech])
     out_dir = '/'.join([self.dir, tech])
     if self.sam_pool:
         out_dir += '/%s' % self.sam_pool
