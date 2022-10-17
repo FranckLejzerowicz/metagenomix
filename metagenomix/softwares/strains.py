@@ -406,16 +406,16 @@ def lorikeet(self) -> None:
     """
     reads = get_reads(self)
 
-    __module_call__ = caller(self, __name__)
+    module_call = caller(self, __name__)
     if self.sam_pool in self.pools:
         for (tech, group), inputs in self.inputs[self.sam_pool].items():
             fastas_folders = group_inputs(self, inputs, True)
-            __module_call__(self, tech, fastas_folders, reads, group)
+            module_call(self, tech, fastas_folders, reads, group)
 
     elif set(self.inputs) == {''}:
         for (tech, bin_algo), inputs in self.inputs[''].items():
             folders = group_inputs(self, inputs, True)
-            __module_call__(self, tech, folders, reads, bin_algo)
+            module_call(self, tech, folders, reads, bin_algo)
 
 
 def instrain(self):
