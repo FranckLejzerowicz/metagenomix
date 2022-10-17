@@ -1021,7 +1021,7 @@ def get_prokka(
         group: str,
         inputs: list,
         out_dir: str
-) -> str:
+) -> tuple:
     """Get the Prokka commands for the different configs
     (at each taxonomic level).
 
@@ -1043,6 +1043,7 @@ def get_prokka(
 
     Returns
     -------
+    to_dos : list
     cmd : str
         Prokka command
     """
@@ -1063,7 +1064,6 @@ def get_prokka(
         else:
             self.soft.add_status(
                 tech, self.sam_pool, 0, group=group, genome=config)
-
     return to_dos, cmd
 
 
