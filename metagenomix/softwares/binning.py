@@ -1054,3 +1054,32 @@ def mycc(self):
         Contains all the attributes needed for binning on the current sample
     """
     pass
+
+
+def binspreader(self):
+    """
+    BinSPreader is a novel tool that attempts to refine metagenome-assembled
+    genomes (MAGs) obtained from existing tools. BinSPreader exploits the
+    assembly graph topology and other connectivity information, such as
+    paired-end and Hi-C reads, to refine the existing binning, correct
+    binning errors, propagate binning from longer contigs to shorter contigs
+    and infer contigs belonging to multiple bins.
+
+    References
+    ----------
+    Tolstoganov, I., Kamenev, Y., Kruglikov, R., Ochkalova, S. and
+    Korobeynikov, A., 2022. Binspreader: refine binning results for fuller
+    mag reconstruction. Iscience, 25(8), p.104770.
+
+    Notes
+    -----
+    Code    : https://github.com/ablab/spades/releases/tag/binspreader-recombseq
+    Docs    : https://cab.spbu.ru/software/binspreader/
+    Paper   : https://doi.org/10.1016/j.isci.2022.104770
+
+    Parameters
+    ----------
+    self : Commands class instance
+        Contains all the attributes needed for binning on the current sample
+    """
+    pass
