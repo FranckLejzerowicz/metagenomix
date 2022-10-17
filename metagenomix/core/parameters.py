@@ -189,8 +189,6 @@ def check_default(
             if param in ['aligners', 'blobology', 'reassembly', 'models']:
                 params[param] = [values[0]]
             else:
-                print(param)
-                print(values)
                 params[param] = values[0]
         else:
             vals = params[param]
@@ -2683,35 +2681,35 @@ def check_midas2(self, params, soft):
         'word_size': 28,
         'marker_reads': 2,
         'marker_covered': 2,
-        'prebuilt_bowtie2_indexes': None,
-        'prebuilt_bowtie2_species': None,
-        'species_list': None,
-        'select_by': None,
-        'select_threshold': '2.0,',
+        'prebuilt_bowtie2_indexes': [None],
+        'prebuilt_bowtie2_species': [None],
+        'species_list': [None],
+        'select_by': 'median_marker_coverage,unique_fraction_covered',
+        'select_threshold': '2.0,0.5',
         'aln_speed': ['very-fast', 'fast', 'sensitive', 'very-sensitive'],
         'aln_mode': ['local', 'global'],
         'aln_interleaved': [False, True],
-        'fragment_length': None,
+        'fragment_length': 5000,
         'min_copy': 0.35,
         'cluster_pid': ['95', '75', '80', '85', '90', '99'],
-        'max_reads': None,
-        'aln_mapid': 94.0,
+        'max_reads': [None],
+        'aln_mapid': [None],
         'aln_readq': 20,
         'aln_cov': 0.75,
         'min_cov': 1.0,
         'read_depth': 2,
-        'chunk_size': None,
-        'aln_mapq': None,
+        'chunk_size': [None],
+        'aln_mapq': [None],
         'aln_baseq': 30,
         'aln_trim': 0,
         'paired_only': [False, True],
-        'snp_maf': None,
+        'snp_maf': 0.1,
         'ignore_ambiguous': [False, True],
         'analysis_ready': [False, True],
         'genome_depth': 5.0,
         'genome_coverage': 0.4,
         'sample_counts': 2,
-        'site_depth': None,
+        'site_depth': 2,
         'site_ratio': 3.0,
         'site_prev': 0.9,
         'snv_type': ['common', 'rare'],
@@ -2724,19 +2722,31 @@ def check_midas2(self, params, soft):
     if 'snp_type' not in params:
         params['snp_type'] = ['bi', 'tri', 'quad']
 
+    if 'select_by' not in params:
+        params['select_by'] = defaults['select_by']
+    else:
+        allowed = {'marker_read_counts', 'median_marker_coverage',
+                   'marker_coverage', 'marker_relative_abundance',
+                   'unique_fraction_covered'}
+        for param in params['select_by'].split(','):
+            if param not in allowed:
+                sys.exit('[midas2] Param "select_by" error'
+                         '("%s" not in %s)' % str(allowed))
+
     if 'select_threshold' not in params:
-        params['select_threshold'] = '2.0'
+        params['select_threshold'] = defaults['select_threshold']
     else:
         for p in params['select_threshold'].split(','):
             try:
                 float(p)
             except ValueError:
-                sys.exit('[midas2] Param "%s" error (not FLOAT,FLOAT,...)' % p)
+                sys.exit('[midas2] Param "select_threshold" error'
+                         '("%s" not FLOAT,FLOAT,...)' % p)
+
     ints = ['word_size', 'marker_reads', 'marker_covered', 'aln_readq',
-            'read_depth', 'aln_baseq', 'aln_trim', 'sample_counts']
+            'read_depth', 'aln_baseq', 'aln_trim', 'sample_counts',
+            'fragment_length', 'site_depth']
     check_nums(self, params, defaults, ints, int, soft.name)
-    ints2 = ['site_depth']
-    check_nums(self, params, defaults, ints2, int, soft.name, 2, 1000000)
     floats = ['aln_cov', 'genome_coverage', 'site_prev']
     check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
     floats2 = ['aln_mapid', 'min_cov', 'min_copy', 'genome_depth', 'site_ratio']
@@ -2744,8 +2754,9 @@ def check_midas2(self, params, soft):
     floats3 = ['snp_maf']
     check_nums(self, params, defaults, floats3, float, soft.name, 0, 0.5)
     check_default(self, params, defaults, soft.name, (
-        ints + ints2 + floats + floats2 + floats3 + ['select_threshold']),
-        ['snp_type'])
+        ints + floats + floats2 + floats3 + [
+            'select_by', 'select_threshold']), ['snp_type'])
+    defaults['databases'] = '<Path the folder containing the MIDAS2 databases>'
     return defaults
 
 
