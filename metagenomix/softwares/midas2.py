@@ -79,7 +79,10 @@ def get_merge_cmd(
                 'site_depth', 'site_ratio', 'site_prev', 'snv_type',
                 'snp_pooled_method', 'snp_maf', 'snp_type', 'locus_type'
             ]:
-                cmd += ' --%s %s' % (param, params[param])
+                if param == 'snp_type':
+                    cmd += ' --snp_type %s' % ','.join(params[param])
+                else:
+                    cmd += ' --%s %s' % (param, params[param])
             for boolean in ['chunk_size', 'advanced', 'robust_chunk']:
                 if params[boolean]:
                     cmd += ' --%s' % boolean
@@ -147,26 +150,29 @@ def get_sams_list(
 
 
 def get_samples(
-        step: str,
-        inputs: dict,
+        self,
+        sams_inputs: dict,
         tech_step_samples: dict
 ) -> None:
     """Make a dict data structure per merging, with samples to merge as values.
 
     Parameters
     ----------
-    step : str
-        Name of the MIDAS2 module
-    inputs : dict
+    sams_inputs : dict
         Output data structure from the MIDAS analysis steps (midas2 run_*)
     tech_step_samples : dict
     """
-    for sam, step_inputs in inputs.items():
-        for (tech, db, focus, spc_list), folder in step_inputs[step].items():
-            if (tech, step) not in tech_step_samples:
-                tech_step_samples[(tech, step)] = {}
-            tech_step_samples[(tech, step)].setdefault(
-                (db, focus, spc_list), []).append([sam, folder])
+    for sam, step_inputs in sams_inputs.items():
+        for step in ['midas2_species', 'midas2_genes', 'midas2_snps']:
+            if step not in step_inputs:
+                continue
+            self.outputs['outs'][step] = {}
+            inputs = step_inputs[step]
+            for (tech, db, focus, spc_list), folder in inputs.items():
+                if (tech, step) not in tech_step_samples:
+                    tech_step_samples[(tech, step)] = {}
+                tech_step_samples[(tech, step)].setdefault(
+                    (db, focus, spc_list), []).append([sam, folder])
 
 
 def get_merge_outs(
@@ -212,8 +218,7 @@ def merge(self):
     tech_step_samples = {}
     for step, inputs in self.softs.items():
         if step.startswith('midas2') and step != self.soft.name:
-            self.outputs['outs'][step] = {}
-            get_samples(step, inputs.outputs, tech_step_samples)
+            get_samples(self, inputs.outputs, tech_step_samples)
 
     for (tech, step), samples in tech_step_samples.items():
         for (db, focus, spc_list), sams_dirs in samples.items():
@@ -431,6 +436,9 @@ def get_midas2(
     step : str
         Name of the MIDAS2 step
     """
+    if step not in self.outputs['outs']:
+        self.outputs['outs'][step] = {}
+
     species_lists, out = get_species_lists(self, params, step)
     to_dos = status_update(self, tech, fastqs)
     db_folder = self.databases.paths['midas2']
@@ -493,7 +501,6 @@ def snps(
     params : dict
         Run parameters
     """
-    self.outputs['outs']['midas2_snps'] = {}
     get_midas2(self, tech, fastqs, out_dir, params, 'midas2_snps')
 
 
@@ -532,7 +539,6 @@ def genes(
     params : dict
         Run parameters
     """
-    self.outputs['outs']['midas2_genes'] = {}
     get_midas2(self, tech, fastqs, out_dir, params, 'midas2_genes')
 
 
@@ -571,7 +577,6 @@ def species(
     params : dict
         Run parameters
     """
-    self.outputs['outs']['midas2_species'] = {}
     get_midas2(self, tech, fastqs, out_dir, params, 'midas2_species')
 
 
@@ -615,9 +620,8 @@ def midas2_(
     params : dict
         Run parameters
     """
-    for run_step in ['midas2_species', 'midas2_species', 'midas2_species']:
-        self.outputs['outs'][run_step] = {}
-        get_midas2(self, tech, fastqs, out_dir, params, run_step)
+    for step in ['midas2_species', 'midas2_genes', 'midas2_snps']:
+        get_midas2(self, tech, fastqs, out_dir, params, step)
 
 
 def midas2(self) -> None:
