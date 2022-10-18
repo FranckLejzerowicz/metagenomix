@@ -935,8 +935,8 @@ def amrplusplus2_cmd(
 
     # optional arguments - "valued"
     for param in ['adapters', 'fqc_adapters', 'host_index', 'host',
-                 'kraken_db', 'amr_index', 'amr', 'annotation',
-                 'snp_annotation', 'snp_confirmation']:
+                  'kraken_db', 'amr_index', 'amr', 'annotation',
+                  'snp_annotation', 'snp_confirmation']:
         if self.soft.params[param]:
             cmd += ' --%s "%s"' % (param, self.soft.params[param])
 
@@ -945,7 +945,7 @@ def amrplusplus2_cmd(
         cmd += ' --%s %s' % (param, self.soft.params[param])
     cmd += ' --threads %s' % self.soft.params['cpus']
     cmd += ' --output "%s"' % out_dir
-    cmd += ' -work "%s/work_dir"\n' % out_dir
+    cmd += ' -work-dir "%s/work_dir"\n' % out_dir
     cmd += 'cd %s\n' % out_dir
     cmd += 'rm -rf copy\n'
     cmd += 'rm -rf work_dir\n'
