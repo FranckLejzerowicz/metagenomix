@@ -34,6 +34,7 @@ class AnalysesConfig(object):
         self.fastq_mv = {}
         self.fastq = {}
         self.params = {}
+        self.read = []
         self.dir = ''
         self.r = {}
         # self.cazy_focus_dbs = {}  <---- see databases "self.cazys"
@@ -237,6 +238,14 @@ class AnalysesConfig(object):
             os.makedirs(self.output_dir)
         self.dir = os.path.abspath(self.output_dir)
 
+    def add_mergers(self):
+        mergers = {'midas2': []}
+        for softs in self.read:
+            soft = softs[-1].split('_')[0]
+            if soft in mergers:
+                mergers[soft] = [softs[-1], '%s_merge' % soft]
+        self.read.extend(list(mergers.values()))
+
     def parse_yamls(self):
         for arg in list(self.__dict__):
             if arg.endswith('_yml'):
@@ -244,10 +253,11 @@ class AnalysesConfig(object):
                 setattr(self, arg[:-4], yaml)
             if arg == 'pipeline_tsv':
                 with open(self.__dict__[arg]) as f:
-                    read = [
+                    self.read = [
                         x.strip().split() for x in f.readlines()
                         if x[0] != '#' and len(x.strip().split())]
-                    setattr(self, arg[:-4], read)
+                    self.add_mergers()
+                    setattr(self, arg[:-4], self.read)
 
     def get_default_params(self):
         """

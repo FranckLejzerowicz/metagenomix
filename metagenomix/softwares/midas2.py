@@ -13,15 +13,237 @@ from metagenomix._io_utils import (caller, status_update, io_update,
                                    to_do, tech_specificity)
 
 
+def get_merge_cmd(
+        self,
+        tech: str,
+        step: str,
+        db: str,
+        spc_list: str,
+        out_dir: str,
+        sam_fp: str
+) -> str:
+    """Collect the command line for merging MIDAS2 analysis results per sample.
+
+    Parameters
+    ----------
+    self : Commands class instance
+    tech : str
+        Technology
+    step : str
+        Name of the MIDAS2 module
+    db : str
+        MIDAS Database name
+    spc_list : str
+        path to file containing the list of species IDs to focus on
+    out_dir : str
+        Path to the output folder
+    sam_fp : dtr
+        Path to samples input folders per tech, database and species focus
+
+    Returns
+    -------
+    cmd : str
+        Command line for merging the results of a midas run_* step
+    """
+    params = tech_params(self, tech)
+    cmd = step.replace('_', ' merge_')
+    if step == 'midas2_species':
+        cmd += ' --min_cov %s' % params['min_cov']
+    else:
+        cmd += ' --num_cores %s' % params['cpus']
+        cmd += ' --midasdb_name %s' % db
+        cmd += ' --midasdb_dir %s/%s' % (self.databases.paths['midas2'], db)
+
+        if spc_list:
+            cmd += ' --species_list %s' % spc_list
+
+        if params['genome_depth']:
+            cmd += ' --genome_depth %s' % params['genome_depth']
+        elif step == 'midas2_genes':
+            cmd += ' --genome_depth 1.0'
+        else:
+            cmd += ' --genome_depth 5.0'
+
+        if params['sample_counts']:
+            cmd += ' --sample_counts %s' % params['sample_counts']
+        elif step == 'midas2_genes':
+            cmd += ' --sample_counts 1.0'
+        else:
+            cmd += ' --sample_counts 2.0'
+
+        if step == 'midas2_genes':
+            cmd += ' --min_copy %s' % params['min_copy']
+            cmd += ' --cluster_pid %s' % params['cluster_pid']
+        else:
+            for param in [
+                'site_depth', 'site_ratio', 'site_prev', 'snv_type',
+                'snp_pooled_method', 'snp_maf', 'snp_type', 'locus_type'
+            ]:
+                cmd += ' --%s %s' % (param, params[param])
+            for boolean in ['chunk_size', 'advanced', 'robust_chunk']:
+                if params[boolean]:
+                    cmd += ' --%s' % boolean
+    cmd += ' --force'
+    cmd += ' --samples_list %s' % sam_fp
+    cmd += ' %s\n' % out_dir
+    return cmd
+
+
+def get_sams_list(
+        self,
+        tech: str,
+        step: str,
+        sam_fp: str,
+        sams_folders: list,
+        db: str,
+        focus: str
+) -> tuple:
+    """Collect the command to make a samples list input file.
+
+    Parameters
+    ----------
+    self : Commands class instance
+    tech : str
+        Technology
+    step : str
+        Name of the MIDAS2 module
+    sam_fp : str
+        Path to the file to contain the samples and their input folders
+    sams_folders : list
+        Samples and their input folders
+    db : str
+        MIDAS Database name
+    focus : str
+        Name of the species IDs list to focus on
+
+    Returns
+    -------
+    cmd : str
+        Command to create the samples list input file to MIDAS2 merge commands
+    i_d : list
+        Paths to the per-sample outputs of the midas2 run_* commands
+    to_dos : list
+        Paths to input file that need to be created (or whether they are links)
+    """
+    cmd = ''
+    i_d, to_dos = [], []
+    for sdx, (sam, folder) in enumerate(sams_folders):
+
+        folder_sam = '%s/%s' % (folder, sam)
+        i_d.append(folder_sam)
+
+        if step == 'midas2_species':
+            out = '%s/species_profile.tsv' % folder_sam
+        elif step == 'midas2_genes':
+            out = '%s/genes_summary.tsv' % folder_sam
+        else:
+            out = '%s/snps_summary.tsv' % folder_sam
+        to_dos.extend(status_update(self, tech, [out], group=db, genome=focus))
+
+        if not sdx:
+            cmd += 'echo -e "sample_name\\tmidas_outdir" > %s\n' % sam_fp
+        cmd += 'echo -e "%s\\t%s" >> %s\n' % (sam, folder, sam_fp)
+    return cmd, i_d, to_dos
+
+
+def get_samples(
+        step: str,
+        inputs: dict,
+        tech_step_samples: dict
+) -> None:
+    """Make a dict data structure per merging, with samples to merge as values.
+
+    Parameters
+    ----------
+    step : str
+        Name of the MIDAS2 module
+    inputs : dict
+        Output data structure from the MIDAS analysis steps (midas2 run_*)
+    tech_step_samples : dict
+    """
+    for sam, step_inputs in inputs.items():
+        for (tech, db, focus, spc_list), folder in step_inputs[step].items():
+            if (tech, step) not in tech_step_samples:
+                tech_step_samples[(tech, step)] = {}
+            tech_step_samples[(tech, step)].setdefault(
+                (db, focus, spc_list), []).append([sam, folder])
+
+
+def get_merge_outs(
+        out_dir: str,
+        step: str
+) -> str:
+    """Get the name of the expected output files for MIDAS2 merge commands.
+
+    Parameters
+    ----------
+    out_dir : str
+        Path to the output folder
+    step : str
+        Name of the MIDAS2 step
+
+    Returns
+    -------
+    out : str
+        Path to the current output
+    """
+    if step == 'midas2_species':
+        out = '%s/species/species_prevalence.tsv' % out_dir
+    elif step == 'midas2_genes':
+        out = '%s/genes/genes_summary.tsv' % out_dir
+    else:
+        out = '%s/snps/snps_summary.tsv' % out_dir
+    return out
+
+
+def merge(self):
+    """Collect commands to perform all necessary MIDAS2 merging, including:
+        - midas2 merge_species
+            merge MIDAS species abundance results across metagenomic samples
+        - midas2 merge_genes
+            metagenomic pan-genome profiling
+        - midas2 merge_snps
+            pooled-samples SNPs calling
+
+    Parameters
+    ----------
+    self : Commands class instance
+    """
+    tech_step_samples = {}
+    for step, inputs in self.softs.items():
+        if step.startswith('midas2') and step != self.soft.name:
+            self.outputs['outs'][step] = {}
+            get_samples(step, inputs.outputs, tech_step_samples)
+
+    for (tech, step), samples in tech_step_samples.items():
+        for (db, focus, spc_list), sams_dirs in samples.items():
+            out_dir = '/'.join([self.dir, tech, db, focus])
+            self.outputs['dirs'].append(out_dir)
+            self.outputs['outs'][step][(tech, db, focus, spc_list)] = out_dir
+            sam_fp = '%s/sample_list.txt' % out_dir
+            cmd_sam, i_d, to_dos = get_sams_list(
+                self, tech, step, sam_fp, sams_dirs, db, focus)
+            out = get_merge_outs(out_dir, step)
+            if self.config.force or to_do(out):
+                if to_dos:
+                    self.outputs['cmds'].setdefault((tech,), []).append(False)
+                else:
+                    cmd = get_merge_cmd(
+                        self, tech, step, db, spc_list, out_dir, sam_fp)
+                    c = cmd_sam + '\n' + cmd
+                    self.outputs['cmds'].setdefault((tech, step), []).append(c)
+                    io_update(self, i_d=i_d, o_d=out_dir, key=(tech, step))
+
+
 def get_midas2_cmd(
         self,
         fastqs: list,
         focus_dir: str,
-        db_name: str,
+        db: str,
         db_path: str,
-        species_list: str,
+        spc_list: str,
         params: dict,
-        run_step: str
+        step: str
 ) -> str:
     """Collect the relevant MIDAS2 command.
 
@@ -34,15 +256,15 @@ def get_midas2_cmd(
         Path to the input files
     focus_dir : str
         Path to the output folder
-    db_name : str
+    db : str
         MIDAS Database name
     db_path : str
         Path to local MIDAS Database
-    species_list : str
+    spc_list : str
         path to file containing the list of species IDs to focus on
     params : dict
         Run parameters
-    run_step : str
+    step : str
         Name of the MIDAS2 module
 
     Returns
@@ -50,15 +272,14 @@ def get_midas2_cmd(
     cmd : str
         MIDAS2 command
     """
-    cmd = 'midas2 run_%s' % run_step
+    cmd = step.replace('_', ' run_')
     cmd += ' --sample_name %s' % self.sam_pool
-    if self.config.force:
-        cmd += ' --force'
+    cmd += ' --force'
     cmd += ' -1 %s' % fastqs[0]
     if len(fastqs) == 2:
         cmd += ' -2 %s' % fastqs[1]
 
-    if run_step in ['genes', 'snps']:
+    if step in ['midas2_genes', 'midas2_snps']:
         for param in ['prebuilt_bowtie2_indexes', 'prebuilt_bowtie2_species']:
             if params[param]:
                 cmd += ' --%s %s' % (param, params[param])
@@ -66,8 +287,8 @@ def get_midas2_cmd(
         if params['aln_interleaved']:
             cmd += ' --aln_interleaved'
 
-        if species_list:
-            cmd += ' --species_list %s' % params['species_list']
+        if spc_list:
+            cmd += ' --species_list %s' % spc_list
 
         for param in ['select_by', 'select_threshold', 'aln_speed',
                       'aln_mode', 'fragment_length', 'aln_readq']:
@@ -81,20 +302,20 @@ def get_midas2_cmd(
         if params['aln_mapq']:
             cmd += ' --aln_mapq %s' % params['aln_mapq']
         else:
-            if run_step == 'genes':
+            if step == 'midas2_genes':
                 cmd += ' --aln_mapq 2'
-            if run_step in 'snps':
+            if step in 'midas2_snps':
                 cmd += ' --aln_mapq 10'
 
         if params['chunk_size']:
             cmd += ' --chunk_size %s' % params['chunk_size']
         else:
-            if run_step == 'genes':
+            if step == 'midas2_genes':
                 cmd += ' --chunk_size 50000'
-            if run_step in 'snps':
+            if step in 'midas2_snps':
                 cmd += ' --chunk_size 1000000'
 
-        if run_step == 'genes':
+        if step == 'midas2_genes':
             cmd += ' --read_depth %s' % params['read_depth']
         else:
             for boolean in ['paired_only', 'ignore_ambiguous',
@@ -115,12 +336,60 @@ def get_midas2_cmd(
         if params[param]:
             cmd += ' --%s %s' % (param, params[param])
 
-    cmd += ' --midasdb_name %s' % db_name
+    cmd += ' --midasdb_name %s' % db
     cmd += ' --midasdb_dir %s' % db_path
     cmd += ' --num_cores %s' % params['cpus']
     cmd += ' %s' % focus_dir
 
     return cmd
+
+
+def get_species_lists(
+        self,
+        params,
+        run_step
+) -> tuple:
+    """
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .soft.prev : str
+            Previous software in the pipeline
+        .dir : str
+            Path to pipeline output folder for checkm tetra
+        .sam_pool : str
+            Pool name.
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    params : dict
+        Run parameters
+    run_step : str
+        Name of the MIDAS2 step
+
+    Returns
+    -------
+    species_lists : dict
+        Path to species IDs list per species list name
+    out : str
+        End of the path to the current output
+    """
+    species_lists = {'all_species': ''}
+    if run_step == 'midas2_species':
+        out = '%s/species/species_profile.tsv' % self.sam_pool
+    else:
+        species_lists = params['species_list']
+        if run_step == 'midas2_genes':
+            out = '%s/genes/genes_summary.tsv' % self.sam_pool
+        else:
+            out = '%s/snps/snps_summary.tsv' % self.sam_pool
+    return species_lists, out
 
 
 def get_midas2(
@@ -129,7 +398,7 @@ def get_midas2(
         fastqs: list,
         out_dir: str,
         params: dict,
-        run_step: str
+        step: str
 ) -> None:
     """Get the MIDAS2 inputs and outputs for the current tech and
     sample and collect the commands and data structures.
@@ -159,48 +428,37 @@ def get_midas2(
         Path to the output folder
     params : dict
         Run parameters
-    run_step : str
+    step : str
         Name of the MIDAS2 step
     """
-    species_lists = {'all_species': ''}
-    if run_step == 'species':
-        out = '%s/species/species_profile.tsv' % self.sam_pool
-    else:
-        if params['species_list']:
-            species_lists = params['species_list']
-        if run_step == 'genes':
-            out = '%s/genes/genes_summary.tsv' % self.sam_pool
-        else:
-            out = '%s/snps/snps_summary.tsv' % self.sam_pool
-
+    species_lists, out = get_species_lists(self, params, step)
     to_dos = status_update(self, tech, fastqs)
-
     db_folder = self.databases.paths['midas2']
-    for db_name in self.soft.params['databases']:
-        if self.config.dev:
-            db_path = '%s/%s' % (db_folder, db_name)
-        else:
-            db_path = '%s/%s' % (db_folder, db_name)
-            if not isdir(db_path):
-                sys.exit('[midas2] Path to database "%s not found' % db_path)
+    for db in self.soft.params['databases']:
 
-        for focus, species_list in species_lists.items():
-            focus_dir = out_dir + '/' + db_name + '/' + focus
+        db_path = '%s/%s' % (db_folder, db)
+        if not self.config.dev and not isdir(db_path):
+            sys.exit('[midas2] Path to database "%s not found' % db_path)
+
+        for focus, spc_list in species_lists.items():
+            focus_dir = out_dir + '/' + db + '/' + focus
+            self.outputs['dirs'].append(focus_dir)
+            self.outputs['outs'][step][(tech, db, focus, spc_list)] = focus_dir
             out_fp = focus_dir + '/' + out
             if self.config.force or to_do(out_fp):
-                cmd = get_midas2_cmd(self, fastqs, focus_dir, db_name, db_path,
-                                     species_list, params, run_step)
+                cmd = get_midas2_cmd(self, fastqs, focus_dir, db, db_path,
+                                     spc_list, params, step)
                 if to_dos:
                     self.outputs['cmds'].setdefault((tech,), []).append(False)
                 else:
                     self.outputs['cmds'].setdefault((tech,), []).append(cmd)
                     i_f = fastqs
-                    if isfile(species_list):
-                        i_f += [species_list]
+                    if isfile(spc_list):
+                        i_f += [spc_list]
                     io_update(self, i_f=i_f, o_d=focus_dir, key=(tech,))
 
 
-def midas2_snps(
+def snps(
         self,
         tech: str,
         fastqs: list,
@@ -235,10 +493,11 @@ def midas2_snps(
     params : dict
         Run parameters
     """
-    get_midas2(self, tech, fastqs, out_dir, params, 'snps')
+    self.outputs['outs']['midas2_snps'] = {}
+    get_midas2(self, tech, fastqs, out_dir, params, 'midas2_snps')
 
 
-def midas2_genes(
+def genes(
         self,
         tech: str,
         fastqs: list,
@@ -273,10 +532,11 @@ def midas2_genes(
     params : dict
         Run parameters
     """
-    get_midas2(self, tech, fastqs, out_dir, params, 'genes')
+    self.outputs['outs']['midas2_genes'] = {}
+    get_midas2(self, tech, fastqs, out_dir, params, 'midas2_genes')
 
 
-def midas2_species(
+def species(
         self,
         tech: str,
         fastqs: list,
@@ -311,7 +571,8 @@ def midas2_species(
     params : dict
         Run parameters
     """
-    get_midas2(self, tech, fastqs, out_dir, params, 'species')
+    self.outputs['outs']['midas2_species'] = {}
+    get_midas2(self, tech, fastqs, out_dir, params, 'midas2_species')
 
 
 def midas2_(
@@ -354,7 +615,8 @@ def midas2_(
     params : dict
         Run parameters
     """
-    for run_step in ['species', 'snps', 'genes']:
+    for run_step in ['midas2_species', 'midas2_species', 'midas2_species']:
+        self.outputs['outs'][run_step] = {}
         get_midas2(self, tech, fastqs, out_dir, params, run_step)
 
 
@@ -387,10 +649,24 @@ def midas2(self) -> None:
     elif self.sam_pool in self.pools:
         sys.exit('[midas2] Run on reads (not after "%s")' % self.soft.prev)
 
-    for (tech, sam), fastqs in self.inputs[self.sam_pool].items():
-        if tech_specificity(self, fastqs, tech, sam):
-            continue
-        out_dir = self.dir + '/' + tech
-        module_call = caller(self, __name__)
-        params = tech_params(self, tech)
-        module_call(self, tech, fastqs, out_dir, params)
+    if self.sam_pool == '':
+        merge(self)
+    else:
+        if self.soft.prev.startswith('midas2'):
+            if 'midas2' in self.softs:
+                reads = self.softs[self.softs['midas2'].prev].outputs
+            elif 'midas2_species' in self.softs:
+                reads = self.softs[self.softs['midas2_species'].prev].outputs
+            else:
+                sys.exit('[%s] No reads found used for "midas2[_species]"' %
+                         self.soft.name)
+        else:
+            reads = self.inputs
+
+        for (tech, sam), fastqs in reads[self.sam_pool].items():
+            if tech_specificity(self, fastqs, tech, sam):
+                continue
+            out_dir = self.dir + '/' + tech
+            module_call = caller(self, __name__)
+            params = tech_params(self, tech)
+            module_call(self, tech, fastqs, out_dir, params)

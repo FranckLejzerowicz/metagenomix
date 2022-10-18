@@ -86,7 +86,10 @@ def check_nums_generic(param, val, dtype, tool, mi=None, ma=None, tech=None):
 def check_nums(self, params, defaults, vals, dtype, tool, mi=None, ma=None):
     for param in vals:
         if param not in params:
-            params[param] = defaults[param]
+            if defaults[param] == [None]:
+                params[param] = None
+            else:
+                params[param] = defaults[param]
         else:
             val = params[param]
             if isinstance(val, dict) and set(val).issubset(self.config.techs):
@@ -2683,7 +2686,7 @@ def check_midas2(self, params, soft):
         'marker_covered': 2,
         'prebuilt_bowtie2_indexes': [None],
         'prebuilt_bowtie2_species': [None],
-        'species_list': [None],
+        'species_list': {'all_species': ''},
         'select_by': 'median_marker_coverage,unique_fraction_covered',
         'select_threshold': '2.0,0.5',
         'aln_speed': ['very-fast', 'fast', 'sensitive', 'very-sensitive'],
@@ -2706,9 +2709,9 @@ def check_midas2(self, params, soft):
         'snp_maf': 0.1,
         'ignore_ambiguous': [False, True],
         'analysis_ready': [False, True],
-        'genome_depth': 5.0,
+        'genome_depth': [None],
         'genome_coverage': 0.4,
-        'sample_counts': 2,
+        'sample_counts': [None],
         'site_depth': 2,
         'site_ratio': 3.0,
         'site_prev': 0.9,
@@ -2719,6 +2722,12 @@ def check_midas2(self, params, soft):
         'advanced': [False, True],
         'robust_chunk': [False, True],
     }
+    if 'species_list' not in params:
+        params['species_list'] = defaults['species_list']
+    else:
+        if not isinstance(params['species_list'], dict):
+            sys.exit('[%s] Param "species_list" not name:path dict' % soft.name)
+
     if 'snp_type' not in params:
         params['snp_type'] = ['bi', 'tri', 'quad']
 
@@ -2730,8 +2739,8 @@ def check_midas2(self, params, soft):
                    'unique_fraction_covered'}
         for param in params['select_by'].split(','):
             if param not in allowed:
-                sys.exit('[midas2] Param "select_by" error'
-                         '("%s" not in %s)' % str(allowed))
+                sys.exit('[%s] Param "select_by" error ("%s" not in %s)' %
+                         (soft.name, param, str(allowed)))
 
     if 'select_threshold' not in params:
         params['select_threshold'] = defaults['select_threshold']
@@ -2745,7 +2754,8 @@ def check_midas2(self, params, soft):
 
     ints = ['word_size', 'marker_reads', 'marker_covered', 'aln_readq',
             'read_depth', 'aln_baseq', 'aln_trim', 'sample_counts',
-            'fragment_length', 'site_depth']
+            'fragment_length', 'site_depth', 'max_reads', 'chunk_size',
+            'aln_mapq']
     check_nums(self, params, defaults, ints, int, soft.name)
     floats = ['aln_cov', 'genome_coverage', 'site_prev']
     check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
@@ -2754,9 +2764,11 @@ def check_midas2(self, params, soft):
     floats3 = ['snp_maf']
     check_nums(self, params, defaults, floats3, float, soft.name, 0, 0.5)
     check_default(self, params, defaults, soft.name, (
-        ints + floats + floats2 + floats3 + [
-            'select_by', 'select_threshold']), ['snp_type'])
+        ints[:-3] + floats + floats2[1:] + floats3 + [
+            'select_by', 'select_threshold', 'species_list']), ['snp_type'])
     defaults['databases'] = '<Path the folder containing the MIDAS2 databases>'
+    defaults['genome_depth'] = '<1 for merge_genes; 5 for merge_snps>'
+    defaults['sample_counts'] = '<1 for merge_genes; 2 for merge_snps>'
     return defaults
 
 
