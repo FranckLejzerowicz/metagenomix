@@ -39,6 +39,7 @@ class AnalysesConfig(object):
         self.r = {}
         # self.cazy_focus_dbs = {}  <---- see databases "self.cazys"
         self.instrain = {'refs': {}, 'bams': {}}
+        self.merge = {'midas2'}
 
     def run(self):
         self.check_xhpc_install()
@@ -239,10 +240,10 @@ class AnalysesConfig(object):
         self.dir = os.path.abspath(self.output_dir)
 
     def add_mergers(self):
-        mergers = {'midas2': []}
+        mergers = {}
         for softs in self.read:
             soft = softs[-1].split('_')[0]
-            if soft in mergers:
+            if soft in self.merge:
                 mergers[soft] = [softs[-1], '%s_merge' % soft]
         self.read.extend(list(mergers.values()))
 
