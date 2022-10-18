@@ -85,6 +85,7 @@ checkm:
 
 # --------------- metawrap -----------------
 metawrap:
+  path: /dummy
   binners:
     - maxbin2
     - metabat2
@@ -116,6 +117,10 @@ kraken2:
     - default
     - wol
 
+# --------------- kraken2 -----------------
+bracken:
+  path: /dummy
+
 # --------------- kneaddata -----------------
 kneaddata:
   trimmomatic: '/some/path/to/trimmomatic'
@@ -143,11 +148,15 @@ shogun:
 bowtie2:
   scratch: userscratch
   databases:
-    - rep82
     - wol
-    - nope
-  discordant: no
-  pairing: paired
+  paired: yes
+
+# --------------- minimap2 -----------------
+minimap2:
+  scratch: userscratch
+  databases:
+    - wol
+  paired: yes
 
 # --------------- woltka -----------------
 woltka:
@@ -218,6 +227,14 @@ midas:
     prokaryotes: /path/to/prokaryotes_species_list.txt
     chemosynths: /path/to/chemosynths_species_list.txt
 
+# --------------- midas2 -----------------
+midas2:
+  databases:
+    - gtdb
+  species_list:
+    prokaryotes: /path/to/prokaryotes_species_list.txt
+    chemosynths: /path/to/chemosynths_species_list.txt
+
 # --------------- woltka -----------------
 strainphlan:
   env: phlans
@@ -278,7 +295,7 @@ drep:
 # -------------- plasmidfinder ------------------
 plasmidfinder:
   binary: /a/path
-  kma: /a/path
+  methodPath: /a/path
   databasePath: /a/path
 
 # -------------- plasforest ------------------
@@ -329,6 +346,11 @@ hifiadapterfilt:
 # --------------- amrplusplus2 --------------
 amrplusplus2:
   path: /some/path/to/bin
+
+# --------------- amrfinderplus --------------
+amrfinderplus:
+  nucleotide_flank5_size: 10
+  quiet: true
 
 # --------------- mappings --------------
 mapping:
