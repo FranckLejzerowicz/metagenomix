@@ -756,7 +756,7 @@ def check_shogun(self, params, soft):
     return defaults
 
 
-def check_bowtie2(self, params, soft):
+def check_bowtie2(self, params, soft, no_database=False):
     defaults = {
         'presets': ['sensitive', 'very-sensitive', 'very-fast', 'fast', None],
         'paired': [True, False],
@@ -861,30 +861,31 @@ def check_bowtie2(self, params, soft):
     let_go = ints + ['N', 'L', 'i', 'n_ceil', 'score_min', 'rdg', 'rfg']
     check_default(self, params, defaults, soft.name, let_go)
 
-    dbs_existing = check_databases(soft.name, params, self.databases)
-    valid_dbs = {}
-    for db in dbs_existing:
-        if 'bowtie2' in self.databases.builds[db]:
-            bt2_path = '%s/*.*.bt2*' % self.databases.builds[db]['bowtie2']
-            if not self.config.dev:
-                bt2_paths = glob.glob(bt2_path)
-                if bt2_paths:
-                    valid_dbs[db] = bt2_paths[0].rsplit('.', 2)[0]
-            else:
-                valid_dbs[db] = bt2_path.rsplit('.', 2)[0]
-    params['databases'] = valid_dbs
-    defaults['databases'] = '<list of databases>'
+    if not no_database:
+        dbs_existing = check_databases(soft.name, params, self.databases)
+        valid_dbs = {}
+        for db in dbs_existing:
+            if 'bowtie2' in self.databases.builds[db]:
+                bt2_path = '%s/*.*.bt2*' % self.databases.builds[db]['bowtie2']
+                if not self.config.dev:
+                    bt2_paths = glob.glob(bt2_path)
+                    if bt2_paths:
+                        valid_dbs[db] = bt2_paths[0].rsplit('.', 2)[0]
+                else:
+                    valid_dbs[db] = bt2_path.rsplit('.', 2)[0]
+        params['databases'] = valid_dbs
+        defaults['databases'] = '<list of databases>'
     return defaults
 
 
-def check_minimap2(self, params, soft):
+def check_minimap2(self, params, soft, no_database=False):
     defaults = {
         'paired': [True, False],
         'H': [False, True],
         'k': 15,
         'w': 10,
         'I': '4G',
-        'd': [None],
+        'd': [''],
         'f': 0.0002,
         'e': 500,
         'g': 5000,
@@ -907,7 +908,7 @@ def check_minimap2(self, params, soft):
         'u': ['n', 'f', 'b'],
         'a': [True, False],
         'L': [False, True],
-        'R': [None],
+        'R': [''],
         'c': [False, True],
         'cs': [None, 'short', 'long'],
         'MD': [False, True],
@@ -941,7 +942,7 @@ def check_minimap2(self, params, soft):
         'end_bonus': 0,
         'score_N': 1,
         'splice_flank': [True, False],
-        'junc_bed': [None],
+        'junc_bed': [''],
         'junc_bonus': 9,
         'endvseed_pen': 6,
         'no_end_flt': [False, True],
@@ -959,6 +960,7 @@ def check_minimap2(self, params, soft):
         'sam_hit_only': [True, False],
         '2': [False, True],
     }
+
     for p in ['O', 'K', 'z', 'U']:
         if p not in params:
             params[p] = defaults[p]
@@ -971,7 +973,7 @@ def check_minimap2(self, params, soft):
         elif not str(params[p][:-1]).isdigit():
             sys.exit('[minimap2] "%s" option invalid (NUM)' % p)
 
-    ints = ['w', 'g', 'F', 'r', 'n', 'm', 'N', 'A', 'B', 's', 'e',
+    ints = ['max_qlen', 'w', 'g', 'F', 'r', 'n', 'm', 'N', 'A', 'B', 's', 'e',
             'max_chain_skip', 'max_chain_iter', 'C', 's', 'end_bonus',
             'score_N', 'junc_bonus', 'endvseed_pen', 'cap_kalloc', 'seed']
     check_nums(self, params, defaults, ints, int, soft.name)
@@ -980,23 +982,64 @@ def check_minimap2(self, params, soft):
     floats = ['f', 'p', 'alt_drop', 'M', 'chain_gap_scale', 'q_occ_frac']
     check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
 
-    check_default(self, params, defaults, soft.name, (ints + floats + ['k']))
-                  # (ints + floats + ['k', 'd', 'R', 'mask_len',
-                  #                   'split_prefix', 'junc_bed', 'max_qlen']))
+    check_default(self, params, defaults, soft.name, (ints[1:]+floats+['k']))
 
-    dbs_existing = check_databases(soft.name, params, self.databases)
-    valid_dbs = {}
-    for db in dbs_existing:
-        if 'minimap2' in self.databases.builds[db]:
-            minimap2_path = '%s/*.mmi' % self.databases.builds[db]['minimap2']
-            if not self.config.dev:
-                bt2_paths = glob.glob(minimap2_path)
-                if bt2_paths:
-                    valid_dbs[db] = bt2_paths[0]
-            else:
-                valid_dbs[db] = minimap2_path
-    params['databases'] = valid_dbs
-    defaults['databases'] = '<list of databases>'
+    if not no_database:
+        dbs_existing = check_databases(soft.name, params, self.databases)
+        valid_dbs = {}
+        for db in dbs_existing:
+            if 'minimap2' in self.databases.builds[db]:
+                db_path = '%s/*.mmi' % self.databases.builds[db]['minimap2']
+                if not self.config.dev:
+                    bt2_paths = glob.glob(db_path)
+                    if bt2_paths:
+                        valid_dbs[db] = bt2_paths[0]
+                else:
+                    valid_dbs[db] = db_path
+        params['databases'] = valid_dbs
+        defaults['databases'] = '<list of databases>'
+    return defaults
+
+
+def check_bbmap(self, params, soft, no_database=False):
+    defaults = {
+        'paired': [True, False],
+    }
+    if not no_database:
+        dbs_existing = check_databases(soft.name, params, self.databases)
+        valid_dbs = {}
+        for db in dbs_existing:
+            if 'bbmap' in self.databases.builds[db]:
+                db_path = '%s/*' % self.databases.builds[db]['bbmap']
+                if not self.config.dev:
+                    bt2_paths = glob.glob(db_path)
+                    if bt2_paths:
+                        valid_dbs[db] = bt2_paths[0]
+                else:
+                    valid_dbs[db] = db_path
+        params['databases'] = valid_dbs
+        defaults['databases'] = '<list of databases>'
+    return defaults
+
+
+def check_bwa(self, params, soft, no_database=False):
+    defaults = {
+        'paired': [True, False],
+    }
+    if not no_database:
+        dbs_existing = check_databases(soft.name, params, self.databases)
+        valid_dbs = {}
+        for db in dbs_existing:
+            if 'bwa' in self.databases.builds[db]:
+                db_path = '%s/*' % self.databases.builds[db]['bwa']
+                if not self.config.dev:
+                    bt2_paths = glob.glob(db_path)
+                    if bt2_paths:
+                        valid_dbs[db] = bt2_paths[0]
+                else:
+                    valid_dbs[db] = db_path
+        params['databases'] = valid_dbs
+        defaults['databases'] = '<list of databases>'
     return defaults
 
 
@@ -2774,110 +2817,76 @@ def check_midas2(self, params, soft):
 
 def check_mapping(self, params, soft):
     defaults = {
-        'mapper': ['minimap2', 'bowtie2', 'bwa', 'bbmap'],
-
-        'presets': ['sensitive', 'very-sensitive', 'very-fast', 'fast', None],
-        'paired': [True, False],
-        'fr': ['fr', 'rf', 'ff'],
-        'i': 'S,1,1.15',
-        'n_ceil': 'L,0,0.15',
-        'rdg': '5,3',
-        'rfg': '5,3',
-        'score_min': 'L,0,-0.05',
-        'skip': 0,
-        'upto': 0,
-        'trim5': 0,
-        'trim3': 0,
-        'trim_to': 0,
-        'N': 0,
-        'L': 22,
-        'dpad': 15,
-        'gbar': 4,
-        'ma': 0,
-        'k': 0,
-        'np': 1,
-        'mp': 6,
-        'D': 15,
-        'R': 2,
-        'minins': 0,
-        'maxins': 500,
-        'met': 240,
-        'seed': 12345,
-        'q': [True, False],
-        'tab5': [False, True],
-        'tab6': [False, True],
-        'qseq': [False, True],
-        'f': [False, True],
-        'r': [False, True],
-        'c': [False, True],
-        'phred33': [True, False],
-        'phred64': [False, True],
-        'int_quals': [False, True],
-        'ignore_quals': [False, True],
-        'nofw': [False, True],
-        'norc': [False, True],
-        'no_1mm_upfront': [False, True],
-        'end_to_end': [True, False],
-        'local': [False, True],
-        'all': [False, True],
-        'no_mixed': [False, True],
-        'no_discordant': [False, True],
-        'dovetail': [False, True],
-        'no_contain': [False, True],
-        'no_overlap': [False, True],
-        'align_paired_reads': [False, True],
-        'preserve_tags': [False, True],
-        't': [False, True],
-        'un': [False, True],
-        'al': [False, True],
-        'un_conc': [False, True],
-        'al_conc': [False, True],
-        'quiet': [False, True],
-        'met_file': [False, True],
-        'met_stderr': [False, True],
-        'no_unal': [True, False],
-        'no_head': [False, True],
-        'no_sq': [False, True],
-        'omit_sec_seq': [False, True],
-        'sam_no_qname_trunc': [False, True],
-        'xeq': [False, True],
-        'soft_clipped_unmapped_tlen': [False, True],
-        'sam_append_comment': [False, True],
-        'reorder': [False, True],
-        'mm': [False, True],
-        'qc_filter': [False, True],
-        'non_deterministic': [False, True]
+        'aligners': ['minimap2', 'bowtie2', 'bwa', 'bbmap'],
+        'per_tech': [False, True]
     }
+    for aligner in defaults['aligners']:
+        aligner_params = params.get(aligner, {})
+        check_aligner = 'check_%s' % aligner
+        if check_aligner in globals():
+            func = globals()[check_aligner]
+            aligner_defaults = func(self, aligner_params, soft, True)
+            defaults[aligner] = aligner_defaults
+    check_default(self, params, defaults, soft.name,
+                  defaults['aligners'], ['aligners'])
+    return defaults
 
-    for param in ['rdg', 'rfg']:
-        if param in params:
-            if len([x.isdigit() for x in str(params[param]).split(',')]) != 2:
-                sys.exit('[mapping] "%s" option invalid' % param)
-        else:
-            params[param] = defaults[param]
 
-    for param in ['i', 'n_ceil', 'score_min']:
-        if param in params:
-            s = params[param].split(',')
-            if len(s) != 3 or s[0] not in 'CLSG':
-                sys.exit('[mapping] "%s" option invalid' % param)
-            else:
-                for r in [1, 2]:
-                    try:
-                        float(s[r])
-                    except ValueError:
-                        sys.exit('[mapping] "%s" option invalid' % param)
-        else:
-            params[param] = defaults[param]
+def check_woltka(self, params, soft):
+    defaults = {
+        'taxa': [
+            'phylum', 'order', 'class', 'family', 'genus', 'species', 'none'],
+        'classifications': [None, 'go', 'eggnog', 'metacyc', 'kegg'],
+        'go': ['process', 'function', 'component'],
+        'demux': [False, True],
+        'trim_sub': [None],
+        'nodes': [None],
+        'newick': [None],
+        'lineage': [None],
+        'columns': [None],
+        'map_as_rank': [False, True],
+        'names': [None],
+        'rank': [None],
+        'uniq': [False, True],
+        'major': [None],
+        'above': [False, True],
+        'subok': [False, True],
+        'coords': [None],
+        'overlap': 80,
+        'stratify': [None],
+        'sizes': [None],
+        'frac': [False, True],
+        'scale': [None],
+        'digits': [None],
+        'to_biom': [None],
+        'unassigned': [False, True],
+        'name_as_id': [True, False],
+        'add_rank': [True, False],
+        'add_lineage': [False, True],
+        'outmap': [None],
+        'zipmap': ['gz', 'none', 'bz2', 'xz'],
+        'outcov': [None],
+        'chunk': [None],
+        'cache': 1024,
+        'no_exe': [False, True],
+        'min_count': 0,
+        'min_percent': 0,
+        'divide': [False, True],
+        'field': 2,
+        'threshold': [None]
+    }
+    if 'taxa' not in params:
+        params['taxa'] = ['phylum', 'family', 'genus', 'species', 'none']
+    if 'go' not in params:
+        params['go'] = ['process', 'function', 'component']
 
-    ints = ['skip', 'upto', 'trim5', 'trim3', 'trim_to', 'dpad', 'gbar', 'ma',
-            'k', 'np', 'mp', 'D', 'R', 'minins', 'maxins', 'met', 'seed']
+    ints = ['cache', 'min_count']
     check_nums(self, params, defaults, ints, int, soft.name)
-    check_nums(self, params, defaults, ['N'], int, soft.name, 0, 1)
-    check_nums(self, params, defaults, ['L'], int, soft.name, 4, 31)
-
-    let_go = ints + ['N', 'L', 'i', 'n_ceil', 'score_min', 'rdg', 'rfg']
-    check_default(self, params, defaults, soft.name, let_go)
+    floats = ['overlap', 'min_percent']
+    check_nums(self, params, defaults, floats, float, soft.name, 0, 100)
+    check_default(self, params, defaults, soft.name,
+                  (ints + floats), ['classifications', 'taxa', 'go'])
+    defaults['to_biom'] = [True, False]
     return defaults
 
 

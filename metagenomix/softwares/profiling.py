@@ -785,7 +785,7 @@ def woltka_write_map(
         tech: str,
         pairing: str,
         aligner: str,
-        alis: dict
+        alis: dict,
 ) -> tuple:
     """Write the mapping file that servers as input to Woltka.
 
@@ -835,7 +835,8 @@ def woltka_tax_cmd(
         pairing: str,
         aligner: str,
         map: str,
-        database: str
+        database: str,
+        params: dict
 ) -> tuple:
     """Get the taxonomic classification outputs and prepare the
     Woltka commands for this classification.
@@ -857,6 +858,8 @@ def woltka_tax_cmd(
         Path to the Woltka input file
     database : str
         Path to the WOL database
+    params : dict
+        Run parameters
 
     Returns
     -------
@@ -868,7 +871,9 @@ def woltka_tax_cmd(
     key = (tech, aligner)
     out = '/'.join([self.dir, tech, aligner, pairing])
     tax_out, tax_outmap = '%s/taxa' % out, '%s/taxmap' % out
-    taxa = ['phylum', 'family', 'genus', 'species', 'none']
+    if params['outmap']:
+        tax_outmap = params['outmap']
+    taxa = params['taxa']
     tax_to_do = []
     for tdx, taxon in enumerate(taxa):
         out_dir = '%s/%s.tsv' % (tax_out, taxon)
@@ -890,13 +895,36 @@ def woltka_tax_cmd(
         cur_cmd += 'woltka classify'
         cur_cmd += ' -i %s' % map
         cur_cmd += ' --map %s' % taxid
-        cur_cmd += ' --nodes %s' % nodes
-        cur_cmd += ' --names %s' % names
-        cur_cmd += ' --rank %s' % ','.join(taxa)
-        cur_cmd += ' --add-rank'
-        cur_cmd += ' --add-lineage'
-        cur_cmd += ' --name-as-id'
-        cur_cmd += ' --to-tsv'
+
+        if params['nodes']:
+            cur_cmd += ' --nodes %s' % params['nodes']
+        else:
+            cur_cmd += ' --nodes %s' % nodes
+
+        if params['names']:
+            cur_cmd += ' --names %s' % params['names']
+        else:
+            cur_cmd += ' --names %s' % names
+
+        if params['rank']:
+            cur_cmd += ' --rank %s' % ','.join(taxa)
+        else:
+            cur_cmd += ' --rank %s' % ','.join(taxa)
+
+        if params['add_rank']:
+            cur_cmd += ' --add-rank'
+
+        if params['add_lineage']:
+            cur_cmd += ' --add-lineage'
+
+        if params['name_as_id']:
+            cur_cmd += ' --name-as-id'
+
+        if params['to_biom']:
+            cur_cmd += ' --to-biom'
+        else:
+            cur_cmd += ' --to-tsv'
+
         cur_cmd += ' --outmap %s' % tax_outmap
         cur_cmd += ' -o %s' % tax_out
         self.outputs['cmds'].setdefault(key, []).append(cur_cmd)
@@ -913,7 +941,8 @@ def woltka_go(
         aligner: str,
         map: str,
         taxmap: str,
-        database: str
+        database: str,
+        params: dict
 ) -> list:
     """Get the taxonomic classification outputs and prepare the Woltka
     commands for this classification.
@@ -937,6 +966,8 @@ def woltka_go(
         Path to the folder containing the taxonomic maps.
     database : str
         WOL database path
+    params : dict
+        Run parameters
 
     Returns
     -------
@@ -948,7 +979,7 @@ def woltka_go(
     go_rt = '%s/function/go' % database
 
     go_to_do = []
-    gos = ['process', 'function', 'component']
+    gos = params['go']
     out_dir = '/'.join([self.dir, tech, aligner, pairing])
     go_dir = '%s/go' % out_dir
     key = (tech, aligner)
@@ -960,7 +991,8 @@ def woltka_go(
         cmd += 'woltka classify'
         cmd += ' -i %s' % map
         cmd += ' --coords %s' % coords
-        cmd += ' --map-as-rank'
+        if params['map_as_rank']:
+            cmd += ' --map-as-rank'
         cmd += ' --rank %s' % go
         cmd += ' --map %s' % uniref_map
         cmd += ' --to-tsv'
@@ -987,7 +1019,8 @@ def woltka_go(
             cmd += 'woltka classify'
             cmd += ' -i %s' % map
             cmd += ' --coords %s' % coords
-            cmd += ' --map-as-rank'
+            if params['map_as_rank']:
+                cmd += ' --map-as-rank'
             cmd += ' --rank %s' % go
             cmd += ' --stratify %s/%s' % (taxmap, stratif)
             cmd += ' --map %s' % uniref_map
@@ -1013,7 +1046,8 @@ def woltka_genes(
         aligner: str,
         woltka_map: str,
         taxmap: str,
-        database: str
+        database: str,
+        params: dict
 ) -> tuple:
     """Get the Woltka commands for the gene-level classification.
 
@@ -1036,6 +1070,8 @@ def woltka_genes(
         Path to the folder containing the taxonomic maps.
     database : str
         WOL database path
+    params : dict
+        Run parameters
 
     Returns
     -------
@@ -1098,7 +1134,8 @@ def woltka_uniref(
         pairing: str,
         aligner: str,
         genes_tax: dict,
-        database: str
+        database: str,
+        params: dict
 ) -> dict:
     """Get the Woltka commands for the uniref-level classification.
 
@@ -1119,6 +1156,8 @@ def woltka_uniref(
         Paths to the genes classification outputs
     database : str
         WOL database path
+    params : dict
+        Run parameters
 
     Returns
     -------
@@ -1161,7 +1200,7 @@ def woltka_uniref(
             cmd += ' --input %s' % genes_tax[stratif]
             cmd += ' --map %s' % uniref_map
             cmd += ' --names %s' % uniref_names
-            cmd += ' --field 2'
+            cmd += ' --field %s' % params['field']
             cmd += ' --output %s' % uniref
             self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, o_f=uniref, key=key)
@@ -1182,7 +1221,8 @@ def woltka_eggnog(
         pairing: str,
         aligner: str,
         uniref_tax: dict,
-        database: str
+        database: str,
+        params: dict
 ) -> None:
     """Get the Woltka commands for the eggnog-level classification.
 
@@ -1203,6 +1243,8 @@ def woltka_eggnog(
         Paths to the uniref classifications
     database : str
         WOL database path
+    params : dict
+        Run parameters
     """
     key = (tech, aligner)
     out_dir = '/'.join([self.dir, tech, aligner, pairing])
@@ -1242,7 +1284,7 @@ def woltka_eggnog(
             cmd += 'woltka tools collapse'
             cmd += ' --input %s' % uniref_tax[stratif]
             cmd += ' --map %s/function/eggnog/eggnog.map.xz' % database
-            cmd += ' --field 2'
+            cmd += ' --field %s' % params['field']
             cmd += ' --output %s\n\n' % biom
             self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, o_f=biom, key=key)
@@ -1270,7 +1312,8 @@ def woltka_cazy(
         aligner: str,
         genes: str,
         genes_tax: dict,
-        database: str
+        database: str,
+        params: dict
 ) -> None:
     """Get the Woltka commands for the cazy-level classification.
 
@@ -1295,6 +1338,8 @@ def woltka_cazy(
         Path to the stratified genes classification output.
     database : str
         WOL database path
+    params : dict
+        Run parameters
     """
     key = (tech, aligner)
     cazy_map = '%s/function/cazy/3tools.txt' % database
@@ -1335,7 +1380,7 @@ def woltka_cazy(
             cmd += 'woltka tools collapse'
             cmd += ' --input %s' % genes_tax[stratif]
             cmd += ' --map %s' % cazy_map
-            cmd += ' --field 2'
+            cmd += ' --field %s' % params['field']
             cmd += ' --output %s\n\n' % biom
             self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, o_f=biom, key=key)
@@ -1361,7 +1406,8 @@ def woltka_metacyc(
         pairing: str,
         aligner: str,
         genes_tax: dict,
-        database: str
+        database: str,
+        params: dict
 ) -> None:
     """Get the Woltka commands for the metacyc-level classification.
 
@@ -1382,6 +1428,8 @@ def woltka_metacyc(
         Paths to the genes classification outputs
     database : str
         WOL database path
+    params : dict
+        Run parameters
     """
     metacyc_dir = '%s/function/metacyc' % database
     metacyc = [('protein', 'protein_name.txt', 'protein.map.xz'),
@@ -1454,7 +1502,7 @@ def woltka_metacyc(
                 cmd += ' --input %s' % input_biom
                 if names:
                     cmd += ' --names %s/%s' % (metacyc_dir, names)
-                cmd += ' --field 2'
+                cmd += ' --field %s' % params['field']
                 cmd += ' --map %s/%s' % (metacyc_dir, maps)
                 cmd += ' --output %s\n' % biom
                 io_update(self, o_f=biom, key=key)
@@ -1489,7 +1537,8 @@ def woltka_kegg(
         pairing: str,
         aligner: str,
         uniref_tax: dict,
-        database: str
+        database: str,
+        params: dict
 ) -> None:
     """Get the Woltka commands for the kegg-level classification.
 
@@ -1510,6 +1559,8 @@ def woltka_kegg(
         Paths to the uniref classifications
     database : str
         WOL database path
+    params : dict
+        Run parameters
     """
     ko_names_maps = [
         ('ko', 'ko.name', 'ko.map.xz', ''),
@@ -1637,7 +1688,7 @@ def woltka_kegg(
                         cmd += ' --input %s' % uniref_tax[stratif]
                         cmd += ' --names %s/function/kegg/%s' % (database, name)
                         cmd += ' --map %s/function/kegg/%s' % (database, maps)
-                        cmd += ' --field 2'
+                        cmd += ' --field %s' % params['field']
                         cmd += ' --output %s\n' % biom
                         self.outputs['cmds'].setdefault(key, []).append(cmd)
                         io_update(self, o_f=biom, key=key)
@@ -1670,7 +1721,7 @@ def woltka_kegg(
                         if name:
                             cmd += ' --names %s/%s' % (kegg_maps, name)
                         cmd += ' --map %s/%s' % (kegg_maps, maps)
-                        cmd += ' --field 2'
+                        cmd += ' --field %s' % params['field']
                         cmd += ' --output %s\n' % biom
                         self.outputs['cmds'].setdefault(key, []).append(cmd)
                         io_update(self, o_f=biom, key=key)
@@ -1766,24 +1817,27 @@ def woltka(self) -> None:
     """
     db = self.databases.paths['wol']
     for tech in self.config.techs:
+        params = tech_params(self, tech)
         pairing = woltka_pairing(self)
         alignments = woltka_aligments(self, tech)
         if not alignments:
             continue
-        classifs = tech_params(self, tech)['classifications']
+        classifs = params['classifications']
         for aligner, alis in alignments.items():
             key = (tech, aligner)
             to_dos = status_update(
                 self, tech, list(alis.values()), group=aligner)
             map, map_cmds = woltka_write_map(self, tech, pairing, aligner, alis)
-            taxmap, tdo = woltka_tax_cmd(self, tech, pairing, aligner, map, db)
+            taxmap, tdo = woltka_tax_cmd(self, tech, pairing, aligner, map,
+                                         db, params)
             if 'go' in classifs:
-                gdo = woltka_go(self, tech, pairing, aligner, map, taxmap, db)
+                gdo = woltka_go(self, tech, pairing, aligner, map, taxmap,
+                                db, params)
             else:
                 gdo = []
             if set(classifs) & {'eggnog', 'metacyc', 'kegg'}:
                 genes_tax, edo = woltka_genes(self, tech, pairing, aligner,
-                                          map, taxmap, db)
+                                              map, taxmap, db, params)
             if tdo or gdo or edo:
                 io_update(self, i_f=list(alis.values()), key=key)
                 if key in self.outputs['cmds']:
@@ -1795,16 +1849,20 @@ def woltka(self) -> None:
             if not to_dos:
                 if set(classifs) & {'eggnog', 'metacyc', 'kegg'}:
                     uniref_tax = woltka_uniref(self, tech, pairing, aligner,
-                                               genes_tax, db)
+                                               genes_tax, db, params)
                 if 'eggnog' in classifs:
-                    woltka_eggnog(self, tech, pairing, aligner, uniref_tax, db)
+                    woltka_eggnog(self, tech, pairing, aligner, uniref_tax,
+                                  db, params)
                 # if 'cazy' in classifs:
                 #     woltka_cazy(
-                #         self, tech, pairing, aligner, genes, genes_tax, db)
+                #         self, tech, pairing, aligner, genes, genes_tax, db,
+                #         params)
                 if 'metacyc' in classifs:
-                    woltka_metacyc(self, tech, pairing, aligner, genes_tax, db)
+                    woltka_metacyc(self, tech, pairing, aligner, genes_tax,
+                                   db, params)
                 if 'kegg' in classifs:
-                    woltka_kegg(self, tech, pairing, aligner, uniref_tax, db)
+                    woltka_kegg(self, tech, pairing, aligner, uniref_tax, db,
+                                params)
 
 
 def get_midas_cmd(
