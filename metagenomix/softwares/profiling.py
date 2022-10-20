@@ -1766,19 +1766,23 @@ def woltka(self) -> None:
     """
     db = self.databases.paths['wol']
     for tech in self.config.techs:
-
         pairing = woltka_pairing(self)
         alignments = woltka_aligments(self, tech)
         if not alignments:
             continue
+        classifs = tech_params(self, tech)['classifications']
         for aligner, alis in alignments.items():
             key = (tech, aligner)
             to_dos = status_update(
                 self, tech, list(alis.values()), group=aligner)
             map, map_cmds = woltka_write_map(self, tech, pairing, aligner, alis)
             taxmap, tdo = woltka_tax_cmd(self, tech, pairing, aligner, map, db)
-            gdo = woltka_go(self, tech, pairing, aligner, map, taxmap, db)
-            genes_tax, edo = woltka_genes(self, tech, pairing, aligner,
+            if 'go' in classifs:
+                gdo = woltka_go(self, tech, pairing, aligner, map, taxmap, db)
+            else:
+                gdo = []
+            if set(classifs) & {'eggnog', 'metacyc', 'kegg'}:
+                genes_tax, edo = woltka_genes(self, tech, pairing, aligner,
                                           map, taxmap, db)
             if tdo or gdo or edo:
                 io_update(self, i_f=list(alis.values()), key=key)
@@ -1789,13 +1793,18 @@ def woltka(self) -> None:
                     else:
                         self.outputs['cmds'][key] = map_cmds + prev_cmds
             if not to_dos:
-                uniref_tax = woltka_uniref(self, tech, pairing, aligner,
-                                           genes_tax, db)
-                woltka_eggnog(self, tech, pairing, aligner, uniref_tax, db)
-                # woltka_cazy(
-                #     self, tech, pairing, aligner, genes, genes_tax, db)
-                woltka_metacyc(self, tech, pairing, aligner, genes_tax, db)
-                woltka_kegg(self, tech, pairing, aligner, uniref_tax, db)
+                if set(classifs) & {'eggnog', 'metacyc', 'kegg'}:
+                    uniref_tax = woltka_uniref(self, tech, pairing, aligner,
+                                               genes_tax, db)
+                if 'eggnog' in classifs:
+                    woltka_eggnog(self, tech, pairing, aligner, uniref_tax, db)
+                # if 'cazy' in classifs:
+                #     woltka_cazy(
+                #         self, tech, pairing, aligner, genes, genes_tax, db)
+                if 'metacyc' in classifs:
+                    woltka_metacyc(self, tech, pairing, aligner, genes_tax, db)
+                if 'kegg' in classifs:
+                    woltka_kegg(self, tech, pairing, aligner, uniref_tax, db)
 
 
 def get_midas_cmd(
