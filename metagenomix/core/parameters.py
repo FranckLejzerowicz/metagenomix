@@ -2880,7 +2880,7 @@ def check_woltka(self, params, soft):
     if 'go' not in params:
         params['go'] = ['process', 'function', 'component']
 
-    ints = ['cache', 'min_count']
+    ints = ['cache', 'min_count', 'field']
     check_nums(self, params, defaults, ints, int, soft.name)
     floats = ['overlap', 'min_percent']
     check_nums(self, params, defaults, floats, float, soft.name, 0, 100)
