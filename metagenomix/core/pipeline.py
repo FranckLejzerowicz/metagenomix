@@ -278,12 +278,6 @@ class Workflow(object):
                 params = {'search': {soft.name.split('_')[-1]: params_show,
                                      'databases': databases}}
                 print(yaml.dump(params))
-            # elif soft.name.startswith('mapping'):
-            #     databases = params_show['databases']
-            #     del params_show['databases']
-            #     params = {'search': {soft.name.split('_')[-1]: params_show,
-            #                          'databases': databases}}
-            #     print(yaml.dump(params))
             else:
                 print(yaml.dump(params_show))
             print('%s defaults %s' % ('-' * 10, '-' * 10))
