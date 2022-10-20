@@ -160,7 +160,21 @@ minimap2:
 
 # --------------- woltka -----------------
 woltka:
-  scratch: 10
+  taxa:
+    - genus
+    - species
+    - none
+  go:
+    - function
+    - component
+  classifications:
+    - go
+    - eggnog
+    - metacyc
+    - kegg
+  scratch: scratch
+  mem: 2
+  time: 24
 
 # --------------- spades -----------------
 spades:
@@ -354,13 +368,34 @@ amrfinderplus:
 
 # --------------- mappings --------------
 mapping:
-  aligners:
-    - bwa
+#  per_tech: yes
+  per_tech: no
+  mappers:
     - bowtie2
     - minimap2
-    - bbmap
+  #  - bbmap
   mem: 100
   chunks: 1
+  bowtie2:
+    nanopore:
+      presets: very-fast
+    illumina:
+      presets: fast
+    paired: false
+    ma: 2
+    mp: 4
+    mem: 40
+    partition: normal
+    time: 5
+    chunks: 1
+    cpus: 4
+    score_min: S,-0.6,-0.6
+    end_to_end: true
+    local: false
+    skip: 1000000
+    upto: 25000
+    no_unal: true
+
 
 mapping_spades:
   mem: 25
