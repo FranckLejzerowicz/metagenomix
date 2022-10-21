@@ -2836,7 +2836,7 @@ def check_woltka(self, params, soft):
     defaults = {
         'taxa': [
             'phylum', 'order', 'class', 'family', 'genus', 'species', 'none'],
-        'classifications': [None, 'go', 'eggnog', 'metacyc', 'kegg'],
+        'classifications': ['go', 'eggnog', 'metacyc', 'kegg'],
         'go': ['process', 'function', 'component'],
         'demux': [False, True],
         'trim_sub': [None],
@@ -2875,6 +2875,8 @@ def check_woltka(self, params, soft):
         'field': 2,
         'threshold': [None]
     }
+    if 'classifications' not in params:
+        params['taxa'] = [None]
     if 'taxa' not in params:
         params['taxa'] = ['phylum', 'family', 'genus', 'species', 'none']
     if 'go' not in params:
