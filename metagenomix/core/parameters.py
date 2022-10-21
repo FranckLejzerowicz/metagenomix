@@ -2876,7 +2876,7 @@ def check_woltka(self, params, soft):
         'threshold': [None]
     }
     if 'classifications' not in params:
-        params['taxa'] = [None]
+        params['classifications'] = [None]
     if 'taxa' not in params:
         params['taxa'] = ['phylum', 'family', 'genus', 'species', 'none']
     if 'go' not in params:
@@ -2892,7 +2892,7 @@ def check_woltka(self, params, soft):
     return defaults
 
 
-# def check_ToolName(self, params, soft):
+# def check_mobsuite(self, params, soft):
 #     defaults = {
 #     }
 #     ints = []
