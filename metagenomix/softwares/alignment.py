@@ -630,27 +630,26 @@ def condition_ali_command(
 
 
 def get_bowtie2_cmd(
-        self,
-        tech: str,
+        sample_name: str,
         fastx: list,
         db_path: str,
-        db_out: str
+        out_dir: str,
+        params: dict
 ) -> tuple:
     """Get the bowtie2 alignment command.
 
     Parameters
     ----------
-    self : Commands class instance
-        .soft.params
-            Parameters for humann
-    tech : str
-        Technology: 'illumina', 'pacbio', or 'nanopore'
+    sample_name : str
+        Name of the current sample
     fastx : list
         Path to the input fasta/fastq/fastq.gz files
     db_path : str
         Path to the bowtie2 database
-    db_out: str
+    out_dir: str
         Path to the output folder
+    params : dict
+        Run parameters
 
     Returns
     -------
@@ -659,10 +658,9 @@ def get_bowtie2_cmd(
     sam : str
         Alignment .sam file
     """
-    params = tech_params(self, tech)
     cmd = 'bowtie2'
     cmd += ' -x %s' % db_path
-    sam = '%s/alignment.bowtie2' % db_out
+    sam = '%s/alignment.bowtie2.sam' % out_dir
     if params['paired'] and len(fastx) == 2:
         cmd += ' -1 %s' % fastx[0]
         cmd += ' -2 %s' % fastx[1]
@@ -673,22 +671,20 @@ def get_bowtie2_cmd(
                               ('no_overlap', 'noOver')]:
             if params[boolean]:
                 cmd += ' --%s' % boolean.replace('_', '-')
-                sam += '.%s' % name
             if params['un_conc']:
                 cmd += ' --un-conc-gz %s/%s_unali_pairs.fastq.gz' % (
-                    db_out, self.sam_pool)
+                    out_dir, sample_name)
             if params['al_conc']:
                 cmd += ' --al-conc-gz %s/%s_okali_pairs.fastq.gz' % (
-                    db_out, self.sam_pool)
+                    out_dir, sample_name)
     else:
         cmd += ' -U %s' % ','.join(fastx)
-    sam += '.sam'
     cmd += ' -S %s' % sam
 
     if params['un']:
-        cmd += ' --un-gz %s/%s_unali.fastq.gz' % (db_out, self.sam_pool)
+        cmd += ' --un-gz %s/%s_unali.fastq.gz' % (out_dir, sample_name)
     if params['al']:
-        cmd += ' --al-gz %s/%s_okali.fastq.gz' % (db_out, self.sam_pool)
+        cmd += ' --al-gz %s/%s_okali.fastq.gz' % (out_dir, sample_name)
 
     cmd += ' -p %s' % params['cpus']
 
@@ -810,50 +806,50 @@ def bowtie2(self) -> None:
         if tech_specificity(self, fastxs, tech, sample):
             continue
         to_dos = status_update(self, tech, fastxs)
-        out = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
-        self.outputs['outs'][(tech, self.sam_pool)] = dict()
+        out = '%s/%s/%s' % (self.dir, tech, sample)
+        self.outputs['outs'][(tech, sample)] = dict()
         for db, db_path in self.soft.params['databases'].items():
             if self.soft.params['paired'] and len(fastxs) == 2:
-                db_out = '%s/%s/paired' % (out, db)
+                out_dir = '%s/%s/paired' % (out, db)
             else:
-                db_out = '%s/%s/unpaired' % (out, db)
-            cmd, sam = get_bowtie2_cmd(self, tech, fastxs, db_path, db_out)
-            self.outputs['outs'][(tech, self.sam_pool)][(db, 'bowtie2')] = sam
+                out_dir = '%s/%s/unpaired' % (out, db)
+            params = tech_params(self, tech)
+            cmd, sam = get_bowtie2_cmd(sample, fastxs, db_path, out_dir, params)
+            self.outputs['outs'][(tech, sample)][(db, 'bowtie2')] = sam
             if self.config.force or to_do(sam):
                 cmd = get_alignment_cmd(fastxs, cmd, sam)
                 if to_dos:
                     self.outputs['cmds'].setdefault((tech,), []).append(False)
                 else:
                     self.outputs['cmds'].setdefault((tech,), []).append(cmd)
-                io_update(self, i_f=fastxs, i_d=db_out, o_d=db_out, key=tech)
-                self.soft.add_status(tech, self.sam_pool, 1)
+                io_update(self, i_f=fastxs, i_d=out_dir, o_d=out_dir, key=tech)
+                self.soft.add_status(tech, sample, 1)
             else:
-                self.soft.add_status(tech, self.sam_pool, 0)
-            self.outputs['dirs'].append(db_out)
+                self.soft.add_status(tech, sample, 0)
+            self.outputs['dirs'].append(out_dir)
 
 
 def get_minimap2_cmd(
-        self,
-        tech: str,
+        sample_name: str,
         fastx: list,
         db_path: str,
-        db_out: str
+        db_out: str,
+        params: dict
 ) -> tuple:
     """Get the minimap2 alignment command.
 
     Parameters
     ----------
-    self : Commands class instance
-        .soft.params
-            Parameters for humann
-    tech : str
-        Technology: 'illumina', 'pacbio', or 'nanopore'
+    sample_name : str
+        Name of the current sample
     fastx : list
         Path to the input fasta/fastq/fastq.gz files
     db_path : str
         Path to the minimap2 database
     db_out: str
         Path to the output folder
+    params : dict
+        Run parameters
 
     Returns
     -------
@@ -862,7 +858,6 @@ def get_minimap2_cmd(
     sam : str
         Alignment .sam file
     """
-    params = tech_params(self, tech)
     sam = '%s/alignment.minimap2' % db_out
 
     cmd = 'minimap2'
@@ -927,7 +922,7 @@ def get_minimap2_cmd(
                   'm', 'M', 'max_chain_skip', 'max_chain_iter',
                   'chain_gap_scale', 'split_prefix', 'A', 'B', 'O', 'E', 'z',
                   's', 'u', 'end_bonus', 'score_N', 'cap_sw_mem',
-                  'cap_kalloc', 'R', 'seed', '2', 'K', 'max_qlen']:
+                  'cap_kalloc', 'seed', '2', 'K', 'max_qlen']:
         if len(param) == 1:
             cmd += ' -%s %s' % (param, params[param])
         else:
@@ -935,6 +930,9 @@ def get_minimap2_cmd(
 
     if params['cs']:
         cmd += ' --cs=%s' % params['cs']
+
+    if params['R']:
+        cmd += ' --R %s' % params['R']
 
     if params['hard_mask_level']:
         cmd += ' --hard-mask-level'
@@ -1073,7 +1071,8 @@ def minimap2(self) -> None:
         self.outputs['outs'][(tech, self.sam_pool)] = dict()
         for db, db_path in self.soft.params['databases'].items():
             db_out = '%s/%s' % (out, db)
-            cmd, sam = get_minimap2_cmd(self, tech, fastxs, db_path, db_out)
+            params = tech_params(self, tech)
+            cmd, sam = get_minimap2_cmd(sample, fastxs, db_path, db_out, params)
             self.outputs['outs'][(tech, self.sam_pool)][(db, 'minimap2')] = sam
             if self.config.force or to_do(sam):
                 if to_dos:
