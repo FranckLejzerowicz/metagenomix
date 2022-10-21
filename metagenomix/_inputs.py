@@ -225,7 +225,6 @@ def genome_key(
 def genome_out_dir(
         self,
         tech: str,
-        fasta: str,
         sam_group: str,
         genome: str = ''
 ) -> str:
@@ -241,8 +240,6 @@ def genome_out_dir(
             Sample or co-assembly name
     tech : str
         Technology: 'illumina', 'pacbio', 'nanopore', or hybrif naming
-    fasta : str
-        Path to the input fasta file
     sam_group : str
         Sample name or group for the current co-assembly
     genome : str
@@ -346,8 +343,6 @@ def sample_inputs(
         Technologies possibly used per sample for the current softwares
     raw : bool
         Whether illumina data cna be processed as raw/per-sample paired reads
-    index : int
-        Index in the list of input files (i.e. outputs from the previous step)
 
     Returns
     -------
