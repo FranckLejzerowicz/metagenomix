@@ -311,7 +311,7 @@ def tree(
     """
     for genome, dirs in folders.items():
         genome_dir = dirs[0]
-        out_dir = genome_out_dir(self, tech, genome_dir, group, genome)
+        out_dir = genome_out_dir(self, tech, group, genome)
         tree_dir = add_folder(self, 'checkm', out_dir, 'lineage_tree')
 
         self.outputs['dirs'].append(tree_dir)
@@ -417,7 +417,7 @@ def treeqa(
     """
     for genome, dirs in folders.items():
         tree_dir = dirs[-1]
-        out_dir = genome_out_dir(self, tech, tree_dir, group, genome)
+        out_dir = genome_out_dir(self, tech, group, genome)
         qa_dir = out_dir
         if self.soft.name == 'checkm':
             qa_dir = add_folder(self, 'checkm', out_dir, 'lineage_tree_qa')
@@ -519,7 +519,7 @@ def lineageset(
     for genome, dirs in folders.items():
 
         tree_dir = dirs[-1]
-        out_dir = genome_out_dir(self, tech, tree_dir, group, genome)
+        out_dir = genome_out_dir(self, tech, group, genome)
         lineage_dir = out_dir
         if self.soft.name == 'checkm':
             tree_dir = add_folder(self, 'checkm', out_dir, 'lineage_tree')
@@ -625,7 +625,7 @@ def analyze(
     for genome, dirs in folders.items():
 
         genomes_dir = dirs[0]
-        analyze_dir = genome_out_dir(self, tech, dirs[-1], group, genome)
+        analyze_dir = genome_out_dir(self, tech, group, genome)
         if self.soft.name == 'checkm':
             analyze_dir = add_folder(
                 self, 'checkm', analyze_dir, 'lineage_analyze')
@@ -783,8 +783,7 @@ def coverage(
         if bams:
             for genome, dirs in folders.items():
                 genome_dir = dirs[0]
-                coverage_dir = genome_out_dir(self, tech, genome_dir,
-                                              group, genome)
+                coverage_dir = genome_out_dir(self, tech, group, genome)
                 if self.soft.name == 'checkm':
                     coverage_dir = add_folder(
                         self, 'checkm', coverage_dir, 'coverage')
@@ -962,7 +961,7 @@ def qa(
     for genome, dirs in folders.items():
 
         analyze_dir = dirs[-1]
-        qa_dir = genome_out_dir(self, tech, analyze_dir, group, genome)
+        qa_dir = genome_out_dir(self, tech, group, genome)
         if self.soft.name == 'checkm':
             cov = '%s/coverage.tsv' % add_folder(
                 self, 'checkm', analyze_dir, 'coverage')
@@ -1073,7 +1072,7 @@ def unbinned(
 
     for genome, dirs in folders.items():
         genomes_dir = dirs[0]
-        unbinned_dir = genome_out_dir(self, tech, genomes_dir, group, genome)
+        unbinned_dir = genome_out_dir(self, tech, group, genome)
         if self.soft.name == 'checkm':
             unbinned_dir = add_folder(self, 'checkm', unbinned_dir, 'unbinned')
 
@@ -1165,7 +1164,7 @@ def tetra(
     for fasta in fastas.values():
 
         contigs = fasta[0]
-        out_dir = genome_out_dir(self, tech, contigs, group)
+        out_dir = genome_out_dir(self, tech, group)
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
 
@@ -1357,7 +1356,7 @@ def get_checkm2(
     for genome, dirs in folders.items():
 
         folder = dirs[0]
-        out_dir = genome_out_dir(self, tech, folder, group, genome)
+        out_dir = genome_out_dir(self, tech, group, genome)
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
 

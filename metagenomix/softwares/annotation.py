@@ -300,7 +300,7 @@ def get_macsyfinder(
     for genome, fasta in fastas.items():
 
         key = genome_key(tech, sam_group, genome)
-        out_dir = genome_out_dir(self, tech, fasta[0], sam_group, genome)
+        out_dir = genome_out_dir(self, tech, sam_group, genome)
         self.outputs['dirs'].append(out_dir)
 
         proteins = fasta[0]
@@ -521,7 +521,7 @@ def get_integronfinder(
     for genome, fasta_ in fastas.items():
 
         key = genome_key(tech, sam_group, genome)
-        out = genome_out_dir(self, tech, fasta_[0], sam_group, genome)
+        out = genome_out_dir(self, tech, sam_group, genome)
         self.outputs['dirs'].append(out)
         self.outputs['outs'].setdefault((tech, sam_group), []).append(out)
 
@@ -849,7 +849,7 @@ def get_search(
     for genome, fasta in fastas.items():
 
         key = genome_key(tech, sam_group, genome)
-        out_dir = genome_out_dir(self, tech, fasta[0], sam_group, genome)
+        out_dir = genome_out_dir(self, tech, sam_group, genome)
         self.outputs['dirs'].append(out_dir)
 
         proteins = fasta[0]
@@ -1238,7 +1238,7 @@ def get_ccfind(
     """
     for genome, fasta in fastas.items():
 
-        out_dir = genome_out_dir(self, tech, fasta[0], sam_group, genome)
+        out_dir = genome_out_dir(self, tech, sam_group, genome)
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'].setdefault((tech, sam_group), []).append(out_dir)
         to_dos = status_update(
@@ -1294,7 +1294,7 @@ def get_barrnap(
 
         key = genome_key(tech, sam_group, genome)
 
-        out_dir = genome_out_dir(self, tech, fasta[0], sam_group, genome)
+        out_dir = genome_out_dir(self, tech, sam_group, genome)
         self.outputs['dirs'].append(out_dir)
 
         out = '%s/rrna_seqs.fas' % out_dir
@@ -1475,7 +1475,7 @@ def get_antismash(
     for genome, dirs in fastas.items():
 
         fasta = dirs[0]
-        out_dir = genome_out_dir(self, tech, fasta, sam_group, genome)
+        out_dir = genome_out_dir(self, tech, sam_group, genome)
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'].setdefault((tech, sam_group), []).append(out_dir)
 

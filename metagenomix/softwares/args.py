@@ -113,7 +113,7 @@ def get_predict(
     """
     for genome, fasta in fastas.items():
 
-        out_dir = genome_out_dir(self, tech, fasta[0], sam_group, genome)
+        out_dir = genome_out_dir(self, tech, sam_group, genome)
         self.outputs['dirs'].append(out_dir)
 
         typ_seqs = predict_inputs(self, fasta[0])
@@ -389,7 +389,7 @@ def get_metamarc(
     for genome, inputs in fastas_folders.items():
 
         fasta = inputs[0]
-        out_dir = genome_out_dir(self, tech, fasta, sam_group, genome)
+        out_dir = genome_out_dir(self, tech, sam_group, genome)
         self.outputs['outs'].setdefault((tech, sam_group), []).append(out_dir)
         to_dos = status_update(
             self, tech, inputs, self.sam_pool, group=sam_group, genome=genome)
@@ -558,7 +558,7 @@ def get_karga_kargva(
     for genome, inputs in fastas_folders.items():
 
         fastx = inputs[0]
-        out_dir = genome_out_dir(self, tech, fastx, sam_group)
+        out_dir = genome_out_dir(self, tech, sam_group)
         self.outputs['outs'].setdefault((tech, sam_group), []).append(out_dir)
         to_dos = status_update(
             self, tech, inputs, group=sam_group, genome=genome)
@@ -826,7 +826,7 @@ def get_abricate(
     for genome, inputs in fastas_folders.items():
 
         fasta = inputs[0]
-        out_d = genome_out_dir(self, tech, fasta, sam_group, genome)
+        out_d = genome_out_dir(self, tech, sam_group, genome)
         self.outputs['dirs'].append(out_d)
         self.outputs['outs'].setdefault((tech, sam_group), []).append(out_d)
 
@@ -983,7 +983,7 @@ def get_amrplusplus2(
     fastqs : list
         Paths to the input fastqs files
     """
-    out_dir = genome_out_dir(self, tech, fastqs[0], self.sam_pool)
+    out_dir = genome_out_dir(self, tech, self.sam_pool)
     self.outputs['dirs'].append(out_dir)
     self.outputs['outs'].setdefault((tech, self.sam_pool), []).append(out_dir)
 

@@ -277,7 +277,7 @@ def get_lorikeet(
     for genome, fasta_folder_ in fastas_folders.items():
 
         fasta_folder = fasta_folder_[0]
-        out_dir = genome_out_dir(self, tech, fasta_folder, group, genome)
+        out_dir = genome_out_dir(self, tech, group, genome)
         if self.soft.name == 'lorikeet':
             out_dir = add_folder(self, 'lorikeet', out_dir, step)
         self.outputs['dirs'].append(out_dir)

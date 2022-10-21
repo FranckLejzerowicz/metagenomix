@@ -78,7 +78,7 @@ def get_plasforest(
     """
     for genome, fasta in fastas.items():
 
-        out_dir = genome_out_dir(self, tech, fasta[0], sam_group, genome)
+        out_dir = genome_out_dir(self, tech, sam_group, genome)
         self.outputs['dirs'].append(out_dir)
 
         out_fp = '%s/plasmids.csv' % out_dir
@@ -171,7 +171,7 @@ def get_plasmidfinder(
     """
     for genome, fasta in fastas.items():
 
-        out_dir = genome_out_dir(self, tech, fasta[0], sam_group, genome)
+        out_dir = genome_out_dir(self, tech, sam_group, genome)
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'].setdefault((tech, sam_group), []).append(out_dir)
         to_dos = status_update(
