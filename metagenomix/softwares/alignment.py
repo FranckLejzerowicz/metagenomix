@@ -1110,4 +1110,38 @@ def salmon(self) -> None:
     ----------
     self
     """
-    print()
+    pass
+
+
+def kallisto(self) -> None:
+    """kallisto is a program for quantifying abundances of transcripts from
+    RNA-Seq data, or more generally of target sequences using high-throughput
+    sequencing reads. It is based on the novel idea of pseudoalignment for
+    rapidly determining the compatibility of reads with targets, without the
+    need for alignment. On benchmarks with standard RNA-Seq data, kallisto
+    can quantify 30 million human bulk RNA-seq reads in less than 3 minutes
+    on a Mac desktop computer using only the read sequences and a
+    transcriptome index that itself takes than 10 minutes to build.
+    Pseudoalignment of reads preserves the key information needed for
+    quantification, and kallisto is therefore not only fast, but also
+    comparably accurate to other existing quantification tools. In fact,
+    because the pseudoalignment procedure is robust to errors in the reads,
+    in many benchmarks kallisto significantly outperforms existing tools.
+
+    References
+    ----------
+    Bray, N.L., Pimentel, H., Melsted, P. and Pachter, L., 2016. Near-optimal
+    probabilistic RNA-seq quantification. Nature biotechnology, 34(5),
+    pp.525-527.
+
+    Notes
+    -----
+    GitHub  : https://github.com/pachterlab/kallisto
+    Docs    : http://pachterlab.github.io/kallisto/manual.html
+    Paper   : https://doi.org/10.1038/nbt.3519
+
+    Parameters
+    ----------
+    self
+    """
+    pass
