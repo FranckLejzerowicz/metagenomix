@@ -1442,6 +1442,50 @@ def checkm2(self) -> None:
             get_checkm2(self, tech, folders, bin_algo)
 
 
-def mag_data(self):
+def gtdbtk(self) -> None:
+    """GTDB-Tk is a software toolkit for assigning objective taxonomic
+    classifications to bacterial and archaeal genomes based on the Genome
+    Database Taxonomy (GTDB). It is designed to work with recent advances
+    that allow hundreds or thousands of metagenome-assembled genomes (MAGs)
+    to be obtained directly from environmental samples. It can also be
+    applied to isolate and single-cell genomes. The GTDB-Tk is open source
+    and released under the GNU General Public License (Version 3).
+
+    References
+    ----------
+    Chaumeil, P.A., Mussig, A.J., Hugenholtz, P. and Parks, D.H.,
+    2022. GTDB-Tk v2: memory friendly classification with the Genome
+    Taxonomy Database. bioRxiv.
+
+    Notes
+    -----
+    GitHub  : https://github.com/Ecogenomics/GTDBTk
+    Paper   : https://doi.org/10.1093/bioinformatics/btac672
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for GTDB-Tk
+        .pool : str
+            Pool name.
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    """
     pass
+    # if self.sam_pool in self.pools:
+    #     for (tech, group), inputs in self.inputs[self.sam_pool].items():
+    #         folders = group_inputs(self, inputs, True)
+    #         get_checkm2(self, tech, folders, group)
+    #
+    # elif set(self.inputs) == {''}:
+    #     for (tech, bin_algo), inputs in self.inputs[''].items():
+    #         folders = group_inputs(self, inputs, True)
+    #         get_checkm2(self, tech, folders, bin_algo)
 
