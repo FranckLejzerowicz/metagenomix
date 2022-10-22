@@ -1,64 +1,131 @@
-count_reads_grep
+filtering
+
+count
 fastqc
-simka
-simka simka_pcoa
-cutadapt
-cutadapt midas
-cutadapt metaphlan
-cutadapt humann
-cutadapt flash
-cutadapt fastqc
-flash count_reads_grep
-flash shogun
-shogun woltka
-metaphlan strainphlan
-flash plass
-# plass prodigal
-# prodigal metaclade
-# plass
+filtering fastp
+filtering cutadapt
+filtering atropos
+fastp hifiadapterfilt
+filtering kneaddata
+fastp mapdamage2
+
+fastp simka
+
+fastp flash
+fastp ngmerge
+fastp pear
+fastp bbmerge
+
+fastp bowtie2
+fastp minimap2
+fastp salmon
+
+fastp metamarker
+fastp midas
+fastp midas2
+fastp midas2_species
+midas2_species midas2_snps
+midas2_species midas2_genes
+fastp metaphlan
+fastp humann
+fastp shogun
+fastp kraken2
+kraken2 bracken
+fastp metaxa2
+fastp mocat2
+fastp phyloflash
+fastp closed_ref_qiime1
+minimap2 woltka
+
+fastp squeezemeta
+fastp anvio
+
 flash pooling
+
 pooling spades
-spades read_mapping
-spades prodigal
-prodigal map__spades-prodigal
-plass diamond_custom
-plass hmmer_custom
-prodigal diamond_custom
-prodigal hmmer_custom
-# plass macsyfinder
-prodigal macsyfinder
-prodigal diamond_annot
-# prodigal ioncom
-# spades integron_finder
+pooling spades_metaviral
+pooling spades_plasmid
+pooling spades_bio
+pooling megahit
+fastp plass
+pooling flye
+pooling canu
+pooling unicycler
+pooling miniasm
+pooling necat
+
+spades quast
+
 spades metawrap
-metawrap metawrap_refine
-metawrap_refine metawrap_reassemble
-metawrap_refine metawrap_blobology
+spades metawrap_binning
+metawrap_binning metawrap_refine
 metawrap_refine metawrap_quantify
 metawrap_refine metawrap_classify
 metawrap_refine metawrap_annotate
-# metawrap_reassemble metawrap_classify
-# metawrap_reassemble metawrap_annotate
-metawrap_refine drep
-# metawrap_reassemble drep
-# metamarker
-metawrap_ref map__spades-metawrap_ref
-metawrap_ref checkm
-metawrap_ref gtdbtk
-spades cazy
-read_mapping map__cazy-spades
-metawrap_ref deepvirfinder
-deepvirfinder deepvirfinder_extractVirs
-# deepvirfinder_extractVirs wish
-drep read_mapping
-drep checkm
-drep gtdbtk
-drep mag_data
-# metawrap_analysis_reassemble_bins checkm
-# metawrap_analysis_reassemble_bins map__spades-bins
-# spades mycc
+metawrap_refine metawrap_blobology
+metawrap_refine metawrap_reassemble
 spades yamb
-yamb summarize_yamb
+spades mycc
+spades binspreader
+
+spades prodigal
+
+prodigal macsyfinder
+spades integronfinder
+prodigal search_diamond
+prodigal search_hmmer
+
+fastp graspx
+spades barrnap
+spades ccfind
+spades tiara
+spades tmhmm
+spades itasser
+spades rundbcan
+spades ioncom
+spades deeparg
+spades deeparg_predict
+spades deeparg_short
+spades metamarc
+spades karga
+spades kargva
+spades abricate
+spades amrplusplus2
+spades amrfinderplus
+spades argsoap
+
+spades plasmidfinder
+spades plasforest
+spades mobsuite
+
+metawrap_refine metaclade
+metawrap_refine prokka
+metawrap_refine antismash
+
+metawrap_refine drep
+drep gtdbtk
+drep checkm
+drep checkm_lineageset
+drep checkm_qa
+drep checkm_tree
+drep checkm_treeqa
+drep checkm_analyze
+drep checkm_coverage
+drep checkm_unbinned
+drep checkm_tetra
+drep checkm2
+
+spades mapping_fastp
+
+fastp strainphlan
+fastp lorikeet_call
+fastp lorikeet_consensus
+fastp lorikeet_genotype
+fastp lorikeet
 drep instrain
-drep map__drep
-drep antismash
+
+spades viralverify
+spades threecac
+spades coconet
+spades deepvirfinder
+spades wish
