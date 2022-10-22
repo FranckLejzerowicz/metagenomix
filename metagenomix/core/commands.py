@@ -27,7 +27,8 @@ from metagenomix.softwares.midas2 import *
 from metagenomix.softwares.simka import *
 from metagenomix.softwares.strains import *
 from metagenomix.softwares.viruses import *
-# from metagenomix.softwares.mapping import mapping
+from metagenomix.softwares.mapping import mapping
+from metagenomix.softwares.pipelines import *
 
 
 class Commands(object):
