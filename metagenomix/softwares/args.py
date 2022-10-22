@@ -1118,16 +1118,22 @@ def amrfinderplus(self) -> None:
 
 
 def argsoap(self) -> None:
-    """.
+    """Fast annotation and classification of antibiotic resistance gene-like
+    sequences from metagenomic data.
 
     References
     ----------
+    Yin, X., Jiang, X.T., Chai, B., Li, L., Yang, Y., Cole, J.R., Tiedje,
+    J.M. and Zhang, T., 2018. ARGs-OAP v2. 0 with an expanded SARG database
+    and Hidden Markov Models for enhancement characterization and
+    quantification of antibiotic resistance genes in environmental
+    metagenomes. Bioinformatics, 34(13), pp.2263-2270.
 
     Notes
     -----
-    GitHub  :
-    Docs    :
-    Paper   :
+    GitHub  : https://github.com/biofuture/Ublastx_stageone
+    Docs    : https://galaxyproject.org/use/args-oap/
+    Paper   : https://doi.org/10.1093/bioinformatics/bty053
 
     Parameters
     ----------
