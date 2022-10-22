@@ -395,12 +395,3 @@ mapping:
     skip: 1000000
     upto: 25000
     no_unal: true
-
-
-mapping_spades:
-  mem: 25
-  chunks: 2
-
-mapping_metawrap_refine:
-  mem: 50
-  chunks: 5
