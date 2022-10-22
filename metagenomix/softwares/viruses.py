@@ -131,42 +131,6 @@ def viralverify(self) -> None:
             self.soft.add_status(tech, self.sam_pool, 0, group=group)
 
 
-def threecac(self) -> None:
-    """3CAC is a three-class classifier designed to classify contigs in mixed
-    metagenome assemblies as phages, plasmids, chromosomes, or uncertain.
-
-    References
-    ----------
-    Pu, Lianrong, and Ron Shamir. "3CAC: improving the classification of
-    phages and plasmids from metagenomic assemblies using assembly graphs."
-    bioRxiv (2021).
-
-    Notes
-    -----
-    GitHub  : https://github.com/Shamir-Lab/3CAC
-    Paper   : https://doi.org/10.1101/2021.11.05.467408
-
-    Parameters
-    ----------
-    self : Commands class instance
-        .soft.prev : str
-            Previous software in the pipeline
-        .dir : str
-            Path to pipeline output folder for CoCoNet
-        .soft.sam_pool : str
-            Sample or co-assembly group name.
-        .inputs : dict
-            Input files
-        .outputs : dict
-            All outputs
-        .soft.params
-            Parameters
-        .config
-            Configurations
-    """
-    print()
-
-
 def coconet_cmd(
         self,
         fp: str,
@@ -294,11 +258,43 @@ def coconet(self) -> None:
             self.soft.add_status(tech, self.sam_pool, 0, group=group)
 
 
+def threecac(self) -> None:
+    """3CAC is a three-class classifier designed to classify contigs in mixed
+    metagenome assemblies as phages, plasmids, chromosomes, or uncertain.
+
+    References
+    ----------
+    Pu, Lianrong, and Ron Shamir. "3CAC: improving the classification of
+    phages and plasmids from metagenomic assemblies using assembly graphs."
+    bioRxiv (2021).
+
+    Notes
+    -----
+    GitHub  : https://github.com/Shamir-Lab/3CAC
+    Paper   : https://doi.org/10.1101/2021.11.05.467408
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .soft.prev : str
+            Previous software in the pipeline
+        .dir : str
+            Path to pipeline output folder for CoCoNet
+        .soft.sam_pool : str
+            Sample or co-assembly group name.
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    """
+    print()
+
+
 def deepvirfinder(self):
-    pass
-
-
-def deepvirfinder_extractVirs(self):
     pass
 
 
