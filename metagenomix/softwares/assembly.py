@@ -1034,9 +1034,19 @@ def unicycler(self) -> None:
 #     cmd += ' > reads.gfa'
 #
 #
-# def miniasm(self):
-#     cmd = miniasm_cmd(self)
-#     pass
+def miniasm(self):
+    """
+
+    Parameters
+    ----------
+    self
+
+    Returns
+    -------
+
+    """
+    # cmd = miniasm_cmd(self)
+    pass
 
 
 def necat_cmd(
