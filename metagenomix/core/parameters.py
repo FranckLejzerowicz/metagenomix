@@ -2565,7 +2565,7 @@ def check_metaphlan(self, params, soft):
 
 def check_mapdamage2(self, params, soft):
     defaults = {
-        'downsample': None,
+        'downsample': [None],
         'downsample_seed': 1234,
         'merge_reference_sequences': [False, True],
         'length': 70,
@@ -2602,7 +2602,7 @@ def check_mapdamage2(self, params, soft):
         'rescale_length_3p': 12
     }
     ints = ['downsample_seed', 'length', 'around', 'min_basequal', 'readplot',
-            'refplot', 'rand', 'burn', 'adjust', 'iter' 'seq_length',
+            'refplot', 'rand', 'burn', 'adjust', 'iter', 'seq_length',
             'rescale_length_5p', 'rescale_length_3p']
     check_nums(self, params, defaults, ints, int, soft.name)
     floats = ['ymax']
@@ -2652,31 +2652,31 @@ def check_squeezemeta(self, params, soft):
     defaults = {
         'm': ['sequential', 'coassembly', 'merged'],
         'restart': [False, True],
-        'step': None,
+        'step': [None],
         'force_overwrite': [False, True],
         'cleaning': [False, True],
-        'cleaning_options': None,
+        'cleaning_options': [None],
         'a': ['megahit', 'spades', 'rnaspades', 'canu', 'flye'],
-        'assembly_options': None,
+        'assembly_options': [None],
         'contiglen': 200,
-        'extassembly': None,
+        'extassembly': [None],
         'singletons': [False, True],
-        'contigid': None,
+        'contigid': [None],
         'norename': [False, True],
         'nocog': [False, True],
         'nokegg': [False, True],
         'nopfam': [False, True],
         'euk': [False, True],
         'consensus': 50,
-        'extdb': None,
+        'extdb': [None],
         'doublepass': [False, True],
         'map': ['bowtie', 'bwa', 'minimap2-ont', 'minimap2-pb', 'minimap2-sr'],
-        'mapping_options': None,
+        'mapping_options': [None],
         'nobins': [False, True],
         'binners': ['maxbin', 'metabat', 'concoct'],
         'taxbinmode': ['s', 'c', 's+c', 'c+s'],
         't': 12,
-        'block_size': None,
+        'block_size': [None],
         'canumem': 32,
         'lowmem': [False, True],
         'minion': [False, True],
@@ -2707,8 +2707,8 @@ def check_binspreader(self, params, soft):
         'bin_dist': [False, True],
         'sparse_propagation': [False, True],
         'no_unbinned_bin': [False, True],
-        'length_threshold': None,
-        'distance_bound': None,
+        'length_threshold': [None],
+        'distance_bound': [None],
         'reads': [False, True]
     }
     ints = ['l', 'n']
