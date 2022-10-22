@@ -1615,18 +1615,207 @@ def tiara(self) -> None:
 
 
 def metaclade(self):
+    """Novel profile-based domain annotation pipeline based on the multi-source
+    domain annotation strategy. It provides a domain annotation realised
+    directly from reads, and reaches an improved identification of the
+    catalog of functions in a microbiome. MetaCLADE can be applied to either
+    metagenomic or metatranscriptomic datasets.
+
+    References
+    ----------
+    Ugarte, A., Vicedomini, R., Bernardes, J. and Carbone, A., 2018. A
+    multi-source domain annotation pipeline for quantitative metagenomic and
+    metatranscriptomic functional profiling. Microbiome, 6(1), pp.1-27.
+
+    Notes
+    -----
+    GitLab  : http://gitlab.lcqb.upmc.fr/vicedomini/metaclade2
+    Paper   : https://doi.org/10.1186/s40168-018-0532-2
+    Docs    : http://www.lcqb.upmc.fr/metaclade/
+
+    Parameters
+    ----------
+    self : Commands class instance
+    """
     pass
 
 
-def tmhmm(self):
+def deeptmhmm(self):
+    """A Deep Learning Model for Transmembrane Topology Prediction and
+    Classification
+
+    Protein structure prediction using deep learning methods have seen
+    several advancements within the last years. In this project,
+    we investigate deep learning for prediction of the membrane topology of
+    transmembrane proteins. Transmembrane proteins are relevant for drug
+    development since they make up more than 50% of all human drug targets.
+
+    DeepTMHMM is currently the most complete and best-performing method for
+    the prediction of the topology of both alpha-helical and beta-barrel
+    transmembrane proteins. The model encodes the primary amino acid sequence
+    by a pre-trained language model and decodes the topology by a state
+    space model to produce topology and type predictions at unprecedented
+    accuracy. DeepTMHMM makes it possible to scan full proteomes in order to
+    detect both classes of transmembrane proteins, and we anticipate our
+    method to be very valuable for the research community.
+
+    References
+    ----------
+    Hallgren, J., Tsirigos, K.D., Pedersen, M.D., Armenteros, J.J.A.,
+    Marcatili, P., Nielsen, H., Krogh, A. and Winther, O., 2022. DeepTMHMM
+    predicts alpha and beta transmembrane proteins using deep neural
+    networks. bioRxiv.
+
+    Notes
+    -----
+    Paper   : https://www.biorxiv.org/content/10.1101/2022.04.08.487609v1
+    Demo    : https://colab.research.google.com/drive/1EijAjVAcNsgyI4nX-coB4UkoMzsG5SlI?usp=sharing
+    Docs    : https://dtu.biolib.com/DeepTMHMM
+
+    Parameters
+    ----------
+    self : Commands class instance
+    """
+    pass
+
+
+def itassermtd(self):
+    """I-TASSER-MTD is a hierarchical protocol to predict structures and
+    functions of multi-domain (MTD) proteins. It first predicts the domain
+    boundaries by FUpred and ThreaDom based on the deep-learning contact-map
+    prediction and multiple threading alignments. Next, the structure model
+    of each individual domain is constructed independently by I-TASSER guided
+    by the deep learning predicted spatial restraints. Finally,
+    the individual domain models are assembled into full-length structure by
+    DEMO under guidance of quaternary structural templates and deep-learning
+    distance profiles. Meanwhile, the protein functions at both domain level
+    and full-chain level are annotated by COFACTOR based on structures,
+    sequences, and protein-protein interaction networks.
+
+    References
+    ----------
+    Zhou, X., Zheng, W., Li, Y., Pearce, R., Zhang, C., Bell, E.W., Zhang,
+    G. and Zhang, Y., 2022. I-TASSER-MTD: a deep-learning-based platform for
+    multi-domain protein structure and function prediction. Nature Protocols,
+    17(10), pp.2326-2353.
+
+    Notes
+    -----
+    Paper   : https://doi.org/10.1038/s41596-022-00728-0
+    Docs    : https://zhanggroup.org/I-TASSER-MTD/about.html
+
+    Parameters
+    ----------
+    self : Commands class instance
+    """
     pass
 
 
 def itasser(self):
+    """I-TASSER Suite is a package of standalone computer programs, developed
+    for high-resolution protein structure prediction, refinement, and
+    structure-based function annotations. A detailed instruction on how to
+    download and install the Suite can be found at README5.2.txt. Please
+    report bugs and questions at I-TASSER message board and some members will
+    study the problems and answer them asap. The I-TASSER Suite is free for
+    academic and non-profit researchers.
+
+    References
+    ----------
+    Yang, J., Yan, R., Roy, A., Xu, D., Poisson, J. and Zhang, Y., 2015. The
+    I-TASSER Suite: protein structure and function prediction. Nature
+    methods, 12(1), pp.7-8.
+
+    Notes
+    -----
+    Paper   : https://doi.org/10.1038/nmeth.3213
+    Docs    : https://zhanggroup.org/I-TASSER/
+
+    Parameters
+    ----------
+    self : Commands class instance
+    """
     pass
 
 
 def graspx(self):
+    """Homology detection algorithm named GRASP (Guided Reference-based
+    Assembly of Short Peptides) that identifies the homologs of a given
+    reference protein sequence in a database of short peptide metagenomic
+    sequences. GRASP was developed to implement a simultaneous alignment and
+    assembly algorithm for annotation of short peptides identified on
+    metagenomic reads.
+
+    References
+    ----------
+    Zhong, C., Yang, Y. and Yooseph, S., 2016. GRASPx: efficient
+    homolog-search of short peptide metagenome database through simultaneous
+    alignment and assembly. BMC bioinformatics, 17(8), pp.611-621.
+
+    Notes
+    -----
+    SourceForge : https://sourceforge.net/projects/graspx/
+    Paper       : https://doi.org/10.1186/s12859-016-1119-1
+    Docs        : https://cbb.ittc.ku.edu/GRASPx.html
+
+    Parameters
+    ----------
+    self : Commands class instance
+    """
+    pass
+
+
+def rundbcan(self):
+    """Run_dbcan V3, using genomes/metagenomes/proteomes of any assembled
+    organisms (prokaryotes, fungi, plants, animals, viruses) to search for
+    CAZymes.
+
+    References
+    ----------
+    Huang, L., Zhang, H., Wu, P., Entwistle, S., Li, X., Yohe, T., Yi, H.,
+    Yang, Z. and Yin, Y., 2018. dbCAN-seq: a database of carbohydrate-active
+    enzyme (CAZyme) sequence and annotation. Nucleic Acids Research, 46(D1),
+    pp.D516-D521.
+
+    Notes
+    -----
+    GitHub  : https://github.com/linnabrown/run_dbcan
+    Paper   : https://doi.org/10.1093/nar/gkx894
+    Docs    : bcb.unl.edu/dbCAN2
+
+    Parameters
+    ----------
+    self : Commands class instance
+    """
+    pass
+
+
+def ioncom(self):
+    """IonCom is a ligand-specific method for small ligand (including metal
+    and acid radical ions) binding site prediction. Starting from given
+    sequences or structures of the query proteins, IonCom performs a
+    composite binding-site prediction that combines ab initio training and
+    template-based transferals. To enhance specificity and sensitivity,
+    the server focuses on binding site prediction of thirteen most important
+    small ligand molecules, including nine metal ions (Zn2+, Cu2+, Fe2+,
+    Fe3+, Ca2+, Mg2+, Mn2+, Na+, K+) and four acid radical ions (CO32-, NO2-,
+    SO42-, PO43-).
+
+    References
+    ----------
+    Hu, X., Dong, Q., Yang, J. and Zhang, Y., 2016. Recognizing metal and
+    acid radical ion-binding sites by integrating ab initio modeling with
+    template-based transferals. Bioinformatics, 32(21), pp.3260-3269.
+
+    Notes
+    -----
+    Paper   : https://doi.org/10.1093/bioinformatics/btw396
+    Docs    : http://zhanglab.ccmb.med.umich.edu/IonCom
+
+    Parameters
+    ----------
+    self : Commands class instance
+    """
     pass
 
 
