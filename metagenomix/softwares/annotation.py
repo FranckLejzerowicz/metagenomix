@@ -1614,7 +1614,7 @@ def tiara(self) -> None:
             self.soft.add_status(tech, self.sam_pool, 0, group=group)
 
 
-def metaclade(self):
+def metaclade2(self):
     """Novel profile-based domain annotation pipeline based on the multi-source
     domain annotation strategy. It provides a domain annotation realised
     directly from reads, and reaches an improved identification of the
