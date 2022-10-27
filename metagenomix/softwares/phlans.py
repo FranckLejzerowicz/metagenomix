@@ -655,6 +655,71 @@ def extract_markers(
             self.outputs['cmds'].setdefault(key, []).append(cmd)
 
 
+def get_strainphlan(
+        self,
+        tech: str,
+        sam: str,
+        inputs: dict
+):
+    bt2_fp, sam_fp = inputs[:2]
+    sam_dir = dirname(sam_fp)
+    db_dir = '%s/db_markers' % self.dir
+    meta_dir = '%s/metadata' % self.dir
+    markers_dir = '%s/consensus_markers' % self.dir
+    wol_pd = self.databases.paths['wol']['taxonomy']
+
+    self.outputs['outs'] = dict({})
+    self.outputs['dirs'].extend([db_dir, meta_dir])
+    get_sample_to_marker(self, tech, sam_dir, markers_dir)
+
+    for strain_group, strains in self.config.strains.items():
+
+        tmp = '$TMPDIR/strainphlan_%s' % strain_group
+        key = (tech, strain_group)
+        io_update(self, i_d=sam_dir, o_d=[markers_dir, db_dir, meta_dir],
+                  key=key)
+
+        strain_dir = '%s/%s' % (db_dir, strain_group)
+        self.outputs['dirs'].append(strain_dir)
+        for strain in [x.replace(' ', '_') for x in strains]:
+            if strain[0] != 's':
+                continue
+            extract_markers(self, tech, key, strain, strain_dir, db_dir)
+            odir = '%s/output/%s' % (self.dir, strain_group)
+            self.outputs['dirs'].append(odir)
+            self.outputs['outs'][(strain_group, strain)] = odir
+            io_update(self, o_d=odir, key=key)
+            tree = '%s/RAxML_bestTree.%s.StrainPhlAn3.tre' % (odir, strain)
+            to_dos = status_update(self, tech, [markers_dir, db_dir],
+                                   folder=True)
+            if self.config.force or to_do(tree):
+                # cmd = strainphlan_cmd(self, markers_dir, db_dir, strain,
+                #                       wol_pd, key)
+                cmd = 'strainphlan'
+                cmd += ' -s %s/*.pkl' % markers_dir
+                cmd += ' -m %s/%s.fna' % (db_dir, strain)
+                if strain in wol_pd['species']:
+                    fna = '%s/%s.fna.bz2' % (
+                        self.databases.paths['wol']['fna'],
+                        wol_pd.loc[wol_pd['species'] == strain, 0])
+                    io_update(self, i_f=fna, key=key)
+                    cmd += ' -r %s' % fna
+                cmd += ' -o %s' % odir
+                cmd += ' -n %s' % self.soft.params['cpus']
+                cmd += ' -c %s' % strain
+                cmd += ' --mutation_rates'
+                cmd = 'mkdir -p %s\n' % tmp + cmd
+                if to_dos:
+                    self.outputs['cmds'].setdefault(key, []).append(False)
+                else:
+                    self.outputs['cmds'].setdefault(key, []).append(cmd)
+                self.soft.add_status(
+                    tech, sam, 1, group=strain_group, genome=strain)
+            else:
+                self.soft.add_status(
+                    tech, sam, 0, group=strain_group, genome=strain)
+
+
 def strainphlan(self) -> None:
     """StrainPhlAn is a computational tool for tracking individual strains
     across a large set of samples. The input of StrainPhlAn is a set of
@@ -697,58 +762,4 @@ def strainphlan(self) -> None:
     for (tech, sam), inputs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, inputs, 'illumina', sam):
             continue
-        bt2_fp, sam_fp = inputs[:2]
-        sam_dir = dirname(sam_fp)
-        db_dir = '%s/db_markers' % self.dir
-        meta_dir = '%s/metadata' % self.dir
-        markers_dir = '%s/consensus_markers' % self.dir
-        wol_pd = self.databases.paths['wol']['taxonomy']
-
-        self.outputs['outs'] = dict({})
-        self.outputs['dirs'].extend([db_dir, meta_dir])
-        get_sample_to_marker(self, tech, sam_dir, markers_dir)
-
-        for strain_group, strains in self.config.strains.items():
-
-            tmp = '$TMPDIR/strainphlan_%s' % strain_group
-            key = (tech, strain_group)
-            io_update(self, i_d=sam_dir, o_d=[markers_dir, db_dir, meta_dir],
-                      key=key)
-
-            strain_dir = '%s/%s' % (db_dir, strain_group)
-            self.outputs['dirs'].append(strain_dir)
-            for strain in [x.replace(' ', '_') for x in strains]:
-                if strain[0] != 's':
-                    continue
-                extract_markers(self, tech, key, strain, strain_dir, db_dir)
-                odir = '%s/output/%s' % (self.dir, strain_group)
-                self.outputs['dirs'].append(odir)
-                self.outputs['outs'][(strain_group, strain)] = odir
-                io_update(self, o_d=odir, key=key)
-                tree = '%s/RAxML_bestTree.%s.StrainPhlAn3.tre' % (odir, strain)
-                to_dos = status_update(self, tech, [markers_dir, db_dir],
-                                       folder=True)
-                if self.config.force or to_do(tree):
-                    cmd = 'strainphlan'
-                    cmd += ' -s %s/*.pkl' % markers_dir
-                    cmd += ' -m %s/%s.fna' % (db_dir, strain)
-                    if strain in wol_pd['species']:
-                        fna = '%s/%s.fna.bz2' % (
-                            self.databases.paths['wol']['fna'],
-                            wol_pd.loc[wol_pd['species'] == strain, 0])
-                        io_update(self, i_f=fna, key=key)
-                        cmd += ' -r %s' % fna
-                    cmd += ' -o %s' % odir
-                    cmd += ' -n %s' % self.soft.params['cpus']
-                    cmd += ' -c %s' % strain
-                    cmd += ' --mutation_rates'
-                    cmd = 'mkdir -p %s\n' % tmp + cmd
-                    if to_dos:
-                        self.outputs['cmds'].setdefault(key, []).append(False)
-                    else:
-                        self.outputs['cmds'].setdefault(key, []).append(cmd)
-                    self.soft.add_status(
-                        tech, sam, 1, group=strain_group, genome=strain)
-                else:
-                    self.soft.add_status(
-                        tech, sam, 0, group=strain_group, genome=strain)
+        get_strainphlan(self, tech, sam, inputs)
