@@ -847,7 +847,8 @@ def canu(self) -> None:
     for group, techs_inputs in self.inputs[self.sam_pool].items():
 
         if not [t for t in ['pacbio', 'nanopore'] if techs_inputs.get(t)]:
-            sys.exit('[canu] Only for "pacbio" and/or "nanopore" (no input)')
+            print('[canu] Only for "pacbio" and/or "nanopore" (no input)')
+            continue
 
         for tech, inputs in techs_inputs.items():
             if tech == 'illumina':
