@@ -2494,6 +2494,55 @@ def bracken(self) -> None:
                 self.soft.add_status(tech, sam, 0, group=(db + ' / ' + k2))
 
 
+def get_metaxa2_db(
+        self,
+        db: str
+) -> None:
+    """Get the path the Metaxa2 database passed by the user.
+
+    Notes
+    -----
+    If the database is not valid, the pipeline will stop with a useful hint.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for Metaxa2
+        .sam : str
+            Sample name
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .databases
+            All databases class instance
+        .config
+            Configurations
+    db : str
+        Name of the Metaxa2 database
+
+    Returns
+    -------
+    str
+        Path to the Metaxa2 database
+    """
+    if db == 'default':
+        return self.databases.paths.get('metaxa2', {})
+    elif db in self.databases.paths:
+        for path in ['', '/databases']:
+            db_path = '%s%s/metaxa2' % (self.databases.paths[db], path)
+            if self.config.dev:
+                return db_path
+            if not isfile('%s/hash.k2d' % db_path):
+                nested = glob.glob('%s/*/hash.k2d' % db_path)
+                if nested:
+                    return dirname(nested[0])
+    sys.exit('[kraken2] Database not found: %s' % db)
+
+
 def metaxa2(self) -> None:
     """Improved Identification and Taxonomic Classification of Small and
     Large Subunit rRNA in Metagenomic Data.
@@ -2527,17 +2576,19 @@ def metaxa2(self) -> None:
         .config
             Configurations
     """
-    if self.soft.prev == 'kneaddata':
-        split_term = '_1.fastq'
-    else:
-        split_term = '_R1.fastq'
-    fas = basename(self.inputs[self.sam_pool][0]).split(split_term)[0]
+    for (tech, sam), inputs in self.inputs[self.sam_pool].items():
+        if tech_specificity(self, inputs, tech, sam):
+            continue
+        if self.soft.prev == 'kneaddata':
+            split_term = '_1.fastq'
+        else:
+            split_term = '_R1.fastq'
 
-    databases = {'greengenes': '/home/flejzerowicz/databases/metaxa2/gg',
-                 'wol_ssu': '/home/flejzerowicz/databases/metaxa2/wl',
-                 'wol_ssu_g': '/home/flejzerowicz/databases/metaxa2/wl_g'}
-    io_update(self, i_f=self.inputs[self.sam_pool])
-    for db, db_path in databases.items():
+        params = tech_params(self, tech)
+        for db in params['databases']:
+            db_path = get_metaxa2_db(self, db)
+
+    for db, db_path in self.databases.paths['metaxa2'].items():
         dir_db = self.dir + '/' + db
         self.outputs['dirs'].append(dir_db)
         rad = dir_db + '/' + fas
@@ -2597,45 +2648,114 @@ def metaxa2(self) -> None:
             [summary, taxonomy, reltax, redist_tax])
 
 
-def mocat2(self):
-    """MOCAT2 has been developed at EMBL to process large metagenomic
-    datasets. But can of course also process small datasets.
+def phyloflash(self):
+    """phyloFlash is a pipeline to rapidly reconstruct the SSU rRNAs and
+    explore phylogenetic composition of an Illumina (meta)genomic or
+    transcriptomic dataset.
 
     References
     ----------
-    Kultima, J.R., Sunagawa, S., Li, J., Chen, W., Chen, H., Mende, D.R.,
-    Arumugam, M., Pan, Q., Liu, B., Qin, J. and Wang, J., 2012. MOCAT: a
-    metagenomics assembly and gene prediction toolkit.
+    Gruber-Vodicka, H.R., Seah, B.K. and Pruesse, E., 2020. phyloFlash:
+    rapid small-subunit rRNA profiling and targeted assembly from metagenomes.
+    Msystems, 5(5), pp.e00920-20.
 
     Notes
     -----
-    Docs    : http://mocat.embl.de/about.html
-    Paper   : https://doi.org/10.1371/journal.pone.0047656
+    Paper   : https://doi.org/10.1128/mSystems.00920-20
+    GitHub  : https://github.com/HRGV/phyloFlash/
+    Docs    : http://hrgv.github.io/phyloFlash
 
     Parameters
     ----------
-    self : Commands class instance
-        .dir : str
-            Path to pipeline output folder for MOCAT
-        .sam : str
-            Sample name
-        .inputs : dict
-            Input files
-        .outputs : dict
-            All outputs
-        .soft.params
-            Parameters
-        .databases
-            All databases class instance
-        .config
-            Configurations
+    self
     """
     pass
 
 
-def phyloflash(self):
+def closedref(self):
+    """
+
+    Parameters
+    ----------
+    self
+
+    Returns
+    -------
+
+    """
     pass
 
 
-def closed_ref_qiime1(self):
+def eggnogmapper(self):
+    """EggNOG-mapper is a tool for fast functional annotation of novel
+    sequences. It uses precomputed orthologous groups and phylogenies from
+    the eggNOG database (http://eggnog5.embl.de) to transfer functional
+    information from fine-grained orthologs only.
+
+    References
+    ----------
+    Cantalapiedra, C.P., Hernández-Plaza, A., Letunic, I., Bork, P. and
+    Huerta-Cepas, J., 2021. eggNOG-mapper v2: functional annotation,
+    orthology assignments, and domain prediction at the metagenomic scale.
+    Molecular biology and evolution, 38(12), pp.5825-5829.
+
+    Notes
+    -----
+    GitHub  : https://github.com/eggnogdb/eggnog-mapper
+    Docs    : http://eggnog-mapper.embl.de/
+    Paper   : https://doi.org/10.1093/molbev/msab293
+
+    Parameters
+    ----------
+    self
+    """
+    pass
+
+
+def ngless(self):
+    """NGLess logo Ngless is a domain-specific language for NGS (
+    next-generation sequencing data) processing.
+
+    References
+    ----------
+    Coelho, L.P., Alves, R., Monteiro, P., Huerta-Cepas, J., Freitas,
+    A.T. and Bork, P., 2019. NG-meta-profiler: fast processing of metagenomes
+    using NGLess, a domain-specific language. Microbiome, 7(1), pp.1-10.
+
+    Notes
+    -----
+    GitHub  : https://github.com/ngless-toolkit/ngless
+    Docs    : https://ngless.embl.de/
+    Paper   : https://doi.org/10.1186/s40168-019-0684-8
+
+    Parameters
+    ----------
+    self
+    """
+    pass
+
+
+def motus(self):
+    """The mOTU profiler is a computational tool that estimates relative
+    taxonomic abundance of known and currently unknown microbial community
+    members using metagenomic shotgun sequencing data.
+
+    References
+    ----------
+    Milanese, A., Mende, D.R., Paoli, L., Salazar, G., Ruscheweyh, H.J.,
+    Cuenca, M., Hingamp, P., Alves, R., Costea, P.I., Coelho, L.P. and
+    Schmidt, T.S., 2019. Microbial abundance, activity and population genomic
+    profiling with mOTUs2. Nature communications, 10(1), pp.1-11.
+
+    Notes
+    -----
+    GitHub  : https://github.com/motu-tool/mOTUs
+    Paper   : https://doi.org/10.1038/s41467-019-08844-4
+    Docs    : https://motu-tool.org/index.html
+    Wiki    : https://github.com/motu-tool/mOTUs/wiki
+
+    Parameters
+    ----------
+    self
+    """
     pass
