@@ -1110,7 +1110,6 @@ def salmon(self) -> None:
     ----------
     self
     """
-    pass
 
 
 def kallisto(self) -> None:
