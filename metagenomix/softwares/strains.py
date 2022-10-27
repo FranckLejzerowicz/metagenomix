@@ -419,4 +419,26 @@ def lorikeet(self) -> None:
 
 
 def instrain(self):
+    """InStrain is a tool for analysis of co-occurring genome populations
+    from metagenomes that allows highly accurate genome comparisons, analysis
+    of coverage, microdiversity, and linkage, and sensitive SNP detection
+    with gene localization and synonymous non-synonymous identification.
+
+    References
+    ----------
+    Olm, M.R., Crits-Christoph, A., Bouma-Gregson, K., Firek, B.A., Morowitz,
+    M.J. and Banfield, J.F., 2021. inStrain profiles population
+    microdiversity from metagenomic data and sensitively detects shared
+    microbial strains. Nature Biotechnology, 39(6), pp.727-736.
+
+    Notes
+    -----
+    GitHub  : https://github.com/MrOlm/instrain
+    Paper   : https://doi.org/10.1038/s41587-020-00797-0
+    Docs    : https://instrain.readthedocs.io/en/latest/index.html
+
+    Parameters
+    ----------
+    self
+    """
     pass
