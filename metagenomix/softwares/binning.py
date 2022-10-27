@@ -9,6 +9,7 @@
 import sys
 import glob
 from metagenomix._io_utils import caller, status_update, io_update, to_do
+from metagenomix.core.parameters import tech_params
 
 
 def get_sams_fastqs(
@@ -961,6 +962,10 @@ def binning(self):
             self.soft.add_status(tech, self.sam_pool, 0, group=group)
 
 
+def metawrap_(self):
+    pass
+
+
 def metawrap(self) -> None:
     """MetaWRAP - a flexible pipeline for genome-resolved metagenomic data
     analysis.
@@ -999,6 +1004,80 @@ def metawrap(self) -> None:
     module_call(self)
 
 
+def yamb_cmd(
+        self,
+        tech: str,
+        out_dir: str,
+        fastxs: list,
+        contigs: str
+) -> str:
+    """Collect the YAMB command line.
+
+    Parameters
+    ----------
+    self
+    tech : str
+        Technology
+    out_dir : str
+        Path to the output folder
+    fastxs : list
+        Path(s) to the input files
+    contigs : str
+        Path to the input contigs file
+
+    Returns
+    -------
+    cmd : str
+        Command line for YAMB
+    """
+    params = tech_params(self, tech)
+    cmd = '%s/yamb.sh' % params['path']
+    cmd += ' -c %s' % contigs
+    if len(fastxs) == 3:
+        cmd += ' -s %s' % fastxs[0]
+        cmd += ' -f %s' % fastxs[1]
+        cmd += ' -r %s' % fastxs[2]
+    if len(fastxs) == 2:
+        cmd += ' -f %s' % fastxs[0]
+        cmd += ' -r %s' % fastxs[1]
+    if len(fastxs) == 1:
+        cmd += ' -f %s' % fastxs[0]
+    cmd += ' -o %s' % out_dir
+    cmd += ' -t %s' % params['cpus']
+    cmd += ' -m %s' % params['m']
+    cmd += ' -l %s' % params['l']
+    return cmd
+
+
+def get_yamb(self, tech, group, contigs, fastxs):
+    to_dos = []
+    if not fastxs:
+        self.soft.add_status(tech, self.sam_pool, [fastxs], group=group)
+        sys.exit('[YAMB] No input reads for group %s' % group)
+    else:
+        to_dos.extend(status_update(self, tech, fastxs, group=group))
+    to_dos.extend(status_update(self, tech, [contigs], group=group))
+
+    key = (tech, group)
+    out_dir = '/'.join([self.dir, tech, self.sam_pool, group])
+    self.outputs['dirs'].append(out_dir)
+    self.outputs['outs'][key] = out_dir
+
+    out = '%s/yamb-pp-*-hdbscan.csv' % out_dir
+    print("out")
+    print(out)
+    if self.config.force or not glob.glob(out):
+        if to_dos:
+            self.outputs['cmds'].setdefault(key, []).append(False)
+        else:
+            cmd = yamb_cmd(self, tech, out_dir, fastxs, contigs)
+            self.outputs['cmds'].setdefault(key, []).append(cmd)
+            io_update(self, i_f=([contigs] + fastxs), o_d=out_dir, key=key)
+        self.soft.add_status(tech, self.sam_pool, 1, group=group)
+    else:
+        self.soft.add_status(tech, self.sam_pool, 0, group=group)
+
+
 def yamb(self):
     """
     YAMB (Yet Another Metagenome Binner) - semi-automatic pipeline for
@@ -1022,7 +1101,21 @@ def yamb(self):
     self : Commands class instance
         Contains all the attributes needed for binning on the current sample
     """
-    pass
+    reads = {}
+    if '_' in self.soft.name:
+        reads_tool = self.soft.name.split('_')[-1]
+        reads = self.softs[reads_tool].outputs
+
+    print(reads)
+
+    for (tech, group), inputs in self.inputs[self.sam_pool].items():
+        fastxs = [fastq for sam in self.pools[self.sam_pool][group] for fastq
+                  in [sam].get((tech, sam), [])]
+        print(fastxs)
+        contigs = inputs[0]
+        print(contigs)
+        print(contigsd)
+        get_yamb(self, tech, group, contigs, fastxs)
 
 
 def summarize_yamb(self):
