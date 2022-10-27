@@ -6,158 +6,10 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-import gzip
 from os.path import basename
 from metagenomix._io_utils import (io_update, to_do, tech_specificity,
                                    status_update)
 from metagenomix.core.parameters import tech_params
-
-
-def get_cat_zcat(
-        fastq_fp: str
-) -> str:
-    """Get the command `cat` or `gzcat` to run for fastq editing.
-
-    Parameters
-    ----------
-    fastq_fp : str
-        Fastq file path.
-
-    Returns
-    -------
-    cat : str
-        The command to use (`cat` or `zcat`).
-    """
-    cat = "cat"
-    if fastq_fp.endswith('.fastq.gz'):
-        cat = "zcat"
-    return cat
-
-
-def edit_fastq_cmd(
-        fastq_fp: str,
-        num: int
-) -> str:
-    """Get the unix command to run on each fastq file that
-    needs editing, depending on the source of fastq file.
-
-    Parameters
-    ----------
-    fastq_fp : str
-        Fastq file path.
-    num : int
-        Can be 1 or 2 for the forward and reverse read, respectively.
-
-    Returns
-    -------
-    cmd : str
-        Unix command to run to edit a fastq file.
-    """
-    cat = get_cat_zcat(fastq_fp)
-
-    cmd = 'bioawk_exe=$(which bioawk)\n'
-    cmd += 'if [ -x "$bioawk_exe" ] ; then\n'
-    cmd += '%s %s | ' % (cat, fastq_fp)
-    cmd += "bioawk -c fastx "
-    cmd += "'{print \"@\"$1\"/%s\\n\"$2\"\\n+\\n\"$3}' " % str(num)
-    if fastq_fp.endswith('.fastq'):
-        cmd += " > %s_renamed\n" % fastq_fp
-    else:
-        cmd += " | gzip > %s_renamed\n" % fastq_fp
-    cmd += "mv %s_renamed %s\n" % (fastq_fp, fastq_fp)
-    cmd += 'else\n'
-    cmd += 'echo "Need to load bioawk module or environment with bioawk"\n'
-    cmd += 'exit 1\n'
-    cmd += 'fi\n'
-    return cmd
-
-
-def get_fastq_header(
-        fastq_path: str
-) -> str:
-    """Get the first line of the fastq file.
-
-    Parameters
-    ----------
-    fastq_path : str
-        Path to a fastq.gz or fastq file.
-
-    Returns
-    -------
-    fastq_line : str
-        First line of the fastq file.
-    """
-    fastq_line = ''
-    if fastq_path.endswith('fastq.gz'):
-        with gzip.open(fastq_path) as f:
-            for line in f:
-                fastq_line = line.decode().strip()
-                break
-    elif fastq_path.endswith('fastq'):
-        with open(fastq_path) as f:
-            for line in f:
-                fastq_line = line.strip()
-                break
-    return fastq_line
-
-
-def get_edit_cmd(
-        self,
-        num: int,
-        tech: str
-) -> None:
-    """Get the unix command to run on each fastq file that needs editing.
-
-    Parameters
-    ----------
-    self : Commands class instance
-        .sam : str
-            Sample name
-        .config
-            Configurations
-    num : int
-        Can be 1 or 2 for the forward and reverse read, respectively.
-    tech : str
-        Technology: 'illumina', 'pacbio', or 'nanopore'
-    """
-    fastqs_fps = self.inputs[self.sam_pool][(tech, self.sam_pool)]
-    to_dos = status_update(self, tech, fastqs_fps)
-
-    fastq_fp = fastqs_fps[num - 1]
-    line = get_fastq_header(
-        self.config.fastq[self.sam_pool][(tech, self.sam_pool)][num - 1])
-    line_split = line.split()
-    if not line_split[0].endswith('/%s' % num):
-        if len(line_split) > 1:
-            cmd = edit_fastq_cmd(fastq_fp, num)
-            if to_dos:
-                self.outputs['cmds'].setdefault((tech,), []).append(False)
-            else:
-                self.outputs['cmds'].setdefault((tech,), []).append(cmd)
-            self.soft.add_status(tech, self.sam_pool, 1)
-        else:
-            self.soft.add_status(tech, self.sam_pool, 0)
-    io_update(self, i_f=fastqs_fps, o_f=fastqs_fps, key=tech)
-
-
-def edit(self) -> None:
-    """Create command lines for editing the fasta if need be so that
-    the fastq header all contaim the trailing "/1" and "/2" that allow
-    identifying paired reads.
-
-    Parameters
-    ----------
-    self : Commands class instance
-        .sam : str
-            Sample name
-        .config
-            Configurations
-    """
-    tech = 'illumina'
-    for r in [1, 2]:
-        if len(self.config.fastq[self.sam_pool][(tech, self.sam_pool)]) < r:
-            continue
-        get_edit_cmd(self, r, tech)
 
 
 def count_cmd(
@@ -190,15 +42,12 @@ def count_cmd(
     if fastx.endswith('fastq.gz'):
         cmd = "n%s=`zcat %s | wc -l | " % (idx, fastx)
         cmd += "sed 's/ //g' | awk '{x=$1/4; print x}'`\n"
-        # cmd += "cut -d ' ' -f 1 | awk '{x=$1/4; print x}'`"
     elif fastx.endswith('fasta'):
         cmd = "n%s=`wc -l %s | " % (idx, fastx)
         cmd += "sed 's/ //g' | awk '{x=$1/2; print x}'`\n"
-        # cmd += "cut -d ' ' -f 1 | awk '{x=$1/2; print x}'`"
     elif fastx.endswith('fastq'):
         cmd = "n%s=`wc -l %s | " % (idx, fastx)
         cmd += "sed 's/ //g' | awk '{x=$1/4; print x}'`\n"
-        # cmd += "cut -d ' ' -f 1 | awk '{x=$1/4; print x}'`"
     else:
         raise IOError("Input sequence file invalid %s" % fastx)
     if idx:
