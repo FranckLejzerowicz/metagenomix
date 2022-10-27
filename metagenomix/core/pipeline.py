@@ -267,22 +267,33 @@ class Workflow(object):
                 return True
             self.skip[soft.name.split('_')[0]] = True
 
+    @staticmethod
+    def get_params_dict(soft, params_show):
+        if soft.name.startswith('search'):
+            databases = params_show['databases']
+            del params_show['databases']
+            params = {'search': {soft.name.split('_')[-1]: params_show,
+                                 'databases': databases}}
+        else:
+            params = params_show
+        return params
+
     def show_params(self, soft):
         params_show = dict(x for x in soft.params.items())
         if params_show:
             x = '=' * (13 + len(soft.name))
             print('\n%s\n[%s] Parameters\n%s' % (x, soft.name, x))
-            if soft.name.startswith('search'):
-                databases = params_show['databases']
-                del params_show['databases']
-                params = {'search': {soft.name.split('_')[-1]: params_show,
-                                     'databases': databases}}
-                print(yaml.dump(params))
-            else:
-                print(yaml.dump(params_show))
+            params = self.get_params_dict(soft, params_show)
+            print(yaml.dump(params))
             print('%s defaults %s' % ('-' * 10, '-' * 10))
             print(yaml.dump(soft.defaults))
             print('=' * 30)
+
+    def write_params(self, soft):
+        params_show = dict(x for x in soft.params.items())
+        params_dict = self.get_params_dict(soft, params_show)
+        params = {soft.name: params_dict}
+        print(yaml.dump(params))
 
     def parametrize(self) -> None:
         """
@@ -292,6 +303,7 @@ class Workflow(object):
         for _, soft in self.softs.items():
             self.set_scratch(soft)
             self.set_user_params(soft)
+            # self.write_params(soft)
         if self.config.show_params:
             print('  User parameters and defaults:')
             for _, soft in self.softs.items():

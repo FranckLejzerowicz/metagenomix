@@ -184,7 +184,6 @@ def raw(
                         cmd += 'samtools index %s %s\n' % (bam, bai)
 
 
-
 def get_mapping(
         self,
         func,
@@ -226,21 +225,20 @@ def mapping(self):
     self : Commands class instance
         Contains all the attributes needed for binning on the current sample
     """
-    pass
-    # func, source = get_target(self)
-    # if self.sam_pool in self.pools:
-    #     for (tech, group), inputs in self.inputs[self.sam_pool].items():
-    #         reads = get_reads(self, source, tech, group)
-    #         references = group_inputs(self, inputs)
-    #         get_mapping(self, func, tech, group, reads, references)
-    #
-    # elif set(self.inputs) == {''}:
-    #     print("self.sam_pool")
-    #     print(self.sam_pool)
-    #     for (tech, mags), inputs in self.inputs[''].items():
-    #         reads = get_reads(self, source, tech, mags)
-    #         references = group_inputs(self, inputs)
-    #         get_mapping(self, func, tech, mags, reads, references)
+    func, source = get_target(self)
+    if self.sam_pool in self.pools:
+        for (tech, group), inputs in self.inputs[self.sam_pool].items():
+            reads = get_reads(self, source, tech, group)
+            references = group_inputs(self, inputs)
+            get_mapping(self, func, tech, group, reads, references)
+
+    elif set(self.inputs) == {''}:
+        print("self.sam_pool")
+        print(self.sam_pool)
+        for (tech, mags), inputs in self.inputs[''].items():
+            reads = get_reads(self, source, tech, mags)
+            references = group_inputs(self, inputs)
+            get_mapping(self, func, tech, mags, reads, references)
 
 
 def prep_map__spades_prodigal(self):
