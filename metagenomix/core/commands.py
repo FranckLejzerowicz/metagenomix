@@ -89,7 +89,7 @@ class Commands(object):
 
     def get_hash(self):
         avoid = {'time', 'nodes', 'mem', 'mem_dim', 'env', 'chunks',
-                 'scratch', 'machine', 'partition'}
+                 'scratch', 'machine', 'partition', 'cpus'}
         if self.soft.name not in ['filtering', 'databases']:
             avoid.add('databases')
         params = dict(x for x in self.soft.params.items() if x[0] not in avoid)
