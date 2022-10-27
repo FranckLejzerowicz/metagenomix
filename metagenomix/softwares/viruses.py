@@ -294,9 +294,106 @@ def threecac(self) -> None:
     print()
 
 
+def plasclass(self) -> None:
+    """
+
+    References
+    ----------
+
+    Notes
+    -----
+    GitHub  :
+    Paper   :
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .soft.prev : str
+            Previous software in the pipeline
+        .dir : str
+            Path to pipeline output folder for PlasClass
+        .soft.sam_pool : str
+            Sample or co-assembly group name.
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    """
+    pass
+
+
 def deepvirfinder(self):
+    """DeepVirFinder predicts viral sequences using deep learning method. The
+    method has good prediction accuracy for short viral sequences, so it can
+    be used to predict sequences from the metagenomic data.
+
+    References
+    ----------
+    Ren, J., Song, K., Deng, C., Ahlgren, N.A., Fuhrman, J.A., Li, Y., Xie,
+    X., Poplin, R. and Sun, F., 2020. Identifying viruses from metagenomic
+    data using deep learning. Quantitative Biology, 8(1), pp.64-77.
+
+    Notes
+    -----
+    GitHub  : https://github.com/jessieren/DeepVirFinder
+    Paper   : https://doi.org/10.1007/s40484-019-0187-4
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .soft.prev : str
+            Previous software in the pipeline
+        .dir : str
+            Path to pipeline output folder for DeepVirFinder
+        .soft.sam_pool : str
+            Sample or co-assembly group name.
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    """
     pass
 
 
 def wish(self):
+    """WIsH can identify bacterial hosts from metagenomic data, keeping good
+    accuracy even on smaller contigs.
+
+    References
+    ----------
+    Galiez, C., Siebert, M., Enault, F., Vincent, J. and Söding, J.,
+    2017. WIsH: who is the host? Predicting prokaryotic hosts from
+    metagenomic phage contigs. Bioinformatics, 33(19), pp.3113-3114.
+
+    Notes
+    -----
+    GitHub  : https://github.com/soedinglab/WIsH
+    Paper   : https://doi.org/10.1093/bioinformatics/btx383
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .soft.prev : str
+            Previous software in the pipeline
+        .dir : str
+            Path to pipeline output folder for WiSH
+        .soft.sam_pool : str
+            Sample or co-assembly group name.
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    """
     pass
