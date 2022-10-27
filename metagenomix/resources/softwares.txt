@@ -8,10 +8,10 @@ hifiadapterfilt	preprocessing
 kneaddata	preprocessing
 mapdamage2	preprocessing
 simka	distance measure
-flash	paired read merging
-ngmerge	paired read merging
-pear	paired read merging
-bbmerge	paired read merging
+flash	paired-read merging
+ngmerge	paired-read merging
+pear	paired-read merging
+bbmerge	paired-read merging
 bowtie2	alignment
 minimap2	alignment
 salmon	alignment
@@ -27,7 +27,7 @@ barrnap	annotation (rRNA)
 ccfind	annotation (circularity)
 antismash	annotation (antibiotics and secondary metabolite)
 tiara	annotation (eukaryotic sequences)
-metaclade	annotation (protein domains)
+metaclade2	annotation (protein domains)
 deeptmhmm	annotation (transmembrane proteins)
 itasser	annotation (proteins)
 itassermtd	annotation (proteins)
@@ -95,7 +95,7 @@ bracken	profiling
 metaxa2	profiling
 mocat2	profiling
 phyloflash	profiling
-closed_ref_qiime1	profiling
+closedref	profiling
 squeezemeta	pipeline
 anvio	pipeline
 plasmidfinder	annotation (plasmid)
