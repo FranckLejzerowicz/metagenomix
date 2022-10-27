@@ -558,6 +558,12 @@ def check_atropos(self, params, soft):
         'a': ['GATCGGAAGAGCACACGTCTGAACTCCAGTCAC', 'GGGGGGGGGG'],
         'A': ['AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT', 'GGGGGGGGGG']
     }
+    for aA in ['a', 'A']:
+        if aA not in params:
+            params[aA] = []
+        if not isinstance(params[aA], list):
+            sys.exit('[atropos] Param "%s" must be a list' % aA)
+
     ints = ['q', 'overlap', 'max_reads', 'indel_cost', 'nextseq_trim',
             'minimum_length', 'quality_cutoff']
     floats = ['error_rate']
@@ -565,11 +571,6 @@ def check_atropos(self, params, soft):
     check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
     check_default(self, params, defaults, soft.name,
                   (floats + ints + ['a', 'A']))
-    for aA in ['a', 'A']:
-        if aA not in params:
-            params[aA] = []
-        if not isinstance(params[aA], list):
-            sys.exit('[atropos] Param "%s" must be a list' % aA)
     return defaults
 
 
@@ -672,24 +673,116 @@ def search_tool(self, params, soft, tool) -> dict:
 
 
 def check_metaxa2(self, params, soft) -> dict:
-    defaults = {'databases': ['default'],
-                'align': ['none', 'all', 'uncertain'],
-                'mode': ['metagenome', 'genome'],
-                'megablast': [True, False],
-                'graphical': [True, False],
-                'reltax': [True, False],
-                'plus': [True, False],
-                'T': '0,60,70,75,85,90,97',
-                'E': 1, 'S': 12, 'N': 2, 'M': 5, 'R': 75,
-                'r': 0.8, 'd': 0.7, 'l': 50}
+    defaults = {
+        'databases': ['default'],
+        'allow_single_domain': '1e-10,0',
+        'T': '0,60,70,75,85,90,97',
+        'E': 1,
+        'S': 12,
+        'N': 2,
+        'M': 5,
+        'R': 75,
+        'H': 5,
+        'usearch': 0,
+        'q': 20,
+        'distance': 150,
+        'quality_percent': 10,
+        'search_score': 0,
+        'blast_eval': 1e-5,
+        'blast_wordsize': 14,
+        'ref_identity': 99,
+        'taxlevel': 0,
+        'graph_scale': 0,
+        'g': ['ssu', 'lsu', 'string'],
+        'scoring_model': ['new', 'old'],
+        'align': ['none', 'all', 'uncertain'],
+        'mode': ['metagenome', 'genome', 'auto'],
+        'format': ['auto', 'fasta', 'fastq', 'paired-end'],
+        'z': ['f', 'a', 'auto', 'gzip', 'bzip', 'zip', 'dsrc'],
+        'selection_priority': ['score', 'domains', 'eval', 'sum'],
+        'f': ['auto', 'fasta', 'fastq', 'paired-end', 'paired-fasta'],
+        't': ['bacteria', 'archaea', 'eukaryota', 'mitochondrial',
+              'chloroplast', 'all', 'other'],
+        'p': [None],
+        'temp': [None],
+        'hmmscan': [None],
+        'reference': [None],
+        'usearch_bin': [None],
+        'search_eval': [None],
+        'blast_score': [None],
+        'x': [False, True],
+        'c': [False, True],
+        'date': [False, True],
+        'plus': [False, True],
+        'fasta': [True, False],
+        'table': [False, True],
+        'reset': [False, True],
+        'reltax': [False, True],
+        'ublast': [True, False],
+        'silent': [False, True],
+        'summary': [True, False],
+        'save_raw': [False, True],
+        'truncate': [True, False],
+        'taxonomy': [True, False],
+        'not_found': [False, True],
+        'graphical': [True, False],
+        'megablast': [False, True],
+        'heuristics': [True, False],
+        'complement': [True, False],
+        'split_pairs': [False, True],
+        'multi_thread': [False, True],
+        'quality_trim': [False, True],
+        'guess_species': [False, True],
+        'allow_reorder': [True, False],
+        'quality_filter': [False, True],
+        'ignore_paired_read': [True, False],
+        'r': 0,
+        'l': 50,
+        'd': 0,
+        'm': 0,
+        'n': 1,
+        's': [False, True],
+        'remove_na': [True, False],
+        'lists': [True, False],
+        'separate': [True, False],
+        'unknown': [False, True],
+        'u': [False, True],
+        'model': ['b-p', 'bengtsson-palme', 'chao1', 'ichao1', 'ace', 'all'],
+        'resamples': 1000,
+        'write': 1,
+        'size': [None],
+        'scale': [None],
+        'exclude_rows': [None],
+        'ace_rare': 10,
+        'sampled': [False, True]
+    }
     if 'T' not in params:
         params['T'] = defaults['T']
     elif len([x for x in str(params['T']).split(',') if x.isdigit()]) != 7:
         sys.exit('[metaxa2] Param "T" must be 7 tab-separated integers [0-100]')
+
+    p = 'allow_single_domain'
+    if p not in params:
+        params[p] = defaults[p]
+    else:
+        if params[p].count(',') != 1:
+            sys.exit('[metaxa2] Param "%s" must have two values' % p)
+        e, s = params[p].split(',')
+        try:
+            float(s)
+        except ValueError:
+            sys.exit('[metaxa2] Param "%s": first value not float' % p)
+        if not str(s).isdigit():
+            sys.exit('[metaxa2] Param "%s": second value not integer' % p)
+
     check_databases('metaxa2', params, self.databases)
-    check_nums(self, params, defaults, ['r', 'd', 'E'], float, soft.name, 0, 1)
-    check_nums(self, params, defaults, ['R'], int, soft.name, 0, 100)
-    check_nums(self, params, defaults, ['S', 'N', 'M', 'l'], int, soft.name)
+    floats = ['E', 'usearch', 'blast_eval']
+    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
+    ints = ['S', 'N', 'M', 'q', 'distance', 'search_score', 'blast_wordsize',
+            'taxlevel', 'graph_scale', 'l', 'm', 'n', 'resamples']
+    check_nums(self, params, defaults, ints, int, soft.name)
+    ints2 = ['R', 'H', 'quality_percent', 'ref_identity', 'r', 'd']
+    check_nums(self, params, defaults, ints2, int, soft.name, 0, 100)
     check_default(self, params, defaults, soft.name,
                   ['databases', 'r', 'd', 'E', 'R', 'S', 'N', 'M', 'l', 'T'])
     defaults['databases'].append('<list of databases>')
@@ -697,8 +790,7 @@ def check_metaxa2(self, params, soft) -> dict:
 
 
 def check_count(self, params, soft):
-    defaults = {'cat': ['zcat', 'gzcat']}
-    check_default(self, params, defaults, soft.name)
+    defaults = {}
     return defaults
 
 
@@ -1153,8 +1245,8 @@ def check_metawrap(self, params, soft):
     mins = ['min_completion', 'min_completion_reassembly',
             'max_contamination', 'max_contamination_reassembly']
     check_nums(self, params, defaults, mins, int, 'metawrap:binning', 0, 100)
-    check_nums(self, params, defaults, ['min_contig_length'],
-               int, 'metawrap:binning')
+    check_nums(
+        self, params, defaults, ['min_contig_length'], int, 'metawrap:binning')
     mins.append('min_contig_length')
     check_default(self, params, defaults, soft.name, mins,
                   ['binners', 'reassembly', 'blobology'])
@@ -1245,16 +1337,6 @@ def check_checkm2(self, params, soft):
         'dbg_cos': [False, True],
         'dbg_vectors': [False, True]
     }
-    check_default(self, params, defaults, soft.name)
-    return defaults
-
-
-def check_gtdbtk(self, params, soft):
-    defaults = {
-
-    }
-    check_nums(self, params, defaults, [''], int, soft.name)
-    check_nums(self, params, defaults, [''], float, soft.name)
     check_default(self, params, defaults, soft.name)
     return defaults
 
@@ -1810,6 +1892,7 @@ def check_ngmerge(self, params, soft):
     check_nums(self, params, defaults, floats, float, soft.name)
     check_default(self, params, defaults, soft.name, (ints + floats))
     check_binary(self, soft.name, params, defaults, 'path')
+    defaults['path'] = '<absolute path to the folder containing "NGmerge">'
     return defaults
 
 
@@ -2637,6 +2720,8 @@ def check_amrfinderplus(self, params, soft):
         'gpipe_org': [False, True],
         'parm': [None, 'nosame', 'noblast', 'skip_hmm_check', 'bed'],
     }
+    if 'parm' not in params:
+        params['parm'] = [None]
     ints1 = ['translation_table']
     check_nums(self, params, defaults, ints1, int, soft.name, 1, 33)
     ints2 = ['nucleotide_flank5_size']
@@ -2682,6 +2767,8 @@ def check_squeezemeta(self, params, soft):
         'minion': [False, True],
         'empty': [False, True]
     }
+    if 'binners' not in params:
+        params['binners'] = defaults['binners']
     int1 = ['step']
     check_nums(self, params, defaults, int1, int, soft.name, 1, 21)
     int2 = ['contiglen', 'consensus', 't', 'canumem', 'block_size']
@@ -2716,7 +2803,7 @@ def check_binspreader(self, params, soft):
     floats = ['e', 'la', 'metaalpha', 'bin_weight']
     check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
     check_default(self, params, defaults, soft.name, (ints + floats))
-    check_binary(self, self.name, params, defaults, 'path')
+    check_binary(self, soft.name, params, defaults, 'path')
     defaults['path'] = '<Path to BinSPreader installation folder>'
     return defaults
 
@@ -2892,7 +2979,329 @@ def check_woltka(self, params, soft):
     return defaults
 
 
-# def check_mobsuite(self, params, soft):
+def check_mobsuite(self, params, soft):
+    defaults = {
+        'multi': [False, True],
+        'debug': [False, True],
+        'filter_db': [None],
+        'genome_filter_db_prefix': [None],
+        'prefix': [None],
+        'mash_genome_neighbor_threshold': 0.002,
+        'max_contig_size': 450000,
+        'max_plasmid_size': 450000,
+        'min_rep_evalue': 1e-05,
+        'min_mob_evalue': 1e-05,
+        'min_con_evalue': 1e-05,
+        'min_rpp_evalue': 1e-05,
+        'min_length': [None],
+        'min_rep_ident': 80,
+        'min_mob_ident': 80,
+        'min_con_ident': 80,
+        'min_rpp_ident': 80,
+        'min_rep_cov': 80,
+        'min_mob_cov': 80,
+        'min_con_cov': [None],
+        'min_rpp_cov': 80,
+        'min_overlap': 10,
+        'unicycler_contigs': [False, True],
+        'run_overhang': [False, True],
+        'keep_tmp': [False, True],
+        'plasmid_mash_db': [None],
+        'plasmid_meta': [None],
+        'plasmid_db_type': ['blastn'],
+        'plasmid_replicons': [None],
+        'repetitive_mask': [None],
+        'plasmid_mob': [None],
+        'plasmid_mpf': [None],
+        'plasmid_orit': [None],
+        'database_directory': [None],
+        'mode': ['Build', 'Update'],
+        'mob_typer_file': [None],
+        'taxonomy': [None],
+        'ref_cluster_file': [None],
+        'ref_fasta_file': [None],
+        'primary_cluster_dist': 0.06,
+        'secondary_cluster_dist': 0.025,
+    }
+    if 'db_dir' not in params:
+        params['db_dir'] = None
+    elif not isdir(params['db_dir']):
+        sys.exit('[mobsuite] Params "db_dir": path do not exist')
+    ints = ['min_length', 'max_contig_size', 'max_plasmid_size']
+    check_nums(self, params, defaults, ints, int, soft.name)
+    ints2 = ['min_rep_ident', 'min_mob_ident', 'min_con_ident', 'min_rpp_ident',
+             'min_rep_cov', 'min_mob_cov', 'min_rpp_cov', 'min_overlap']
+    check_nums(self, params, defaults, ints2, int, soft.name, 0, 100)
+    floats = ['mash_genome_neighbor_threshold', 'min_rep_evalue',
+              'min_mob_evalue', 'min_con_evalue', 'min_rpp_evalue',
+              'primary_cluster_dist', 'secondary_cluster_dist']
+    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
+    check_default(self, params, defaults, soft.name, (ints + ints2 + floats))
+    defaults['db_dir'] = '<Path to the MOB-suite database installed locally>'
+    return defaults
+
+
+def check_yamb(self, params, soft):
+    defaults = {'l': 0, 'm': 0}
+    check_nums(self, params, defaults, ['l', 'm'], int, soft.name)
+    return defaults
+
+
+def check_salmon(self, params, soft):
+    defaults = {
+        'kmerLen': 31,
+        'gencode': [False, True],
+        'features': [False, True],
+        'keepDuplicates': [False, True],
+        'keepFixedFasta': [False, True],
+        'filterSize': -1,
+        'sparse': [False, True],
+        'decoys': [None],
+        'ont': [False, True],
+        'no_clip': [False, True],
+        'type': ['puff'],
+        'seqBias': [False, True],
+        'gcBias': [False, True],
+        'posBias': [False, True],
+        'incompatPrior': 0,
+        'geneMap': [None],
+        'auxTargetFile': [None],
+        'meta': [False, True],
+        'discardOrphans': [False, True],
+        'discardOrphansQuasi': [False, True],
+        'validateMappings': [False, True],
+        'consensusSlack': 0.35,
+        'preMergeChainSubThresh': 0.75,
+        'postMergeChainSubThresh': 0.9,
+        'orphanChainSubThresh': 0.95,
+        'scoreExp': 1,
+        'numErrorBins': 6,
+        'noErrorModel': [False, True],
+        'sampleOut': [False, True],
+        'sampleUnaligned': [False, True],
+        'mappingCacheMemoryLimit': 2000000,
+        'minScoreFraction': 0.65,
+        'mismatchSeedSkip': 3,
+        'disableChainingHeuristic': [False, True],
+        'decoyThreshold': 1,
+        'ma': 2,
+        'mp': -4,
+        'go': 6,
+        'ge': 2,
+        'bandwidth': 15,
+        'allowDovetail': [False, True],
+        'recoverOrphans': [False, True],
+        'mimicBT2': [False, True],
+        'mimicStrictBT2': [False, True],
+        'softclip': [False, True],
+        'softclipOverhangs': [False, True],
+        'fullLengthAlignment': [False, True],
+        'hardFilter': [False, True],
+        'minAlnProb': 1e-05,
+        'writeMappings': [None],
+        'writeQualities': [False, True],
+        'hitFilterPolicy': ['BEFORE', 'AFTER', 'BOTH', 'NONE'],
+        'alternativeInitMode': [False, True],
+        'auxDir': [None],
+        'skipQuant': [False, True],
+        'dumpEq': [False, True],
+        'dumpEqWeights': [False, True],
+        'minAssignedFrags': 10,
+        'reduceGCMemory': [False, True],
+        'biasSpeedSamp': 5,
+        'fldMax': 1000,
+        'fldMean': 250,
+        'fldSD': 25,
+        'forgettingFactor': 0.65,
+        'initUniform': [False, True],
+        'maxOccsPerHit': 1000,
+        'maxReadOcc': 200,
+        'maxRecoverReadOcc': 2500,
+        'noLengthCorrection': [False, True],
+        'noEffectiveLengthCorrection': [False, True],
+        'noSingleFragProb': [False, True],
+        'noFragLengthDist': [False, True],
+        'noBiasLengthThreshold': [False, True],
+        'numBiasSamples': 2000000,
+        'numAuxModelSamples': 5000000,
+        'numPreAuxModelSamples': 5000,
+        'useEM': [False, True],
+        'useVBOpt': [True, False],
+        'rangeFactorizationBins': 4,
+        'numGibbsSamples': 0,
+        'noGammaDraw': [False, True],
+        'numBootstraps': 0,
+        'bootstrapReproject': [False, True],
+        'thinningFactor': 16,
+        'perTranscriptPrior': [False, True],
+        'perNucleotidePrior': [False, True],
+        'sigDigits': 3,
+        'vbPrior': 0.01,
+        'writeOrphanLinks': [False, True],
+        'writeUnmappedNames': [False, True],
+        'column': ['tpm', 'len', 'elen', 'numreads'],
+        'genes': [False, True],
+        'missing': [None]
+    }
+    ints = ['sigDigits', 'thinningFactor', 'numBootstraps', 'numGibbsSamples',
+            'rangeFactorizationBins', 'numBiasSamples', 'numAuxModelSamples',
+            'numPreAuxModelSamples', 'maxOccsPerHit', 'maxReadOcc',
+            'maxRecoverReadOcc', 'minAssignedFrags', 'reduceGCMemory',
+            'biasSpeedSamp', 'fldMax', 'fldMean', 'fldSD', 'minAssignedFrags',
+            'kmerLen', 'filterSize', 'scoreExp', 'numErrorBins',
+            'mappingCacheMemoryLimit', 'mismatchSeedSkip', 'ma', 'mp', 'go',
+            'ge', 'bandwidth']
+    check_nums(self, params, defaults, ints, int, soft.name)
+    floats = ['vbPrior', 'minAlnProb', 'decoyThreshold', 'consensusSlack',
+              'preMergeChainSubThresh', 'postMergeChainSubThresh',
+              'orphanChainSubThresh', 'minScoreFraction', 'incompatPrior']
+    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
+    floats2 = ['forgettingFactor']
+    check_nums(self, params, defaults, floats2, float, soft.name, 0.5, 1)
+    check_default(self, params, defaults, soft.name, (ints + floats + floats2))
+    return defaults
+
+
+def check_kallisto(self, params, soft):
+    defaults = {
+        'kmer_size': 31,
+        'make_unique': [False, True],
+        'bias': [False, True],
+        'bootstrap_samples': 0,
+        'seed': 42,
+        'plaintext': [False, True],
+        'fusion': [False, True],
+        'single': [False, True],
+        'single_overhang': [False, True],
+        'fr_stranded': [False, True],
+        'rf_stranded': [False, True],
+        'ec_file': [None],
+        'fragment_file': [None],
+        'fragment_length': [None],
+        'genemap': [None],
+        'sd': [None],
+        'pseudobam': [False, True],
+        'genomebam': [False, True],
+        'paired': [False, True],
+        'unstranded': [False, True],
+        'num': [False, True],
+        'bam': [False, True],
+        'gtf': [None],
+        'chromosomes': [None],
+        'batch': [None],
+        'technology': [None],
+    }
+    ints = ['kmer_size', 'bootstrap_samples', 'seed']
+    check_nums(self, params, defaults, ints, int, soft.name)
+    floats = []
+    check_nums(self, params, defaults, floats, float, soft.name)
+    check_default(self, params, defaults, soft.name, (ints + floats))
+    return defaults
+
+
+def check_metaclade2(self, params, soft):
+    defaults = {
+        'arch': [False, True],
+        'user_cfg': [None],
+        'remove_temp': [False, True],
+        'evalue_cutoff': 1e-3,
+        'evalue_cutconf': 1e-10,
+        'overlappingAA': 30,
+        'overlappingMaxDomain': 50,
+        'sge': [False, True],
+    }
+    ints = ['overlappingAA', 'overlappingMaxDomain']
+    check_nums(self, params, defaults, ints, int, soft.name)
+    floats = ['evalue_cutoff', 'evalue_cutconf']
+    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
+    check_default(self, params, defaults, soft.name, (ints + floats))
+    check_binary(self, soft.name, params, defaults, 'path')
+    defaults['path'] = '<Path to the metaclade2 installation folder>'
+    return defaults
+
+
+def check_mycc(self, params, soft):
+    defaults = {
+        't': 1000,
+        'lt': 0.7,
+        'ct': 0,
+        'meta': ['single', 'meta'],
+        'p': 20,
+        'pm': 500,
+        'mask': [False, True],
+        'keep': [False, True],
+    }
+    ints = ['pm', 'ct', 't']
+    check_nums(self, params, defaults, ints, int, soft.name)
+    ints2 = ['p']
+    check_nums(self, params, defaults, ints2, int, soft.name, 5, 50)
+    floats = ['lt']
+    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
+    check_default(self, params, defaults, soft.name, (ints + floats))
+    return defaults
+
+
+def check_argsoap(self, params, soft):
+    defaults = {
+        'f': ['fq'],
+        'q': [False, True],
+        'z': [False, True],
+        'x': 1e-10,
+        'y': 3,
+        'v': 0.45,
+        'l': 25,
+        'e': 1e-7,
+        'd': 80,
+        'p': 'stage2output',
+        'r': [False, True]
+    }
+    ints = ['y', 'l']
+    check_nums(self, params, defaults, ints, int, soft.name)
+    ints2 = ['d']
+    check_nums(self, params, defaults, ints2, int, soft.name, 0, 100)
+    floats = ['x', 'v', 'e']
+    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
+    check_default(self, params, defaults, soft.name, (ints + floats))
+    return defaults
+
+
+def check_deeptmhmm(self, params, soft):
+    defaults = {}
+    return defaults
+
+
+def check_gtdbtk(self, params, soft):
+    defaults = {
+        'min_perc_aa': 10,
+        'min_af': 0.65,
+        'batchfile': [None],
+        'bacteria': [False, True],
+        'archaea': [False, True],
+        'skip_gtdb_refs': [False, True],
+        'taxa_filter': [None],
+        'custom_msa_filters': [False, True],
+        'cols_per_gene': 42,
+        'min_consensus': 25,
+        'max_consensus': 95,
+        'min_perc_taxa': 50,
+        'rnd_seed': 42,
+        'prot_model': ['WAG', 'JTT', 'LG'],
+        'no_support': [False, True],
+        'gamma': [False, True],
+        'gtdbtk_classification_file': [None],
+        'custom_taxonomy_file': [None],
+    }
+    ints = ['rnd_seed']
+    check_nums(self, params, defaults, ints, int, soft.name)
+    ints2 = ['min_perc_aa', 'min_consensus', 'max_consensus', 'min_perc_taxa']
+    check_nums(self, params, defaults, ints2, int, soft.name, 0, 100)
+    floats = ['min_af']
+    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
+    check_default(self, params, defaults, soft.name)
+    return defaults
+
+
+# def check_itassermtd(self, params, soft):
 #     defaults = {
 #     }
 #     ints = []
@@ -2902,6 +3311,424 @@ def check_woltka(self, params, soft):
 #     check_default(self, params, defaults, soft.name, (ints + floats))
 #     defaults[''] = '<>'
 #     return defaults
+#
+#
+# def check_itasser(self, params, soft):
+#     defaults = {
+#     }
+#     ints = []
+#     check_nums(self, params, defaults, ints, int, soft.name)
+#     floats = []
+#     check_nums(self, params, defaults, floats, float, soft.name)
+#     check_default(self, params, defaults, soft.name, (ints + floats))
+#     defaults[''] = '<>'
+#     return defaults
+#
+#
+# def check_graspx(self, params, soft):
+#     defaults = {
+#     }
+#     ints = []
+#     check_nums(self, params, defaults, ints, int, soft.name)
+#     floats = []
+#     check_nums(self, params, defaults, floats, float, soft.name)
+#     check_default(self, params, defaults, soft.name, (ints + floats))
+#     defaults[''] = '<>'
+#     return defaults
+#
+#
+# def check_hmmgraspx(self, params, soft):
+#     defaults = {
+#     }
+#     ints = []
+#     check_nums(self, params, defaults, ints, int, soft.name)
+#     floats = []
+#     check_nums(self, params, defaults, floats, float, soft.name)
+#     check_default(self, params, defaults, soft.name, (ints + floats))
+#     defaults[''] = '<>'
+#     return defaults
+#
+#
+def check_rundbcan(self, params, soft):
+    defaults = {
+        'inputType': ['protein', 'prok', 'meta'],
+        'AuxillaryFile': [None],
+        'Tools': ['all', 'diamond', 'hmmer', 'eCAMI'],
+        'dbCANFile': [None],
+        'dia_eval': 1e-102,
+        'hmm_eval': 1e-15,
+        'stp_eval': 1e-4,
+        'tf_eval': 1e-4,
+        'eCAMI_kmer_db': [None],
+        'eCAMI_k_mer': 8,
+        'eCAMI_jobs': 8,
+        'eCAMI_important_k_mer_number': 5,
+        'eCAMI_beta': 2,
+        'hmm_cov': 0.35,
+        'tf_cov': 0.35,
+        'stp_cov': 0.3,
+        'out_pre': [None],
+        'db_dir': [None],
+        'cgc_dis': 2,
+        'use_signalP': [False, True],
+        'signalP_path': [None],
+        'gram': ['all', 'n', 'p']
+    }
+    ints = ['eCAMI_k_mer', 'eCAMI_jobs', 'eCAMI_important_k_mer_number',
+            'eCAMI_beta']
+    check_nums(self, params, defaults, ints, int, soft.name)
+    ints2 = ['cgc_dis']
+    check_nums(self, params, defaults, ints2, int, soft.name, 2, 10)
+    floats = ['hmm_cov', 'tf_cov', 'stp_cov', 'dia_eval',
+              'hmm_eval', 'stp_eval', 'tf_eval']
+    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
+    check_default(self, params, defaults, soft.name, (ints + ints2 + floats))
+    return defaults
+
+
+def check_ioncom(self, params, soft):
+    defaults = {}
+    return defaults
+
+
+# def check_anvio(self, params, soft):
+#     defaults = {
+#     }
+#     ints = []
+#     check_nums(self, params, defaults, ints, int, soft.name)
+#     floats = []
+#     check_nums(self, params, defaults, floats, float, soft.name)
+#     check_default(self, params, defaults, soft.name, (ints + floats))
+#     defaults[''] = '<>'
+#     return defaults
+#
+#
+# def check_mocat2(self, params, soft):
+#     defaults = {
+#     }
+#     ints = []
+#     check_nums(self, params, defaults, ints, int, soft.name)
+#     floats = []
+#     check_nums(self, params, defaults, floats, float, soft.name)
+#     check_default(self, params, defaults, soft.name, (ints + floats))
+#     defaults[''] = '<>'
+#     return defaults
+#
+#
+def check_phyloflash(self, params, soft):
+    defaults = {
+        'id': 70,
+        'taxlevel': 4,
+        'clusterid': 97,
+        'maxinsert': 1200,
+        'readlength': 100,
+        'amplimit': 500000,
+        'ref_minlength': 800,
+        'emirge': [None],
+        'trusted': [None],
+        'sortmerna': [None],
+        'readlimit': [None],
+        'sc': [False, True],
+        'log': [False, True],
+        'zip': [False, True],
+        'html': [True, False],
+        'crlf': [False, True],
+        'poscov': [False, True],
+        'treemap': [False, True],
+        'keeptmp': [False, True],
+        'everything': [False, True],
+        'skip_spades': [False, True],
+        'decimalcomma': [False, True],
+        'almosteverything': [False, True]
+    }
+    ints = ['readlength', 'amplimit', 'taxlevel', 'ref_minlength']
+    check_nums(self, params, defaults, ints, int, soft.name)
+    ints2 = ['id']
+    check_nums(self, params, defaults, ints2, int, soft.name, 50, 98)
+    ints3 = ['clusterid']
+    check_nums(self, params, defaults, ints3, int, soft.name, 50, 100)
+    ints4 = ['maxinsert']
+    check_nums(self, params, defaults, ints4, int, soft.name, 0, 1200)
+    check_default(self, params, defaults, soft.name,
+                  (ints + ints2 + ints3 + ints4))
+    return defaults
+
+
+def check_instrain(self, params, soft):
+    defaults = {
+        'max_insert_relative': 3,
+        'min_scaffold_reads': 1,
+        'min_genome_coverag': 0,
+        'rarefied_coverage': 50,
+        'window_length': 10000,
+        'min_read_ani': 0.95,
+        'min_insert': 50,
+        'min_freq': 0.05,
+        'min_mapq': -1,
+        'min_cov': 5,
+        'fdr': 1e-06,
+        'min_snp': 20,
+        'use_full_fasta_header': [False, True],
+        'force_compress': [False, True],
+        'pairing_filter': ['paired_only', 'non_discordant', 'all_reads'],
+        'priority_reads': [None],
+        'detailed_mapping_info': [False, True],
+        'gene_file': [None],
+        'stb': [None],
+        'mm_level': [False, True],
+        'skip_mm_profiling': [False, True],
+        'database_mode': [False, True],
+        'store_everything': [False, True],
+        'scaffolds_to_profile': [None],
+        'skip_genome_wide': [False, True],
+        'skip_plot_generation': [False, True],
+        'breadth': 0.5,
+        'scaffolds': [None],
+        'genome': [None],
+        'store_coverage_overlap': [False, True],
+        'store_mismatch_locations': [False, True],
+        'include_self_comparisons': [False, True],
+        'group_length': 10000000,
+        'ani_threshold': 0.99999,
+        'coverage_treshold': 0.1,
+        'clusterAlg': ['average', 'median', 'weighted', 'complete', 'ward',
+                       'centroid', 'single'],
+        'bams': [None],
+        'skip_popANI': [False, True],
+        'breadth_cutoff': 0.5,
+        'stringent_breadth_cutoff': 0.0
+    }
+    ints = ['max_insert_relative', 'min_scaffold_reads', 'group_length',
+            'min_genome_coverag', 'rarefied_coverage', 'window_length',
+            'min_insert', 'min_mapq', 'min_cov', 'min_snp', 'ani_threshold']
+    check_nums(self, params, defaults, ints, int, soft.name)
+    floats = ['min_read_ani', 'min_freq', 'fdr', 'breadth', 'ani_threshold',
+              'coverage_treshold', 'breadth_cutoff', 'stringent_breadth_cutoff']
+    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
+    check_default(self, params, defaults, soft.name, (ints + floats))
+    return defaults
+
+
+def check_closedref(self, params, soft):
+    defaults = {}
+    return defaults
+
+
+def check_threecac(self, params, soft):
+    defaults = {}
+    return defaults
+
+
+def check_plasclass(self, params, soft):
+    defaults = {
+        'kmers': ['3', '4', '5', '6', '7'],
+        'lengths': ['1000', '10000', '100000', '500000']
+    }
+    if 'kmers' not in params:
+        params['kmers'] = defaults['kmers']
+    else:
+        k = [x for x in params['kmers'] if not str(x).isdigit()]
+        if len(k):
+            sys.exit('[threecac] "kmers" must be integers (%s)' % ','.join(k))
+
+    if 'lengths' not in params:
+        params['lengths'] = defaults['lengths']
+    else:
+        k = [x for x in params['lengths'] if not str(x).isdigit()]
+        if len(k):
+            sys.exit('[threecac] "lengths" must be integers (%s)' % ','.join(k))
+    return defaults
+
+
+def check_deepvirfinder(self, params, soft):
+    defaults = {'len': 1}
+    if 'model_dir' not in params:
+        sys.exit('[deepvirfinder] Params "model_dir" must exist')
+    ints = ['len']
+    check_nums(self, params, defaults, ints, int, soft.name)
+    check_default(self, params, defaults, soft.name, ints)
+    defaults['model_dir'] = '<Path to the DeepVirFinder model directory>'
+    return defaults
+
+
+def check_wish(self, params, soft):
+    defaults = {
+        'k': 8,
+        'a': 16,
+        'b': 1,
+        'c': ['build', 'predict'],
+        'p': [False, True],
+        'z': [False, True],
+        'n': [None]
+    }
+    ints = ['k', 'a', 'b']
+    check_nums(self, params, defaults, ints, int, soft.name)
+    check_default(self, params, defaults, soft.name, ints)
+    return defaults
+
+
+def check_eggnogmapper(self, params, soft):
+    defaults = {
+        'x': [False, True],
+        'D': [False, True],
+        'F': [False, True],
+        'P': [False, True],
+        'M': [False, True],
+        'H': [False, True],
+        'y': [False, True],
+        'f': [False, True],
+        's': [False, True],
+        'q': [False, True],
+        'd': [None],
+        'taxa': [None],
+        'dbname': [None],
+        'taxids': [None],
+        'data_dir': [None],
+        'overlap_tol': 0.0,
+        'evalue': 0.001,
+        'start_sens': 3,
+        'sens_steps': 3,
+        'final_sens': 7,
+        'port': 51700,
+        'end_port': 53200,
+        'num_servers': 1,
+        'num_workers': 1,
+        'hmm_maxhits': 1,
+        'hmm_maxseqlen': 5000,
+        'Z': 40000000,
+        'seed_ortholog_evalue': 0.001,
+        'mp_start_method': ['spawn', 'spawn', 'forkserver'],
+        'resume': [False, True],
+        'override': [False, True],
+        'itype': ['proteins', 'CDS', 'genome', 'metagenome'],
+        'translate': [False, True],
+        'annotate_hits_table': [None],
+        'cache': [None],
+        'genepred': ['search', 'prodigal'],
+        'trans_table': [None],
+        'training_genome': [None],
+        'training_file': [None],
+        'allow_overlaps': ['none', 'strand', 'diff_frame', 'all'],
+        'm': ['diamond', 'mmseqs', 'hmmer', 'no_search', 'cache', 'novel_fams'],
+        'pident': [None],
+        'query_cover': [None],
+        'subject_cover': [None],
+        'score': [None],
+        'dmnd_algo': ['auto', '0', '1', 'ctg'],
+        'dmnd_db': [None],
+        'sensmode': [
+            'sensitive', 'default', 'fast', 'mid-sensitive', 'more-sensitive'],
+        'dmnd_iterate': ['yes', 'no'],
+        'matrix': [None],
+        'dmnd_frameshift': [None],
+        'gapopen': [None],
+        'gapextend': [None],
+        'block_size': [None],
+        'index_chunks': [None],
+        'outfmt_short': [False, True],
+        'dmnd_ignore_warnings': [False, True],
+        'mmseqs_db': [None],
+        'mmseqs_sub_mat': [None],
+        'database': [None],
+        'servers_list': [None],
+        'qtype': ['seq', 'hmm'],
+        'dbtype': ['hmmdb', 'seqdb'],
+        'usemem': [False, True],
+        'report_no_hits': [False, True],
+        'cut_ga': [False, True],
+        'clean_overlaps': [
+            'none', 'all', 'clans', 'hmmsearch_all', 'hmmsearch_clans'],
+        'no_annot': [False, True],
+        'dbmem': [False, True],
+        'seed_ortholog_score': [None],
+        'tax_scope': [
+            'auto', 'auto_broad', 'all_narrow', 'archaea', 'bacteria',
+            'bacteria_broad', 'eukaryota', 'eukaryota_broad',
+            'prokaryota_broad', 'none'],
+        'tax_scope_mode': [
+            'inner_narrowest', 'broadest', 'inner_broadest', 'narrowest'],
+        'target_orthologs': [
+            'all', 'one2one', 'many2one', 'one2many', 'many2many'],
+        'target_taxa': [None],
+        'excluded_taxa': [None],
+        'report_orthologs': [False, True],
+        'go_evidence': ['non-electronic', 'experimental', 'all'],
+        'pfam_realign': ['none', 'realign', 'denovo'],
+        'md5': [False, True],
+        'no_file_comments': [False, True],
+        'decorate_gff': ['no', 'yes'],
+        'decorate_gff_ID_field': ['ID'],
+        'excel': [False, True]
+    }
+    ints = ['start_sens', 'sens_steps', 'final_sens', 'port', 'end_port',
+            'num_servers', 'num_workers', 'hmm_maxhits', 'hmm_maxseqlen', 'Z']
+    check_nums(self, params, defaults, ints, int, soft.name)
+    floats = ['overlap_tol', 'evalue', 'seed_ortholog_evalue']
+    check_nums(self, params, defaults, floats, float, soft.name)
+    check_default(self, params, defaults, soft.name, (ints + floats))
+    return defaults
+
+
+def check_ngless(self, params, soft):
+    defaults = {
+        'script': [None],
+        'validate_only': [False, True],
+        'print_last': [False, True],
+        'strict_threads': [False, True],
+        'create_report': [False, True],
+        'keep_temporary_files': [False, True],
+        'no_header': [False, True],
+        'subsample': [False, True],
+        'experimental_features': [False, True],
+        'export_json': [None],
+        'export_cwl': [None],
+        'check_deprecation': [False, True],
+        'search_dir': [None],
+        'search_path': [None],
+        'index_path': [None],
+        'color': ['auto', 'force', 'no'],
+        'trace': [False, True],
+    }
+    check_default(self, params, defaults, soft.name)
+    return defaults
+
+
+def check_motus(self, params, soft):
+    defaults = {
+        'B': [False, True],
+        'v': ['3', '1', '2', '4'],
+        'I': [None],
+        'M': [None],
+        'e': [False, True],
+        'c': [False, True],
+        'p': [False, True],
+        'u': [False, True],
+        'q': [False, True],
+        'C': [None, 'precision', 'recall', 'parenthesis'],
+        'A': [False, True],
+        'k': ['mOTU', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus'],
+        'g': 3,
+        'l': 75,
+        'y': ['insert.scaled_counts', 'base.coverage', 'insert.raw_counts'],
+        'b': [False, True],
+        'fb': 80.0,
+        'fd': 5.0,
+        'fm': 2,
+        'fp': 0.50,
+        'fc': 5.0,
+        'K': [False, True]
+    }
+    ints = ['g']
+    check_nums(self, params, defaults, ints, int, soft.name, 1, 10)
+    floats = ['fb', 'fd', 'fm']
+    check_nums(self, params, defaults, ints, int, soft.name, 1, 10)
+    floats2 = ['fp']
+    check_nums(self, params, defaults, floats2, float, soft.name, 0, 1)
+    floats3 = ['fc']
+    check_nums(self, params, defaults, floats3, float, soft.name)
+    check_default(self, params, defaults, soft.name,
+                  (ints + floats + floats2 + floats3))
+    return defaults
 
 
 # def check_ToolName(self, params, soft):
