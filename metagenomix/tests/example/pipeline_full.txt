@@ -20,7 +20,6 @@ fastp bowtie2
 fastp minimap2
 fastp salmon
 
-fastp metamarker
 fastp midas
 fastp midas2
 fastp midas2_species
@@ -31,10 +30,14 @@ fastp humann
 fastp shogun
 fastp kraken2
 kraken2 bracken
-fastp metaxa2
-fastp mocat2
+fastp motus
+fastp ngless
+fastp eggnogmapper
 fastp phyloflash
-fastp closed_ref_qiime1
+fastp metaxa2
+# fastp metamarker
+# fastp closed_ref_qiime1
+
 minimap2 woltka
 
 fastp squeezemeta
@@ -56,7 +59,6 @@ pooling necat
 
 spades quast
 
-spades metawrap
 spades metawrap_binning
 metawrap_binning metawrap_refine
 metawrap_refine metawrap_quantify
@@ -65,6 +67,8 @@ metawrap_refine metawrap_annotate
 metawrap_refine metawrap_blobology
 metawrap_refine metawrap_reassemble
 spades yamb
+spades yamb_fastp
+spades yamb_flash
 spades mycc
 spades binspreader
 
