@@ -93,11 +93,13 @@ woltka	profiling
 kraken2	profiling
 bracken	profiling
 metaxa2	profiling
-mocat2	profiling
+motus	profiling
+ngless	profiling
 phyloflash	profiling
 closedref	profiling
 squeezemeta	pipeline
 anvio	pipeline
+eggnogmapper	annotation
 plasmidfinder	annotation (plasmid)
 plasforest	annotation (plasmid)
 mobsuite	annotation (mobilome)
