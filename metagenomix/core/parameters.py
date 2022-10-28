@@ -2731,7 +2731,7 @@ def check_amrfinderplus(self, params, soft):
     floats = ['ident_min', 'coverage_min']
     check_nums(self, params, defaults, floats, float, soft.name, -1, 1)
     check_default(self, params, defaults, soft.name,
-                  (ints1 + ints2 + floats), ['parm'])
+                  (ints1 + ints2 + floats), ['database', 'parm'])
     return defaults
 
 

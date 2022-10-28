@@ -305,7 +305,7 @@ class Workflow(object):
         for _, soft in self.softs.items():
             self.set_scratch(soft)
             self.set_user_params(soft)
-            self.write_params(soft)
+            # self.write_params(soft)
         if self.config.show_params:
             print('  User parameters and defaults:')
             for _, soft in self.softs.items():
