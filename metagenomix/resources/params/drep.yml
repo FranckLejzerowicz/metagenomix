@@ -1,0 +1,31 @@
+drep:
+  MASH_sketch: 1000
+  P_ani: 0.9
+  S_algorithm:
+  - ANIn
+  - fastANI
+  S_ani: 0.95
+  SkipMash: false
+  SkipSecondary: false
+  anicalculator: /path/to/my/dbcan/taxa/groups/a.txt
+  chunks: 4
+  clusterAlg: average
+  cov_thresh: 0.1
+  coverage_method: larger
+  cpus: 1
+  env: null
+  greedy_secondary_clustering: true
+  machine: null
+  mem: 10
+  mem_dim: gb
+  multiround_primary_clustering: false
+  n_PRESET: normal
+  nodes: 1
+  partition: null
+  primary_chunksize: 1000
+  run_tertiary_clustering: true
+  scratch: scratch
+  time: 24
+  warn_aln: 0.25
+  warn_dist: 0.25
+  warn_sim: 0.98

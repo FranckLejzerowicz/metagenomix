@@ -1,0 +1,17 @@
+kargva:
+  chunks: 4
+  cpus: 1
+  databases:
+    default: /some/path/to/folder/kargva_db_v5.fasta
+  env: null
+  i: 125000
+  k: 9
+  m: y
+  machine: null
+  mem: 10
+  mem_dim: gb
+  nodes: 1
+  partition: null
+  path: /some/path/to/folder
+  scratch: scratch
+  time: 24

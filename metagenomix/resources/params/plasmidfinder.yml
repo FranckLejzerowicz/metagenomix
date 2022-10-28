@@ -1,0 +1,17 @@
+plasmidfinder:
+  binary: /a/path
+  chunks: 4
+  cpus: 1
+  databasePath: /a/path
+  env: null
+  extented_output: true
+  machine: null
+  mem: 10
+  mem_dim: gb
+  methodPath: /a/path
+  mincov: 75
+  nodes: 1
+  partition: null
+  scratch: scratch
+  threshold: 70
+  time: 24

@@ -1,0 +1,27 @@
+abricate:
+  chunks: 4
+  cpus: 1
+  csv: false
+  databases:
+  - vfdb
+  - card
+  - ecoh
+  - resfinder
+  - ncbi
+  - megares
+  - argannot
+  - plasmidfinder
+  - ecoli_vf
+  env: null
+  machine: null
+  mem: 10
+  mem_dim: gb
+  mincov: 80
+  minid: 80
+  nodes: 1
+  noheader: false
+  nopath: false
+  partition: null
+  scratch: scratch
+  setupdb: false
+  time: 24

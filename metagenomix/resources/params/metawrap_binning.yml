@@ -1,0 +1,27 @@
+metawrap_binning:
+  binners:
+  - maxbin2
+  - metabat2
+  - concoct
+  blobology:
+  - coassembly
+  - sample
+  chunks: 4
+  cpus: 1
+  env: metawrap-env
+  machine: null
+  max_contamination: 5
+  max_contamination_reassembly: 5
+  mem: 10
+  mem_dim: gb
+  min_completion: 25
+  min_completion_reassembly: 25
+  min_contig_length: 1000
+  nodes: 1
+  partition: null
+  path: /dummy
+  reassembly:
+  - strict
+  - permissive
+  scratch: scratch
+  time: 24

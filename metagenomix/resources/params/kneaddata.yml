@@ -1,0 +1,18 @@
+kneaddata:
+  bowtie2: null
+  chunks: 4
+  cpus: 1
+  databases:
+  - <absolute path to folder containing bowtie2 index for db_name_1>
+  - <absolute path to folder containing bowtie2 index for db_name_2>
+  - <absolute path to folder containing bowtie2 index for db_name_n>
+  env: null
+  machine: null
+  mem: 10
+  mem_dim: gb
+  nodes: 1
+  partition: null
+  purge: true
+  scratch: scratch
+  time: 24
+  trimmomatic: <absolute path to trimmomatic executable>

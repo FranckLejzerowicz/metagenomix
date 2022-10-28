@@ -1,0 +1,20 @@
+karga:
+  chunks: 4
+  cpus: 1
+  databases:
+    ice: /path/to/ice.fasta
+    megares: /path/to/megares_db.fasta
+  env: null
+  i: 125000
+  k: 0
+  m: y
+  machine: null
+  mem: 10
+  mem_dim: gb
+  nodes: 1
+  partition: null
+  path: /some/path/to/folder
+  r: y
+  s: 12345
+  scratch: scratch
+  time: 24

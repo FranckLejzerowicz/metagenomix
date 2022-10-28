@@ -1,0 +1,21 @@
+shogun:
+  aligners:
+  - bowtie2
+  - burst
+  chunks: 6
+  cpus: 1
+  databases:
+    rep82:
+    - bowtie2
+    - burst
+    wol:
+    - bowtie2
+    - burst
+  env: shogun
+  machine: null
+  mem: 50
+  mem_dim: gb
+  nodes: 1
+  partition: null
+  scratch: scratch
+  time: 24

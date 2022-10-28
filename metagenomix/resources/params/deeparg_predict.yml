@@ -1,0 +1,23 @@
+deeparg_predict:
+  arg_alignment_evalue: 1.0e-10
+  arg_alignment_identity: 50
+  arg_alignment_overlap: 0.8
+  arg_num_alignments_per_entry: 1000
+  bowtie_16s_identity: 0.8
+  chunks: 4
+  cpus: 1
+  db_dir: /some/database/path
+  deeparg_evalue: 1.0e-10
+  deeparg_identity: 80
+  deeparg_probability: 0.8
+  env: null
+  gene_coverage: 1
+  machine: null
+  mem: 10
+  mem_dim: gb
+  min_prob: 0.8
+  model_version: v2
+  nodes: 1
+  partition: null
+  scratch: scratch
+  time: 24

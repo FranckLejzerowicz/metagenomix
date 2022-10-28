@@ -1,0 +1,11 @@
+ioncom:
+  chunks: 4
+  cpus: 1
+  env: null
+  machine: null
+  mem: 10
+  mem_dim: gb
+  nodes: 1
+  partition: null
+  scratch: scratch
+  time: 24

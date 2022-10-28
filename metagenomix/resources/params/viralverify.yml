@@ -1,0 +1,15 @@
+viralverify:
+  chunks: 4
+  cpus: 1
+  db: false
+  env: null
+  machine: null
+  mem: 10
+  mem_dim: gb
+  nodes: 1
+  p: false
+  partition: null
+  path: /path/to/
+  scratch: scratch
+  thr: 7
+  time: 24

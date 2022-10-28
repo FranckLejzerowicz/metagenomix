@@ -1,0 +1,13 @@
+deepvirfinder:
+  chunks: 4
+  cpus: 1
+  env: null
+  len: 1
+  machine: null
+  mem: 10
+  mem_dim: gb
+  model_dir: <absolute path to folder containing deepvirfinder models>
+  nodes: 1
+  partition: null
+  scratch: scratch
+  time: 24

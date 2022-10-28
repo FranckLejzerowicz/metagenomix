@@ -1,0 +1,35 @@
+metaphlan:
+  add_viruses: false
+  avoid_disqm: false
+  bt2_ps: very-sensitive
+  chunks: 4
+  cpus: 1
+  env: null
+  ignore_archaea: false
+  ignore_bacteria: false
+  ignore_eukaryotes: false
+  machine: null
+  mem: 10
+  mem_dim: gb
+  min_ab: 0.0
+  min_alignment_len: 0
+  min_cu_len: 2000
+  min_mapq_val: 5
+  nodes: 1
+  partition: null
+  perc_nonzero: 0.33
+  pres_th: 0.0
+  read_min_len: 70
+  scratch: scratch
+  stat: tavg_g
+  stat_q: 0.2
+  t:
+  - rel_ab
+  - rel_ab_w_read_stats
+  - clade_profiles
+  - marker_ab_table
+  - marker_pres_table
+  - clade_specific_strain_tracker
+  tax_lev:
+  - a
+  time: 24

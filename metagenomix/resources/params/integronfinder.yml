@@ -1,0 +1,24 @@
+integronfinder:
+  attc_model: null
+  chunks: 4
+  cpus: 1
+  env: null
+  evalue_attc: 1
+  gbk: true
+  local_max: true
+  machine: null
+  max_attc_size: 200
+  mem: 10
+  mem_dim: gb
+  min_attc_size: 40
+  min_length: 1500
+  mute: true
+  nodes: 1
+  partition: null
+  pdf: true
+  promoter_attI: true
+  prot_file: null
+  scratch: scratch
+  time: 24
+  topology_file: null
+  union_integrases: false

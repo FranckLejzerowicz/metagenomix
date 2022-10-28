@@ -1,0 +1,20 @@
+humann:
+  chunks: 4
+  cpus: 1
+  env: null
+  evalue: 0.1
+  identity: 90
+  machine: null
+  mem: 10
+  mem_dim: gb
+  nodes: 1
+  partition: null
+  prescreen_threshold: 0.01
+  profiles:
+    <name>: <absolute path to a profiles file>
+  query_cov: 80
+  scratch: scratch
+  skip_translated: false
+  subject_cov: 80
+  time: 24
+  uniref: uniref90

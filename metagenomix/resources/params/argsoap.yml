@@ -1,0 +1,22 @@
+argsoap:
+  chunks: 4
+  cpus: 1
+  d: 80
+  e: 1.0e-07
+  env: null
+  f: fq
+  l: 25
+  machine: null
+  mem: 10
+  mem_dim: gb
+  nodes: 1
+  p: s
+  partition: null
+  q: false
+  r: false
+  scratch: scratch
+  time: 24
+  v: 0.45
+  x: 1.0e-10
+  y: 3
+  z: false

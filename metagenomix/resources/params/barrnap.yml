@@ -1,0 +1,16 @@
+barrnap:
+  chunks: 4
+  cpus: 1
+  env: null
+  evalue: 1.0e-06
+  incseq: true
+  kingdom: bac
+  lencutoff: 0.8
+  machine: null
+  mem: 10
+  mem_dim: gb
+  nodes: 1
+  partition: null
+  reject: 0.25
+  scratch: scratch
+  time: 24

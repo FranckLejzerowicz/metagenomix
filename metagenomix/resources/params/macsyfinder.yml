@@ -1,0 +1,25 @@
+macsyfinder:
+  accessory_weight: 0.5
+  chunks: 4
+  coverage_profile: 0.5
+  cpus: 1
+  e_value_search: 0.1
+  env: null
+  exchangeable_weight: 0.8
+  i_evalue_sel: 0.001
+  machine: null
+  mandatory_weight: 1.0
+  mem: 10
+  mem_dim: gb
+  models:
+  - CasFinder
+  - CONJScan_plasmids
+  - TFFscan
+  - TFF-SF
+  - TXSScan
+  nodes: 1
+  out_of_cluster: 0.7
+  partition: null
+  redundancy_penalty: 1.5
+  scratch: scratch
+  time: 24

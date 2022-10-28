@@ -1,0 +1,23 @@
+flye:
+  asm_coverage: 0
+  chunks: 4
+  cpus: 1
+  env: null
+  iterations: 1
+  keep_haplotypes: false
+  long_reads: pacbio-raw
+  machine: null
+  mem: 10
+  mem_dim: gb
+  meta: true
+  min_overlap: 0
+  nodes: 1
+  partition: null
+  polish_target: false
+  read_error: 0.0
+  resume: false
+  resume_from: null
+  scaffold: true
+  scratch: scratch
+  stop_after: null
+  time: 24

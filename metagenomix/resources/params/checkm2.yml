@@ -1,0 +1,19 @@
+checkm2:
+  allmodels: true
+  chunks: 4
+  cpus: 1
+  dbg_cos: false
+  dbg_vectors: false
+  env: null
+  force: true
+  general: false
+  genes: false
+  lowmem: false
+  machine: null
+  mem: 10
+  mem_dim: gb
+  nodes: 1
+  partition: null
+  scratch: scratch
+  specific: false
+  time: 24

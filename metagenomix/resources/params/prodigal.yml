@@ -1,0 +1,17 @@
+prodigal:
+  c: false
+  chunks: 4
+  cpus: 1
+  env: null
+  f: gbk
+  m: false
+  machine: null
+  mem: 10
+  mem_dim: gb
+  n: false
+  nodes: 1
+  p: meta
+  partition: null
+  q: false
+  scratch: scratch
+  time: 24

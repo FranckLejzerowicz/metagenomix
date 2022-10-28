@@ -1,0 +1,20 @@
+prokka:
+  chunks: 4
+  config: /Users/franck/programs/metagenomix/metagenomix/tests/example/prokka.tsv
+  coverage: 80
+  cpus: 1
+  env: null
+  evalue: 1.0e-09
+  gcode: 11
+  kingdom: Archaea
+  machine: null
+  mem: 10
+  mem_dim: gb
+  metagenome: true
+  mincontiglen: 100
+  nodes: 1
+  norrna: true
+  notrna: true
+  partition: null
+  scratch: scratch
+  time: 24

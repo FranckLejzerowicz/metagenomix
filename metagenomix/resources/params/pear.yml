@@ -1,0 +1,26 @@
+pear:
+  cap: 40
+  chunks: 4
+  cpus: 1
+  empirical_freqs: true
+  env: null
+  keep_original: false
+  machine: null
+  max_assembly_length: 0
+  max_uncalled_base: 1.0
+  mem: 10
+  mem_dim: gb
+  min_assembly_length: 50
+  min_overlap: 10
+  min_trim_length: 1
+  nbase: false
+  nodes: 1
+  p_value: 0.01
+  partition: null
+  phred_base: 33
+  quality_threshold: 0
+  score_method: 2
+  scratch: scratch
+  stitch: false
+  test_method: 1
+  time: 24

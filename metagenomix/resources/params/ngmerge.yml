@@ -1,0 +1,22 @@
+ngmerge:
+  a: false
+  chunks: 4
+  cpus: 1
+  d: false
+  e: 50
+  env: null
+  g: false
+  i: false
+  m: 20
+  machine: null
+  mem: 10
+  mem_dim: gb
+  nodes: 1
+  p: 0.1
+  partition: null
+  path: <absolute path to the folder containing "NGmerge">
+  q: 33
+  s: false
+  scratch: scratch
+  time: 24
+  u: 40

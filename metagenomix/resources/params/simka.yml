@@ -1,0 +1,23 @@
+simka:
+  chunks: 4
+  cpus: 1
+  env: null
+  kmer:
+  - 10
+  - 55
+  - 100
+  log_reads:
+  - 10000
+  - 316227
+  - 10000000
+  machine: null
+  mem: 10
+  mem_dim: gb
+  min_read_size: 100
+  nb_kmers: 50000
+  nodes: 1
+  partition: null
+  path: <absolute path to the simka installation folder>
+  scratch: 9
+  simkaMin: true
+  time: 24

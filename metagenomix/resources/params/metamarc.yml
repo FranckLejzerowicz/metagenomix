@@ -1,0 +1,21 @@
+metamarc:
+  chunks: 4
+  coverage: 80
+  cpus: 1
+  dedup: false
+  env: null
+  evalue: 10
+  kmer: 0
+  level:
+  - '1'
+  - '2'
+  - '3'
+  machine: null
+  mem: 10
+  mem_dim: gb
+  multicorrect: false
+  nodes: 1
+  partition: null
+  path: /some/path/to/bin
+  scratch: scratch
+  time: 24

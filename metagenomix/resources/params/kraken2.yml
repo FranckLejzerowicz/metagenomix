@@ -1,0 +1,15 @@
+kraken2:
+  chunks: 4
+  confidence: 0.8
+  cpus: 1
+  databases:
+  - default
+  - wol
+  env: null
+  machine: null
+  mem: 10
+  mem_dim: gb
+  nodes: 1
+  partition: null
+  scratch: scratch
+  time: 24

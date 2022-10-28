@@ -1,0 +1,27 @@
+cutadapt:
+  action: trim
+  chunks: 4
+  cpus: 1
+  discard_trimmed: false
+  discard_untrimmed: false
+  env: null
+  error_rate: 0.1
+  machine: null
+  match_read_wildcards: false
+  mem: 10
+  mem_dim: gb
+  no_indels: false
+  no_match_adapter_wildcards: false
+  nodes: 1
+  overlap: 3
+  pair-filter: any
+  pair_adapters: false
+  partition: null
+  quality_base: 33
+  report: full
+  revcomp: false
+  scratch: scratch
+  time: 24
+  times: 1
+  trim_n: false
+  zero_cap: false

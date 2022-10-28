@@ -1,0 +1,27 @@
+midas:
+  aln_cov: 0.75
+  chunks: 4
+  cpus: 1
+  env: null
+  focus:
+    chemosynths: /path/to/chemosynths_species_list.txt
+    prokaryotes: /path/to/prokaryotes_species_list.txt
+  m: local
+  machine: null
+  mapid: 94.0
+  mem: 10
+  mem_dim: gb
+  n: 0
+  nodes: 1
+  partition: null
+  path: /dummy
+  readq: 20
+  s: very-sensitive
+  scratch: scratch
+  species_cov: 3.0
+  species_topn: 10
+  time: 24
+  tracking:
+  - light
+  trim: 0
+  word_size: 28

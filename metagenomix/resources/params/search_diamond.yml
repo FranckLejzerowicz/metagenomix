@@ -1,0 +1,26 @@
+search_diamond:
+  search:
+    databases:
+      uniref:
+      - /Users/franck/databases/uniref90/diamond/*.dmnd
+    diamond:
+      chunks: 4
+      cpus: 4
+      env: null
+      evalue: 0.001
+      id: 90
+      machine: null
+      masking: tantan
+      max_hsps: 1
+      max_target_seqs: 10
+      mem: 10
+      mem_dim: gb
+      mode: false
+      nodes: 1
+      partition: null
+      query_cover: 80
+      scratch: scratch
+      strand: both
+      subject_cover: 0
+      time: 24
+      top: 0

@@ -1,0 +1,33 @@
+search_hmmer:
+  search:
+    databases:
+      uniref:
+      - /Users/franck/databases/uniref90/hmmer/*.hmm
+    hmmer:
+      E: 1
+      F1: 0.02
+      F2: 0.001
+      F3: 1.0e-05
+      Z: 10
+      chunks: 4
+      cpus: 4
+      cut_ga: false
+      cut_nc: false
+      cut_tc: false
+      domE: 1
+      domZ: 10
+      env: null
+      machine: null
+      max: true
+      mem: 10
+      mem_dim: gb
+      noali: true
+      nobias: true
+      nodes: 1
+      partition: null
+      scratch: scratch
+      terms:
+      - metal
+      - antibiotic
+      textw: 120
+      time: 24

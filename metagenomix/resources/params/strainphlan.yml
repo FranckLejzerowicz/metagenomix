@@ -1,0 +1,11 @@
+strainphlan:
+  chunks: 4
+  cpus: 1
+  env: phlans
+  machine: null
+  mem: 10
+  mem_dim: gb
+  nodes: 1
+  partition: null
+  scratch: scratch
+  time: 24

@@ -1,0 +1,14 @@
+flash:
+  chunks: 4
+  cpus: 1
+  env: null
+  machine: null
+  max_overlap: 90
+  mem: 10
+  mem_dim: gb
+  min_overlap: 50
+  mismatch: 0
+  nodes: 1
+  partition: null
+  scratch: scratch
+  time: 24

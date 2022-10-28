@@ -1,0 +1,27 @@
+amrfinderplus:
+  annotation_format: null
+  blast_bin: $
+  chunks: 4
+  coverage_min: 0.5
+  cpus: 1
+  database: $
+  env: null
+  gpipe_org: false
+  ident_min: -1
+  machine: null
+  mem: 10
+  mem_dim: gb
+  nodes: 1
+  nucleotide_flank5_size: 10
+  organism: null
+  parm:
+  - null
+  partition: null
+  pgap: false
+  plus: false
+  quiet: true
+  report_all_equal: false
+  report_common: false
+  scratch: scratch
+  time: 24
+  translation_table: 11

@@ -1,0 +1,19 @@
+mycc:
+  chunks: 4
+  cpus: 1
+  ct: 0
+  env: null
+  keep: false
+  lt: 0.7
+  machine: null
+  mask: false
+  mem: 10
+  mem_dim: gb
+  meta: single
+  nodes: 1
+  p: 20
+  partition: null
+  pm: 500
+  scratch: scratch
+  t: 1000
+  time: 24

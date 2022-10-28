@@ -1,0 +1,14 @@
+hifiadapterfilt:
+  chunks: 4
+  cpus: 1
+  env: null
+  l: 44
+  m: 97
+  machine: null
+  mem: 10
+  mem_dim: gb
+  nodes: 1
+  partition: null
+  path: <absolute path to the folder containing "pbadapterfilt.sh">
+  scratch: scratch
+  time: 24

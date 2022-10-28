@@ -1,0 +1,24 @@
+canu:
+  batMemory: 200
+  chunks: 4
+  corMhapSensitivity: high
+  corMinCoverage: 0
+  corOutCoverage: 10000
+  correctedErrorRate: 0.0
+  cpus: 1
+  env: null
+  machine: null
+  maxInputCoverage: 10000
+  mem: 10
+  mem_dim: gb
+  minOverlapLength: 500
+  minReadLength: 1000
+  nodes: 1
+  oeaMemory: 32
+  partition: null
+  processing: null
+  rawErrorRate: 0.0
+  redMemory: 32
+  scratch: scratch
+  stage: null
+  time: 24

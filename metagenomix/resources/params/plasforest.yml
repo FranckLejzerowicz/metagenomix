@@ -1,0 +1,16 @@
+plasforest:
+  b: true
+  binary: /path/to/the/plasforest/binary
+  chunks: 4
+  cpus: 1
+  env: null
+  f: true
+  machine: null
+  mem: 10
+  mem_dim: gb
+  nodes: 1
+  partition: null
+  r: false
+  scratch: scratch
+  size_of_batch: 0
+  time: 24

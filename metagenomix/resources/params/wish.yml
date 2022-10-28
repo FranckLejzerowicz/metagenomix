@@ -1,0 +1,18 @@
+wish:
+  a: 16
+  b: 1
+  c: build
+  chunks: 4
+  cpus: 1
+  env: null
+  k: 8
+  machine: null
+  mem: 10
+  mem_dim: gb
+  n: null
+  nodes: 1
+  p: false
+  partition: null
+  scratch: scratch
+  time: 24
+  z: false

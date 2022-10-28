@@ -1,0 +1,25 @@
+atropos:
+  A: []
+  a: []
+  aligner: adapter
+  chunks: 4
+  cpus: 1
+  env: null
+  error_rate: 0.1
+  indel_cost: 1
+  machine: null
+  max_reads: 0
+  mem: 10
+  mem_dim: gb
+  minimum_length: 50
+  nextseq_trim: 5
+  nodes: 1
+  overlap: 3
+  pair_filter: any
+  partition: null
+  q: 15
+  quality_cutoff: 15
+  report_formats: txt
+  scratch: scratch
+  stats: none
+  time: 24

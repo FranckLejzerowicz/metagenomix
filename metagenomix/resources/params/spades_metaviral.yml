@@ -1,0 +1,27 @@
+spades_metaviral:
+  careful: false
+  checkpoints: all
+  chunks: 4
+  continue: true
+  cov_cutoff: 'off'
+  cpus: 1
+  disable_gzip_output: false
+  disable_rr: false
+  env: null
+  hybrid:
+  - illumina
+  - pacbio
+  k:
+  - 2200
+  - 3300
+  - 4400
+  machine: null
+  mem: 55
+  mem_dim: gb
+  meta: true
+  nodes: 1
+  only_assembler: true
+  only_error_correction: false
+  partition: null
+  scratch: scratch
+  time: 24

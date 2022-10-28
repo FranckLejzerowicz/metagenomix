@@ -1,0 +1,15 @@
+bracken:
+  chunks: 4
+  cpus: 1
+  env: null
+  level: S
+  machine: null
+  mem: 10
+  mem_dim: gb
+  nodes: 1
+  partition: null
+  path: /dummy
+  read_len: 100
+  scratch: scratch
+  threshold: 0
+  time: 24

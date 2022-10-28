@@ -1,0 +1,22 @@
+tiara:
+  chunks: 4
+  cpus: 1
+  env: null
+  first_stage_kmer: 6
+  gzip: false
+  machine: null
+  mem: 10
+  mem_dim: gb
+  min_len: 3000
+  nodes: 1
+  partition: null
+  prob_cutoff:
+  - '0.65'
+  - '0.65'
+  probabilities: true
+  scratch: scratch
+  second_stage_kmer: 7
+  time: 24
+  to_fasta:
+  - all
+  verbose: true

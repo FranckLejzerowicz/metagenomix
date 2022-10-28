@@ -1,0 +1,15 @@
+ccfind:
+  chunks: 4
+  cpus: 1
+  env: null
+  machine: null
+  mem: 10
+  mem_dim: gb
+  min_aligned_length: 50
+  min_percent_identity: 94
+  nodes: 1
+  partition: null
+  preserve_tmpdir: false
+  scratch: scratch
+  terminal_fragment_size: 500
+  time: 24
