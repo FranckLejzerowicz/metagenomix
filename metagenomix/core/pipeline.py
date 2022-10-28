@@ -293,7 +293,9 @@ class Workflow(object):
         params_show = dict(x for x in soft.params.items())
         params_dict = self.get_params_dict(soft, params_show)
         params = {soft.name: params_dict}
-        print(yaml.dump(params))
+        p = '/Users/franck/programs/metagenomix/metagenomix/resources/params'
+        with open('%s/%s.yml' % (p, soft.name), 'w') as o:
+            yaml.dump(params, o)
 
     def parametrize(self) -> None:
         """
@@ -303,7 +305,7 @@ class Workflow(object):
         for _, soft in self.softs.items():
             self.set_scratch(soft)
             self.set_user_params(soft)
-            # self.write_params(soft)
+            self.write_params(soft)
         if self.config.show_params:
             print('  User parameters and defaults:')
             for _, soft in self.softs.items():
