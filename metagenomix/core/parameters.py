@@ -756,6 +756,7 @@ def check_metaxa2(self, params, soft) -> dict:
         'ace_rare': 10,
         'sampled': [False, True]
     }
+    print([x for x in str(params['T']).split(',') if x.isdigit()])
     if 'T' not in params:
         params['T'] = defaults['T']
     elif len([x for x in str(params['T']).split(',') if x.isdigit()]) != 7:
@@ -775,16 +776,17 @@ def check_metaxa2(self, params, soft) -> dict:
         if not str(s).isdigit():
             sys.exit('[metaxa2] Param "%s": second value not integer' % p)
 
-    check_databases('metaxa2', params, self.databases)
+    # check_databases('metaxa2', params, self.databases)
     floats = ['E', 'usearch', 'blast_eval']
     check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
     ints = ['S', 'N', 'M', 'q', 'distance', 'search_score', 'blast_wordsize',
-            'taxlevel', 'graph_scale', 'l', 'm', 'n', 'resamples']
+            'taxlevel', 'graph_scale', 'l', 'm', 'n', 'resamples', 'write',
+            'ace_rare']
     check_nums(self, params, defaults, ints, int, soft.name)
     ints2 = ['R', 'H', 'quality_percent', 'ref_identity', 'r', 'd']
     check_nums(self, params, defaults, ints2, int, soft.name, 0, 100)
-    check_default(self, params, defaults, soft.name,
-                  ['databases', 'r', 'd', 'E', 'R', 'S', 'N', 'M', 'l', 'T'])
+    check_default(self, params, defaults, soft.name, (
+        ['databases', 'T', 'allow_single_domain'] + floats + ints + ints2))
     defaults['databases'].append('<list of databases>')
     return defaults
 
@@ -3237,7 +3239,7 @@ def check_mycc(self, params, soft):
     check_nums(self, params, defaults, ints2, int, soft.name, 5, 50)
     floats = ['lt']
     check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
-    check_default(self, params, defaults, soft.name, (ints + floats))
+    check_default(self, params, defaults, soft.name, (ints + ints2 + floats))
     return defaults
 
 
@@ -3261,7 +3263,7 @@ def check_argsoap(self, params, soft):
     check_nums(self, params, defaults, ints2, int, soft.name, 0, 100)
     floats = ['x', 'v', 'e']
     check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
-    check_default(self, params, defaults, soft.name, (ints + floats))
+    check_default(self, params, defaults, soft.name, (ints + ints2 + floats))
     return defaults
 
 
@@ -3291,13 +3293,13 @@ def check_gtdbtk(self, params, soft):
         'gtdbtk_classification_file': [None],
         'custom_taxonomy_file': [None],
     }
-    ints = ['rnd_seed']
+    ints = ['rnd_seed', 'cols_per_gene']
     check_nums(self, params, defaults, ints, int, soft.name)
     ints2 = ['min_perc_aa', 'min_consensus', 'max_consensus', 'min_perc_taxa']
     check_nums(self, params, defaults, ints2, int, soft.name, 0, 100)
     floats = ['min_af']
     check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
-    check_default(self, params, defaults, soft.name)
+    check_default(self, params, defaults, soft.name, (ints + ints2 + floats))
     return defaults
 
 
@@ -3720,6 +3722,8 @@ def check_motus(self, params, soft):
     }
     ints = ['g']
     check_nums(self, params, defaults, ints, int, soft.name, 1, 10)
+    ints2 = ['l']
+    check_nums(self, params, defaults, ints, int, soft.name, 0, 100)
     floats = ['fb', 'fd', 'fm']
     check_nums(self, params, defaults, ints, int, soft.name, 1, 10)
     floats2 = ['fp']
@@ -3727,7 +3731,7 @@ def check_motus(self, params, soft):
     floats3 = ['fc']
     check_nums(self, params, defaults, floats3, float, soft.name)
     check_default(self, params, defaults, soft.name,
-                  (ints + floats + floats2 + floats3))
+                  (ints + ints2 + floats + floats2 + floats3))
     return defaults
 
 
