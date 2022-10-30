@@ -756,7 +756,6 @@ def check_metaxa2(self, params, soft) -> dict:
         'ace_rare': 10,
         'sampled': [False, True]
     }
-    print([x for x in str(params['T']).split(',') if x.isdigit()])
     if 'T' not in params:
         params['T'] = defaults['T']
     elif len([x for x in str(params['T']).split(',') if x.isdigit()]) != 7:
@@ -2104,11 +2103,7 @@ def check_necat(self, params, soft):
 
 
 def check_pooling(self, params, soft):
-    param = 'pool_single_and_merged'
-    defaults = {param: [True, False]}
-    if param in params:
-        if set(params[param]).issubset(self.config.techs):
-            sys.exit('[pooling] Param "%s" can not be set per tech' % param)
+    defaults = {'pool_single_and_merged': [True, False]}
     check_default(self, params, defaults, soft.name)
     return defaults
 
