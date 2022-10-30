@@ -2169,7 +2169,7 @@ def check_megahit(self, params, soft):
         if ',' not in params[p]:
             sys.exit('[megahit] Param "%s" must be ","-separated values' % p)
         vals = params[p].split(',')
-        if [v for v in vals if not v.isdigit() or 15 < int(v) or int(v) > 255]:
+        if [v for v in vals if not v.isdigit() or int(v) < 15 or int(v) > 255]:
             sys.exit('[megahit] Param "%s" invalid: %s' % (p, params[p]))
     p = 'merge_level'
     let_go.append(p)
