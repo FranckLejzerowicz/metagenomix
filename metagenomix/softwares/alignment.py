@@ -424,12 +424,15 @@ def bbmerge_cmd(
             'owq', 'usequality', 'iupacton', 'ratiomode', 'forcemerge',
             'flatmode', 'requireratiomatch', 'trimonfailure', 'rem', 'rsem',
             'ecctadpole', 'reassemble', 'removedeadends', 'removebubbles',
-            'ibb', 'eccbloom', 'testmerge', 'eoom', 'da',
+            'ibb', 'eccbloom', 'testmerge'
         ]:
             if params[boolean]:
                 cmd += ' %s=t' % boolean
             else:
                 cmd += ' %s=f' % boolean
+        for boolean in ['eoom', 'da']:
+            if params[boolean]:
+                cmd += ' -%s' % boolean
     return cmd
 
 
