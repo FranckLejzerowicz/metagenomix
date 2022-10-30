@@ -1160,3 +1160,130 @@ def argsoap(self) -> None:
             Configurations
     """
     pass
+
+
+def metacompare_cmd(
+        self,
+        contigs: str,
+        genes: str,
+        out: str
+) -> str:
+    """Collect the command line for MetaCompare.
+
+    Parameters
+    ----------
+    self
+    contigs : str
+    genes : str
+    out : str
+
+    Returns
+    -------
+    cmd : str
+        MetaCompare command line
+    """
+    cmd = 'metacmp.py'
+    cmd += ' -c %s' % contigs
+    cmd += ' -g %s' % genes
+    cmd += ' -t %s' % self.soft.params['cpus']
+    cmd += ' -t %s' % self.soft.params['cpus']
+    cmd += ' -v 1 > %s' % out
+    return cmd
+
+
+def get_metacompare(
+        self,
+        tech: str,
+        proteins: dict,
+        contigs: str,
+        group: str) -> None:
+    """
+
+    Parameters
+    ----------
+    self
+    tech : str
+    contigs : str
+    proteins : dict
+    group : str
+    """
+    for genome, prodigal_dir in proteins.items():
+        out_d = genome_out_dir(self, tech, self.sam_pool)
+        self.outputs['dirs'].append(out_d)
+        self.outputs['outs'].setdefault((tech, self.sam_pool), []).append(out_d)
+
+        genes = '%s/nucleotide.sequences.fasta' % prodigal_dir
+        to_dos = status_update(self, tech, [genes])
+        to_dos.extend(status_update(self, tech, [contigs]))
+
+        # check if tool already run (or if --force) to allow getting command
+        out = '%s/output.txt' % out_d
+        if self.config.force or to_do(out):
+            cmd = metacompare_cmd(self, contigs, genes, out)
+            key = genome_key(tech, self.sam_pool)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
+            io_update(self, i_f=[contigs, genes], o_d=out_d, key=key)
+            self.soft.add_status(tech, self.sam_pool, 1)
+        else:
+            self.soft.add_status(tech, self.sam_pool, 0)
+
+
+def metacompare(self) -> None:
+    """MetaCompare is a computational pipeline for prioritizing resistome
+    risk by estimating the potential for ARGs to be disseminated into human
+    pathogens from a given environmental sample based on metagenomic
+    sequencing data.
+
+    References
+    ----------
+    Oh, M., Pruden, A., Chen, C., Heath, L.S., Xia, K. and Zhang, L.,
+    2018. MetaCompare: a computational pipeline for prioritizing
+    environmental resistome risk. FEMS microbiology ecology, 94(7), p.fiy079.
+
+    Notes
+    -----
+    GitHub  : https://github.com/minoh0201/MetaCompare
+    Paper   : https://doi.org/10.1093/femsec/fiy079
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for MetaCompare
+        .sam_pool : str
+            Sample of co-assembly group name
+        .pools : dict
+            Co-assembly pools and sample per group
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.name : str
+            Name of the current software in the pipeline
+        .soft.prev : str
+            Name of the previous software in the pipeline
+        .soft.status
+            Current status of the pipeline in terms of available outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    """
+    if self.soft.prev not in ['prodigal']:
+        sys.exit('[metacompare] Only after protein predictions')
+
+    for s in self.soft.path[::-1]:
+        if s in self.config.tools['assembling']:
+            contigs_dict = self.softs[s].outputs
+            break
+    else:
+        sys.exit('[metacompare] No previous assembly output')
+
+    if self.sam_pool in self.pools and set(self.inputs) != {''}:
+        for (tech, group), inputs in self.inputs[self.sam_pool].items():
+            proteins = group_inputs(self, inputs)
+            contigs = contigs_dict[self.sam_pool][(tech, group)][0]
+            get_metacompare(self, tech, proteins, contigs, group)

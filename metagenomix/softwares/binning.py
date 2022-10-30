@@ -1064,8 +1064,6 @@ def get_yamb(self, tech, group, contigs, fastxs):
     self.outputs['outs'][key] = out_dir
 
     out = '%s/yamb-pp-*-hdbscan.csv' % out_dir
-    print("out")
-    print(out)
     if self.config.force or not glob.glob(out):
         if to_dos:
             self.outputs['cmds'].setdefault(key, []).append(False)
@@ -1101,20 +1099,22 @@ def yamb(self):
     self : Commands class instance
         Contains all the attributes needed for binning on the current sample
     """
-    reads = {}
+    reads = self.config.fastq_mv
     if '_' in self.soft.name:
         reads_tool = self.soft.name.split('_')[-1]
         reads = self.softs[reads_tool].outputs
 
-    print(reads)
-
     for (tech, group), inputs in self.inputs[self.sam_pool].items():
-        fastxs = [fastq for sam in self.pools[self.sam_pool][group] for fastq
-                  in [sam].get((tech, sam), [])]
-        print(fastxs)
+        fastxs = []
+        if tech in self.config.techs:
+            fastxs += [fastq for sam in self.pools[self.sam_pool][group]
+                       for fastq in reads[sam].get((tech, sam), [])]
+        else:
+            for t in self.config.techs:
+                if t in tech:
+                    fastxs += [fastq for sam in self.pools[self.sam_pool][group]
+                               for fastq in reads[sam].get((t, sam), [])]
         contigs = inputs[0]
-        print(contigs)
-        print(contigsd)
         get_yamb(self, tech, group, contigs, fastxs)
 
 

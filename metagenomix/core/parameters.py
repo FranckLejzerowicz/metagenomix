@@ -3731,6 +3731,35 @@ def check_motus(self, params, soft):
     return defaults
 
 
+def check_metacompare(self, params, soft):
+    defaults = {}
+    return defaults
+
+
+# def check_ToolName(self, params, soft):
+#     defaults = {
+#     }
+#     ints = []
+#     check_nums(self, params, defaults, ints, int, soft.name)
+#     floats = []
+#     check_nums(self, params, defaults, floats, float, soft.name)
+#     check_default(self, params, defaults, soft.name, (ints + floats))
+#     defaults[''] = '<>'
+#     return defaults
+
+
+# def check_ToolName(self, params, soft):
+#     defaults = {
+#     }
+#     ints = []
+#     check_nums(self, params, defaults, ints, int, soft.name)
+#     floats = []
+#     check_nums(self, params, defaults, floats, float, soft.name)
+#     check_default(self, params, defaults, soft.name, (ints + floats))
+#     defaults[''] = '<>'
+#     return defaults
+
+
 # def check_ToolName(self, params, soft):
 #     defaults = {
 #     }

@@ -732,11 +732,11 @@ def flye(self) -> None:
             self.outputs['outs'][(tech, group)] = [contigs, info, gfa, gv]
 
             if self.config.force or to_do(contigs):
-                cmd = flye_cmd(self, tech, inputs, out)
                 key = (tech, group)
                 if to_dos:
                     self.outputs['cmds'].setdefault(key, []).append(False)
                 else:
+                    cmd = flye_cmd(self, tech, inputs, out)
                     self.outputs['cmds'].setdefault(key, []).append(cmd)
                 io_update(self, i_f=inputs, i_d=out, o_d=out, key=key)
                 self.soft.add_status(tech, self.sam_pool, 1, group=group)
@@ -1004,10 +1004,10 @@ def unicycler(self) -> None:
             hybrid = 'hybrid__%s' % hybrid
 
         out = '/'.join([self.dir, hybrid, self.sam_pool, sam_group])
-
         gfa = '%s/assembly.gfa' % out
         fasta = '%s/assembly.fasta' % out
         log = '%s/unicycler.log' % out
+        self.outputs['dirs'].append(out)
         self.outputs['outs'][(hybrid, sam_group)] = [fasta, gfa, log]
 
         if self.config.force or to_do(fasta):

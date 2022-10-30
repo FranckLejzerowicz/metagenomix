@@ -2540,7 +2540,7 @@ def get_metaxa2_db(
                 nested = glob.glob('%s/*/hash.k2d' % db_path)
                 if nested:
                     return dirname(nested[0])
-    sys.exit('[kraken2] Database not found: %s' % db)
+    sys.exit('[metaxa2] Database not found: %s' % db)
 
 
 def metaxa2(self) -> None:
