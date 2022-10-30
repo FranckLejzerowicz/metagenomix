@@ -43,8 +43,9 @@ def check_mems(param, value, name):
 
 def check_env(config, value, name):
     """Verifies that the conda environment or module to load do exist."""
-    if name not in config.modules and value not in config.conda_envs:
-        sys.exit('"%s" not a module or conda env' % value)
+    if value is not None:
+        if name not in config.modules and value not in config.conda_envs:
+            sys.exit('"%s" not a module or conda env' % value)
 
 
 def check_path(config, value, name):
