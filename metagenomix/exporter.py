@@ -107,7 +107,10 @@ class Exported(object):
 
     def get_copy_commands(self):
         for to_export in self.to_exports:
+            print()
+            print(to_export)
             exp = to_export.replace(self.output.rstrip('/'), self.out)
+            print(exp)
             if not isfile(exp):
                 continue
             if not isdir(dirname(exp)):
@@ -140,6 +143,7 @@ class Exported(object):
         if self.account:
             cmd += ' -a %s' % self.account
         cmd += ' --quiet'
+        cmd += ' --no-abspath'
         subprocess.call(cmd.split())
         os.remove(sh)
         return hpc
