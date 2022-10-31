@@ -108,7 +108,7 @@ class Exported(object):
     def get_copy_commands(self):
         for to_export in self.to_exports:
             exp = to_export.replace(self.output.rstrip('/'), self.out)
-            if isfile(exp):
+            if not isfile(exp):
                 continue
             if not isdir(dirname(exp)):
                 self.commands.append('mkdir -p %s' % dirname(exp))
