@@ -109,9 +109,8 @@ class Exported(object):
         for to_export in self.to_exports:
             print()
             print(to_export)
-            print(self.output.rstrip('/'))
             print(self.out)
-            exp = to_export.replace(self.output.rstrip('/'), self.out)
+            exp = to_export.replace(self.dir, self.out)
             print(exp)
             if isfile(exp):
                 continue
