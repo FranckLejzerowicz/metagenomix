@@ -6,7 +6,7 @@ a pipeline with
 [configuration files](https://github.com/FranckLejzerowicz/metagenomix/wiki/Configuration),
 the user is provided with 
 [job scripts](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/creating.md#jobs)
-to run the scheduled analyses, which will write may result files and folders in 
+to run the scheduled analyses, which will write many result files and folders in 
 software outputs that are all organized according to a systematic 
 [folder structure](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/creating.md#general-structure).  
 
@@ -63,7 +63,7 @@ what the user may provide as input to:
     ```
     metagenomix manage \
       -i /path/on/cluster/for/some/output_folder \
-      -k /path/on/storage/for/the_same/output_folder \
+      -o /path/on/storage/for/the_same/output_folder \
       -s checkm*
     ```
     
