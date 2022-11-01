@@ -3023,7 +3023,7 @@ def check_mobsuite(self, params, soft):
     }
     if 'db_dir' not in params:
         params['db_dir'] = None
-    elif not isdir(params['db_dir']):
+    elif not self.config.dev and not isdir(params['db_dir']):
         sys.exit('[mobsuite] Params "db_dir": path do not exist')
     ints = ['min_length', 'max_contig_size', 'max_plasmid_size']
     check_nums(self, params, defaults, ints, int, soft.name)
