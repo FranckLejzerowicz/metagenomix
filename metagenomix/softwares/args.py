@@ -1210,7 +1210,7 @@ def get_metacompare(
     for genome, prodigal_dir in proteins.items():
         out_d = genome_out_dir(self, tech, self.sam_pool)
         self.outputs['dirs'].append(out_d)
-        self.outputs['outs'].setdefault((tech, self.sam_pool), []).append(out_d)
+        self.outputs['outs'].setdefault((tech, group), []).append(out_d)
 
         genes = '%s/nucleotide.sequences.fasta' % prodigal_dir
         to_dos = status_update(self, tech, [genes])
@@ -1220,7 +1220,7 @@ def get_metacompare(
         out = '%s/output.txt' % out_d
         if self.config.force or to_do(out):
             cmd = metacompare_cmd(self, contigs, genes, out)
-            key = genome_key(tech, self.sam_pool)
+            key = genome_key(tech, group)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
