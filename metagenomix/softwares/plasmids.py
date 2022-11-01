@@ -533,18 +533,18 @@ def get_mobsuite(
         out_dir = genome_out_dir(self, tech, group)
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
-        fas = contigs[0]
-        to_dos = status_update(self, tech, [fas], group=group)
+        fasta = contigs[0]
+        to_dos = status_update(self, tech, [fasta], group=group)
 
         typer_out = '%s/mobtyper_results.txt' % out_dir
         if self.config.force or to_do(typer_out):
             key = (tech, group)
-            cmds = mobsuite_cmds(self, tech, fas, out_dir, typer_out)
+            cmds = mobsuite_cmds(self, tech, fasta, out_dir, typer_out, key)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmds)
-            io_update(self, i_f=fas, i_d=out_dir, o_d=out_dir, key=key)
+            io_update(self, i_f=fasta, i_d=out_dir, o_d=out_dir, key=key)
             self.soft.add_status(tech, self.sam_pool, 1, group=group)
         else:
             self.soft.add_status(tech, self.sam_pool, 0, group=group)

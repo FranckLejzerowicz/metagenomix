@@ -3004,6 +3004,7 @@ def check_mobsuite(self, params, soft):
         'unicycler_contigs': [False, True],
         'run_overhang': [False, True],
         'keep_tmp': [False, True],
+        'plasmid_db': [None],
         'plasmid_mash_db': [None],
         'plasmid_meta': [None],
         'plasmid_db_type': ['blastn'],
