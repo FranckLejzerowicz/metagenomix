@@ -1607,7 +1607,7 @@ def woltka_kegg(
     out_dir = '/'.join([self.dir, tech, aligner, pairing])
     kegg_out = '%s/kegg' % out_dir
     kegg_maps = '%s/kegg_queried' % kegg_out
-    io_update(self, i_d=kegg_maps, key=key)
+    # io_update(self, i_d=kegg_maps, key=key)
     kegg_maps_local = kegg_maps.replace('${SCRATCH_FOLDER}', '')
     queried = len(glob.glob('%s/*' % kegg_maps_local))
     for (level, name, maps, prev) in ko_names_maps:
