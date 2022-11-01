@@ -6,11 +6,13 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
+import glob
 import sys
 from os.path import dirname
 from metagenomix._inputs import (sample_inputs, group_inputs,
                                  genome_key, genome_out_dir)
 from metagenomix._io_utils import io_update, to_do, status_update
+from metagenomix.core.parameters import tech_params
 
 
 def plasforest_cmd(
@@ -306,6 +308,248 @@ def plasforest(self) -> None:
     dispatch(self)
 
 
+def mob_typer_cmd(
+        self,
+        tech: str,
+        fasta: str,
+        typer_out: str,
+        mge_report: str,
+        key: tuple
+) -> str:
+    """Collect the mob_typer command line.
+
+    Parameters
+    ----------
+    self
+    tech : str
+    fasta : str
+    typer_out : str
+    mge_report : str
+    key : tuple
+
+    Returns
+    -------
+    cmd : str
+        mob_typer command line
+    """
+    params = tech_params(self, tech)
+    tmp_dir = '$TMPDIR/mob_typer_%s' % '_'.join(key)
+    cmd = 'mob_typer'
+    cmd += ' --infile %s' % fasta
+    cmd += ' --out_file %s' % typer_out
+    cmd += ' --mge_report_file %s' % mge_report
+    cmd += ' --analysis_dir %s' % tmp_dir
+    cmd += ' --num_threads %s' % params['cpus']
+    cmd += ' --sample_id %s_%s_%s' % (tech, self.sam_pool, key[-1])
+    cmd += ' --force'
+    for boolean in ['multi', 'keep_tmp']:
+        if params[boolean]:
+            cmd += ' --%s' % boolean
+
+    for param in [
+        'min_rep_evalue', 'min_mob_evalue', 'min_con_evalue', 'min_rpp_evalue',
+        'min_rep_ident', 'min_mob_ident', 'min_con_ident', 'min_rpp_ident',
+        'min_rep_cov', 'min_mob_cov', 'min_con_cov', 'min_rpp_cov',
+        'min_length', 'min_overlap', 'primary_cluster_dist'
+    ]:
+        if params[param]:
+            cmd += ' --%s %s' % (param, params[param])
+
+    for path in [
+        'plasmid_mash_db', 'plasmid_meta', 'plasmid_db_type',
+        'plasmid_replicons', 'repetitive_mask', 'plasmid_mob',
+        'plasmid_mpf', 'plasmid_orit', 'database_directory'
+    ]:
+        if params[path]:
+            cmd += ' --%s %s' % (path, params[path])
+    return cmd
+
+
+def mob_recon_cmd(
+        self,
+        tech: str,
+        fasta: str,
+        out_dir: str,
+        key: tuple
+) -> str:
+    """Collect the mob_recon command line.
+
+    Parameters
+    ----------
+    self
+    tech : str
+    fasta : str
+    out_dir : str
+    mge_report : str
+    key : tuple
+
+    Returns
+    -------
+    cmd : str
+        mob_recon command line
+    """
+    params = tech_params(self, tech)
+    cmd = 'mob_recon'
+    cmd += ' --infile %s' % fasta
+    cmd += ' --outdir %s' % out_dir
+    cmd += ' --num_threads %s' % params['cpus']
+
+    if params['prefix']:
+        cmd += ' --prefix %s' % params['prefix']
+    else:
+        cmd += ' --prefix %s_%s_%s' % (tech, self.sam_pool, key[-1])
+
+    cmd += ' --force'
+    for boolean in ['multi', 'keep_tmp', 'run_overhang']:
+        if params[boolean]:
+            cmd += ' --%s' % boolean
+
+    if self.soft.prev == 'unicycler':
+        cmd += ' --unicycler_contigs'
+
+    for param in [
+        'min_rep_evalue', 'min_mob_evalue', 'min_con_evalue', 'min_rpp_evalue',
+        'min_rep_ident', 'min_mob_ident', 'min_con_ident', 'min_rpp_ident',
+        'min_rep_cov', 'min_mob_cov', 'min_con_cov', 'min_rpp_cov',
+        'min_length', 'min_overlap', 'primary_cluster_dist',
+        'secondary_cluster_dist', 'mash_genome_neighbor_threshold',
+        'max_contig_size', 'max_plasmid_size',
+    ]:
+        if params[param]:
+            cmd += ' --%s %s' % (param, params[param])
+
+    for path in [
+        'plasmid_db', 'plasmid_mash_db', 'plasmid_meta', 'plasmid_db_type',
+        'plasmid_replicons', 'repetitive_mask', 'plasmid_mob', 'plasmid_mpf',
+        'plasmid_orit', 'database_directory',
+        # Mask frequent plasmid sequences that are not in the organism
+        'filter_db',
+        # Mash check of close genomes to only blast to these chromosomes.
+        # (nuanced/automatic to filter in specific genomic contexts)
+        'genome_filter_db_prefix'
+    ]:
+        if params[path]:
+            cmd += ' --%s %s' % (path, params[path])
+    return cmd
+
+
+def mob_cluster_cmd(
+        self,
+        tech: str,
+        typer_report: str,
+        out_dir: str
+) -> str:
+    """Collect the mob_cluster command line.
+
+    Parameters
+    ----------
+    self
+    tech : str
+    typer_report : str
+    out_dir : str
+
+    Returns
+    -------
+    cmd : str
+        mob_cluster command line
+    """
+    params = tech_params(self, tech)
+    cmd = 'mob_cluster'
+    if params['mode']:
+        cmd += ' --mode %s' % params['mode']
+    cmd += ' --infile %s' % params['new_plasmids']
+    if params['mob_typer_file']:
+        cmd += ' --mob_typer_file %s' % params['mob_typer_file']
+    else:
+        cmd += ' --mob_typer_file %s' % typer_report
+    if params['taxonomy']:
+        cmd += ' --taxonomy %s' % params['taxonomy']
+    cmd += ' --outdir %s' % out_dir
+    if params['ref_cluster_file']:
+        cmd += ' --ref_cluster_file %s' % params['ref_cluster_file']
+    if params['ref_fasta_file']:
+        cmd += ' --ref_fasta_file %s' % params['ref_fasta_file']
+    cmd += ' --num_threads %s' % params['cpus']
+    cmd += ' --primary_cluster_dist %s' % params['primary_cluster_dist']
+    cmd += ' --secondary_cluster_dist %s' % params['secondary_cluster_dist']
+    return cmd
+
+
+def mobsuite_cmds(
+        self,
+        tech: str,
+        fasta: str,
+        out_dir: str,
+        typer_out: str,
+        key: tuple
+) -> str:
+    """
+
+    Parameters
+    ----------
+    self
+    tech : str
+    fasta : str
+    out_dir : str
+    typer_out : str
+    key : tuple
+
+    Returns
+    -------
+    cmd : str
+    """
+    cmd = ''
+    typer_report = '%s/typer_mge_report.txt' % out_dir
+    if to_do(typer_report):
+        cmd += mob_typer_cmd(self, tech, fasta, typer_out, typer_report, key)
+
+    mge_report = '%s/mge.report.txt' % out_dir
+    if to_do(mge_report):
+        cmd += mob_recon_cmd(self, tech, fasta, out_dir, key)
+
+    params = tech_params(self, tech)
+    if params['cluster'] or params['new_plasmids']:
+        cmd += mob_cluster_cmd(self, tech, typer_report, out_dir)
+    return cmd
+
+
+def get_mobsuite(
+        self,
+        tech: str,
+        contigs_dict: dict,
+        group: str
+) -> None:
+    """
+
+    Parameters
+    ----------
+    self
+    tech : str
+    contigs_dict : dict
+    group : str
+    """
+    for genome, contigs in contigs_dict.items():
+
+        out_dir = genome_out_dir(self, tech, group)
+        self.outputs['dirs'].append(out_dir)
+        self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
+        fas = contigs[0]
+        to_dos = status_update(self, tech, [fas], group=group)
+
+        typer_out = '%s/mobtyper_results.txt' % out_dir
+        if self.config.force or to_do(typer_out):
+            key = (tech, group)
+            cmds = mobsuite_cmds(self, tech, fas, out_dir, typer_out)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmds)
+            io_update(self, i_f=fas, i_d=out_dir, o_d=out_dir, key=key)
+            self.soft.add_status(tech, self.sam_pool, 1, group=group)
+        else:
+            self.soft.add_status(tech, self.sam_pool, 0, group=group)
+
+
 def mobsuite(self) -> None:
     """MOB-suite: Software softwares for clustering, reconstruction and typing of
     plasmids from draft assemblies.
@@ -338,4 +582,12 @@ def mobsuite(self) -> None:
     ----------
     self
     """
-    print()
+    assemblers = self.config.tools['assembling']
+    if self.soft.prev not in assemblers:
+        sys.exit('[mobsuite] Only after assembly (%s)' % ''.join(assemblers))
+
+    if self.sam_pool in self.pools:
+        for (tech, group), inputs in self.inputs[self.sam_pool].items():
+            contigs_dict = group_inputs(self, inputs)
+            get_mobsuite(self, tech, contigs_dict, group)
+

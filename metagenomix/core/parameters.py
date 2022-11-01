@@ -3013,13 +3013,15 @@ def check_mobsuite(self, params, soft):
         'plasmid_mpf': [None],
         'plasmid_orit': [None],
         'database_directory': [None],
-        'mode': ['Build', 'Update'],
+        'mode': [None, 'Build', 'Update'],
         'mob_typer_file': [None],
         'taxonomy': [None],
         'ref_cluster_file': [None],
         'ref_fasta_file': [None],
         'primary_cluster_dist': 0.06,
         'secondary_cluster_dist': 0.025,
+        'cluster': [False, True],
+        'new_plasmids': [None]
     }
     if 'db_dir' not in params:
         params['db_dir'] = None
