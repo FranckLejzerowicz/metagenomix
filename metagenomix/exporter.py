@@ -11,6 +11,7 @@ import re
 import socket
 import subprocess
 import datetime as dt
+import sys
 from os.path import (
     abspath, basename, dirname, expanduser, expandvars, isdir, isfile, splitext)
 
@@ -48,14 +49,23 @@ class Exported(object):
         self.dir = abspath(self.dir)
         self.export_dir = abspath('%s/_exports' % self.dir)
         self.out = ''
+        self.loc = ''
         self.extensions = []
         self.to_exports = []
         self.commands = []
 
     def get_folder_exp(self):
         self.out = '%s/%s' % (self.export_dir, self.time)
-        if not self.local and self.location in os.environ:
-            self.out = '%s/exports_%s' % (os.environ[self.location], self.time)
+        if self.location in os.environ:
+            self.loc = os.environ[self.location]
+        elif self.location and self.location[0] == '/':
+            self.loc = self.location
+        self.loc = self.loc.rstrip('/')
+        if self.loc and self.loc[0] != '/':
+            sys.exit('Location "%s" not an absolute path: %s' % (
+                self.location, self.loc))
+        if not self.local and self.loc:
+            self.out = '%s/exports_%s' % (self.loc, self.time)
 
     def get_extensions(self):
         if self.exts:
@@ -91,13 +101,19 @@ class Exported(object):
 
         print('\t%s files %swill be exported' % (len(self.to_exports), m))
 
+    def get_output_name(self):
+        if not self.output.endswith('.tar.gz'):
+            if self.output.endswith('.gz'):
+                self.output = '%s.tar.gz' % splitext(expandvars(self.output))[0]
+            elif self.output.endswith('.tar'):
+                self.output = '%s.gz' % self.output
+
     def get_output(self):
         print('* Getting output archive path')
         self.output = abspath(self.output)
-        if not self.local and self.location in os.environ:
-            self.output = '%s/%s' % (os.environ[self.location],
-                                     basename(self.output))
-        self.output = '%s.tar.gz' % splitext(expandvars(self.output))[0]
+        if not self.local and self.loc:
+            self.output = '%s/%s' % (self.loc, basename(self.output))
+        self.get_output_name()
 
     def get_commands(self):
         print('* Getting copying commmands')
@@ -107,11 +123,7 @@ class Exported(object):
 
     def get_copy_commands(self):
         for to_export in self.to_exports:
-            print()
-            print(to_export)
-            print(self.out)
             exp = to_export.replace(self.dir, self.out)
-            print(exp)
             if isfile(exp):
                 continue
             if not isdir(dirname(exp)):
