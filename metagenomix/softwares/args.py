@@ -1208,16 +1208,16 @@ def get_metacompare(
     group : str
     """
     for genome, prodigal_dir in proteins.items():
-        out_d = genome_out_dir(self, tech, self.sam_pool)
-        self.outputs['dirs'].append(out_d)
-        self.outputs['outs'].setdefault((tech, group), []).append(out_d)
+        out_dir = genome_out_dir(self, tech, self.sam_pool)
+        self.outputs['dirs'].append(out_dir)
+        self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
 
         genes = '%s/nucleotide.sequences.fasta' % prodigal_dir[0]
         to_dos = status_update(self, tech, [genes])
         to_dos.extend(status_update(self, tech, [contigs]))
 
         # check if tool already run (or if --force) to allow getting command
-        out = '%s/output.txt' % out_d
+        out = '%s/output.txt' % out_dir
         if self.config.force or to_do(out):
             cmd = metacompare_cmd(self, contigs, genes, out)
             key = genome_key(tech, group)
@@ -1225,7 +1225,7 @@ def get_metacompare(
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
-            io_update(self, i_f=[contigs, genes], o_d=out_d, key=key)
+            io_update(self, i_f=[contigs, genes], o_d=out_dir, key=key)
             self.soft.add_status(tech, self.sam_pool, 1)
         else:
             self.soft.add_status(tech, self.sam_pool, 0)
