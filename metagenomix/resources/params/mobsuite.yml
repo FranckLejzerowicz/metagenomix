@@ -1,5 +1,6 @@
 mobsuite:
   chunks: 4
+  cluster: false
   cpus: 1
   database_directory: null
   db_dir: null
@@ -29,10 +30,12 @@ mobsuite:
   min_rpp_evalue: 1.0e-05
   min_rpp_ident: 80
   mob_typer_file: null
-  mode: Build
+  mode: null
   multi: false
+  new_plasmids: null
   nodes: 1
   partition: null
+  plasmid_db: null
   plasmid_db_type: blastn
   plasmid_mash_db: null
   plasmid_meta: null
