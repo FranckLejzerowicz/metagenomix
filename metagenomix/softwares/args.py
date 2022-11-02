@@ -1209,6 +1209,7 @@ def get_metacompare(
     """
     for genome, prodigal_dir in proteins.items():
         out_dir = genome_out_dir(self, tech, self.sam_pool)
+        out_dir = out_dir + '/' + group
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
 
