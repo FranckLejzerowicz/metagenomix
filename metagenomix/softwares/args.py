@@ -1212,7 +1212,7 @@ def get_metacompare(
         self.outputs['dirs'].append(out_d)
         self.outputs['outs'].setdefault((tech, group), []).append(out_d)
 
-        genes = '%s/nucleotide.sequences.fasta' % prodigal_dir
+        genes = '%s/nucleotide.sequences.fasta' % prodigal_dir[0]
         to_dos = status_update(self, tech, [genes])
         to_dos.extend(status_update(self, tech, [contigs]))
 
