@@ -166,7 +166,7 @@ class Exported(object):
         if self.jobs:
             hpc = self.run_xhpc(sh)
             with open(sh, 'w') as o:
-                o.write('mkdir %s/jobs/output\n' % self.export_dir)
+                o.write('mkdir -p %s/jobs/output\n' % self.export_dir)
                 o.write('cd %s/jobs/output\n' % self.export_dir)
                 if self.torque:
                     o.write('squeue %s\n' % hpc)
