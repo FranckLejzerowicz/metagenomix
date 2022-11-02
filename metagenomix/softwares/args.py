@@ -1182,7 +1182,7 @@ def metacompare_cmd(
     cmd : str
         MetaCompare command line
     """
-    cmd = 'metacmp.py'
+    cmd = '%s/metacmp.py' % self.soft.params['path']
     cmd += ' -c %s' % contigs
     cmd += ' -g %s' % genes
     cmd += ' -t %s' % self.soft.params['cpus']

@@ -3736,6 +3736,8 @@ def check_motus(self, params, soft):
 
 def check_metacompare(self, params, soft):
     defaults = {}
+    check_binary(self, soft.name, params, defaults, 'path')
+    defaults['path'] = '<Path to the metacompare installation folder>'
     return defaults
 
 
