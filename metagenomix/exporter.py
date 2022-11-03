@@ -177,5 +177,12 @@ class Exported(object):
     def showdown(self):
         user = expanduser('~').split('/')[-1]
         hostname = socket.gethostname()
-        print('* Then, copy(-edit)-paste to download from server to local:')
+        ip_address = socket.gethostbyname(hostname)
+        if hostname.startswith('login') and hostname.endswith('saga'):
+            hostname = 'saga.sigma2.no'
+        print('* Then, copy(-edit)-paste on your computer to download from '
+              'server:')
+        print('scp %s@%s:%s .' % (user, ip_address, self.output))
+        print(' or')
         print('scp %s@%s:%s .' % (user, hostname, self.output))
+
