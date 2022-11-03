@@ -177,7 +177,7 @@ def quast(self) -> None:
                 self.soft.add_status(tech, pool, 1)
             else:
                 self.soft.add_status(tech, pool, 0)
-    print(sdkfjdsb)
+
 
 def spades_cmd(
         self,
