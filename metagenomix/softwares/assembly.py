@@ -161,7 +161,7 @@ def quast(self) -> None:
             self.outputs['dirs'].append(out_dir)
             self.outputs['outs'][pool] = out_dir
 
-            if self.config.force or not to_do('%s/report.html' % out_dir):
+            if self.config.force or to_do('%s/report.html' % out_dir):
                 cmd, contigs, to_dos = quast_cmd(
                     self, tech, pool, group_sams, out_dir)
                 key = (tech, pool)
