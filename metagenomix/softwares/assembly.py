@@ -97,7 +97,7 @@ def quast_cmd(
     cmd = 'metaquast.py'
     cmd += ' %s' % ' '.join(contigs)
     if labels:
-        cmd += ' --labels %s' % ','.join(labels)
+        cmd += ' --labels "%s"' % ','.join(labels)
     cmd += ' --output-dir %s' % out_dir
     cmd += ' --min-contig %s' % self.soft.params['min_contig']
     cmd += ' --ambiguity-usage %s' % self.soft.params['ambiguity_usage']
@@ -153,9 +153,13 @@ def quast(self) -> None:
             Configurations
     """
     for pool, group_sams in self.pools.items():
-
-        for tech in [x[0] for x in self.inputs[pool]]:
+        print()
+        print(pool)
+        print(group_sams)
+        for tech in set([x[0] for x in self.inputs[pool]]):
             out_dir = '%s/%s/%s' % (self.dir, tech, pool)
+            print(tech)
+            print(out_dir)
             if self.soft.params['label']:
                 out_dir += '_%s' % self.soft.params['label']
             self.outputs['dirs'].append(out_dir)
@@ -173,7 +177,7 @@ def quast(self) -> None:
                 self.soft.add_status(tech, pool, 1)
             else:
                 self.soft.add_status(tech, pool, 0)
-
+    print(sdkfjdsb)
 
 def spades_cmd(
         self,
