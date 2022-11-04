@@ -291,7 +291,10 @@ def status_update(
     to_dos : list
         Paths to input file that need to be created (or whether they are links)
     """
-    to_dos = get_to_dos(self, inputs, folder)
+    if self.config.dev:
+        to_dos = []
+    else:
+        to_dos = get_to_dos(self, inputs, folder)
     if to_dos and self.soft.name != software:
         if pool:
             self.soft.add_status(tech, pool, to_dos,
