@@ -983,7 +983,7 @@ def woltka_go(
     out_dir = '/'.join([self.dir, tech, aligner, pairing])
     go_dir = '%s/go' % out_dir
     key = (tech, aligner)
-    io_update(self, o_d=out_dir, key=key)
+    io_update(self, o_d=go_dir, key=key)
     for go in gos:
         cur_out = '%s/%s.tsv' % (go_dir, go)
         cur_map = '%s/%s.map.xz' % (go_rt, go)
@@ -1607,7 +1607,7 @@ def woltka_kegg(
     out_dir = '/'.join([self.dir, tech, aligner, pairing])
     kegg_out = '%s/kegg' % out_dir
     kegg_maps = '%s/kegg_queried' % kegg_out
-    # io_update(self, i_d=kegg_maps, key=key)
+    io_update(self, o_d=kegg_out, key=key)
     kegg_maps_local = kegg_maps.replace('${SCRATCH_FOLDER}', '')
     queried = len(glob.glob('%s/*' % kegg_maps_local))
     for (level, name, maps, prev) in ko_names_maps:
@@ -1645,7 +1645,7 @@ def woltka_kegg(
                 else:
                     io_update(self, i_f=biom, key=key)
 
-            elif queried:
+            elif queried > 1:
                 input_biom = '%s/%s.biom' % (kegg_out, prev)
                 if to_do(biom):
                     cmd = '\n# kegg: %s [no stratification]\n' % name
@@ -1710,7 +1710,7 @@ def woltka_kegg(
                     else:
                         io_update(self, i_f=biom, key=key)
 
-                elif queried:
+                elif queried > 1:
                     input_biom = '%s/%s_%s.biom' % (kegg_out, prev, stratif)
                     if to_do(biom):
                         cmd = '\n# kegg: %s [%s]\n' % (name, stratif)
@@ -2713,7 +2713,7 @@ def eggnogmapper(self):
 
 
 def ngless(self):
-    """NGLess logo Ngless is a domain-specific language for NGS (
+    """Ngless is a domain-specific language for NGS (
     next-generation sequencing data) processing.
 
     References
