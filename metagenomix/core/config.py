@@ -91,7 +91,7 @@ class AnalysesConfig(object):
             for line in f:
                 tool, category = line.strip().split('\t')
                 self.tools[tool] = category
-                self.tools.setdefault(category, []).append(tool)
+                self.tools.setdefault(category.split(' (')[0], []).append(tool)
 
     def set_coassembly(self):
         """Create a metadata variable for the groups on which to co-assemble."""
