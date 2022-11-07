@@ -3034,15 +3034,16 @@ def check_mobsuite(self, params, soft):
     if 'min_length' not in params:
         params['min_length'] = None
     else:
-        if not self.config.dev and not str(params['min_length']).isdigit():
+        min_length = params['min_length']
+        if not self.config.dev and min_length and not str(min_length).isdigit():
             sys.exit("[mobsuite] 'min_length' not of <class 'int'>")
 
     if 'min_con_cov' not in params:
         params['min_con_cov'] = None
     else:
-        m_con_cov = params['min_con_cov']
-        if not self.config.dev:
-            if not str(m_con_cov).isdigit() or not 0 <= int(m_con_cov) <= 100:
+        m_con_cov = int(params['min_con_cov'])
+        if not self.config.dev and m_con_cov:
+            if not str(m_con_cov).isdigit() or not 0 <= m_con_cov <= 100:
                 sys.exit("[mobsuite] 'min_con_cov' not of <class 'int'>")
 
     ints = ['max_contig_size', 'max_plasmid_size']
