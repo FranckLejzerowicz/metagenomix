@@ -480,7 +480,6 @@ class Created(object):
         if params['partition']:
             self.cmd.append('--p-partition %s' % params['partition'])
         # whether an environment must be used for the current software
-        print(params['env'])
         if params['env']:
             self.cmd.extend(['-e', params['env']])
         # setup the scratch location to be used for the current software

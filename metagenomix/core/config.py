@@ -78,8 +78,6 @@ class AnalysesConfig(object):
                 continue
             name, path = env.split()
             self.conda_envs[name] = path
-        print("self.conda_envs")
-        print(self.conda_envs)
 
     def set_metadata(self):
         """Read metadata with first column as index."""
