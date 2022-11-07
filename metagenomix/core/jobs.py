@@ -313,6 +313,7 @@ class Created(object):
             for name, links in self.soft_links.items():
                 if links:
                     cmds['-%s' % name] = links
+        print(cmds)
         return cmds
 
     def get_links_dir(self):
@@ -428,6 +429,10 @@ class Created(object):
             self.write_provenance(name, soft)
 
     def get_links(self, soft):
+        print("soft.name")
+        print(soft.name)
+        print("soft.links")
+        print(soft.links)
         self.links_stats[soft.name] = len(soft.links)
         self.soft_links[soft.name] = soft.links
         self.links.update(soft.links)
