@@ -50,6 +50,7 @@ def get_merge_cmd(
     if step == 'midas2_species':
         cmd += ' --min_cov %s' % params['min_cov']
     else:
+        print(self.databases.paths,  db)
         cmd += ' --num_cores %s' % params['cpus']
         cmd += ' --midasdb_name %s' % db
         cmd += ' --midasdb_dir %s/%s' % (self.databases.paths['midas2'], db)
