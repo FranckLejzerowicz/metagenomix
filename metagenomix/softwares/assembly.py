@@ -153,13 +153,8 @@ def quast(self) -> None:
             Configurations
     """
     for pool, group_sams in self.pools.items():
-        print()
-        print(pool)
-        print(group_sams)
         for tech in set([x[0] for x in self.inputs[pool]]):
             out_dir = '%s/%s/%s' % (self.dir, tech, pool)
-            print(tech)
-            print(out_dir)
             if self.soft.params['label']:
                 out_dir += '_%s' % self.soft.params['label']
             self.outputs['dirs'].append(out_dir)
