@@ -873,8 +873,8 @@ def woltka_tax_cmd(
     tax_out, tax_outmap = '%s/taxa' % out, '%s/taxmap' % out
     if params['outmap']:
         tax_outmap = params['outmap']
-    taxa = params['taxa']
     tax_to_do = []
+    taxa = params['taxa']
     for tdx, taxon in enumerate(taxa):
         out_dir = '%s/%s.tsv' % (tax_out, taxon)
         self.outputs['outs'].setdefault(key, []).append(out_dir)
@@ -980,6 +980,7 @@ def woltka_go(
 
     go_to_do = []
     gos = params['go']
+    taxa = params['taxa']
     out_dir = '/'.join([self.dir, tech, aligner, pairing])
     go_dir = '%s/go' % out_dir
     key = (tech, aligner)
@@ -1010,8 +1011,7 @@ def woltka_go(
 
         self.outputs['outs'].setdefault(key, []).append(cur_out)
 
-    stratifs = ['phylum', 'family', 'genus', 'species']
-    for stratif in stratifs:
+    for stratif in taxa:
         for go in gos:
             go_out = '%s/%s_%s.tsv' % (go_dir, go, stratif)
             cur_map = '%s/%s.map.xz' % (go_rt, go)
@@ -1103,8 +1103,8 @@ def woltka_genes(
         self.soft.add_status(tech, 'all samples', 0, group='genes')
     self.outputs['outs'].setdefault(key, []).append(genes)
 
-    stratifs = ['phylum', 'family', 'genus', 'species']
-    for stratif in stratifs:
+    taxa = params['taxa']
+    for stratif in taxa:
         genes = '%s/genes_%s.biom' % (genes_out, stratif)
         genes_tax[stratif] = genes
         if to_do(genes):
@@ -1188,8 +1188,8 @@ def woltka_uniref(
         self.soft.add_status(tech, 'all samples', 1, group='uniref')
     self.outputs['outs'].setdefault(key, []).append(uniref)
 
-    stratifs = ['phylum', 'family', 'genus', 'species']
-    for stratif in stratifs:
+    taxa = params['taxa']
+    for stratif in taxa:
         uniref = '%s/uniref_%s.biom' % (uniref_out, stratif)
         uniref_tax[stratif] = uniref
         if to_do(uniref):
@@ -1274,8 +1274,8 @@ def woltka_eggnog(
         io_update(self, o_f=tsv, key=key)
     self.outputs['outs'].setdefault(key, []).extend([tsv, biom])
 
-    stratifs = ['phylum', 'family', 'genus', 'species']
-    for stratif in stratifs:
+    taxa = params['taxa']
+    for stratif in taxa:
         biom = '%s/eggnog_%s.biom' % (eggnog_out, stratif)
         if to_do(biom):
             cmd = '\n# eggnog [%s]\n' % stratif
@@ -1369,8 +1369,8 @@ def woltka_cazy(
         io_update(self, o_f=tsv, key=key)
     self.outputs['outs'].setdefault(key, []).extend([biom, tsv])
 
-    stratifs = ['phylum', 'family', 'genus', 'species']
-    for stratif in stratifs:
+    taxa = params['taxa']
+    for stratif in taxa:
         cazy_map = '%s/function/cazy/3tools.txt' % database
         biom = '%s/cazy_%s.biom' % (cazy_out, stratif)
         if to_do(biom):
@@ -1484,8 +1484,8 @@ def woltka_metacyc(
             io_update(self, i_f=tsv, key=key)
         files[level] = biom
 
-        stratifs = ['phylum', 'family', 'genus', 'species']
-        for stratif in stratifs:
+        taxa = params['taxa']
+        for stratif in taxa:
             if stratif not in files_tax:
                 files_tax[stratif] = {}
             if '-to-' in maps:
@@ -1675,8 +1675,8 @@ def woltka_kegg(
                 else:
                     io_update(self, i_f=tsv, key=key)
 
-            stratifs = ['phylum', 'family', 'genus', 'species']
-            for stratif in stratifs:
+            taxa = params['taxa']
+            for stratif in taxa:
                 biom = '%s/%s_%s.biom' % (kegg_out, level, stratif)
                 tsv = '%s.tsv' % splitext(biom)[0]
                 if not prev:
