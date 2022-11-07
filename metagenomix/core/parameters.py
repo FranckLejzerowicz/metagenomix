@@ -3054,8 +3054,8 @@ def check_mobsuite(self, params, soft):
               'min_mob_evalue', 'min_con_evalue', 'min_rpp_evalue',
               'primary_cluster_dist', 'secondary_cluster_dist']
     check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
-    check_default(self, params, defaults, soft.name,
-                  (ints + ints2 + floats + ['db_dir']))
+    check_default(self, params, defaults, soft.name, (
+            ints + ints2 + floats + ['db_dir', 'min_length', 'min_con_cov']))
     defaults['db_dir'] = '<Path to the MOB-suite database installed locally>'
     return defaults
 
