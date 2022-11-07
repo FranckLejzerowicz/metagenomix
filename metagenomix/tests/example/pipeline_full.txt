@@ -34,7 +34,7 @@ fastp motus
 fastp ngless
 fastp eggnogmapper
 fastp phyloflash
-fastp metaxa2
+# fastp metaxa2
 # fastp metamarker
 # fastp closed_ref_qiime1
 
@@ -46,6 +46,8 @@ fastp anvio
 flash pooling
 
 pooling spades
+spades quast
+
 pooling spades_metaviral
 pooling spades_plasmid
 pooling spades_bio
@@ -56,8 +58,6 @@ pooling canu
 pooling unicycler
 pooling miniasm
 pooling necat
-
-spades quast
 
 spades metawrap_binning
 metawrap_binning metawrap_refine
@@ -97,6 +97,7 @@ spades abricate
 spades amrplusplus2
 spades amrfinderplus
 spades argsoap
+prodigal metacompare
 
 spades plasmidfinder
 spades plasforest
