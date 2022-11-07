@@ -342,8 +342,6 @@ def get_to_dos(
         else:
             inps = [inp]
         inps = [x.replace('${SCRATCH_FOLDER}', '') for x in inps]
-        print("self.soft.links")
-        print(self.soft.links)
         self.soft.links.update({x: os.readlink(x) for x in inps if islink(x)})
     return to_dos
 
