@@ -410,11 +410,13 @@ def get_metamarc(
             path = self.soft.params['path']
             full_cmd = 'cd %s\n' % out_dir
             full_cmd += 'cp -r %s/bin %s/.\n' % (path, out_dir)
+            full_cmd += 'cp -r %s/src %s/.\n' % (path, out_dir)
             full_cmd += 'cp -r %s/hmmer-3.1b2 %s/.\n' % (path, out_dir)
             full_cmd += 'cd bin\n'
             full_cmd += cmd
             full_cmd += '\ncd ..\n'
             full_cmd += 'rm -rf bin\n'
+            full_cmd += 'rm -rf src\n'
             full_cmd += 'rm -rf hmmer-3.1b2\n'
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
