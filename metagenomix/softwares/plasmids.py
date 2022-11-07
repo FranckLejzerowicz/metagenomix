@@ -334,7 +334,7 @@ def mob_typer_cmd(
     """
     params = tech_params(self, tech)
     tmp_dir = '$TMPDIR/mob_typer_%s' % '_'.join(key)
-    cmd = 'mob_typer'
+    cmd = '\nmob_typer'
     cmd += ' --infile %s' % fasta
     cmd += ' --out_file %s' % typer_out
     cmd += ' --mge_report_file %s' % mge_report
@@ -380,7 +380,6 @@ def mob_recon_cmd(
     tech : str
     fasta : str
     out_dir : str
-    mge_report : str
     key : tuple
 
     Returns
@@ -389,7 +388,7 @@ def mob_recon_cmd(
         mob_recon command line
     """
     params = tech_params(self, tech)
-    cmd = 'mob_recon'
+    cmd = '\nmob_recon'
     cmd += ' --infile %s' % fasta
     cmd += ' --outdir %s' % out_dir
     cmd += ' --num_threads %s' % params['cpus']
@@ -454,7 +453,7 @@ def mob_cluster_cmd(
         mob_cluster command line
     """
     params = tech_params(self, tech)
-    cmd = 'mob_cluster'
+    cmd = '\nmob_cluster'
     if params['mode']:
         cmd += ' --mode %s' % params['mode']
     cmd += ' --infile %s' % params['new_plasmids']
@@ -591,3 +590,68 @@ def mobsuite(self) -> None:
             contigs_dict = group_inputs(self, inputs)
             get_mobsuite(self, tech, contigs_dict, group)
 
+
+def get_oritfinder(
+        self,
+        tech: str,
+        contigs_dict: dict,
+        group: str
+):
+    """
+
+    Parameters
+    ----------
+    self
+    tech: str
+    contigs_dict : dict
+    group: str
+    """
+    for genome, contigs in contigs_dict.items():
+        out_dir = genome_out_dir(self, tech, group)
+        self.outputs['dirs'].append(out_dir)
+        self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
+        fasta = contigs[0]
+        to_dos = status_update(self, tech, [fasta], group=group)
+
+        typer_out = '%s/mobtyper_results.txt' % out_dir
+        if self.config.force or to_do(typer_out):
+            key = (tech, group)
+            cmds = mobsuite_cmds(self, tech, fasta, out_dir, typer_out, key)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmds)
+            io_update(self, i_f=fasta, i_d=out_dir, o_d=out_dir, key=key)
+            self.soft.add_status(tech, self.sam_pool, 1, group=group)
+        else:
+            self.soft.add_status(tech, self.sam_pool, 0, group=group)
+
+
+def oritfinder(self):
+    """Identification of origin of transfers in DNA sequences of bacterial
+    mobile genetic elements.
+
+    References
+    ----------
+    Li, X., Xie, Y., Liu, M., Tai, C., Sun, J., Deng, Z. and Ou, H.Y.,
+    2018. oriTfinder: a web-based tool for the identification of origin of
+    transfers in DNA sequences of bacterial mobile genetic elements. Nucleic
+    acids research, 46(W1), pp.W229-W234.
+
+    Notes
+    -----
+    Docs    : http://bioinfo-mml.sjtu.edu.cn/oriTfinder
+    Paper   : https://doi.org/10.1093/nar/gky352
+
+    Parameters
+    ----------
+    self
+    """
+    assemblers = self.config.tools['assembling']
+    if self.soft.prev not in assemblers:
+        sys.exit('[oritfinder] Only after assembly (%s)' % ''.join(assemblers))
+
+    if self.sam_pool in self.pools:
+        for (tech, group), inputs in self.inputs[self.sam_pool].items():
+            contigs_dict = group_inputs(self, inputs)
+            get_oritfinder(self, tech, contigs_dict, group)
