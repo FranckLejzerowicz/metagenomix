@@ -53,7 +53,7 @@ def get_merge_cmd(
         print(self.databases.paths,  db)
         cmd += ' --num_cores %s' % params['cpus']
         cmd += ' --midasdb_name %s' % db
-        cmd += ' --midasdb_dir %s/%s' % (self.databases.paths['midas2'], db)
+        cmd += ' --midasdb_dir %s' % self.databases.paths[db]
 
         if spc_list:
             cmd += ' --species_list %s' % spc_list
@@ -442,6 +442,7 @@ def get_midas2(
 
     species_lists, out = get_species_lists(self, params, step)
     to_dos = status_update(self, tech, fastqs)
+    print(self.databases.paths)
     db_folder = self.databases.paths['midas2']
     for db in self.soft.params['databases']:
 
