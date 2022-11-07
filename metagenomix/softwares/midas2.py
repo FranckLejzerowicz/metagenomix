@@ -50,7 +50,6 @@ def get_merge_cmd(
     if step == 'midas2_species':
         cmd += ' --min_cov %s' % params['min_cov']
     else:
-        print(self.databases.paths,  db)
         cmd += ' --num_cores %s' % params['cpus']
         cmd += ' --midasdb_name %s' % db
         cmd += ' --midasdb_dir %s' % self.databases.paths[db]
@@ -442,11 +441,9 @@ def get_midas2(
 
     species_lists, out = get_species_lists(self, params, step)
     to_dos = status_update(self, tech, fastqs)
-    print(self.databases.paths)
-    db_folder = self.databases.paths['midas2']
     for db in self.soft.params['databases']:
 
-        db_path = '%s/%s' % (db_folder, db)
+        db_path = self.databases.paths[db]
         if not self.config.dev and not isdir(db_path):
             sys.exit('[midas2] Path to database "%s not found' % db_path)
 
