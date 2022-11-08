@@ -158,7 +158,7 @@ class Exported(object):
         cmd += ' --quiet'
         cmd += ' --no-abspath'
         subprocess.call(cmd.split())
-        os.remove(sh)
+        # os.remove(sh)
         return hpc
 
     def write_job(self):
