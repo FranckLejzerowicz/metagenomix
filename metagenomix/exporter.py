@@ -163,16 +163,19 @@ class Exported(object):
 
     def write_job(self):
         sh = self.write_sh()
+        print('\n* To export, run one of the following:')
         if self.jobs:
             hpc = self.run_xhpc(sh)
-            with open(sh, 'w') as o:
+            run = '%s_job.sh' % splitext(sh)[0]
+            with open(run, 'w') as o:
                 o.write('mkdir -p %s/jobs/output\n' % self.export_dir)
                 o.write('cd %s/jobs/output\n' % self.export_dir)
                 if self.torque:
                     o.write('squeue %s\n' % hpc)
                 else:
                     o.write('sbatch %s\n' % hpc)
-        print('\n* To export, run the following:\nsh %s\n' % sh)
+            print('\n[files on cluster] sh %s\n' % run)
+        print('\n[files on storage] sh %s' % sh)
 
     def showdown(self):
         user = expanduser('~').split('/')[-1]
