@@ -174,8 +174,8 @@ class Exported(object):
                     o.write('squeue %s\n' % hpc)
                 else:
                     o.write('sbatch %s\n' % hpc)
-            print('\n[files on cluster] sh %s\n' % run)
-        print('\n[files on storage] sh %s' % sh)
+            print('[files on cluster] sh %s' % run)
+        print('[files on storage] sh %s\n' % sh)
 
     def showdown(self):
         user = expanduser('~').split('/')[-1]
