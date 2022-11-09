@@ -161,12 +161,14 @@ def fastqc(self) -> None:
     self.outputs['outs'] = outs
 
 
-def fastp_cmd(
+def get_fastp_cmd(
         self,
         tech: str,
         fastqs: list,
-        out_dir: str
-) -> tuple:
+        out_dir: str,
+        outs: list,
+        paired: bool
+) -> str:
     """Collect the Fastp command.
 
     Parameters
@@ -182,26 +184,29 @@ def fastp_cmd(
         Path to the input files
     out_dir : str
         Path to the output folder
+    outs : list
+        Path to the output files
+    paired : bool
+        Whether the inputs are paired reads'
 
     Returns
     -------
     cmd : str
         Fastp command
-    outs : list
-        Path to the output files
     """
     params = tech_params(self, tech)
-    outs = []
     cmd = 'fastp'
     for fdx, fastq in enumerate(fastqs):
-        if fdx:
-            i, o = 'I', 'O'
-            out = '%s/%s_2.fastq' % (out_dir, self.sam_pool)
+        if paired:
+            if fdx:
+                i, o = 'I', 'O'
+                out = '%s/%s_2.fastq.gz' % (out_dir, self.sam_pool)
+            else:
+                i, o = 'i', 'o'
+                out = '%s/%s_1.fastq.gz' % (out_dir, self.sam_pool)
         else:
             i, o = 'i', 'o'
-            out = '%s/%s_1.fastq' % (out_dir, self.sam_pool)
-        if fastq.endswith('.gz'):
-            out += '.gz'
+            out = '%s/%s.fastq.gz' % (out_dir, self.sam_pool)
         outs.append(out)
         cmd += '  -%s %s -%s %s' % (i, fastq, o, out)
     cmd += ' --thread %s' % params['cpus']
@@ -292,6 +297,49 @@ def fastp_cmd(
                     params['cut_right_mean_quality'])
                 cmd += ' --cut_right_window_size %s' % (
                     params['cut_right_window_size'])
+
+    return cmd
+
+
+def fastp_cmd(
+        self,
+        tech: str,
+        fastqs: list,
+        out_dir: str
+) -> tuple:
+    """Collect the Fastp command.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .sam : str
+            Sample name
+        .soft.params
+            Parameters
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    fastqs : list
+        Path to the input files
+    out_dir : str
+        Path to the output folder
+
+    Returns
+    -------
+    cmd : str
+        Fastp command
+    outs : list
+        Path to the output files
+    """
+    cmd = ''
+    outs = []
+
+    paired = [x for x in fastqs if '_1.fastq' in x or '_2.fastq' in x]
+    if paired:
+        cmd += get_fastp_cmd(self, tech, paired, out_dir, outs, True)
+
+    unpair = [x for x in fastqs if '_1.fastq' not in x and '_2.fastq' not in x]
+    if unpair:
+        cmd += get_fastp_cmd(self, tech, unpair, out_dir, outs, False)
 
     return cmd, outs
 
