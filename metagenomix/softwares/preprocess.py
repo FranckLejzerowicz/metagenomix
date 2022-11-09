@@ -333,11 +333,13 @@ def fastp_cmd(
     cmd = ''
     outs = []
 
-    paired = [x for x in fastqs if '_1.fastq' in x or '_2.fastq' in x]
+    paired = [x for x in fastqs if '_1.fastq' in x or '_2.fastq' in x
+              or '_R1.fastq' in x or '_R2.fastq' in x]
     if paired:
         cmd += get_fastp_cmd(self, tech, paired, out_dir, outs, True)
 
-    unpair = [x for x in fastqs if '_1.fastq' not in x and '_2.fastq' not in x]
+    unpair = [x for x in fastqs if '_1.fastq' not in x and '_2.fastq' not in x
+              and '_1.fastq' not in x and '_2.fastq' not in x]
     if unpair:
         cmd += get_fastp_cmd(self, tech, unpair, out_dir, outs, False)
 
