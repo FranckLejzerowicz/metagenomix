@@ -313,7 +313,6 @@ class Created(object):
             for name, links in self.soft_links.items():
                 if links:
                     cmds['-%s' % name] = links
-        print(cmds)
         return cmds
 
     def get_links_dir(self):
