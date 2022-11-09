@@ -294,6 +294,9 @@ def status_update(
     if self.config.dev:
         to_dos = []
     else:
+        # print()
+        # print('to_dos -> FOLDER??? =', folder)
+        # print(inputs)
         to_dos = get_to_dos(self, inputs, folder)
     if to_dos and self.soft.name != software:
         if pool:
