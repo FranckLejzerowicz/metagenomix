@@ -245,6 +245,10 @@ def not_paired(
               or '_R1.fastq' in x or '_R2.fastq' in x]
     unpair = [x for x in fqs if '_1.fastq' not in x and '_2.fastq' not in x
               and '_R1.fastq' not in x and '_R2.fastq' not in x]
+    print()
+    print()
+    print('paired:', paired)
+    print('unpair:', unpair)
     nfiles = len(paired)
     if nfiles != 2:
         self.outputs['outs'].setdefault((tech, self.sam_pool), []).extend(fqs)
