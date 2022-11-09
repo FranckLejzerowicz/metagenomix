@@ -67,9 +67,10 @@ def extension_paths(
     extensions = {1: ['extendedFrags.fastq.gz', 'fastq.gz'],
                   2: ['notCombined_1.fastq.gz', 'notCombined_2.fastq.gz',
                       'R1.fastq.gz', 'R2.fastq.gz'],
-                  3: ['extendedFrags.fastq.gz',
-                      'notCombined_1.fastq.gz',
-                      'notCombined_2.fastq.gz']}
+                  3: ['extendedFrags.fastq.gz', 'notCombined_1.fastq.gz',
+                      'notCombined_2.fastq.gz'],
+                  4: ['extendedFrags.fastq.gz', 'notCombined_1.fastq.gz',
+                      'notCombined_2.fastq.gz', '.fastq.gz']}
     for fastq in fastqs:
         exts = extensions[len(fastqs)]
         for ext in exts:
