@@ -354,7 +354,7 @@ class Created(object):
         ).replace(
             ' : sh', ' files  -> sh'
         ).replace(
-            ' :\n', ' files'
+            ' :\n', ' files\n'
         )
         m += '\n\t-> all softwares '
         n = len(scripts)
