@@ -340,7 +340,6 @@ def mob_typer_cmd(
     cmd += ' --mge_report_file %s' % mge_report
     cmd += ' --analysis_dir %s' % tmp_dir
     cmd += ' --num_threads %s' % params['cpus']
-    cmd += ' --sample_id %s_%s_%s' % (tech, self.sam_pool, key[-1])
     cmd += ' --force'
     for boolean in ['multi', 'keep_tmp']:
         if params[boolean]:
@@ -535,9 +534,9 @@ def get_mobsuite(
         fasta = contigs[0]
         to_dos = status_update(self, tech, [fasta], group=group)
 
+        key = (tech, group)
         typer_out = '%s/mobtyper_results.txt' % out_dir
         if self.config.force or to_do(typer_out):
-            key = (tech, group)
             cmds = mobsuite_cmds(self, tech, fasta, out_dir, typer_out, key)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
