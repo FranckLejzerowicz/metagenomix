@@ -197,6 +197,7 @@ def get_fastp_cmd(
     params = tech_params(self, tech)
     cmd = 'fastp'
     for fdx, fastq in enumerate(fastqs):
+        print(paired, fdx, fastq)
         if paired:
             if fdx:
                 i, o = 'I', 'O'
