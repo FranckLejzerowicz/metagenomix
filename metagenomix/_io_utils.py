@@ -220,7 +220,7 @@ def not_paired(
         tech: str,
         sam: str,
         fqs: list,
-) -> bool:
+) -> tuple:
     """Checks whether there are two input files, which is what is needed for
     merging. Otherwise, stop there and show a useful error message.
 
@@ -238,15 +238,19 @@ def not_paired(
 
     Returns
     -------
-    bool
-        Whether the input files are not possibly pooled or not
+    (paired, unpair) : tuple
+        Path to paired and unpaired input files
     """
-    nfiles = len(fqs)
+    paired = [x for x in fqs if '_1.fastq' in x or '_2.fastq' in x
+              or '_R1.fastq' in x or '_R2.fastq' in x]
+    unpair = [x for x in fqs if '_1.fastq' not in x and '_2.fastq' not in x
+              and '_R1.fastq' not in x and '_R2.fastq' not in x]
+    nfiles = len(paired)
     if nfiles != 2:
         self.outputs['outs'].setdefault((tech, self.sam_pool), []).extend(fqs)
         self.soft.add_status(tech, sam, 1, message='unpaired reads')
-        return True
-    return False
+        return [], []
+    return paired, unpair
 
 
 def status_update(
@@ -294,9 +298,6 @@ def status_update(
     if self.config.dev:
         to_dos = []
     else:
-        # print()
-        # print('to_dos -> FOLDER??? =', folder)
-        # print(inputs)
         to_dos = get_to_dos(self, inputs, folder)
     if to_dos and self.soft.name != software:
         if pool:
