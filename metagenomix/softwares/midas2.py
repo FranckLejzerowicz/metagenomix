@@ -341,7 +341,14 @@ def get_midas2_cmd(
         if params[param]:
             cmd += ' --%s %s' % (param, params[param])
 
-    cmd += ' --midasdb_name %s' % db
+    if 'uhgg' in db:
+        cmd += ' --midasdb_name uhgg'
+    elif 'gtdb' in db:
+        cmd += ' --midasdb_name gtdb'
+    elif 'newdb' in db:
+        cmd += ' --midasdb_name newdb'
+    elif 's3db' in db:
+        cmd += ' --midasdb_name s3db'
     cmd += ' --midasdb_dir %s' % db_path
     cmd += ' --num_cores %s' % params['cpus']
     cmd += ' %s' % focus_dir
