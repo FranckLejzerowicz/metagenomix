@@ -70,9 +70,7 @@ def extension_paths(
                   3: ['extendedFrags.fastq.gz', 'notCombined_1.fastq.gz',
                       'notCombined_2.fastq.gz'],
                   4: ['extendedFrags.fastq.gz', 'notCombined_1.fastq.gz',
-                      'notCombined_2.fastq.gz', '.fastq.gz']}
-    print()
-    print(fastqs)
+                      'notCombined_2.fastq.gz', 'fastq.gz']}
     for fastq in fastqs:
         exts = extensions[len(fastqs)]
         for ext in exts:
@@ -181,7 +179,6 @@ def get_fasta_pools(
         Paths to the fasta file resulting from the pooling for the current group
     """
     paths_to_merge = collect_paths_to_merge(self, tech, sams)
-    print(paths_to_merge)
     if self.soft.params['pool_single_and_merged']:
         combine_single(paths_to_merge)
     fasta_fps = []
@@ -190,7 +187,6 @@ def get_fasta_pools(
         fasta = pool_fasta(
             self, tech, out, extension, paths, pool, group, to_dos)
         fasta_fps.append(fasta)
-    print(fasta_fps)
     return fasta_fps
 
 
