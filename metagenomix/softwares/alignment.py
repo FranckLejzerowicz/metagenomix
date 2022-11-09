@@ -6,13 +6,10 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-from os.path import basename, splitext
+from os.path import splitext
 from metagenomix.core.parameters import tech_params
 from metagenomix._io_utils import (io_update, to_do, tech_specificity,
                                    not_paired, status_update)
-
-# Keep line because read mapping alignments will be python scripts
-# scripts = pkg_resources.resource_filename('metagenomix', 'resources/scripts')
 
 
 def flash_cmd(
@@ -93,9 +90,10 @@ def flash(self) -> None:
     for (tech, sam), fastqs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, fastqs, tech, sam, ['illumina']):
             continue
-        if not_paired(self, tech, sam, fastqs):
+        paired, unpaired = not_paired(self, tech, sam, fastqs)
+        if not paired:
             continue
-        to_dos = status_update(self, tech, fastqs)
+        to_dos = status_update(self, tech, paired)
 
         out = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
         self.outputs['dirs'].append(out)
@@ -108,15 +106,19 @@ def flash(self) -> None:
         self.outputs['outs'].setdefault((tech, self.sam_pool), []).extend(outs)
 
         if self.config.force or sum([to_do(x) for x in outs]):
-            cmd = flash_cmd(self, tech, fastqs, out)
+            cmd = flash_cmd(self, tech, paired, out)
             if to_dos:
                 self.outputs['cmds'][(tech,)] = [False]
             else:
                 self.outputs['cmds'][(tech,)] = [cmd]
-            io_update(self, i_f=fastqs, o_d=out, key=tech)
+            io_update(self, i_f=paired, o_d=out, key=tech)
             self.soft.add_status(tech, sam, 1)
         else:
             self.soft.add_status(tech, sam, 0)
+
+        if unpaired:
+            outs.extend(unpaired)
+        self.outputs['outs'].setdefault((tech, self.sam_pool), []).extend(outs)
 
 
 def ngmerge_cmd(
@@ -215,9 +217,10 @@ def ngmerge(self) -> None:
     for (tech, sam), fastqs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, fastqs, tech, sam, ['illumina']):
             continue
-        if not_paired(self, tech, sam, fastqs):
+        paired, unpaired = not_paired(self, tech, sam, fastqs)
+        if not paired:
             continue
-        to_dos = status_update(self, tech, fastqs)
+        to_dos = status_update(self, tech, paired)
 
         out = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
         self.outputs['dirs'].append(out)
@@ -233,18 +236,21 @@ def ngmerge(self) -> None:
         nc1 = '%s.notCombined_1.fastq.gz' % rad
         nc2 = '%s.notCombined_2.fastq.gz' % rad
         outs = [ext, nc1, nc2]
-        self.outputs['outs'].setdefault((tech, self.sam_pool), []).extend(outs)
 
         if self.config.force or sum([to_do(x) for x in outs]):
-            cmd = ngmerge_cmd(self, tech, fastqs, ext, log, fail)
+            cmd = ngmerge_cmd(self, tech, paired, ext, log, fail)
             if to_dos:
                 self.outputs['cmds'][(tech,)] = [False]
             else:
                 self.outputs['cmds'][(tech,)] = [cmd]
-            io_update(self, i_f=fastqs, o_d=out, key=tech)
+            io_update(self, i_f=paired, o_d=out, key=tech)
             self.soft.add_status(tech, sam, 1)
         else:
             self.soft.add_status(tech, sam, 0)
+
+        if unpaired:
+            outs.extend(unpaired)
+        self.outputs['outs'].setdefault((tech, self.sam_pool), []).extend(outs)
 
 
 def pear_cmd(
@@ -340,9 +346,10 @@ def pear(self) -> None:
     for (tech, sam), fastqs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, fastqs, tech, sam, ['illumina']):
             continue
-        if not_paired(self, tech, sam, fastqs):
+        paired, unpaired = not_paired(self, tech, sam, fastqs)
+        if not paired:
             continue
-        to_dos = status_update(self, tech, fastqs)
+        to_dos = status_update(self, tech, paired)
 
         out = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
         self.outputs['dirs'].append(out)
@@ -357,25 +364,28 @@ def pear(self) -> None:
         nc2 = '%s.notCombined_2.fastq.gz' % rad
         outs = [ext, nc1, nc2]
         na = '%s.discarded.fastq.gz' % rad
-        self.outputs['outs'].setdefault((tech, self.sam_pool), []).extend(outs)
 
         if self.config.force or sum([to_do(x) for x in outs]):
-            cmd = pear_cmd(self, tech, fastqs, rad, outs, outs_, na)
+            cmd = pear_cmd(self, tech, paired, rad, outs, outs_, na)
             if to_dos:
                 self.outputs['cmds'][(tech,)] = [False]
             else:
                 self.outputs['cmds'][(tech,)] = [cmd]
-            io_update(self, i_f=fastqs, o_d=out, key=tech)
+            io_update(self, i_f=paired, o_d=out, key=tech)
             self.soft.add_status(tech, sam, 1)
         else:
             self.soft.add_status(tech, sam, 0)
+
+        if unpaired:
+            outs.extend(unpaired)
+        self.outputs['outs'].setdefault((tech, self.sam_pool), []).extend(outs)
 
 
 def bbmerge_cmd(
         self,
         tech: str,
         fastqs: list,
-        os: list
+        fs: list
 ) -> str:
     """Get the bbmerge.sh merging command.
 
@@ -388,7 +398,7 @@ def bbmerge_cmd(
         Technology: 'illumina', 'pacbio', or 'nanopore'
     fastqs : list
         Paths to the input files
-    os : list
+    fs : list
         Paths to the output files
 
     Returns
@@ -399,7 +409,7 @@ def bbmerge_cmd(
     params = tech_params(self, tech)
     cmd = 'bbmerge.sh'
     cmd += ' in1=%s in2=%s' % tuple(fastqs)
-    cmd += ' out=%s outu1=%s outu2=%s outinsert=%s outc=%s ihist=%s' % tuple(os)
+    cmd += ' out=%s outu1=%s outu2=%s outinsert=%s outc=%s ihist=%s' % tuple(fs)
     if params['strictness']:
         cmd += ' %s=t' % params['strictness']
     else:
@@ -481,9 +491,10 @@ def bbmerge(self) -> None:
     for (tech, sam), fastqs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, fastqs, tech, sam, ['illumina']):
             continue
-        if not_paired(self, tech, sam, fastqs):
+        paired, unpaired = not_paired(self, tech, sam, fastqs)
+        if not paired:
             continue
-        to_dos = status_update(self, tech, fastqs)
+        to_dos = status_update(self, tech, paired)
 
         # make the output directory
         out = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
@@ -501,21 +512,24 @@ def bbmerge(self) -> None:
         ihist = '%s.insert_length.hist' % rad
         outs = [ext, nc1, nc2]
         outs_cmd = outs + [ins, kmer, ihist]
-        self.outputs['outs'].setdefault((tech, self.sam_pool), []).extend(outs)
 
         # check if the tool already run (or if --force) to allow getting command
         if self.config.force or sum([to_do(x) for x in outs]):
             # collect the command line
-            cmd = bbmerge_cmd(self, tech, fastqs, outs_cmd)
+            cmd = bbmerge_cmd(self, tech, paired, outs_cmd)
             # add is to the 'cmds'
             if to_dos:
                 self.outputs['cmds'][(tech,)] = [False]
             else:
                 self.outputs['cmds'][(tech,)] = [cmd]
-            io_update(self, i_f=fastqs, o_d=out, key=tech)
+            io_update(self, i_f=paired, o_d=out, key=tech)
             self.soft.add_status(tech, sam, 1)
         else:
             self.soft.add_status(tech, sam, 0)
+
+        if unpaired:
+            outs.extend(unpaired)
+        self.outputs['outs'].setdefault((tech, self.sam_pool), []).extend(outs)
 
 
 def grep_sam_tail_cmd(
@@ -598,38 +612,6 @@ def condition_ali_command(
 
     cmd = grep_sam_tail_cmd(cmd, reads, sam)
     return cmd
-
-
-# def get_burst_cmd(self, tech: str, fastx: str, db_path: str, out: str) -> str:
-#     """Get the burst alignment command.
-#
-#     Parameters
-#     ----------
-#     tech : str
-#         Technology: 'illumina', 'pacbio', or 'nanopore'
-#     fastx : str
-#         Path to the input fasta file
-#     db_path : str
-#         Path to the burst database
-#     out : str
-#         Path to the output folder
-#
-#     Returns
-#     -------
-#     cmd : str
-#         Alignment command
-#     """
-#     params = tech_params(self, tech)
-#     cmd = 'burst'
-#     cmd += ' -q %s' % fastx
-#     cmd += ' -r %s.edx' % db_path
-#     cmd += ' -a %s.acx' % db_path
-#     cmd += ' -sa'
-#     cmd += ' -fr'
-#     cmd += ' -i 0.98'
-#     cmd += ' -t %s' % params['cpus']
-#     cmd += ' -o %s' % out
-#     return cmd
 
 
 def get_bowtie2_cmd(
@@ -809,6 +791,7 @@ def bowtie2(self) -> None:
         if tech_specificity(self, fastxs, tech, sample):
             continue
         to_dos = status_update(self, tech, fastxs)
+
         out = '%s/%s/%s' % (self.dir, tech, sample)
         self.outputs['outs'][(tech, sample)] = dict()
         for db, db_path in self.soft.params['databases'].items():
@@ -994,7 +977,7 @@ def get_minimap2_indexing_cmd(
         tech: str,
         fastx: list,
 ) -> tuple:
-    """Get the minimap2 alignment command.
+    """Get the minimap2 indexing command.
 
     Parameters
     ----------
@@ -1009,9 +992,9 @@ def get_minimap2_indexing_cmd(
     Returns
     -------
     cmd : str
-        Alignment command
-    sam : str
-        Alignment .sam file
+        Indexing command
+    idx : str
+        Indexed database
     """
     params = tech_params(self, tech)
     cmd = 'minimap2'
@@ -1070,13 +1053,17 @@ def minimap2(self) -> None:
         if tech_specificity(self, fastxs, tech, sample):
             continue
         to_dos = status_update(self, tech, fastxs)
+
         out = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
         self.outputs['outs'][(tech, self.sam_pool)] = dict()
+
         for db, db_path in self.soft.params['databases'].items():
+
             db_out = '%s/%s' % (out, db)
             params = tech_params(self, tech)
             cmd, sam = get_minimap2_cmd(sample, fastxs, db_path, db_out, params)
             self.outputs['outs'][(tech, self.sam_pool)][(db, 'minimap2')] = sam
+
             if self.config.force or to_do(sam):
                 if to_dos:
                     self.outputs['cmds'].setdefault((tech,), []).append(False)
@@ -1087,63 +1074,3 @@ def minimap2(self) -> None:
             else:
                 self.soft.add_status(tech, self.sam_pool, 0)
             self.outputs['dirs'].append(db_out)
-
-
-def salmon(self) -> None:
-    """Salmon is a tool for wicked-fast transcript quantification from
-    RNA-seq data. It requires a set of target transcripts (either from a
-    reference or de-novo assembly) to quantify. All you need to run Salmon
-    is a FASTA file containing your reference transcripts and a (set of)
-    FASTA/FASTQ file(s) containing your reads. Optionally, Salmon can make
-    use of pre-computed alignments (in the form of a SAM/BAM file) to the
-    transcripts rather than the raw reads.
-
-    References
-    ----------
-    Patro, Rob, et al. "Salmon provides fast and bias-aware quantification of
-    transcript expression." Nature methods 14.4 (2017): 417-419.
-
-    Notes
-    -----
-    GitHub  : https://github.com/COMBINE-lab/salmon
-    Docs    : https://salmon.readthedocs.io/en/latest/salmon.html
-    Paper   : https://doi.org/10.1038/nmeth.4197
-
-    Parameters
-    ----------
-    self
-    """
-
-
-def kallisto(self) -> None:
-    """kallisto is a program for quantifying abundances of transcripts from
-    RNA-Seq data, or more generally of target sequences using high-throughput
-    sequencing reads. It is based on the novel idea of pseudoalignment for
-    rapidly determining the compatibility of reads with targets, without the
-    need for alignment. On benchmarks with standard RNA-Seq data, kallisto
-    can quantify 30 million human bulk RNA-seq reads in less than 3 minutes
-    on a Mac desktop computer using only the read sequences and a
-    transcriptome index that itself takes than 10 minutes to build.
-    Pseudoalignment of reads preserves the key information needed for
-    quantification, and kallisto is therefore not only fast, but also
-    comparably accurate to other existing quantification tools. In fact,
-    because the pseudoalignment procedure is robust to errors in the reads,
-    in many benchmarks kallisto significantly outperforms existing tools.
-
-    References
-    ----------
-    Bray, N.L., Pimentel, H., Melsted, P. and Pachter, L., 2016. Near-optimal
-    probabilistic RNA-seq quantification. Nature biotechnology, 34(5),
-    pp.525-527.
-
-    Notes
-    -----
-    GitHub  : https://github.com/pachterlab/kallisto
-    Docs    : http://pachterlab.github.io/kallisto/manual.html
-    Paper   : https://doi.org/10.1038/nbt.3519
-
-    Parameters
-    ----------
-    self
-    """
-    pass
