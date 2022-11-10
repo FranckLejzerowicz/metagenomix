@@ -3069,6 +3069,7 @@ def check_yamb(self, params, soft):
 
 def check_salmon(self, params, soft):
     defaults = {
+        'useAlignments': [True, False],
         'kmerLen': 31,
         'gencode': [False, True],
         'features': [False, True],
@@ -3757,6 +3758,13 @@ def check_metacompare(self, params, soft):
     defaults = {}
     check_binary(self, soft.name, params, defaults, 'path')
     defaults['path'] = '<Path to the metacompare installation folder>'
+    return defaults
+
+
+def check_oritfinder(self, params, soft):
+    defaults = {}
+    check_binary(self, soft.name, params, defaults, 'path')
+    defaults['path'] = '<Path to the oritfinder installation folder>'
     return defaults
 
 
