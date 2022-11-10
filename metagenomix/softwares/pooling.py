@@ -72,6 +72,7 @@ def extension_paths(
                   4: ['extendedFrags.fastq.gz', 'notCombined_1.fastq.gz',
                       'notCombined_2.fastq.gz', 'fastq.gz']}
     for fastq in fastqs:
+        print(fastqs)
         exts = extensions[len(fastqs)]
         for ext in exts:
             if fastq.endswith(ext):
@@ -90,7 +91,7 @@ def collect_paths_to_merge(
     file representing the current pool, and this for the current orientations,
     that can be 1 file (usually for long read data), 2 files (for paired-end
     illumina reads that have not been merged), or 3 files (for paired-end
-    illimina reads that have been merged).
+    illumina reads that have been merged).
 
     Notes
     -----
