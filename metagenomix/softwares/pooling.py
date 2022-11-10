@@ -72,7 +72,6 @@ def extension_paths(
                   4: ['extendedFrags.fastq.gz', 'notCombined_1.fastq.gz',
                       'notCombined_2.fastq.gz', 'fastq.gz']}
     for fastq in fastqs:
-        print(fastqs)
         exts = extensions[len(fastqs)]
         for ext in exts:
             if fastq.endswith(ext):
