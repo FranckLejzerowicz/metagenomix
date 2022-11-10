@@ -103,7 +103,6 @@ def flash(self) -> None:
         nc1 = '%s.notCombined_1.fastq.gz' % rad
         nc2 = '%s.notCombined_2.fastq.gz' % rad
         outs = [ext, nc1, nc2]
-        self.outputs['outs'].setdefault((tech, self.sam_pool), []).extend(outs)
 
         if self.config.force or sum([to_do(x) for x in outs]):
             cmd = flash_cmd(self, tech, paired, out)
