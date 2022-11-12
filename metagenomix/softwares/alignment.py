@@ -906,11 +906,12 @@ def get_minimap2_cmd(
     for param in ['k', 'w', 'I', 'f', 'g', 'r', 'n', 'm', 'M',
                   'max_chain_skip', 'max_chain_iter', 'split_prefix',
                   'A', 'B', 'O', 'E', 'z', 's', 'u', 'end_bonus', 'score_N',
-                  'cap_sw_mem', 'seed', '2', 'K', 'max_qlen', 'lj_min_ratio']:
-        if len(param) == 1:
-            cmd += ' -%s %s' % (param, params[param])
-        else:
-            cmd += ' --%s %s' % (param.replace('_', '-'), params[param])
+                  'cap_sw_mem', 'seed', 'K', 'max_qlen', 'lj_min_ratio']:
+        if params[param]:
+            if len(param) == 1:
+                cmd += ' -%s %s' % (param, params[param])
+            else:
+                cmd += ' --%s %s' % (param.replace('_', '-'), params[param])
 
     if params['cs']:
         cmd += ' --cs=%s' % params['cs']
@@ -936,7 +937,7 @@ def get_minimap2_cmd(
         if params['junc_bonus']:
             cmd += ' --junc-bonus %s' % params['junc_bonus']
 
-    for boolean in ['H', 'no_end_flt', 'a', 'Q', 'L', 'y', 'c', 'MD',
+    for boolean in ['H', 'no_end_flt', 'a', 'Q', 'L', 'y', 'c', 'MD', '2',
                     'eqx', 'Y', 'paf_no_hit', 'sam_hit_only',
                     'no_kalloc', 'print_qname', 'print_seeds']:
         if params[boolean]:
@@ -954,7 +955,7 @@ def get_minimap2_cmd(
         cmd += ' --no-pairing'
         sam += '.unpaired'
 
-    sam = '.sam'
+    sam += '.sam'
     cmd += ' -o %s' % sam
 
     cmd += ' %s' % db_path
