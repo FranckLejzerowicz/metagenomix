@@ -815,7 +815,6 @@ def bowtie2(self) -> None:
 
 
 def get_minimap2_cmd(
-        sample_name: str,
         fastx: list,
         db_path: str,
         db_out: str,
@@ -825,8 +824,6 @@ def get_minimap2_cmd(
 
     Parameters
     ----------
-    sample_name : str
-        Name of the current sample
     fastx : list
         Path to the input fasta/fastq/fastq.gz files
     db_path : str
@@ -903,11 +900,13 @@ def get_minimap2_cmd(
         if params['no_long_join']:
             cmd += ' --no-long-join'
 
-    for param in ['k', 'w', 'I', 'f', 'U', 'q_occ_frac', 'e', 'g', 'r', 'n',
-                  'm', 'M', 'max_chain_skip', 'max_chain_iter',
-                  'chain_gap_scale', 'split_prefix', 'A', 'B', 'O', 'E', 'z',
-                  's', 'u', 'end_bonus', 'score_N', 'cap_sw_mem',
-                  'cap_kalloc', 'seed', '2', 'K', 'max_qlen']:
+    if params['min_occ_floor']:
+        cmd += ' --min-occ-floor %s' % params['min_occ_floor']
+
+    for param in ['k', 'w', 'I', 'f', 'g', 'r', 'n', 'm', 'M',
+                  'max_chain_skip', 'max_chain_iter', 'split_prefix',
+                  'A', 'B', 'O', 'E', 'z', 's', 'u', 'end_bonus', 'score_N',
+                  'cap_sw_mem', 'seed', '2', 'K', 'max_qlen', 'lj_min_ratio']:
         if len(param) == 1:
             cmd += ' -%s %s' % (param, params[param])
         else:
@@ -921,18 +920,11 @@ def get_minimap2_cmd(
 
     if params['hard_mask_level']:
         cmd += ' --hard-mask-level'
-    elif params['mask_len']:
-        cmd += ' --mask-len %s' % params['mask_len']
 
     if params['heap_sort']:
         cmd += ' --heap-sort=yes'
     else:
         cmd += ' --heap-sort=no'
-
-    if params['rmq']:
-        cmd += ' --rmq=yes'
-    else:
-        cmd += ' --rmq=no'
 
     if params['secondary']:
         cmd += ' --secondary=yes'
@@ -1001,8 +993,6 @@ def get_minimap2_indexing_cmd(
         cmd += ' -x %s' % params['x']
     if params['H']:
         cmd += ' -H'
-    if params['alt_drop']:
-        cmd += ' --alt-drop'
     for param in ['k', 'w', 'I']:
         cmd += ' -%s %s' % (param, params[param])
     idx = '%s.mmi' % splitext(fastx[0])[0]
@@ -1060,7 +1050,7 @@ def minimap2(self) -> None:
 
             db_out = '%s/%s' % (out, db)
             params = tech_params(self, tech)
-            cmd, sam = get_minimap2_cmd(sample, fastxs, db_path, db_out, params)
+            cmd, sam = get_minimap2_cmd(fastxs, db_path, db_out, params)
             self.outputs['outs'][(tech, self.sam_pool)][(db, 'minimap2')] = sam
 
             if self.config.force or to_do(sam):
