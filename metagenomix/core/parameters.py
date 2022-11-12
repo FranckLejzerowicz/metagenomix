@@ -1063,8 +1063,7 @@ def check_minimap2(self, params, soft, no_database=False):
 
     ints = ['max_qlen', 'w', 'g', 'F', 'r', 'n', 'm', 'N', 'A', 'B', 's',
             'max_chain_skip', 'max_chain_iter', 'C', 's', 'end_bonus',
-            'score_N', 'junc_bonus', 'endvseed_pen', 'seed',
-            'min_occ_floor', 'end_seed_pen']
+            'score_N', 'junc_bonus', 'seed', 'min_occ_floor', 'end_seed_pen']
     check_nums(self, params, defaults, ints, int, soft.name)
     check_nums(self, params, defaults, ['k'], int, soft.name, 3, 28)
 
