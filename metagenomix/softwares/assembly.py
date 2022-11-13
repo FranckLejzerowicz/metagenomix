@@ -120,13 +120,18 @@ def quast_cmd(
         if params[param]:
             cmd += ' --%s %s' % (param.replace('_', '-'), params[param])
 
+    if params['gene_finding']:
+        cmd += ' --gene-finding'
+    elif params['glimmer']:
+        cmd += ' --glimmer'
+
     for boolean in [
-        'circos', 'glimmer', 'rna_finding', 'memory_efficient',
+        'circos', 'rna_finding', 'memory_efficient',
         'conserved_genes_finding', 'space_efficient', 'report_all_metrics',
         'upper_bound_assembly', 'skip_unaligned_mis_contigs', 'fragmented',
         'strict_NA', 'unique_mapping', 'use_all_alignments', 'glimmer',
         'reuse_combined_alignments', 'use_input_ref_order', 'circos',
-        'conserved_genes_finding', 'rna_finding', 'gene_finding', 'k_mer_stats',
+        'conserved_genes_finding', 'rna_finding', 'k_mer_stats',
         'large', 'fungus', 'eukaryote', 'split_scaffolds',
     ]:
         if params[boolean]:
