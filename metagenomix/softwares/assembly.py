@@ -49,10 +49,12 @@ def quast_data(
         if group[0] != tech:
             continue
         contigs.append(assembly_outputs[0])
+        samples = group_samples[group[1]]
+        label = '-'.join(group)
         if self.soft.params['label']:
-            samples = group_samples[group[1]]
             vals = self.config.meta.loc[samples, self.soft.params['label']]
-            labels.append('__'.join(sorted(set(vals))))
+            label += '-%s' % '__'.join(sorted(set(vals)))
+        labels.append(label)
     return contigs, labels
 
 
