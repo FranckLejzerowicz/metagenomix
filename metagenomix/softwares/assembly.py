@@ -97,7 +97,7 @@ def quast_cmd(
     to_dos = status_update(self, tech, contigs, pool=pool)
 
     params = tech_params(self, tech)
-    cmd = 'metaquast.py'
+    cmd = '%s/metaquast.py' % params['path']
     # cmd += 'pe1'
     # cmd += 'pe2'
     # cmd += 'single'
