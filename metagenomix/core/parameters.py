@@ -582,6 +582,8 @@ def check_quast(self, params, soft):
         'label', 'contig_thresholds', 'gene_thresholds']
     check_default(self, params, defaults, soft.name, let_go)
     defaults['label'] = '<an existing metadata column>'
+    check_binary(self, soft.name, params, defaults, 'path')
+    defaults['path'] = '<path to the quast installation folder>'
     return defaults
 
 
@@ -1216,6 +1218,7 @@ def check_viralverify(self, params, soft):
     check_nums(self, params, defaults, ['thr'], int, 'viralverify')
     check_default(self, params, defaults, soft.name, ['thr'])
     check_binary(self, soft.name, params, defaults, 'path')
+    defaults['path'] = '<path to the ViralVerify installation folder>'
     return defaults
 
 
@@ -1264,6 +1267,7 @@ def check_simka(self, params, soft):
     defaults['kmer'] = [str(x) for x in np.linspace(15, 80, 6)]
     defaults['log_reads'] = [str(x) for x in np.logspace(3, 7, 3)]
     check_binary(self, soft.name, params, defaults, 'path')
+    defaults['path'] = '<path to the SimKa installation folder>'
     return defaults
 
 
