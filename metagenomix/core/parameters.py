@@ -499,15 +499,6 @@ def check_antismash(self, params, soft):
 
 def check_quast(self, params, soft):
     defaults = {
-        'min_contig': 500,
-        'min_alignment': 65,
-        'min_identity': 95.0,
-        'circos': [False, True],
-        'glimmer': [False, True],
-        'rna_finding': [False, True],
-        'conserved_genes_finding': [False, True],
-        'space_efficient': [False, True],
-        'fast': [False, True],  # activates all below
         'no_check': [False, True],
         'no_plots': [False, True],
         'no_html': [False, True],
@@ -516,16 +507,79 @@ def check_quast(self, params, soft):
         'no_gc': [False, True],
         'no_sv': [False, True],
         'no_read_stats': [False, True],
+        'fast': [False, True],
+        'sv_bedpe': [None],
+        'sam': [None],
+        'bam': [None],
+        'ref_sam': [None],
+        'ref_bam': [None],
+        'space_efficient': [False, True],
+        'memory_efficient': [False, True],
+        'plots_format': ['pdf', 'emf', 'eps', 'png', 'ps',
+                         'raw', 'rgba', 'svg', 'svgz'],
+        'report_all_metrics': [False, True],
+        'est_insert_size': [None],
+        'upper_bound_min_con': [None],
+        'upper_bound_assembly': [False, True],
+        'scaffold_gap_max_size': 10000,
+        'unaligned_part_size': 500,
+        'skip_unaligned_mis_contigs': [False, True],
+        'fragmented': [False, True],
+        'fragmented_max_indent': 200,
+        'local_mis_size': 200,
+        'extensive_mis_size': 1000,
+        'strict_NA': [False, True],
+        'unique_mapping': [False, True],
+        'ambiguity_score': 0.99,
         'ambiguity_usage': ['one', 'none', 'all'],
+        'min_identity': 95.0,
+        'min_alignment': 65,
+        'use_all_alignments': [False, True],
+        'reuse_combined_alignments': [False, True],
+        'x_for_Nx': 90,
+        'contig_thresholds': '0,1000,5000,10000,25000,50000',
+        'use_input_ref_order': [False, True],
+        'blast_db': [None],
+        'max_ref_number': 50,
+        'operons': [None],
+        'conserved_genes_finding': [True, False],
+        'rna_finding': [True, False],
+        'gene_thresholds': '0,300,1500,3000',
+        'glimmer': [False, True],
+        'gene_finding': [True, False],
+        'circos': [True, False],
+        'k_mer_size': 101,
+        'k_mer_stats': [False, True],
+        'large': [False, True],
+        'fungus': [False, True],
+        'eukaryote': [False, True],
+        'split_scaffolds': [False, True],
+        'min_contig': 500,
+        'r': [None],
+        'references_list': [None],
+        'g': [None]
     }
-    ints = ['min_contig', 'min_alignment']
+    for param in ['contig_thresholds', 'gene_thresholds']:
+        if param in params:
+            if [x for x in str(params[param]).split(',') if not x.isdigit()]:
+                sys.exit('[quast] "%s" invalid: "%s"' % (param, params[param]))
+        else:
+            params[param] = defaults[param]
+    ints = ['min_contig', 'min_alignment', 'k_mer_size', 'max_ref_number',
+            'extensive_mis_size', 'local_mis_size', 'fragmented_max_indent',
+            'unaligned_part_size', 'scaffold_gap_max_size']
     check_nums(self, params, defaults, ints, int, soft.name)
+    ints2 = ['x_for_Nx']
+    check_nums(self, params, defaults, ints2, int, soft.name, 0, 100)
     floats = ['min_identity']
     check_nums(self, params, defaults, floats, float, soft.name, 80, 100)
+    floats2 = ['ambiguity_score']
+    check_nums(self, params, defaults, floats2, float, soft.name, 0.8, 1)
     if 'label' in params:
         if params['label'] not in set(self.config.meta):
             sys.exit('[quast] Params "label" must be a valid metadata column')
-    let_go = ints + floats + ['label']
+    let_go = ints + ints2 + floats + floats2 + [
+        'label', 'contig_thresholds', 'gene_thresholds']
     check_default(self, params, defaults, soft.name, let_go)
     defaults['label'] = '<an existing metadata column>'
     return defaults

@@ -96,24 +96,50 @@ def quast_cmd(
     contigs, labels = quast_data(self, tech, pool, group_samples)
     to_dos = status_update(self, tech, contigs, pool=pool)
 
+    params = tech_params(self, tech)
     cmd = 'metaquast.py'
+    # cmd += 'pe1'
+    # cmd += 'pe2'
+    # cmd += 'single'
+    # cmd += 'pacbio'
+    # cmd += 'nanopore'
     cmd += ' %s' % ' '.join(contigs)
     if labels:
         cmd += ' --labels "%s"' % ','.join(labels)
     cmd += ' --output-dir %s' % out_dir
-    cmd += ' --min-contig %s' % self.soft.params['min_contig']
-    cmd += ' --ambiguity-usage %s' % self.soft.params['ambiguity_usage']
-    for boolean in ['circos', 'glimmer', 'rna_finding',
-                    'conserved_genes_finding', 'space_efficient']:
-        if self.soft.params[boolean]:
+
+    for param in [
+        'sv_bedpe', 'sam', 'bam', 'ref_sam', 'ref_bam', 'plots_format',
+        'est_insert_size', 'upper_bound_min_con', 'scaffold_gap_max_size',
+        'unaligned_part_size', 'fragmented_max_indent', 'local_mis_size',
+        'extensive_mis_size', 'ambiguity_score', 'min_identity', 'min_contig',
+        'min_alignment', 'x_for_Nx', 'contig_thresholds', 'blast_db',
+        'max_ref_number', 'operons', 'gene_thresholds', 'k_mer_size',
+        'r', 'references_list', 'g'
+    ]:
+        if params[param]:
+            cmd += ' --%s %s' % (param.replace('_', '-'), params[param])
+
+    for boolean in [
+        'circos', 'glimmer', 'rna_finding', 'memory_efficient',
+        'conserved_genes_finding', 'space_efficient', 'report_all_metrics',
+        'upper_bound_assembly', 'skip_unaligned_mis_contigs', 'fragmented',
+        'strict_NA', 'unique_mapping', 'ambiguity_usage', 'use_all_alignments',
+        'reuse_combined_alignments', 'use_input_ref_order', 'glimmer', 'circos',
+        'conserved_genes_finding', 'rna_finding', 'gene_finding', 'k_mer_stats',
+        'large', 'fungus', 'eukaryote', 'split_scaffolds',
+    ]:
+        if params[boolean]:
             cmd += ' --%s' % boolean.replace('_', '-')
-    if self.soft.params['fast']:
+
+    if params['fast']:
         cmd += ' --fast'
     else:
         for boolean in ['no_check', 'no_plots', 'no_html', 'no_icarus',
                         'no_snps', 'no_gc', 'no_sv', 'no_read_stats']:
-            if self.soft.params[boolean]:
+            if params[boolean]:
                 cmd += ' --%s' % boolean.replace('_', '-')
+
     return cmd, contigs, to_dos
 
 
