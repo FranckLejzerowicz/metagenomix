@@ -115,7 +115,7 @@ def quast_cmd(
         'extensive_mis_size', 'ambiguity_score', 'min_identity', 'min_contig',
         'min_alignment', 'x_for_Nx', 'contig_thresholds', 'blast_db',
         'max_ref_number', 'operons', 'gene_thresholds', 'k_mer_size',
-        'r', 'references_list', 'g'
+        'ambiguity_usage', 'r', 'references_list', 'g'
     ]:
         if params[param]:
             cmd += ' --%s %s' % (param.replace('_', '-'), params[param])
@@ -124,8 +124,8 @@ def quast_cmd(
         'circos', 'glimmer', 'rna_finding', 'memory_efficient',
         'conserved_genes_finding', 'space_efficient', 'report_all_metrics',
         'upper_bound_assembly', 'skip_unaligned_mis_contigs', 'fragmented',
-        'strict_NA', 'unique_mapping', 'ambiguity_usage', 'use_all_alignments',
-        'reuse_combined_alignments', 'use_input_ref_order', 'glimmer', 'circos',
+        'strict_NA', 'unique_mapping', 'use_all_alignments', 'glimmer',
+        'reuse_combined_alignments', 'use_input_ref_order', 'circos',
         'conserved_genes_finding', 'rna_finding', 'gene_finding', 'k_mer_stats',
         'large', 'fungus', 'eukaryote', 'split_scaffolds',
     ]:
