@@ -3013,7 +3013,7 @@ def check_woltka(self, params, soft):
         'threshold': [None]
     }
     if 'classifications' not in params:
-        params['classifications'] = [None]
+        params['classifications'] = ['go', 'eggnog', 'metacyc', 'kegg']
     if 'taxa' not in params:
         params['taxa'] = ['phylum', 'family', 'genus', 'species', 'none']
     if 'go' not in params:
