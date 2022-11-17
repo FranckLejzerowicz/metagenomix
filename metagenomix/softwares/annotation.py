@@ -102,21 +102,23 @@ def get_prodigal(
     """
     for genome, fasta in fastas.items():
 
+        to_dos = status_update(
+            self, tech, [fasta[0]], group=sam_group, genome=genome)
+
         out = out_dir
         key = (tech, sam_group)
         if genome:
             out += '/' + genome
             key += (genome,)
+
         self.outputs['dirs'].append(out)
         self.outputs['outs'].setdefault((tech, sam_group), []).append(out)
-        to_dos = status_update(
-            self, tech, [fasta[0]], group=sam_group, genome=genome)
+
         proteins = '%s/protein.translations.fasta' % out
         if self.config.force or to_do(proteins):
             cmd = prodigal_cmd(self, tech, fasta[0], out)
             self.soft.add_status(
                 tech, self.sam_pool, 1, group=sam_group, genome=genome)
-            # if exists(fasta[0]):
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
@@ -306,6 +308,7 @@ def get_macsyfinder(
         proteins = fasta[0]
         if self.soft.prev == 'prodigal':
             proteins = '%s/protein.translations.fasta' % fasta[0]
+
         to_dos = status_update(
             self, tech, [proteins], group=sam_group, genome=genome)
 
@@ -528,6 +531,7 @@ def get_integronfinder(
         fasta = fasta_[0]
         if self.soft.prev == 'prodigal':
             fasta = '%s/nucleotide.sequences.fasta' % fasta_[0]
+
         to_dos = status_update(
             self, tech, [fasta], group=sam_group, genome=genome)
 
@@ -855,8 +859,10 @@ def get_search(
         proteins = fasta[0]
         if self.soft.prev == 'prodigal':
             proteins = '%s/protein.translations.fasta' % fasta[0]
+
         to_dos = status_update(
             self, tech, [proteins], group=sam_group, genome=genome)
+
         outs = search_cmd(self, tech, sam_group, proteins, out_dir, key, to_dos)
         if outs:
             self.outputs['outs'].setdefault((tech, sam_group), {}).update(outs)
@@ -1051,8 +1057,10 @@ def get_prokka(
     configs, cols = prokka_configs(self)
     to_dos = []
     for config in configs:
+
         to_dos.extend(status_update(
             self, tech, [inputs[0]], group=group, genome=config))
+
         pref = '_'.join([config[x] for x in cols if config[x]])
         if config.get('proteins'):
             pref += '_%s' % splitext(basename(config['proteins']))[0]
@@ -1241,6 +1249,7 @@ def get_ccfind(
         out_dir = genome_out_dir(self, tech, sam_group, genome)
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'].setdefault((tech, sam_group), []).append(out_dir)
+
         to_dos = status_update(
             self, tech, [fasta[0]], group=sam_group, genome=genome)
 
@@ -1299,6 +1308,7 @@ def get_barrnap(
 
         out = '%s/rrna_seqs.fas' % out_dir
         self.outputs['outs'].setdefault((tech, sam_group), []).append(out)
+
         to_dos = status_update(
             self, tech, [fasta[0]], group=sam_group, genome=genome)
 
@@ -1480,6 +1490,7 @@ def get_antismash(
         self.outputs['outs'].setdefault((tech, sam_group), []).append(out_dir)
 
         key = genome_key(tech, sam_group, genome)
+
         to_dos = status_update(
             self, tech, [fasta], group=sam_group, genome=genome)
 
@@ -1588,6 +1599,7 @@ def tiara(self) -> None:
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'][group] = out_dir
         out_fp = '%s/classifications.txt' % out_dir
+
         to_dos = status_update(self, tech, [spades[0]], group=group)
 
         if self.config.force or to_do(out_fp):
