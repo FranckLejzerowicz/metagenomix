@@ -366,7 +366,7 @@ def tree(
         to_dos = status_update(self, tech, [genome_dir], group=group,
                                genome=genome, folder=True, software='checkm')
 
-        if self.config.force or glob.glob('%s/*' % tree_dir):
+        if self.config.force or not glob.glob('%s/*' % tree_dir):
             cmd = tree_cmd(self, genome_dir, tree_dir)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
@@ -689,7 +689,7 @@ def analyze(
         to_dos = status_update(self, tech, [out], group=group,
                                genome=genome, software='checkm')
 
-        if self.config.force or glob.glob('%s/*' % analyze_dir):
+        if self.config.force or not glob.glob('%s/*' % analyze_dir):
             cmd = analyze_cmd(self, genomes_dir, lineage_dir, analyze_dir)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
