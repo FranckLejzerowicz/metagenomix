@@ -269,9 +269,7 @@ def drep(self):
 
                 to_dos = status_update(
                     self, tech, paths, group=bin_algo, folder=True)
-                print(paths)
                 cmd_paths, cmd_rms, bin_paths = get_bin_paths(self, paths)
-                print(pathsdsa)
                 cmd_input, drep_in = get_drep_inputs(drep_out, bin_paths)
                 if not bin_paths:
                     self.soft.add_status(tech, pool, paths, group=bin_algo,
