@@ -113,8 +113,8 @@ def get_bin_paths(
         names = '_'.join(bin_path.split('/')[-5:-1])
         new_path = '%s/%s-%s' % (fold, names, basename(bin_path))
         bin_paths.append(new_path)
-        cmd_paths += 'cp ${SCRATCH_FOLDER}%s %s\n' % (bin_path, new_path)
-        cmd_rms += 'rm %s\n' % new_path
+        cmd_paths += 'mv ${SCRATCH_FOLDER}%s %s\n' % (bin_path, new_path)
+        cmd_rms += 'mv %s ${SCRATCH_FOLDER}%s\n' % (new_path, bin_path)
     return cmd_paths, cmd_rms, bin_paths
 
 
