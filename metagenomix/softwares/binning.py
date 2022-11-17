@@ -806,7 +806,7 @@ def refine(self):
 
         bin_folders = inputs[:-1]
         to_dos = status_update(
-            self, tech, bin_folders, group=group, folder=True)
+            self, tech, inputs, group=group, folder=True)
 
         cmd, n_bins = refine_cmd(self, out_dir, bin_folders)
         out = '%s/metawrap_%s_%s' % (out_dir,
@@ -848,9 +848,8 @@ def get_binners(
     """
     binners = []
     for binner, bins in binned.items():
-        bin_0 = '%s/bin.0.fa' % bins
-        bin_1 = '%s/bin.1.fa' % bins
-        if self.config.force or (to_do(bin_0) and to_do(bin_1)):
+        fastas = glob.glob('%s/*.fa' % bins.replace('${SCRATCH_FOLDER}', ''))
+        if self.config.force or not len(fastas):
             binners.append(binner)
     return binners
 
