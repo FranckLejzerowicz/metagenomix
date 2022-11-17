@@ -8,6 +8,7 @@
 
 import glob
 import sys
+from os.path import basename, dirname
 from metagenomix._io_utils import caller, io_update, to_do, status_update
 from metagenomix._inputs import (group_inputs, genome_key, genome_out_dir,
                                  get_extension, get_assembler, add_folder)
@@ -73,9 +74,8 @@ def get_drep_bins(self) -> dict:
     return genomes
 
 
-def get_drep_inputs(
+def get_bin_paths(
         self,
-        drep_dir: str,
         paths: list
 ) -> tuple:
     """Write the file containing the inputs bins to drep
@@ -86,10 +86,51 @@ def get_drep_inputs(
     self : Commands class instance
         .config
             Configurations
-    drep_dir :
-        Path to the drep output folder
     paths : list
         Paths to the folders with the genome files to dereplicate
+
+    Returns
+    -------
+    cmd_paths : str
+        Command to create the input
+    cmd_rms : str
+        Command to remove renamed inputs
+    bin_paths : list
+        Genome files to use for dereplication
+    """
+    bin_paths_ = []
+    for path in paths:
+        bin_paths_ = glob.glob('%s/*fa' % path.replace('${SCRATCH_FOLDER}', ''))
+        if self.config.dev:
+            bin_paths_ = ['%s/a.fa' % path.replace('${SCRATCH_FOLDER}', ''),
+                          '%s/b.fa' % path.replace('${SCRATCH_FOLDER}', '')]
+    cmd_paths = ''
+    cmd_rms = ''
+    bin_paths = []
+    for bin_path in bin_paths_:
+        base = basename(bin_path)
+        fold = dirname(bin_path)
+        names = '_'.join(bin_path.split('/')[-5:-1])
+        new_path = '%s/%s-%s' % (fold, names, base)
+        bin_paths.append(new_path)
+        cmd_paths += 'cp %s %s\n' % (bin_path, new_path)
+        cmd_rms += 'rm %s\n' % new_path
+    return cmd_paths, cmd_rms, bin_paths
+
+
+def get_drep_inputs(
+        drep_dir: str,
+        bin_paths: list
+) -> tuple:
+    """Write the file containing the inputs bins to drep
+    and the list of paths to these bins.
+
+    Parameters
+    ----------
+    drep_dir :
+        Path to the drep output folder
+    bin_paths : int
+        Genome files to use for dereplication
 
     Returns
     -------
@@ -97,26 +138,18 @@ def get_drep_inputs(
         Command to create the input
     drep_in : str
         File containing the paths corresponding to each bin
-    bin_paths : int
-        Genome files to use for dereplication
     """
     cmd = ''
     drep_in = '%s/input_genomes.txt' % drep_dir
-    bin_paths = []
-    for path in paths:
-        bin_paths = glob.glob('%s/*fa' % path.replace('${SCRATCH_FOLDER}', ''))
-        if self.config.dev:
-            bin_paths = ['%s/a.fa' % path.replace('${SCRATCH_FOLDER}', ''),
-                         '%s/b.fa' % path.replace('${SCRATCH_FOLDER}', '')]
-        for bin_path in bin_paths:
-            if cmd:
-                cmd += 'echo "%s" >> %s\n' % (bin_path, drep_in)
-            else:
-                cmd += 'echo "%s" > %s\n' % (bin_path, drep_in)
+    for bin_path in bin_paths:
+        if cmd:
+            cmd += 'echo "%s" >> %s\n' % (bin_path, drep_in)
+        else:
+            cmd += 'echo "%s" > %s\n' % (bin_path, drep_in)
     if cmd:
         cmd += 'envsubst < %s > %s.tmp\n' % (drep_in, drep_in)
         cmd += 'mv %s.tmp %s\n' % (drep_in, drep_in)
-    return cmd, drep_in, bin_paths
+    return cmd, drep_in
 
 
 def drep_cmd(
@@ -125,7 +158,9 @@ def drep_cmd(
         drep_in: str,
         drep_out: str,
         bin_paths: list,
-        input_cmd: str
+        cmd_paths: str,
+        cmd_input: str,
+        cmd_rms: str
 ) -> str:
     """Collect dRep dereplicate command.
 
@@ -142,15 +177,19 @@ def drep_cmd(
         Path to the output folder
     bin_paths : int
         Genome files to use for dereplication
-    input_cmd : str
+    cmd_paths : str
+        Command to rename the input paths
+    cmd_input : str
         Command to create the input
+    cmd_rms : str
+        Command to remove renamed inputs
 
     Returns
     -------
     cmd : str
         dRep dereplicate command
     """
-    cmd = '%s\ndRep dereplicate' % input_cmd
+    cmd = '%s\n%s\ndRep dereplicate' % (cmd_paths, cmd_input)
     cmd += ' %s' % drep_out
     cmd += ' --S_algorithm %s' % algorithm
     cmd += ' --ignoreGenomeQuality'
@@ -176,6 +215,7 @@ def drep_cmd(
     ]:
         cmd += ' --%s %s' % (param, self.soft.params[param])
     cmd += ' --genomes %s' % drep_in
+    cmd += '\n%s' % cmd_rms
     return cmd
 
 
@@ -228,7 +268,8 @@ def drep(self):
 
                 to_dos = status_update(
                     self, tech, paths, group=bin_algo, folder=True)
-                cmd, drep_in, bin_paths = get_drep_inputs(self, drep_out, paths)
+                cmd_paths, cmd_rms, bin_paths = get_bin_paths(self, paths)
+                cmd_input, drep_in = get_drep_inputs(drep_out, bin_paths)
                 if not bin_paths:
                     self.soft.add_status(tech, pool, paths, group=bin_algo,
                                          message='run previous')
@@ -240,7 +281,8 @@ def drep(self):
                     self.soft.add_status(tech, pool, 0, group=bin_algo)
                     continue
                 key = (tech, pool_binning_algo)
-                cmd = drep_cmd(self, algo, drep_in, drep_out, bin_paths, cmd)
+                cmd = drep_cmd(self, algo, drep_in, drep_out,
+                               bin_paths, cmd_paths, cmd_input, cmd_rms)
                 if to_dos:
                     self.outputs['cmds'].setdefault(key, []).append(False)
                 else:
