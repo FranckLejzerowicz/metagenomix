@@ -1354,7 +1354,7 @@ def checkm2_cmd(
     """
     cmd = '\ncheckm2 predict'
     cmd += ' --input %s' % folder
-    cmd += ' --extension %s' % get_extension(self)
+    cmd += ' --extension .%s' % get_extension(self)
     cmd += ' --output-directory %s' % out_dir
     cmd += ' --threads %s' % self.soft.params['cpus']
     for boolean in ['lowmem', 'general', 'specific', 'allmodels',
