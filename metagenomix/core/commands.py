@@ -92,6 +92,8 @@ class Commands(object):
                  'scratch', 'machine', 'partition', 'cpus'}
         if self.soft.name not in ['filtering', 'databases']:
             avoid.add('databases')
+        if 'search_' in self.soft.name:
+            avoid.add('terms')
         params = dict(x for x in self.soft.params.items() if x[0] not in avoid)
         path = self.soft.path
         hashes = [self.softs[x].hash for x in self.soft.path[1:-1]]
