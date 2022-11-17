@@ -1414,7 +1414,7 @@ def get_checkm2(
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
-            io_update(self, i_f=folder, o_d=out_dir, key=key)
+            io_update(self, i_d=folder, o_d=out_dir, key=key)
             self.soft.add_status(
                 tech, self.sam_pool, 1, group=group, genome=genome)
         else:
