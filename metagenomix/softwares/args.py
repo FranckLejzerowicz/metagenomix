@@ -388,7 +388,6 @@ def get_metamarc(
     """
     for genome, inputs in fastas_folders.items():
 
-        fasta = inputs[0]
         out_dir = genome_out_dir(self, tech, sam_group, genome)
         self.outputs['outs'].setdefault((tech, sam_group), []).append(out_dir)
         to_dos = status_update(
@@ -1164,6 +1163,50 @@ def argsoap(self) -> None:
     pass
 
 
+def resfinder(self) -> None:
+    """ResFinder identifies acquired antimicrobial resistance genes in total
+    or partial sequenced isolates of bacteria.
+
+    References
+    ----------
+    Bortolaia, V., Kaas, R.S., Ruppe, E., Roberts, M.C., Schwarz, S.,
+    Cattoir, V., Philippon, A., Allesoe, R.L., Rebelo, A.R., Florensa,
+    A.F. and Fagelhauer, L., 2020. ResFinder 4.0 for predictions of
+    phenotypes from genotypes. Journal of Antimicrobial Chemotherapy, 75(12),
+    pp.3491-3500.
+
+    Notes
+    -----
+    BitBucket : https://bitbucket.org/genomicepidemiology/resfinder/src/master/
+    Paper     : https://doi.org/10.1093/jac/dkaa345
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for ResFinder
+        .sam_pool : str
+            Sample of co-assembly group name
+        .pools : dict
+            Co-assembly pools and sample per group
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.name : str
+            Name of the current software in the pipeline
+        .soft.prev : str
+            Name of the previous software in the pipeline
+        .soft.status
+            Current status of the pipeline in terms of available outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    """
+    pass
+
+
 def metacompare_cmd(
         self,
         contigs: str,
@@ -1187,7 +1230,6 @@ def metacompare_cmd(
     cmd = '%s/metacmp.py' % self.soft.params['path']
     cmd += ' -c %s' % contigs
     cmd += ' -g %s' % genes
-    cmd += ' -t %s' % self.soft.params['cpus']
     cmd += ' -t %s' % self.soft.params['cpus']
     cmd += ' -v 1 > %s' % out
     return cmd
