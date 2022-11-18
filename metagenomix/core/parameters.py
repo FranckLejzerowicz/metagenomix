@@ -3345,14 +3345,20 @@ def check_deeptmhmm(self, params, soft):
 
 def check_gtdbtk(self, params, soft):
     defaults = {
-        'min_perc_aa': 10,
         'min_af': 0.65,
         'batchfile': [None],
+        'min_perc_aa': 10,
+        'genes': [None],
+        'force': [False, True],
+        'write_single_copy_genes': [False, True],
+        'keep_intermediates': [False, True],
+        'outgroup_taxon': [None],
         'bacteria': [False, True],
         'archaea': [False, True],
         'skip_gtdb_refs': [False, True],
         'taxa_filter': [None],
         'custom_msa_filters': [False, True],
+        'full_tree': [False, True],
         'cols_per_gene': 42,
         'min_consensus': 25,
         'max_consensus': 95,
