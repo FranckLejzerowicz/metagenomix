@@ -2256,19 +2256,19 @@ def get_kraken2_cmd(
     cmd += ' --confidence %s' % params['confidence']
     names = ['classified', 'unclassified']
     if len(inputs) > 1:
-        fqs = ['%s/%s_%s.fastq' % (out, x, r) for r in [1, 2] for x in names]
-        cmd += ' --unclassified-out %s/unclassified#.fastq' % out
-        cmd += ' --classified-out %s/classified#.fastq' % out
+        #fqs = ['%s/%s_%s.fastq' % (out, x, r) for r in [1, 2] for x in names]
+        #cmd += ' --unclassified-out %s/unclassified#.fastq' % out
+        #cmd += ' --classified-out %s/classified#.fastq' % out
         cmd += ' --paired'
-    else:
-        fqs = ['%s/%s.fastq' % (out, x) for x in names]
-        cmd += ' --unclassified-out %s/unclassified.fastq' % out
-        cmd += ' --classified-out %s/classified.fastq' % out
+    #else:
+        #fqs = ['%s/%s.fastq' % (out, x) for x in names]
+        #cmd += ' --unclassified-out %s/unclassified.fastq' % out
+        #cmd += ' --classified-out %s/classified.fastq' % out
     if inputs[0].endswith('.gz'):
         cmd += ' --gzip-compressed'
     cmd += ' %s > %s/result.tsv\n' % (' '.join(inputs), out)
-    for fq in fqs:
-        cmd += 'if [ -e %s ]; then gzip %s; fi\n' % (fq, fq)
+    #for fq in fqs:
+    #    cmd += 'if [ -e %s ]; then gzip %s; fi\n' % (fq, fq)
     return cmd
 
 
