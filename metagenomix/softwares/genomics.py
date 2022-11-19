@@ -9,6 +9,7 @@
 import glob
 import sys
 from os.path import basename, dirname
+from metagenomix.core.parameters import tech_params
 from metagenomix._io_utils import caller, io_update, to_do, status_update
 from metagenomix._inputs import (group_inputs, genome_key, genome_out_dir,
                                  get_extension, get_assembler, add_folder)
@@ -1330,6 +1331,332 @@ def checkm(self) -> None:
             __module_call__(self, tech, folders, bin_algo)
 
 
+def denovo_cmd(
+        self,
+        tech: str,
+        key: tuple,
+        in_dir: str,
+        out_dir: str
+) -> str:
+    """Collect the command line for gtdbtk de_novo_wf.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .soft.params : dict
+            Parameters
+    tech : str
+        Technology
+    key : tuple
+        Current job key
+    in_dir : str
+        Path to the input directory
+    out_dir : str
+        Path to the output directory
+
+    Returns
+    -------
+    cmd : str
+        gtdbtk de_novo_wf command
+    """
+    params = tech_params(self, tech)
+    key_folder = 'gtdbtk_denovo_%s_%s' % (self.sam_pool, '-'.join(key))
+    scratch_cmd = ''
+    cmd = '\ngtdbtk de_novo_wf'
+    if params['batchfile']:
+        cmd += ' --batchfile %s' % params['batchfile']
+    else:
+        cmd += ' --genome_dir %s' % in_dir
+    cmd += ' --out_dir %s' % out_dir
+    cmd += ' --tmpdir $TMPDIR/%s' % key_folder
+    cmd += ' --extension %s' % get_extension(self)
+    cmd += ' --cpus %s' % self.soft.params['cpus']
+    cmd += ' --pplacer_cpus %s' % self.soft.params['cpus']
+    if params['scratch']:
+        scratch_dir = '${SCRATCH_FOLDER}/%s' % key_folder
+        scratch_cmd += 'mkdir -p %s\n' % scratch_dir
+        cmd += ' --scratch_dir %s' % scratch_dir
+    for param in [
+        'cols_per_gene', 'min_consensus', 'max_consensus', 'min_perc_taxa',
+        'min_perc_aa', 'rnd_seed', 'prot_model', 'genes', 'taxa_filter',
+        'outgroup_taxon', 'custom_taxonomy_file', 'gtdbtk_classification_file'
+    ]:
+        if params[param]:
+            cmd += ' --%s %s' % (param, params[param])
+
+    if params['bacteria']:
+        cmd += ' --bacteria'
+    elif params['archaea']:
+        cmd += ' --archaea'
+
+    for boolean in [
+        'force', 'write_single_copy_genes', 'keep_intermediates',
+        'skip_gtdb_refs', 'custom_msa_filters', 'no_support', 'gamma'
+    ]:
+        if params[boolean]:
+            cmd += ' --%s' % boolean
+
+    cmd = scratch_cmd + cmd + '\n'
+    return cmd
+
+
+def classify_cmd(
+        self,
+        tech: str,
+        key: tuple,
+        in_dir: str,
+        out_dir: str
+) -> str:
+    """Collect the command line for gtdbtk classify_wf.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .soft.params : dict
+            Parameters
+    tech : str
+        Technology
+    key : tuple
+        Current job key
+    in_dir : str
+        Path to the input directory
+    out_dir : str
+        Path to the output directory
+
+    Returns
+    -------
+    cmd : str
+        gtdbtk classify_wf command
+    """
+    params = tech_params(self, tech)
+    key_folder = 'gtdbtk_classify_%s_%s' % (self.sam_pool, '-'.join(key))
+    scratch_cmd = ''
+    cmd = '\ngtdbtk classify_wf'
+    if params['batchfile']:
+        cmd += ' --batchfile %s' % params['batchfile']
+    else:
+        cmd += ' --genome_dir %s' % in_dir
+    cmd += ' --out_dir %s' % out_dir
+    cmd += ' --tmpdir $TMPDIR/%s' % key_folder
+    cmd += ' --extension %s' % get_extension(self)
+    cmd += ' --cpus %s' % self.soft.params['cpus']
+    cmd += ' --pplacer_cpus %s' % self.soft.params['cpus']
+    if params['scratch']:
+        scratch_dir = '${SCRATCH_FOLDER}/%s' % key_folder
+        scratch_cmd += 'mkdir -p %s\n' % scratch_dir
+        cmd += ' --scratch_dir %s' % scratch_dir
+    for param in ['min_af', 'min_perc_aa', 'genes']:
+        if params[param]:
+            cmd += ' --%s %s' % (param, params[param])
+    for boolean in ['force', 'write_single_copy_genes',
+                    'keep_intermediates', 'full_tree']:
+        if params[boolean]:
+            cmd += ' --%s' % boolean
+    cmd = scratch_cmd + cmd + '\n'
+    return cmd
+
+
+def denovo(
+        self,
+        tech: str,
+        fastas: dict,
+        group: str
+) -> None:
+    """Infer de novo tree and decorate with GTDB taxonomy.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .soft.prev : str
+            Previous software in the pipeline
+        .dir : str
+            Path to pipeline output folder
+        .sam_pool : str
+            Pool name.
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    tech : str
+        Technology or technologies used for assembly
+    fastas : dict
+        Path(s) to the input fasta file(s) per genome/MAGs
+    group : str
+        Name of a co-assembly pool's group
+    """
+    for fasta in fastas.values():
+
+        in_dir = fasta[0]
+        out_dir = genome_out_dir(self, tech, group)
+        self.outputs['dirs'].append(out_dir)
+        self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
+
+        key = genome_key(tech, group)
+        to_dos = status_update(self, tech, [in_dir], group=group, folder=True)
+
+        out = '%s/gtdbtk.bac120.summary.tsv' % out_dir
+        cmd = "export GTDBTK_DATA_PATH=%s\n" % self.databases.paths['gtdbtk']
+        if self.config.force or not to_do(out):
+            cmd += denovo_cmd(self, tech, key, in_dir, out_dir)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
+            io_update(self, i_d=in_dir, o_d=out_dir, key=key)
+            self.soft.add_status(tech, self.sam_pool, 1, group=group)
+        else:
+            self.soft.add_status(tech, self.sam_pool, 0, group=group)
+
+
+def classify(
+        self,
+        tech: str,
+        fastas: dict,
+        group: str
+) -> None:
+    """Classify genomes by placement in GTDB reference tree.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .soft.prev : str
+            Previous software in the pipeline
+        .dir : str
+            Path to pipeline output folder
+        .sam_pool : str
+            Pool name.
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    tech : str
+        Technology or technologies used for assembly
+    fastas : dict
+        Path(s) to the input fasta file(s) per genome/MAGs
+    group : str
+        Name of a co-assembly pool's group
+    """
+    for fasta in fastas.values():
+
+        in_dir = fasta[0]
+        out_dir = genome_out_dir(self, tech, group)
+        self.outputs['dirs'].append(out_dir)
+        self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
+
+        key = genome_key(tech, group)
+        to_dos = status_update(self, tech, [in_dir], group=group, folder=True)
+
+        out = '%s/gtdbtk.bac120.summary.tsv' % out_dir
+        cmd = "export GTDBTK_DATA_PATH=%s\n" % self.databases.paths['gtdbtk']
+        if self.config.force or not to_do(out):
+            cmd += classify_cmd(self, tech, key, in_dir, out_dir)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
+            io_update(self, i_d=in_dir, o_d=out_dir, key=key)
+            self.soft.add_status(tech, self.sam_pool, 1, group=group)
+        else:
+            self.soft.add_status(tech, self.sam_pool, 0, group=group)
+
+
+def gtdbtk_(
+        self,
+        tech: str,
+        folders: dict,
+        group: str
+) -> None:
+    """Perform all the key steps of the gtdbtk analysis.
+
+    Notes
+    -----
+    This is done if the pipeline specifies "drep gtdbtk" and not specific
+    modules of checkm, such as "drep gtdbtk_classify" or "drep gtdbtk_denovo"
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .soft.prev : str
+            Previous software in the pipeline
+        .dir : str
+            Path to pipeline output folder
+        .sam_pool : str
+            Pool name.
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    tech : str
+        Technology or technologies used for assembly
+    folders : dict
+        Paths to the input folders with the genomes/MAGs
+    group : str
+        Name of a co-assembly pool's group
+    """
+    for step in [classify, denovo]:
+        step(self, tech, folders, group)
+
+
+def gtdbtk(self) -> None:
+    """GTDB-Tk is a software toolkit for assigning objective taxonomic
+    classifications to bacterial and archaeal genomes based on the Genome
+    Database Taxonomy (GTDB). It is designed to work with recent advances
+    that allow hundreds or thousands of metagenome-assembled genomes (MAGs)
+    to be obtained directly from environmental samples. It can also be
+    applied to isolate and single-cell genomes. The GTDB-Tk is open source
+    and released under the GNU General Public License (Version 3).
+
+    References
+    ----------
+    Chaumeil, P.A., Mussig, A.J., Hugenholtz, P. and Parks, D.H.,
+    2022. GTDB-Tk v2: memory friendly classification with the Genome
+    Taxonomy Database. bioRxiv.
+
+    Notes
+    -----
+    GitHub  : https://github.com/Ecogenomics/GTDBTk
+    Paper   : https://doi.org/10.1093/bioinformatics/btac672
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for GTDB-Tk
+        .pool : str
+            Pool name.
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    """
+    __module_call__ = caller(self, __name__)
+    if self.sam_pool in self.pools:
+        for (tech, group), inputs in self.inputs[self.sam_pool].items():
+            folders = group_inputs(self, inputs, True)
+            __module_call__(self, tech, folders, group)
+
+    elif set(self.inputs) == {''}:
+        for (tech, bin_algo), inputs in self.inputs[''].items():
+            folders = group_inputs(self, inputs, True)
+            __module_call__(self, tech, folders, bin_algo)
+
+
 def checkm2_cmd(
         self,
         folder: str,
@@ -1483,52 +1810,3 @@ def checkm2(self) -> None:
         for (tech, bin_algo), inputs in self.inputs[''].items():
             folders = group_inputs(self, inputs, True)
             get_checkm2(self, tech, folders, bin_algo)
-
-
-def gtdbtk(self) -> None:
-    """GTDB-Tk is a software toolkit for assigning objective taxonomic
-    classifications to bacterial and archaeal genomes based on the Genome
-    Database Taxonomy (GTDB). It is designed to work with recent advances
-    that allow hundreds or thousands of metagenome-assembled genomes (MAGs)
-    to be obtained directly from environmental samples. It can also be
-    applied to isolate and single-cell genomes. The GTDB-Tk is open source
-    and released under the GNU General Public License (Version 3).
-
-    References
-    ----------
-    Chaumeil, P.A., Mussig, A.J., Hugenholtz, P. and Parks, D.H.,
-    2022. GTDB-Tk v2: memory friendly classification with the Genome
-    Taxonomy Database. bioRxiv.
-
-    Notes
-    -----
-    GitHub  : https://github.com/Ecogenomics/GTDBTk
-    Paper   : https://doi.org/10.1093/bioinformatics/btac672
-
-    Parameters
-    ----------
-    self : Commands class instance
-        .dir : str
-            Path to pipeline output folder for GTDB-Tk
-        .pool : str
-            Pool name.
-        .inputs : dict
-            Input files
-        .outputs : dict
-            All outputs
-        .soft.params
-            Parameters
-        .config
-            Configurations
-    """
-    pass
-    # if self.sam_pool in self.pools:
-    #     for (tech, group), inputs in self.inputs[self.sam_pool].items():
-    #         folders = group_inputs(self, inputs, True)
-    #         get_checkm2(self, tech, folders, group)
-    #
-    # elif set(self.inputs) == {''}:
-    #     for (tech, bin_algo), inputs in self.inputs[''].items():
-    #         folders = group_inputs(self, inputs, True)
-    #         get_checkm2(self, tech, folders, bin_algo)
-
