@@ -343,23 +343,22 @@ def get_diamond_hmmer_databases(self, tool, params):
                     valid_dbs[db] = file_paths
     params['databases'] = valid_dbs
 
-
-def get_hmmer_databases(self, params):
-    if 'terms' in params:
-        terms = params['terms']
-        if not self.databases.hmms_pd.shape[0]:
-            print('[search] Empty Pfam data file (hmmer step ignored)')
-        else:
-            terms_hmms_dias = self.databases.get_pfam_terms(params)
-            not_found_terms = set(terms).difference(set(terms_hmms_dias))
-            if not_found_terms:
-                print('[search] No HMM for hmmer "terms"')
-                for term in not_found_terms:
-                    print('[search]    - %s' % term)
-                if len(not_found_terms) == len(set(terms)):
-                    print('[search]    (i.e. all terms, hmmer step ignored)')
-    else:
-        print('[search] Params "hmmer:terms" missing (ignored)')
+#
+# def get_hmmer_databases(self, params):
+#     empties = set()
+#     acc = self.databases.get_pfam(descriptions=params.get('descriptions', []))
+#     acc = self.databases.get_pfam(accessions=params.get('accessions', []))
+#     acc = self.databases.get_pfam(interpro=params.get('interpro', []))
+#
+#         not_found_terms = set(terms).difference(set(terms_hmms_dias))
+#         if not_found_terms:
+#             print('[search] No HMM for hmmer "terms"')
+#             for term in not_found_terms:
+#                 print('[search]    - %s' % term)
+#             if len(not_found_terms) == len(set(terms)):
+#                 print('[search]    (i.e. all terms, hmmer step ignored)')
+#     else:
+#         empties.add('[search] Params "hmmer:descriptions" missing (ignored)')
 
 
 def check_search(self, params, soft):
@@ -367,6 +366,11 @@ def check_search(self, params, soft):
     defaults = {}
     defaults.update(search_tool(self, params, soft, tool))
     get_diamond_hmmer_databases(self, tool, params)
+    if tool == 'hmmer':
+        if self.databases.hmms_pd.shape[0]:
+            get_hmmer_databases(self, params)
+        else:
+            print('[search] Empty Pfam data file (hmmer step ignored)')
     defaults['databases'] = '<list of databases>'
     return defaults
 
@@ -709,6 +713,7 @@ def search_hmmer(self, params, soft) -> dict:
         'F2': 1e-3,
         'F3': 1e-5,
     }
+
     expand_search_params(params, defaults, 'hmmer')
     e_vals, z_vals = ['E', 'domE'], ['Z', 'domZ', 'textw']
     floats = ['F1', 'F2', 'F3']
@@ -717,7 +722,9 @@ def search_hmmer(self, params, soft) -> dict:
     check_nums(self, params, defaults, z_vals, int, soft.name, 0, 1000)
     check_default(self, params, defaults, soft.name,
                   (e_vals + z_vals + floats + ['terms']))
-    defaults['terms'] = '<List of strings to search in Pfam data (for hmmer)>'
+    defaults['descriptions'] = '<List of strings to search Pfam descriptions>'
+    defaults['accessions'] = '<List of strings to search Pfam accessions>'
+    defaults['interpro'] = '<List of tsv files exported from InterPro>'
     return defaults
 
 
@@ -3345,31 +3352,33 @@ def check_deeptmhmm(self, params, soft):
 
 def check_gtdbtk(self, params, soft):
     defaults = {
+        'prot_model': ['WAG', 'JTT', 'LG'],
+        'rnd_seed': 42,
         'min_af': 0.65,
-        'batchfile': [None],
         'min_perc_aa': 10,
-        'genes': [None],
-        'force': [False, True],
-        'write_single_copy_genes': [False, True],
-        'keep_intermediates': [False, True],
-        'outgroup_taxon': [None],
-        'bacteria': [False, True],
-        'archaea': [False, True],
-        'skip_gtdb_refs': [False, True],
-        'taxa_filter': [None],
-        'custom_msa_filters': [False, True],
-        'full_tree': [False, True],
         'cols_per_gene': 42,
         'min_consensus': 25,
         'max_consensus': 95,
         'min_perc_taxa': 50,
-        'rnd_seed': 42,
-        'prot_model': ['WAG', 'JTT', 'LG'],
-        'no_support': [False, True],
-        'gamma': [False, True],
-        'gtdbtk_classification_file': [None],
+        'genes': [None],
+        'batchfile': [None],
+        'taxa_filter': [None],
+        'outgroup_taxon': [None],
         'custom_taxonomy_file': [None],
+        'gtdbtk_classification_file': [None],
+        'force': [False, True],
+        'gamma': [False, True],
+        'archaea': [False, True],
+        'bacteria': [False, True],
+        'full_tree': [False, True],
+        'no_support': [False, True],
+        'skip_gtdb_refs': [False, True],
+        'keep_intermediates': [False, True],
+        'custom_msa_filters': [False, True],
+        'write_single_copy_genes': [False, True],
     }
+    if params.get('outgroup_taxon') is [None]:
+        params['outgroup_taxon'] = 'p__Altarchaeota'
     ints = ['rnd_seed', 'cols_per_gene']
     check_nums(self, params, defaults, ints, int, soft.name)
     ints2 = ['min_perc_aa', 'min_consensus', 'max_consensus', 'min_perc_taxa']
@@ -3377,6 +3386,7 @@ def check_gtdbtk(self, params, soft):
     floats = ['min_af']
     check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
     check_default(self, params, defaults, soft.name, (ints + ints2 + floats))
+    defaults['outgroup_taxon'] = 'outgroup taxon  (default: p__Altarchaeota)'
     return defaults
 
 
