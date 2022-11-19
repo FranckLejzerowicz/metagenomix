@@ -1500,7 +1500,7 @@ def denovo(
 
         out = '%s/gtdbtk.bac120.summary.tsv' % out_dir
         cmd = "export GTDBTK_DATA_PATH=%s\n" % self.databases.paths['gtdbtk']
-        if self.config.force or not to_do(out):
+        if self.config.force or to_do(out):
             cmd += denovo_cmd(self, tech, key, in_dir, out_dir)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
@@ -1556,7 +1556,7 @@ def classify(
 
         out = '%s/gtdbtk.bac120.summary.tsv' % out_dir
         cmd = "export GTDBTK_DATA_PATH=%s\n" % self.databases.paths['gtdbtk']
-        if self.config.force or not to_do(out):
+        if self.config.force or to_do(out):
             cmd += classify_cmd(self, tech, key, in_dir, out_dir)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
