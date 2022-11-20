@@ -3388,8 +3388,10 @@ def check_gtdbtk(self, params, soft):
     check_nums(self, params, defaults, ints2, int, soft.name, 0, 100)
     floats = ['min_af']
     check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
-    check_default(self, params, defaults, soft.name, (ints + ints2 + floats))
-    defaults['outgroup_taxon'] = 'outgroup taxon  (default: p__Altarchaeota)'
+    check_default(self, params, defaults, soft.name,
+                  (ints + ints2 + floats + ['outgroup_taxon']))
+    defaults['outgroup_taxon'] = 'outgroup taxon (bacteria: p__Cyanobacteria;' \
+                                 ' archaea: p__Undinarchaeota)'
     return defaults
 
 
