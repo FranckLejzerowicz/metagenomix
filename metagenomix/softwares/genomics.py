@@ -682,12 +682,12 @@ def analyze(
                 self, 'checkm', analyze_dir, 'lineage_analyze')
             lineage_dir = add_folder(
                 self, 'checkm', analyze_dir, 'lineage_set')
+            self.outputs['dirs'].extend([analyze_dir, lineage_dir])
         else:
             if self.soft.prev != 'checkm_lineageset':
                 sys.exit('[%s] Run "checkm_lineageset" first' % self.soft.name)
             lineage_dir = dirs[-1]
-
-        self.outputs['dirs'].append(analyze_dir)
+            self.outputs['dirs'].append(analyze_dir)
         # outs = dirs + [analyze_dir]
         outs = {genome: dirs + [analyze_dir]}
         # self.outputs['outs'].setdefault((tech, group), []).extend(outs)
