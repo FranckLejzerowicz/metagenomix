@@ -1042,7 +1042,7 @@ def qa(
         out = '%s/1_completeness_contamination.txt' % qa_dir
         if self.config.force or to_do(out):
             cmd = qa_cmd(self, lineage_ms, analyze_dir, qa_dir, cov)
-            if to_dos and self.soft.name != 'checkm':
+            if to_dos:# and self.soft.name != 'checkm':
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
@@ -1144,9 +1144,8 @@ def unbinned(
 
         if self.config.force or to_do('%s/unbinned.fa' % unbinned_dir):
             cmd = unbinned_cmd(self, genomes_dir, contigs, unbinned_dir)
-            if to_dos:
-                if self.soft.name != 'checkm':
-                    self.outputs['cmds'].setdefault(key, []).append(False)
+            if to_dos:# and self.soft.name != 'checkm':
+                self.outputs['cmds'].setdefault(key, []).append(False)
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(
