@@ -298,6 +298,9 @@ def get_lorikeet(
             else:
                 group_reads = reads
 
+            print("group_reads")
+            print(group_reads)
+
             cmd = lorikeet_cmd(
                 self, genome, fasta_folder, group_reads, out_dir, key, step)
             if to_dos:
