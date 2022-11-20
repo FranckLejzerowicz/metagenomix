@@ -1360,7 +1360,6 @@ def denovo_cmd(
         gtdbtk de_novo_wf command
     """
     params = tech_params(self, tech)
-    key_folder = 'gtdbtk_denovo_%s_%s' % (self.sam_pool, '-'.join(key))
     scratch_cmd = ''
     cmd = 'TMPDIR="$(dirname $TMPDIR)/dnv"\n'
     cmd += 'mkdir -p $TMPDIR\n'
@@ -1370,14 +1369,15 @@ def denovo_cmd(
     else:
         cmd += ' --genome_dir %s' % in_dir
     cmd += ' --out_dir %s' % out_dir
-    cmd += ' --tmpdir $TMPDIR/%s' % key_folder
+    cmd += ' --tmpdir $TMPDIR'
     cmd += ' --extension %s' % get_extension(self)
     cmd += ' --cpus %s' % self.soft.params['cpus']
     cmd += ' --pplacer_cpus %s' % self.soft.params['cpus']
-    if params['scratch']:
-        scratch_dir = '${SCRATCH_FOLDER}/%s' % key_folder
-        scratch_cmd += 'mkdir -p %s\n' % scratch_dir
-        cmd += ' --scratch_dir %s' % scratch_dir
+    # if params['scratch']:
+    #     key_folder = 'gtdbtk_denovo_%s_%s' % (self.sam_pool, '-'.join(key))
+    #     scratch_dir = '${SCRATCH_FOLDER}/%s' % key_folder
+    #     scratch_cmd += 'mkdir -p %s\n' % scratch_dir
+    #     cmd += ' --scratch_dir %s' % scratch_dir
     for param in [
         'cols_per_gene', 'min_consensus', 'max_consensus', 'min_perc_taxa',
         'min_perc_aa', 'rnd_seed', 'prot_model', 'genes', 'taxa_filter',
@@ -1431,7 +1431,6 @@ def classify_cmd(
         gtdbtk classify_wf command
     """
     params = tech_params(self, tech)
-    key_folder = 'gtdbtk_classify_%s_%s' % (self.sam_pool, '-'.join(key))
     scratch_cmd = ''
     cmd = 'TMPDIR="$(dirname $TMPDIR)/dnv"\n'
     cmd += 'mkdir -p $TMPDIR\n'
@@ -1441,14 +1440,15 @@ def classify_cmd(
     else:
         cmd += ' --genome_dir %s' % in_dir
     cmd += ' --out_dir %s' % out_dir
-    cmd += ' --tmpdir $TMPDIR/%s' % key_folder
+    cmd += ' --tmpdir $TMPDIR'
     cmd += ' --extension %s' % get_extension(self)
     cmd += ' --cpus %s' % self.soft.params['cpus']
     cmd += ' --pplacer_cpus %s' % self.soft.params['cpus']
-    if params['scratch']:
-        scratch_dir = '${SCRATCH_FOLDER}/%s' % key_folder
-        scratch_cmd += 'mkdir -p %s\n' % scratch_dir
-        cmd += ' --scratch_dir %s' % scratch_dir
+    # if params['scratch']:
+    #     key_folder = 'gtdbtk_classify_%s_%s' % (self.sam_pool, '-'.join(key))
+    #     scratch_dir = '${SCRATCH_FOLDER}/%s' % key_folder
+    #     scratch_cmd += 'mkdir -p %s\n' % scratch_dir
+    #     cmd += ' --scratch_dir %s' % scratch_dir
     for param in ['min_af', 'min_perc_aa', 'genes']:
         if params[param]:
             cmd += ' --%s %s' % (param, params[param])
