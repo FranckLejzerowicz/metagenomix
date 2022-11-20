@@ -357,11 +357,12 @@ def tree(
     for genome, dirs in folders.items():
         genome_dir = dirs[0]
         out_dir = genome_out_dir(self, tech, group, genome)
-        tree_dir = add_folder(self, 'checkm', out_dir, 'lineage_tree')
+        if self.soft.name == 'checkm':
+            out_dir = add_folder(self, 'checkm', out_dir, 'lineage_tree')
 
-        self.outputs['dirs'].append(tree_dir)
+        self.outputs['dirs'].append(out_dir)
         # outs = dirs + [tree_dir]
-        outs = {genome: dirs + [tree_dir]}
+        outs = {genome: dirs + [out_dir]}
         # self.outputs['outs'].setdefault((tech, group), []).extend(outs)
         self.outputs['outs'].setdefault((tech, group), {}).update(outs)
 
@@ -369,17 +370,17 @@ def tree(
         to_dos = status_update(self, tech, [genome_dir], group=group,
                                genome=genome, folder=True, software='checkm')
 
-        if self.config.force or not glob.glob('%s/*' % tree_dir):
-            cmd = tree_cmd(self, genome_dir, tree_dir)
+        if self.config.force or not glob.glob('%s/*' % out_dir):
+            cmd = tree_cmd(self, genome_dir, out_dir)
             if to_dos and self.soft.name != 'checkm':
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
-            io_update(self, i_d=genome_dir, o_d=tree_dir, key=key)
+            io_update(self, i_d=genome_dir, o_d=out_dir, key=key)
             self.soft.add_status(
                 tech, self.sam_pool, 1, group=group, genome=genome)
         elif self.soft.name == 'checkm':
-            io_update(self, i_d=tree_dir, key=key)
+            io_update(self, i_d=out_dir, key=key)
         else:
             self.soft.add_status(
                 tech, self.sam_pool, 0, group=group, genome=genome)
