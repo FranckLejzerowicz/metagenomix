@@ -314,7 +314,9 @@ def tree_cmd(
     cmd : str
         checkm tree command
     """
-    cmd = '\ncheckm tree'
+    cmd = 'CHECKM_DATA_PATH=/cluster/projects/nn8075k/03_databases/checkm\n'
+    cmd += 'export CHECKM_DATA_PATH\n'
+    cmd += '\ncheckm tree'
     cmd += ' --extension %s' % get_extension(self)
     cmd += ' --pplacer_threads %s' % self.soft.params['cpus']
     cmd += ' %s' % genomes_dir
@@ -406,6 +408,8 @@ def treeqa_cmd(
         checkm tree_qa command
     """
     cmd = ''
+    cmd += 'CHECKM_DATA_PATH=/cluster/projects/nn8075k/03_databases/checkm\n'
+    cmd += 'export CHECKM_DATA_PATH\n'
     for (filename, out_format) in [
         ('tree_placement_summary.txt', '1'),
         ('tree_placement_lineage_stats.txt', '2'),
@@ -517,7 +521,9 @@ def lineageset_cmd(
     cmd : str
         checkm lineage_set command
     """
-    cmd = '\ncheckm lineage_set'
+    cmd = 'CHECKM_DATA_PATH=/cluster/projects/nn8075k/03_databases/checkm\n'
+    cmd += 'export CHECKM_DATA_PATH\n'
+    cmd += '\ncheckm lineage_set'
     cmd += ' --unique %s' % self.soft.params['unique']
     cmd += ' --multi %s' % self.soft.params['multi']
     if self.soft.params['force_domain']:
@@ -622,7 +628,9 @@ def analyze_cmd(
     cmd : str
         checkm analyze command
     """
-    cmd = '\ncheckm analyze'
+    cmd = 'CHECKM_DATA_PATH=/cluster/projects/nn8075k/03_databases/checkm\n'
+    cmd += 'export CHECKM_DATA_PATH\n'
+    cmd += '\ncheckm analyze'
     cmd += ' --extension %s' % get_extension(self)
     cmd += ' --threads %s' % self.soft.params['cpus']
     if self.soft.params['ali']:
@@ -732,7 +740,9 @@ def coverage_cmd(
     cmd : str
         checkm coverage command
     """
-    cmd = '\ncheckm coverage'
+    cmd = 'CHECKM_DATA_PATH=/cluster/projects/nn8075k/03_databases/checkm\n'
+    cmd += 'export CHECKM_DATA_PATH\n'
+    cmd += '\ncheckm coverage'
     cmd += ' --extension %s' % get_extension(self)
     if self.soft.params['all_reads']:
         cmd += ' --all_reads'
@@ -885,6 +895,8 @@ def qa_cmd(
         checkm qa command
     """
     cmd = ''
+    cmd += 'CHECKM_DATA_PATH=/cluster/projects/nn8075k/03_databases/checkm\n'
+    cmd += 'export CHECKM_DATA_PATH\n'
     for idx, (filename, out_format) in enumerate([
         ('completeness_contamination.txt', 1),
         ('bin_statistics.txt', 2),
@@ -1067,7 +1079,9 @@ def unbinned_cmd(
     cmd : str
         checkm unbinned command
     """
-    cmd = '\ncheckm unbinned'
+    cmd = 'CHECKM_DATA_PATH=/cluster/projects/nn8075k/03_databases/checkm\n'
+    cmd += 'export CHECKM_DATA_PATH\n'
+    cmd += '\ncheckm unbinned'
     cmd += ' --extension %s' % get_extension(self)
     cmd += ' --min_seq_len %s' % self.soft.params['min_seq_len']
     cmd += ' %s' % genomes_dir
@@ -1164,7 +1178,9 @@ def tetra_cmd(
     cmd : str
         checkm tetra command
     """
-    cmd = '\ncheckm tetra'
+    cmd = 'CHECKM_DATA_PATH=/cluster/projects/nn8075k/03_databases/checkm\n'
+    cmd += 'export CHECKM_DATA_PATH\n'
+    cmd += '\ncheckm tetra'
     cmd += ' --threads %s' % self.soft.params['cpus']
     cmd += ' %s' % fasta
     cmd += ' %s\n' % out
