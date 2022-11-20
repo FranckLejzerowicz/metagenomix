@@ -584,7 +584,7 @@ def lineageset(
 
         key = genome_key(tech, group, genome)
         lineage_ms = '%s/lineage.ms' % lineage_dir
-        to_dos = status_update(self, tech, [lineage_ms], group=group,
+        to_dos = status_update(self, tech, [tree_dir], group=group,
                                genome=genome, software='checkm')
 
         if self.config.force or to_do(lineage_ms):
