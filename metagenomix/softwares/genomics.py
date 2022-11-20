@@ -372,7 +372,7 @@ def tree(
 
         if self.config.force or not glob.glob('%s/*' % out_dir):
             cmd = tree_cmd(self, genome_dir, out_dir)
-            if to_dos and self.soft.name != 'checkm':
+            if to_dos:# and self.soft.name != 'checkm':
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
@@ -486,7 +486,7 @@ def treeqa(
         out = '%s/1_tree_placement_summary.txt' % qa_dir
         if self.config.force or to_do(out):
             cmd = treeqa_cmd(self, tree_dir, qa_dir)
-            if to_dos and self.soft.name != 'checkm':
+            if to_dos:# and self.soft.name != 'checkm':
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
@@ -590,7 +590,7 @@ def lineageset(
 
         if self.config.force or to_do(lineage_ms):
             cmd = lineageset_cmd(self, tree_dir, lineage_ms)
-            if to_dos and self.soft.name != 'checkm':
+            if to_dos:# and self.soft.name != 'checkm':
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
@@ -701,7 +701,7 @@ def analyze(
 
         if self.config.force or not glob.glob('%s/*' % analyze_dir):
             cmd = analyze_cmd(self, genomes_dir, lineage_dir, analyze_dir)
-            if to_dos and self.soft.name != 'checkm':
+            if to_dos:# and self.soft.name != 'checkm':
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
@@ -853,7 +853,7 @@ def coverage(
 
                 if self.config.force or to_do(cov):
                     cmd = coverage_cmd(self, genome_dir, cov, bams)
-                    if to_dos and self.soft.name != 'checkm':
+                    if to_dos:# and self.soft.name != 'checkm':
                         self.outputs['cmds'].setdefault(key, []).append(False)
                     else:
                         self.outputs['cmds'].setdefault(key, []).append(cmd)
