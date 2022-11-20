@@ -50,9 +50,9 @@ def lorikeet_cmd(
     cmd = 'mkdir -p %s\n' % tmp_dir
 
     cmd += 'lorikeet %s' % step
-    cmd += ' --output-prefix %s_output' % step
-    if step == 'genotype':
-        cmd += ' --output-directory %s' % out_dir
+    # cmd += ' --output-prefix %s_output' % step
+    cmd += ' --output-directory %s' % out_dir
+    # if step == 'genotype':
     cmd += ' --bam-file-cache-directory %s' % tmp_dir
     cmd += ' --threads %s' % self.soft.params['cpus']
     if genome:
