@@ -1362,7 +1362,7 @@ def denovo_cmd(
     params = tech_params(self, tech)
     key_folder = 'gtdbtk_denovo_%s_%s' % (self.sam_pool, '-'.join(key))
     scratch_cmd = ''
-    cmd = '\nmkdir -p $TMPDIR/%s\n' % key_folder
+    cmd = '\nmkdir -p $TMPDIR/dnv\n'
     cmd += '\ngtdbtk de_novo_wf'
     if params['batchfile']:
         cmd += ' --batchfile %s' % params['batchfile']
@@ -1432,7 +1432,7 @@ def classify_cmd(
     params = tech_params(self, tech)
     key_folder = 'gtdbtk_classify_%s_%s' % (self.sam_pool, '-'.join(key))
     scratch_cmd = ''
-    cmd = '\nmkdir -p $TMPDIR/%s\n' % key_folder
+    cmd = '\nmkdir -p $TMPDIR/cls\n'
     cmd += '\ngtdbtk classify_wf'
     if params['batchfile']:
         cmd += ' --batchfile %s' % params['batchfile']
