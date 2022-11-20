@@ -1350,7 +1350,6 @@ def checkm(self) -> None:
 def denovo_cmd(
         self,
         tech: str,
-        key: tuple,
         in_dir: str,
         out_dir: str
 ) -> str:
@@ -1363,8 +1362,6 @@ def denovo_cmd(
             Parameters
     tech : str
         Technology
-    key : tuple
-        Current job key
     in_dir : str
         Path to the input directory
     out_dir : str
@@ -1421,7 +1418,6 @@ def denovo_cmd(
 def classify_cmd(
         self,
         tech: str,
-        key: tuple,
         in_dir: str,
         out_dir: str
 ) -> str:
@@ -1434,8 +1430,6 @@ def classify_cmd(
             Parameters
     tech : str
         Technology
-    key : tuple
-        Current job key
     in_dir : str
         Path to the input directory
     out_dir : str
@@ -1512,6 +1506,9 @@ def denovo(
 
         in_dir = fasta[0]
         out_dir = genome_out_dir(self, tech, group)
+        if self.soft.name == 'gtdbtk':
+            out_dir = add_folder(self, 'gtdbtk', out_dir, 'denovo')
+
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
 
@@ -1521,7 +1518,7 @@ def denovo(
         out = '%s/gtdbtk.bac120.summary.tsv' % out_dir
         cmd = "export GTDBTK_DATA_PATH=%s\n" % self.databases.paths['gtdbtk']
         if self.config.force or to_do(out):
-            cmd += denovo_cmd(self, tech, key, in_dir, out_dir)
+            cmd += denovo_cmd(self, tech, in_dir, out_dir)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
@@ -1568,6 +1565,9 @@ def classify(
 
         in_dir = fasta[0]
         out_dir = genome_out_dir(self, tech, group)
+        if self.soft.name == 'gtdbtk':
+            out_dir = add_folder(self, 'gtdbtk', out_dir, 'classify')
+
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
 
@@ -1577,7 +1577,7 @@ def classify(
         out = '%s/gtdbtk.bac120.summary.tsv' % out_dir
         cmd = "export GTDBTK_DATA_PATH=%s\n" % self.databases.paths['gtdbtk']
         if self.config.force or to_do(out):
-            cmd += classify_cmd(self, tech, key, in_dir, out_dir)
+            cmd += classify_cmd(self, tech, in_dir, out_dir)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
