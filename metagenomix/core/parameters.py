@@ -359,20 +359,20 @@ def get_diamond_hmmer_databases(self, tool, params):
 #                 print('[search]    (i.e. all terms, hmmer step ignored)')
 #     else:
 #         empties.add('[search] Params "hmmer:descriptions" missing (ignored)')
-
-
-def check_search(self, params, soft):
-    tool = soft.name.rsplit('_')[1]
-    defaults = {}
-    defaults.update(search_tool(self, params, soft, tool))
-    get_diamond_hmmer_databases(self, tool, params)
-    if tool == 'hmmer':
-        if self.databases.hmms_pd.shape[0]:
-            get_hmmer_databases(self, params)
-        else:
-            print('[search] Empty Pfam data file (hmmer step ignored)')
-    defaults['databases'] = '<list of databases>'
-    return defaults
+#
+#
+# def check_search(self, params, soft):
+#     tool = soft.name.rsplit('_')[1]
+#     defaults = {}
+#     defaults.update(search_tool(self, params, soft, tool))
+#     get_diamond_hmmer_databases(self, tool, params)
+#     # if tool == 'hmmer':
+#     #     if self.databases.hmms_pd.shape[0]:
+#     #         get_hmmer_databases(self, params)
+#     #     else:
+#             print('[search] Empty Pfam data file (hmmer step ignored)')
+#     defaults['databases'] = '<list of databases>'
+#     return defaults
 
 
 def check_ccfind(self, params, soft):
@@ -3369,7 +3369,7 @@ def check_gtdbtk(self, params, soft):
         'force': [False, True],
         'gamma': [False, True],
         'archaea': [False, True],
-        'bacteria': [False, True],
+        'bacteria': [True, False],
         'full_tree': [False, True],
         'no_support': [False, True],
         'skip_gtdb_refs': [False, True],
@@ -3377,8 +3377,11 @@ def check_gtdbtk(self, params, soft):
         'custom_msa_filters': [False, True],
         'write_single_copy_genes': [False, True],
     }
-    if params.get('outgroup_taxon') is [None]:
-        params['outgroup_taxon'] = 'p__Altarchaeota'
+    if params.get('outgroup_taxon', None) is None:
+        if params.get('bacteria', True):
+            params['outgroup_taxon'] = 'p__Cyanobacteria'
+        else:
+            params['outgroup_taxon'] = 'p__Undinarchaeota'
     ints = ['rnd_seed', 'cols_per_gene']
     check_nums(self, params, defaults, ints, int, soft.name)
     ints2 = ['min_perc_aa', 'min_consensus', 'max_consensus', 'min_perc_taxa']
