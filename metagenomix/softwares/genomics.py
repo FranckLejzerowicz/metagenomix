@@ -699,9 +699,8 @@ def analyze(
         to_dos = status_update(self, tech, [out], group=group,
                                genome=genome, software='checkm')
 
-        print(analyze_dir)
-        print(glob.glob('%s/*' % analyze_dir))
-        if self.config.force or not glob.glob('%s/*' % analyze_dir):
+        out = '%s/storage/bin_stats.analyze.tsv' % analyze_dir
+        if self.config.force or to_do(out):
             cmd = analyze_cmd(self, genomes_dir, lineage_dir, analyze_dir)
             if to_dos:# and self.soft.name != 'checkm':
                 self.outputs['cmds'].setdefault(key, []).append(False)
