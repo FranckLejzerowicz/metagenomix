@@ -372,7 +372,8 @@ def tree(
         if self.config.force or not glob.glob('%s/*' % tree_dir):
             cmd = tree_cmd(self, genome_dir, tree_dir)
             if to_dos:
-                self.outputs['cmds'].setdefault(key, []).append(False)
+                if self.soft.name != 'checkm':
+                    self.outputs['cmds'].setdefault(key, []).append(False)
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, i_d=genome_dir, o_d=tree_dir, key=key)
@@ -486,7 +487,8 @@ def treeqa(
         if self.config.force or to_do(out):
             cmd = treeqa_cmd(self, tree_dir, qa_dir)
             if to_dos:
-                self.outputs['cmds'].setdefault(key, []).append(False)
+                if self.soft.name != 'checkm':
+                    self.outputs['cmds'].setdefault(key, []).append(False)
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, i_d=tree_dir, o_d=qa_dir, key=key)
@@ -590,7 +592,8 @@ def lineageset(
         if self.config.force or to_do(lineage_ms):
             cmd = lineageset_cmd(self, tree_dir, lineage_ms)
             if to_dos:
-                self.outputs['cmds'].setdefault(key, []).append(False)
+                if self.soft.name != 'checkm':
+                    self.outputs['cmds'].setdefault(key, []).append(False)
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, i_d=tree_dir, o_d=lineage_dir, key=key)
@@ -701,7 +704,8 @@ def analyze(
         if self.config.force or not glob.glob('%s/*' % analyze_dir):
             cmd = analyze_cmd(self, genomes_dir, lineage_dir, analyze_dir)
             if to_dos:
-                self.outputs['cmds'].setdefault(key, []).append(False)
+                if self.soft.name != 'checkm':
+                    self.outputs['cmds'].setdefault(key, []).append(False)
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(
@@ -853,7 +857,9 @@ def coverage(
                 if self.config.force or to_do(cov):
                     cmd = coverage_cmd(self, genome_dir, cov, bams)
                     if to_dos:
-                        self.outputs['cmds'].setdefault(key, []).append(False)
+                        if self.soft.name != 'checkm':
+                            self.outputs['cmds'].setdefault(key, []).append(
+                                False)
                     else:
                         self.outputs['cmds'].setdefault(key, []).append(cmd)
                     io_update(self, i_f=bams, i_d=genome_dir, o_f=cov, key=key)
@@ -1042,7 +1048,8 @@ def qa(
         if self.config.force or to_do(out):
             cmd = qa_cmd(self, lineage_ms, analyze_dir, qa_dir, cov)
             if to_dos:
-                self.outputs['cmds'].setdefault(key, []).append(False)
+                if self.soft.name != 'checkm':
+                    self.outputs['cmds'].setdefault(key, []).append(False)
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, i_f=[lineage_ms, cov], i_d=analyze_dir,
@@ -1144,7 +1151,8 @@ def unbinned(
         if self.config.force or to_do('%s/unbinned.fa' % unbinned_dir):
             cmd = unbinned_cmd(self, genomes_dir, contigs, unbinned_dir)
             if to_dos:
-                self.outputs['cmds'].setdefault(key, []).append(False)
+                if self.soft.name != 'checkm':
+                    self.outputs['cmds'].setdefault(key, []).append(False)
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(
