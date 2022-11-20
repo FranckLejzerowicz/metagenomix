@@ -852,6 +852,7 @@ def get_binners(
         print(bins.replace('${SCRATCH_FOLDER}', ''), len(fastas))
         if self.config.force or not fastas:
             binners.append(binner)
+    print(binners)
     return binners
 
 
@@ -950,6 +951,7 @@ def binning(self):
         self.outputs['outs'][key] = bin_dirs
 
         cmd = binning_cmd(self, fastqs, out, contigs, binned)
+        print(cmd)
         if cmd:
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
