@@ -1016,7 +1016,8 @@ def qa(
         Mame of a co-assembly pool's group
     """
     for genome, dirs in folders.items():
-
+        print("dirs")
+        print(dirs)
         analyze_dir = dirs[-1]
         qa_dir = genome_out_dir(self, tech, group, genome)
         if self.soft.name == 'checkm':
