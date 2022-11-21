@@ -1037,6 +1037,8 @@ def qa(
 
         key = genome_key(tech, group, genome)
         lineage_ms = '%s/lineage.ms' % lineage_dir
+        print("lineage_ms")
+        print(lineage_ms)
         to_dos = status_update(self, tech, [lineage_ms], group=group,
                                genome=genome, software='checkm')
 
