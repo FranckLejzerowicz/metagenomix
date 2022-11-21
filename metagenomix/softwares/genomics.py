@@ -1047,8 +1047,10 @@ def qa(
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
-            io_update(self, i_f=[lineage_ms, cov], i_d=analyze_dir,
-                      o_d=qa_dir, key=key)
+            i_f = [lineage_ms]
+            if cov:
+                i_f.append(cov)
+            io_update(self, i_f=i_f, i_d=analyze_dir, o_d=qa_dir, key=key)
             self.soft.add_status(
                 tech, self.sam_pool, 1, group=group, genome=genome)
         else:
