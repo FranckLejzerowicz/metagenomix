@@ -1016,8 +1016,7 @@ def qa(
         Mame of a co-assembly pool's group
     """
     for genome, dirs in folders.items():
-        print("dirs")
-        print(dirs)
+
         analyze_dir = dirs[-1]
         qa_dir = genome_out_dir(self, tech, group, genome)
         if self.soft.name == 'checkm':
@@ -1029,7 +1028,7 @@ def qa(
         else:
             if self.soft.prev != 'checkm_analyze':
                 sys.exit('[%s] Run "checkm_analyze" first' % self.soft.name)
-            lineage_dir = dirs[1]
+            lineage_dir = dirs[-2]
             cov = get_cov(self, tech, group, genome)
 
         self.outputs['dirs'].append(qa_dir)
@@ -1038,8 +1037,6 @@ def qa(
 
         key = genome_key(tech, group, genome)
         lineage_ms = '%s/lineage.ms' % lineage_dir
-        print("lineage_ms")
-        print(lineage_ms)
         to_dos = status_update(self, tech, [lineage_ms], group=group,
                                genome=genome, software='checkm')
 
