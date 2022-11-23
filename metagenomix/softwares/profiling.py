@@ -2492,7 +2492,7 @@ def bracken(self) -> None:
             out = '/'.join([self.dir, tech, self.sam_pool, db])
             self.outputs['dirs'].append(out)
             self.outputs['outs'].setdefault((tech, sam), []).extend(out)
-            if self.config.force or to_do('%s/result.tsv' % out):
+            if self.config.force or to_do('%s/results.tsv' % out):
                 cmd = bracken_cmd(self, tech, db_path, report, out)
                 if to_dos:
                     self.outputs['cmds'].setdefault((tech,), []).append(False)
