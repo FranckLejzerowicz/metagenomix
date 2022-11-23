@@ -415,6 +415,7 @@ class Created(object):
         m = max(len(x) for x in self.commands.softs) + 1
         for sdx, (name, soft) in enumerate(self.commands.softs.items()):
             self.print_status(m, sdx, name, soft)
+            self.write_bash(name, soft)
             if not len(soft.cmds):
                 continue
             self.hash += str(soft.hash)
@@ -426,7 +427,6 @@ class Created(object):
                 self.get_chunks(soft.params['chunks'])
                 self.write_jobs(name, soft)
                 self.write_main()
-            self.write_bash(name, soft)
             self.write_provenance(name, soft)
 
     def get_links(self, soft):
