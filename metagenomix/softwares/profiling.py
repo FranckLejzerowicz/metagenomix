@@ -724,11 +724,13 @@ def shogun(self) -> None:
         if self.soft.prev == 'bowtie2':
             to_dos = status_update(self, tech, list(inputs.values()))
             for (db, aligner), sam in inputs.items():
+                io_update(self, i_f=sam, key=tech)
                 ali = format_sam(sam, ali_cmds, self.sam_pool)
                 self.outputs['outs'][(tech, self.sam_pool)].setdefault(
                     (db, 'bowtie2'), []).append(ali)
                 shogun_taxonomy(self, tech, out, 'bowtie2', ali, db)
         elif params['databases']:
+            io_update(self, i_f=inputs, key=tech)
             to_dos = status_update(self, tech, inputs)
             fasta = combine_inputs(self, tech, inputs, out, combine_cmds)
             for db, aligners in params['databases'].items():
@@ -1751,7 +1753,14 @@ def woltka_kegg(
                 cmd += 'python3 %s/kegg_query.py %s/%s\n' % (
                     RESOURCES, kegg_maps_local, basename(tsv_))
                 self.outputs['bash'].append(cmd)
-
+    print()
+    print()
+    print("self.outputs['bash']")
+    print(self.outputs['bash'])
+    print()
+    print()
+    print("self.outputs['cmds']")
+    print(self.outputs['cmds'])
     self.outputs['outs'].setdefault((tech, aligner), []).extend(files)
 
 
