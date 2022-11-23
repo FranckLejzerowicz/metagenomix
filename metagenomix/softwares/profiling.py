@@ -1870,12 +1870,6 @@ def woltka(self) -> None:
                     woltka_metacyc(self, tech, pairing, aligner, genes_tax,
                                    db, params)
                 if 'kegg' in classifs:
-                    print(tech)
-                    print(pairing)
-                    print(aligner)
-                    print(uniref_tax)
-                    print(db)
-                    print(params)
                     woltka_kegg(self, tech, pairing, aligner, uniref_tax, db,
                                 params)
 

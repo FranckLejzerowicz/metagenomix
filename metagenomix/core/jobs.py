@@ -426,7 +426,7 @@ class Created(object):
                 self.get_chunks(soft.params['chunks'])
                 self.write_jobs(name, soft)
                 self.write_main()
-                self.write_bash(name, soft)
+            self.write_bash(name, soft)
             self.write_provenance(name, soft)
 
     def get_links(self, soft):
