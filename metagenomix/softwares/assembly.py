@@ -51,9 +51,9 @@ def quast_data(
         contigs.append(assembly_outputs[0])
         samples = group_samples[group[1]]
         label = '-'.join(group)
-        if self.soft.params['label']:
+        if self.soft.params.get('label'):
             vals = self.config.meta.loc[samples, self.soft.params['label']]
-            label += '-%s' % '__'.join(sorted(set(vals)))
+            label += '-%s' % '__'.join(sorted(set(vals))).replace(' ', '_')
         labels.append(label)
     return contigs, labels
 
@@ -187,8 +187,6 @@ def quast(self) -> None:
     for pool, group_sams in self.pools.items():
         for tech in set([x[0] for x in self.inputs[pool]]):
             out_dir = '%s/%s/%s' % (self.dir, tech, pool)
-            if self.soft.params['label']:
-                out_dir += '_%s' % self.soft.params['label']
             self.outputs['dirs'].append(out_dir)
             self.outputs['outs'][pool] = out_dir
 
