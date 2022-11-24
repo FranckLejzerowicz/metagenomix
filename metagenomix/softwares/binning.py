@@ -814,7 +814,7 @@ def refine(self):
                                      self.soft.params['max_contamination'])
         stats, bins = '%s.stats' % out, '%s_bins' % out
         self.outputs['outs'][key] = [bins, stats]
-        if not self.config.force and glob.glob('%s/*.fa' % bins):
+        if not self.config.force and not glob.glob('%s/*.fa' % bins):
             self.soft.add_status(tech, self.sam_pool, 0, group=group)
             continue
         if to_dos:
