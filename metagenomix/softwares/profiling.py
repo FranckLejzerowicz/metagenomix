@@ -1648,6 +1648,7 @@ def woltka_kegg(
                     io_update(self, i_f=biom, key=key)
 
             elif queried > 1:
+                io_update(self, i_d=kegg_maps, key=key)
                 input_biom = '%s/%s.biom' % (kegg_out, prev)
                 if to_do(biom):
                     cmd = '\n# kegg: %s [no stratification]\n' % name
@@ -1713,6 +1714,7 @@ def woltka_kegg(
                         io_update(self, i_f=biom, key=key)
 
                 elif queried > 1:
+                    io_update(self, i_d=kegg_maps, key=key)
                     input_biom = '%s/%s_%s.biom' % (kegg_out, prev, stratif)
                     if to_do(biom):
                         cmd = '\n# kegg: %s [%s]\n' % (name, stratif)
