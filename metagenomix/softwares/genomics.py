@@ -370,7 +370,7 @@ def tree(
         to_dos = status_update(self, tech, [genome_dir], group=group,
                                genome=genome, folder=True, software='checkm')
 
-        if self.config.force or not glob.glob('%s/*' % out_dir):
+        if self.config.force or not glob.glob('%s/checkm.log' % out_dir):
             cmd = tree_cmd(self, genome_dir, out_dir)
             if to_dos:# and self.soft.name != 'checkm':
                 self.outputs['cmds'].setdefault(key, []).append(False)
