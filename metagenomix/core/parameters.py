@@ -2490,6 +2490,7 @@ def check_lorikeet(self, params, soft):
         'disable_optimizations': [False, True],
         'disable_avx': [False, True],
         'parallel_genomes': 4,
+        'min_variant_depth_for_genotyping': [False, True]
     }
     if 'method' not in params:
         params['method'] = ['trimmed_mean', 'mean', 'metabat']
