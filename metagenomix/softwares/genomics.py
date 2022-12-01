@@ -1355,7 +1355,8 @@ def denovo_cmd(
         self,
         tech: str,
         in_dir: str,
-        out_dir: str
+        out_dir: str,
+        classify_in: str
 ) -> str:
     """Collect the command line for gtdbtk de_novo_wf.
 
@@ -1370,6 +1371,8 @@ def denovo_cmd(
         Path to the input directory
     out_dir : str
         Path to the output directory
+    classify_in : str
+        Path to the classify output "gtdbtk.bac120.summary.tsv"
 
     Returns
     -------
@@ -1399,8 +1402,13 @@ def denovo_cmd(
 
     if params['bacteria']:
         cmd += ' --bacteria'
+        if not to_do(classify_in):
+            cmd += ' --gtdbtk_classification_file %s' % classify_in
     elif params['archaea']:
         cmd += ' --archaea'
+        classify_ar = classify_in.replace('bac120', 'ar53')
+        if not to_do(classify_ar):
+            cmd += ' --gtdbtk_classification_file %s' % classify_ar
 
     for boolean in [
         'force', 'write_single_copy_genes', 'keep_intermediates',
@@ -1504,8 +1512,24 @@ def denovo(
 
         in_dir = fasta[0]
         out_dir = genome_out_dir(self, tech, group)
+
         if self.soft.name == 'gtdbtk':
             out_dir = add_folder(self, 'gtdbtk', out_dir, 'denovo')
+            classify_out = add_folder(self, 'gtdbtk', out_dir, 'classify')
+            classify_in = '%s/classify/gtdbtk.bac120.summary.tsv' % classify_out
+        else:
+            classify_out = self.softs['gtdbtk_classify'].outputs[
+                self.sam_pool][(tech, group)][-1]
+            classify_in = '%s/gtdbtk.bac120.summary.tsv' % classify_out
+
+        print()
+        print()
+        print("classify_out")
+        print(classify_out)
+        print()
+        print()
+        print("classify_in")
+        print(classify_in)
 
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
@@ -1513,10 +1537,9 @@ def denovo(
         key = genome_key(tech, group)
         to_dos = status_update(self, tech, [in_dir], group=group, folder=True)
 
-        out = '%s/gtdbtk.bac120.summary.tsv' % out_dir
         cmd = "export GTDBTK_DATA_PATH=%s\n" % self.databases.paths['gtdbtk']
-        if self.config.force or to_do(out):
-            cmd += denovo_cmd(self, tech, in_dir, out_dir)
+        if self.config.force:# or to_do(out):
+            cmd += denovo_cmd(self, tech, in_dir, out_dir, classify_in)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
