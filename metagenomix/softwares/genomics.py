@@ -1539,7 +1539,8 @@ def denovo(
         to_dos = status_update(self, tech, [in_dir], group=group, folder=True)
 
         cmd = "export GTDBTK_DATA_PATH=%s\n" % self.databases.paths['gtdbtk']
-        if self.config.force:# or to_do(out):
+        if 1:
+        # if self.config.force:  # or to_do(out):
             cmd += denovo_cmd(self, tech, in_dir, out_dir, classify_in)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
