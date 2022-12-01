@@ -55,6 +55,7 @@ def lorikeet_cmd(
     # if step == 'genotype':
     cmd += ' --bam-file-cache-directory %s' % tmp_dir
     cmd += ' --threads %s' % self.soft.params['cpus']
+
     if genome:
         cmd += ' --reference %s' % fasta_folder
     else:
@@ -69,6 +70,9 @@ def lorikeet_cmd(
                 if len(fastqs) == 1:
                     cmd_single += ' %s' % fastqs[0]
                 elif len(fastqs) == 2:
+                    cmd_coupled += ' %s' % ' '.join(fastqs)
+                elif len(fastqs) == 3:
+                    cmd_single += ' %s' % fastqs[0]
                     cmd_coupled += ' %s' % ' '.join(fastqs)
             elif fastqs:
                 cmd_longreads += ' %s' % fastqs[0]
@@ -125,6 +129,7 @@ def lorikeet_cmd(
         if self.soft.params[param]:
             cmd += ' --%s "%s"' % (
                 param.replace('_', '-'), ' '.join(self.soft.params[param]))
+
     cmd += ' --force'
     return cmd
 
@@ -304,6 +309,10 @@ def get_lorikeet(
             else:
                 group_reads = reads
 
+            print()
+            print("genome")
+            print(genome)
+            print()
             print("group_reads")
             print(group_reads)
 
