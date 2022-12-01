@@ -61,7 +61,7 @@ def lorikeet_cmd(
         cmd += ' --genome-fasta-directory %s' % fasta_folder
         cmd += ' --genome-fasta-extension %s' % get_extension(self)
 
-    cmd += ' --method %s' % ' '.join(self.soft.params['method'])
+    cmd += ' --method "%s"' % ' '.join(self.soft.params['method'])
     cmd_single, cmd_coupled, cmd_longreads = '', '', ''
     for sam, tech_sam_fastqs in group_reads.items():
         for tech_sam, fastqs in tech_sam_fastqs.items():
@@ -102,6 +102,7 @@ def lorikeet_cmd(
         'max_mnp_distance', 'parallel_genomes'
     ]:
         cmd += ' --%s %s' % (param.replace('_', '-'), self.soft.params[param])
+
     for boolean in [
         'discard_improper_pairs', 'discard_supplementary', 'include_secondary',
         'discard_unmapped', 'high_memory', 'splitbams',
@@ -115,6 +116,11 @@ def lorikeet_cmd(
     ]:
         if self.soft.params[boolean]:
             cmd += ' --%s' % boolean.replace('_', '-')
+
+    if step == 'genotype':
+        if self.soft.params['min_variant_depth_for_genotyping']:
+            cmd += ' --min-variant-depth-for-genotyping'
+
     for param in ['minimap2_params', 'bwa_params', 'ngmlr_params']:
         if self.soft.params[param]:
             cmd += ' --%s "%s"' % (
