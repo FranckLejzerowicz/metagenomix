@@ -14,7 +14,7 @@ from metagenomix._inputs import (group_inputs, genome_key, genome_out_dir,
 
 def lorikeet_cmd(
         self,
-        genome: str,
+        is_folder: bool,
         fasta_folder: str,
         group_reads: dict,
         out_dir: str,
@@ -28,8 +28,8 @@ def lorikeet_cmd(
     self : Commands class instance
         .soft.params
             Parameters
-    genome : str
-        MAGs/Genomes folder name or empty string (for assembly contigs)
+    is_folder : bool
+        Whether fasta_folder is a folder or not
     fasta_folder : str
         Path to aseembly fasta or to an input folder with the genomes/MAGs
     group_reads : dict
@@ -50,17 +50,15 @@ def lorikeet_cmd(
     cmd = 'mkdir -p %s\n' % tmp_dir
 
     cmd += 'lorikeet %s' % step
-    # cmd += ' --output-prefix %s_output' % step
     cmd += ' --output-directory %s' % out_dir
-    # if step == 'genotype':
     cmd += ' --bam-file-cache-directory %s' % tmp_dir
     cmd += ' --threads %s' % self.soft.params['cpus']
 
-    if genome:
-        cmd += ' --reference %s' % fasta_folder
-    else:
+    if is_folder:
         cmd += ' --genome-fasta-directory %s' % fasta_folder
         cmd += ' --genome-fasta-extension %s' % get_extension(self)
+    else:
+        cmd += ' --reference %s' % fasta_folder
 
     cmd += ' --method "%s"' % ' '.join(self.soft.params['method'])
     cmd_single, cmd_coupled, cmd_longreads = '', '', ''
@@ -298,8 +296,10 @@ def get_lorikeet(
 
         key = genome_key(tech, group, genome)
         if genome:
+            is_folder = True
             to_dos = status_update(self, tech, [fasta_folder], folder=True)
         else:
+            is_folder = False
             to_dos = status_update(self, tech, [fasta_folder])
 
         if self.config.force or not glob.glob('%s/*' % out_dir):
@@ -309,15 +309,8 @@ def get_lorikeet(
             else:
                 group_reads = reads
 
-            print()
-            print("genome")
-            print(genome)
-            print()
-            print("group_reads")
-            print(group_reads)
-
-            cmd = lorikeet_cmd(
-                self, genome, fasta_folder, group_reads, out_dir, key, step)
+            cmd = lorikeet_cmd(self, is_folder, fasta_folder,
+                               group_reads, out_dir, key, step)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
