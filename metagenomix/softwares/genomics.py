@@ -1354,6 +1354,7 @@ def checkm(self) -> None:
 def denovo_cmd(
         self,
         tech: str,
+        key: tuple,
         in_dir: str,
         out_dir: str,
         classify_in: str
@@ -1367,6 +1368,8 @@ def denovo_cmd(
             Parameters
     tech : str
         Technology
+    key : tuple
+        Current key identifying an input unit
     in_dir : str
         Path to the input directory
     out_dir : str
@@ -1403,11 +1406,13 @@ def denovo_cmd(
     if params['bacteria']:
         cmd += ' --bacteria'
         if not to_do(classify_in):
+            io_update(self, i_f=classify_in, key=key)
             cmd += ' --gtdbtk_classification_file %s' % classify_in
     elif params['archaea']:
         cmd += ' --archaea'
         classify_ar = classify_in.replace('bac120', 'ar53')
         if not to_do(classify_ar):
+            io_update(self, i_f=classify_ar, key=key)
             cmd += ' --gtdbtk_classification_file %s' % classify_ar
 
     for boolean in [
@@ -1541,7 +1546,7 @@ def denovo(
         cmd = "export GTDBTK_DATA_PATH=%s\n" % self.databases.paths['gtdbtk']
         if 1:
         # if self.config.force:  # or to_do(out):
-            cmd += denovo_cmd(self, tech, in_dir, out_dir, classify_in)
+            cmd += denovo_cmd(self, tech, key, in_dir, out_dir, classify_in)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
