@@ -370,7 +370,7 @@ def tree(
         to_dos = status_update(self, tech, [genome_dir], group=group,
                                genome=genome, folder=True, software='checkm')
 
-        if self.config.force or not glob.glob('%s/checkm.log' % out_dir):
+        if self.config.force or to_do('%s/checkm.log' % out_dir):
             cmd = tree_cmd(self, genome_dir, out_dir)
             if to_dos:# and self.soft.name != 'checkm':
                 self.outputs['cmds'].setdefault(key, []).append(False)
@@ -1389,12 +1389,6 @@ def denovo_cmd(
     cmd += ' --tmpdir $TMPDIR'
     cmd += ' --extension %s' % get_extension(self)
     cmd += ' --cpus %s' % self.soft.params['cpus']
-    cmd += ' --pplacer_cpus %s' % self.soft.params['cpus']
-    # if params['scratch']:
-    #     key_folder = 'gtdbtk_denovo_%s_%s' % (self.sam_pool, '-'.join(key))
-    #     scratch_dir = '${SCRATCH_FOLDER}/%s' % key_folder
-    #     scratch_cmd += 'mkdir -p %s\n' % scratch_dir
-    #     cmd += ' --scratch_dir %s' % scratch_dir
     for param in [
         'cols_per_gene', 'min_consensus', 'max_consensus', 'min_perc_taxa',
         'min_perc_aa', 'rnd_seed', 'prot_model', 'genes', 'taxa_filter',
