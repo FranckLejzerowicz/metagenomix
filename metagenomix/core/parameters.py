@@ -2490,7 +2490,7 @@ def check_lorikeet(self, params, soft):
         'disable_optimizations': [False, True],
         'disable_avx': [False, True],
         'parallel_genomes': 4,
-        'min_variant_depth_for_genotyping': [False, True]
+        'min_variant_depth_for_genotyping': 5
     }
     if 'method' not in params:
         params['method'] = ['trimmed_mean', 'mean', 'metabat']
@@ -2499,7 +2499,7 @@ def check_lorikeet(self, params, soft):
         'contig_end_exclusion', 'kmer_sizes', 'ploidy', 'qual_by_depth_filter',
         'qual_threshold', 'depth_per_sample_filter', 'min_base_quality',
         'min_mapq', 'base_quality_score_threshold', 'max_input_depth',
-        'min_contig_size', 'min_sv_qual',
+        'min_contig_size', 'min_sv_qual', 'min_variant_depth_for_genotyping',
         'phred_scaled_global_read_mismapping_rate',
         'pair_hmm_gap_continuation_penalty', 'min_assembly_region_size',
         'max_assembly_region_size', 'assembly_region_padding',

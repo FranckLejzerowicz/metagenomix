@@ -121,9 +121,9 @@ def lorikeet_cmd(
         if self.soft.params[boolean]:
             cmd += ' --%s' % boolean.replace('_', '-')
 
-    if step == 'genotype':
-        if self.soft.params['min_variant_depth_for_genotyping']:
-            cmd += ' --min-variant-depth-for-genotyping'
+    md = 'min_variant_depth_for_genotyping'
+    if step == 'genotype' and self.soft.params[md]:
+        cmd += ' --%s %s' % (md.replace('_', '-'), self.soft.params[md])
 
     for param in ['minimap2_params', 'bwa_params', 'ngmlr_params']:
         if self.soft.params[param]:
