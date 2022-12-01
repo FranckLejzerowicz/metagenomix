@@ -1511,13 +1511,14 @@ def denovo(
     for fasta in fastas.values():
 
         in_dir = fasta[0]
-        out_dir = genome_out_dir(self, tech, group)
+        out_dir_ = genome_out_dir(self, tech, group)
 
         if self.soft.name == 'gtdbtk':
-            out_dir = add_folder(self, 'gtdbtk', out_dir, 'denovo')
-            classify_out = add_folder(self, 'gtdbtk', out_dir, 'classify')
+            out_dir = add_folder(self, 'gtdbtk', out_dir_, 'denovo')
+            classify_out = add_folder(self, 'gtdbtk', out_dir_, 'classify')
             classify_in = '%s/classify/gtdbtk.bac120.summary.tsv' % classify_out
         else:
+            out_dir = out_dir_
             classify_out = self.softs['gtdbtk_classify'].outputs[
                 self.sam_pool][(tech, group)][-1]
             classify_in = '%s/gtdbtk.bac120.summary.tsv' % classify_out
