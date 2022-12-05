@@ -95,7 +95,7 @@ class Created(object):
         if soft:
             n = 'software'
             key = '%s%s' % (name, local)
-            if self.cmds:
+            if self.cmds or local:
                 self.main_sh = '%s/run%s.sh' % (soft.dir, local)
                 self.run[n][key] = self.main_sh
             else:

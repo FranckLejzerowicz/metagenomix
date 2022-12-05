@@ -1753,15 +1753,8 @@ def woltka_kegg(
                                           kegg_maps_local, basename(tsv_))
                 cmd += 'python3 %s/kegg_query.py %s/%s\n' % (
                     RESOURCES, kegg_maps_local, basename(tsv_))
+                cmd += 'rm %s/%s\n' % (kegg_maps_local, basename(tsv_))
                 self.outputs['bash'].append(cmd)
-    print()
-    print()
-    print("self.outputs['bash']")
-    print(self.outputs['bash'])
-    print()
-    print()
-    print("self.outputs['cmds']")
-    print(self.outputs['cmds'])
     self.outputs['outs'].setdefault((tech, aligner), []).extend(files)
 
 
