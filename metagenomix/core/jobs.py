@@ -99,6 +99,7 @@ class Created(object):
                 self.main_sh = '%s/run%s.sh' % (soft.dir, local)
                 self.run[n][key] = self.main_sh
             else:
+                self.main_sh = ''
                 self.run[n][key] = 'Input needed (output from %s)' % soft.prev
         else:
             self.main_sh = '%s/run_%s.sh' % (self.sh.rsplit('/', 2)[0], name)
@@ -117,9 +118,10 @@ class Created(object):
     def write_bash(self, name, soft) -> None:
         if soft.bash:
             self.get_main_sh(name, soft, '_locally')
-            with open(self.main_sh, 'w') as o:
-                for cmd in soft.bash:
-                    o.write('%s\n' % cmd)
+            if self.main_sh:
+                with open(self.main_sh, 'w') as o:
+                    for cmd in soft.bash:
+                        o.write('%s\n' % cmd)
 
     def get_provenance_fp(self, name, soft=None) -> str:
         if soft:
