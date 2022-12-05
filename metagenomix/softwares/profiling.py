@@ -1639,9 +1639,8 @@ def woltka_kegg(
                 if to_do(tsv):
                     cmd = 'biom convert -i %s' % biom
                     cmd += ' -o %s.tmp --to-tsv\n' % tsv
-                    cmd += ' tail -n +2 %s.tmp\n' % tsv
-                    cmd += ' > %s\n' % tsv
-                    cmd += ' rm %s.tmp\n' % tsv
+                    cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
+                    cmd += 'rm %s.tmp\n' % tsv
                     self.outputs['cmds'].setdefault(key, []).append(cmd)
                     io_update(self, o_f=tsv, key=key)
                 else:
