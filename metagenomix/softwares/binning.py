@@ -814,7 +814,7 @@ def refine(self):
                                      self.soft.params['max_contamination'])
         stats, bins = '%s.stats' % out, '%s_bins' % out
         self.outputs['outs'][key] = [bins, stats]
-        if not self.config.force and not glob.glob('%s/*.fa' % bins):
+        if not self.config.force and glob.glob('%s/*.fa' % bins):
             self.soft.add_status(tech, self.sam_pool, 0, group=group)
             continue
         if to_dos:
@@ -1175,3 +1175,57 @@ def binspreader(self):
         Contains all the attributes needed for binning on the current sample
     """
     pass
+
+
+def metabinner(self):
+    """MetaBinner consists of two modules: 1) “Component module” includes
+    steps 1-4, developed for generating high-quality, diverse component
+    binning results; and 2) “Ensemble module” includes step 5, developed for
+    recovering individual genomes from the component binning results.
+    MetaBinner is an ensemble binning method, but it does not need the
+    outputs of other individual binners. Instead, MetaBinner generates
+    multiple high-quality component binning results based on the proposed
+    “partial seed” method, for further integration. Please see our manuscript
+    for the details.
+
+    References
+    ----------
+    Wang, Z., Huang, P., You, R., Sun, F. and Zhu, S., 2021. MetaBinner: a
+    high-performance and stand-alone ensemble binning method to recover
+    individual genomes from complex microbial communities. bioRxiv.
+
+    Notes
+    -----
+    GitHub  : https://github.com/ziyewang/MetaBinner
+    Paper   : https://doi.org/10.1101/2021.07.25.453671
+    Docs    : http://www.cecill.info/
+
+    Parameters
+    ----------
+    self : Commands class instance
+    """
+    pass
+
+
+def semibin(self):
+    """Command tool for metagenomic binning with semi-supervised deep
+    learning using information from reference genomes in Linux and MacOS.
+
+    References
+    ----------
+    Pan, S., Zhu, C., Zhao, X.M. and Coelho, L.P., 2022. A deep siamese
+    neural network improves metagenome-assembled genomes in microbiome
+    datasets across different environments. Nature communications, 13(1),
+    pp.1-12.
+
+    Notes
+    -----
+    GitHub  : https://github.com/BigDataBiology/SemiBin/
+    Paper   : https://doi.org/10.1038/s41467-022-29843-y
+
+    Parameters
+    ----------
+    self : Commands class instance
+    """
+    pass
+
