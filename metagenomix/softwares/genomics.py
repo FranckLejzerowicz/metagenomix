@@ -1387,54 +1387,46 @@ def denovo_cmd(
     cmd = 'TMPDIR="$(dirname $TMPDIR)/dnv"\n'
     cmd += 'mkdir -p $TMPDIR\n'
 
-    if params['bacteria']:
+    for taxon in ['bacteria', 'archaea']:
+        if not params[taxon]:
+            continue
+
         classified = classify_in
-    else:
-        classified = classify_in.replace('bac120', 'ar53')
-    if not to_do(classified):
-        io_update(self, i_f=classified, key=key)
-    batch = "%s/batch_file.tsv" % out_dir
-    cmd += "awk '{print \"%s\"$1\".fa\\t\"$1}' %s > %s\n" % (
-        in_dir, classified, batch)
+        if taxon == 'archaea':
+            classified = classify_in.replace('bac120', 'ar53')
 
-    cmd += 'gtdbtk de_novo_wf'
-    cmd += ' --batchfile %s' % batch
-    # if params['batchfile']:
-    #     cmd += ' --batchfile %s' % params['batchfile']
-    # else:
-    #     cmd += ' --genome_dir %s' % in_dir
-    cmd += ' --out_dir %s' % out_dir
-    cmd += ' --tmpdir $TMPDIR'
-    cmd += ' --extension %s' % get_extension(self)
-    cmd += ' --cpus %s' % self.soft.params['cpus']
-    for param in [
-        'cols_per_gene', 'min_consensus', 'max_consensus', 'min_perc_taxa',
-        'min_perc_aa', 'rnd_seed', 'prot_model', 'genes', 'taxa_filter',
-        'outgroup_taxon', 'custom_taxonomy_file'
-    ]:
-        if params[param]:
-            cmd += ' --%s %s' % (param, params[param])
+        if not to_do(classified):
+            io_update(self, i_f=classified, key=key)
 
-    if params['bacteria']:
-        cmd += ' --bacteria'
-        # if not to_do(classify_in):
-        #     io_update(self, i_f=classify_in, key=key)
-        #     cmd += ' --gtdbtk_classification_file %s' % classify_in
-    elif params['archaea']:
-        cmd += ' --archaea'
-        # classify_ar = classify_in.replace('bac120', 'ar53')
-        # if not to_do(classify_ar):
-        #     io_update(self, i_f=classify_ar, key=key)
-        #     cmd += ' --gtdbtk_classification_file %s' % classify_ar
+        batch = "%s/batch_file.tsv" % out_dir
+        cmd += "tail -n +2 %s | awk '{print \"%s/\"$1\".fa\\t\"$1}' > %s\n" % (
+            classified, in_dir, batch)
+        cmd += 'gtdbtk de_novo_wf'
+        cmd += ' --batchfile %s' % batch
+        # if params['batchfile']:
+        #     cmd += ' --batchfile %s' % params['batchfile']
+        # else:
+        #     cmd += ' --genome_dir %s' % in_dir
+        cmd += ' --out_dir %s' % out_dir
+        cmd += ' --tmpdir $TMPDIR'
+        cmd += ' --extension %s' % get_extension(self)
+        cmd += ' --cpus %s' % self.soft.params['cpus']
+        cmd += ' --%s' % params[taxon]
+        for param in [
+            'cols_per_gene', 'min_consensus', 'max_consensus', 'min_perc_taxa',
+            'min_perc_aa', 'rnd_seed', 'prot_model', 'genes', 'taxa_filter',
+            'outgroup_taxon', 'custom_taxonomy_file'
+        ]:
+            if params[param]:
+                cmd += ' --%s %s' % (param, params[param])
+        for boolean in [
+            'force', 'write_single_copy_genes', 'keep_intermediates',
+            'skip_gtdb_refs', 'custom_msa_filters', 'no_support', 'gamma'
+        ]:
+            if params[boolean]:
+                cmd += ' --%s' % boolean
 
-    for boolean in [
-        'force', 'write_single_copy_genes', 'keep_intermediates',
-        'skip_gtdb_refs', 'custom_msa_filters', 'no_support', 'gamma'
-    ]:
-        if params[boolean]:
-            cmd += ' --%s' % boolean
-
-    cmd = scratch_cmd + cmd + '\n'
+        cmd = scratch_cmd + cmd + '\n'
     return cmd
 
 
@@ -1540,15 +1532,6 @@ def denovo(
                 self.sam_pool][(tech, group)][-1]
             classify_in = '%s/gtdbtk.bac120.summary.tsv' % classify_out
 
-        print()
-        print()
-        print("classify_out")
-        print(classify_out)
-        print()
-        print()
-        print("classify_in")
-        print(classify_in)
-
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
 
@@ -1556,8 +1539,8 @@ def denovo(
         to_dos = status_update(self, tech, [in_dir], group=group, folder=True)
 
         cmd = "export GTDBTK_DATA_PATH=%s\n" % self.databases.paths['gtdbtk']
-        if 1:
         # if self.config.force:  # or to_do(out):
+        if 1:
             cmd += denovo_cmd(self, tech, key, in_dir, out_dir, classify_in)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
