@@ -805,24 +805,23 @@ def refine(self):
         self.outputs['dirs'].append(out_dir)
 
         bin_folders = inputs[:-1]
-        to_dos = status_update(
-            self, tech, inputs, group=group, folder=True)
+        to_dos = status_update(self, tech, inputs, group=group, folder=True)
 
         cmd, n_bins = refine_cmd(self, out_dir, bin_folders)
-        out = '%s/metawrap_%s_%s' % (out_dir,
-                                     self.soft.params['min_completion'],
-                                     self.soft.params['max_contamination'])
+        out = '%s/metawrap_%s_%s' % (
+            out_dir, self.soft.params['min_completion'],
+            self.soft.params['max_contamination'])
         stats, bins = '%s.stats' % out, '%s_bins' % out
         self.outputs['outs'][key] = [bins, stats]
-        if not self.config.force and glob.glob('%s/*.fa' % bins):
-            self.soft.add_status(tech, self.sam_pool, 0, group=group)
-            continue
-        if to_dos:
-            self.outputs['cmds'].setdefault(key, []).append(False)
+        if self.config.force or not glob.glob('%s/*.fa' % bins):
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
+            io_update(self, i_d=bin_folders, o_f=stats, o_d=bins, key=key)
+            self.soft.add_status(tech, self.sam_pool, 1, group=group)
         else:
-            self.outputs['cmds'].setdefault(key, []).append(cmd)
-        io_update(self, i_d=bin_folders, o_f=stats, o_d=bins, key=key)
-        self.soft.add_status(tech, self.sam_pool, 1, group=group)
+            self.soft.add_status(tech, self.sam_pool, 0, group=group)
 
 
 def get_binners(
