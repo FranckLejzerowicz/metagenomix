@@ -776,6 +776,7 @@ def refine_cmd(
     cmd += ' -t %s' % self.soft.params['cpus']
     cmd += ' -c %s' % self.soft.params['min_completion']
     cmd += ' -x %s' % self.soft.params['max_contamination']
+    cmd += ' --skip-checkm'
     return cmd, n_bins
 
 
@@ -1174,7 +1175,23 @@ def binspreader(self):
     self : Commands class instance
         Contains all the attributes needed for binning on the current sample
     """
-    pass
+    reads = self.config.fastq_mv
+    if '_' in self.soft.name:
+        reads_tool = self.soft.name.split('_')[-1]
+        reads = self.softs[reads_tool].outputs
+
+    for (tech, group), inputs in self.inputs[self.sam_pool].items():
+        fastxs = []
+        if tech in self.config.techs:
+            fastxs += [fastq for sam in self.pools[self.sam_pool][group]
+                       for fastq in reads[sam].get((tech, sam), [])]
+        else:
+            for t in self.config.techs:
+                if t in tech:
+                    fastxs += [fastq for sam in self.pools[self.sam_pool][group]
+                               for fastq in reads[sam].get((t, sam), [])]
+        contigs = inputs[0]
+        get_yamb(self, tech, group, contigs, fastxs)
 
 
 def metabinner(self):
