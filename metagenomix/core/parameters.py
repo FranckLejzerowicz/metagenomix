@@ -3125,6 +3125,8 @@ def check_mobsuite(self, params, soft):
 def check_yamb(self, params, soft):
     defaults = {'l': 0, 'm': 0}
     check_nums(self, params, defaults, ['l', 'm'], int, soft.name)
+    check_binary(self, soft.name, params, defaults, 'path')
+    defaults['path'] = '<Path to the YAMB folder>'
     return defaults
 
 
