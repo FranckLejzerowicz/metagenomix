@@ -655,75 +655,7 @@ def integronfinder(self) -> None:
 #     return outs
 
 
-def search_cmd(
-        self,
-        tech: str,
-        sam_group: str,
-        proteins: str,
-        out_dir: str,
-        key: tuple,
-        to_dos: list
-) -> dict:
-    """Dispatch the command line creation for hmmer or diamond and
-    for the different reference databases.
-
-    Parameters
-    ----------
-    self : Commands class instance
-        .sam : str
-            Sample or co-assembly pool name
-        .outputs : dict
-            All outputs
-        .soft.params : dict
-            Parameters
-        .config
-            Configurations
-    tech : str
-        Technology: 'illumina', 'pacbio', or 'nanopore'
-    sam_group : str
-        Sample name or group for the current co-assembly
-    proteins : str
-        Path to the input proteins fasta file
-    out_dir : str
-        Path to the main output folder
-    key : tuple
-        Variables names for the current analytic level
-
-    Returns
-    -------
-    outs : dict
-        Paths to the output folder per database
-    """
-    outs = {}
-    params = tech_params(self, tech)
-    tmp = '$TMPDIR/%s_%s_%s' % (self.soft.name, self.sam_pool, '_'.join(key))
-    module_call = caller(self, __name__)
-    for db, db_paths in params['databases'].items():
-        for db_path in db_paths:
-            db_base = splitext(basename(db_path))[0]
-            db_out_dir = '%s/%s' % (out_dir, db_base)
-            self.outputs['dirs'].append(db_out_dir)
-
-            out = '%s/%s.tsv' % (db_out_dir, db_base)
-            outs.setdefault((db, db_base), []).append(db_out_dir)
-
-            if self.config.force or to_do(out):
-                cmd = module_call(params, proteins, db_path, out, tmp)
-                if to_dos:
-                    self.outputs['cmds'].setdefault(key, []).append(False)
-                else:
-                    self.outputs['cmds'].setdefault(key, []).append(cmd)
-                io_update(self, i_f=proteins, o_d=db_out_dir, key=key)
-                self.soft.add_status(
-                    tech, self.sam_pool, 1, group=sam_group, genome=db)
-            else:
-                self.soft.add_status(
-                    tech, self.sam_pool, 0, group=sam_group, genome=db)
-
-    return outs
-
-
-def diamond(
+def diamond_cmd(
         params: dict,
         fp: str,
         db_path: str,
@@ -774,12 +706,79 @@ def diamond(
     return cmd
 
 
-def hmmer(
+def diamond(
+        self,
+        tech: str,
+        sam_group: str,
+        proteins: str,
+        out_dir: str,
+        key: tuple,
+        to_dos: list
+) -> dict:
+    """Dispatch the command line creation for hmmer or diamond and
+    for the different reference databases.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .sam : str
+            Sample or co-assembly pool name
+        .outputs : dict
+            All outputs
+        .soft.params : dict
+            Parameters
+        .config
+            Configurations
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    sam_group : str
+        Sample name or group for the current co-assembly
+    proteins : str
+        Path to the input proteins fasta file
+    out_dir : str
+        Path to the main output folder
+    key : tuple
+        Variables names for the current analytic level
+    to_dos : list
+        List of file that
+
+    Returns
+    -------
+    outs : dict
+        Paths to the output folder per database
+    """
+    outs = {}
+    params = tech_params(self, tech)
+    # tmp = '$TMPDIR/%s_%s_%s' % (self.soft.name, self.sam_pool, '_'.join(key))
+    # for db, db_paths in params['databases'].items():
+    #     for db_path in db_paths:
+    #         db_base = splitext(basename(db_path))[0]
+    #         db_out_dir = '%s/%s' % (out_dir, db_base)
+    #         self.outputs['dirs'].append(db_out_dir)
+    #
+    #         out = '%s/%s.tsv' % (db_out_dir, db_base)
+    #         outs.setdefault((db, db_base), []).append(db_out_dir)
+    #
+    #         if self.config.force or to_do(out):
+    #             cmd = diamond_cmd(params, proteins, db_path, out, tmp)
+    #             if to_dos:
+    #                 self.outputs['cmds'].setdefault(key, []).append(False)
+    #             else:
+    #                 self.outputs['cmds'].setdefault(key, []).append(cmd)
+    #             io_update(self, i_f=proteins, o_d=db_out_dir, key=key)
+    #             self.soft.add_status(
+    #                 tech, self.sam_pool, 1, group=sam_group, genome=db)
+    #         else:
+    #             self.soft.add_status(
+    #                 tech, self.sam_pool, 0, group=sam_group, genome=db)
+    return outs
+
+
+def hmmer_cmd(
         params: dict,
         fp: str,
         db_path: str,
-        out: str,
-        _: str
+        out: str
 ) -> str:
     """Collect the command line for HMMER.
 
@@ -798,8 +797,6 @@ def hmmer(
         Path to the reference hmm database
     out : str
         Path to the output file
-    _ : str
-        Unused argument
 
     Returns
     -------
@@ -825,6 +822,72 @@ def hmmer(
     cmd += ' %s' % db_path
     cmd += ' %s' % fp
     return cmd
+
+
+def hmmer(
+        self,
+        tech: str,
+        sam_group: str,
+        proteins: str,
+        out_dir: str,
+        key: tuple,
+        to_dos: list
+) -> dict:
+    """Go through every sample / co-assembly group to collect the
+    hmmer command lines for the different search terms or pfam models.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .sam : str
+            Sample or co-assembly pool name
+        .outputs : dict
+            All outputs
+        .soft.params : dict
+            Parameters
+        .config
+            Configurations
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    sam_group : str
+        Sample name or group for the current co-assembly
+    proteins : str
+        Path to the input proteins fasta file
+    out_dir : str
+        Path to the main output folder
+    key : tuple
+        Variables names for the current analytic level
+
+    Returns
+    -------
+    outs : dict
+        Paths to the output folder per database
+    """
+    outs = {}
+    params = tech_params(self, tech)
+    # if params.get('descriptions'):
+    #     print(self.databases.pfams)
+    #     print(self.databases.hmms_dias.keys())
+    #     print(selfdatabases)
+    #     db_out_dir = '%s/%s' % (out_dir, db_base)
+    #     self.outputs['dirs'].append(db_out_dir)
+    #
+    #     out = '%s/%s.tsv' % (db_out_dir, db_base)
+    #     outs.setdefault((db, db_base), []).append(db_out_dir)
+    #
+    #     if self.config.force or to_do(out):
+    #         cmd = hmmer_cmd(params, proteins, db_path, out)
+    #         if to_dos:
+    #             self.outputs['cmds'].setdefault(key, []).append(False)
+    #         else:
+    #             self.outputs['cmds'].setdefault(key, []).append(cmd)
+    #         io_update(self, i_f=proteins, o_d=db_out_dir, key=key)
+    #         self.soft.add_status(
+    #             tech, self.sam_pool, 1, group=sam_group, genome=db)
+    #     else:
+    #         self.soft.add_status(
+    #             tech, self.sam_pool, 0, group=sam_group, genome=db)
+    return outs
 
 
 def get_search(
@@ -863,7 +926,8 @@ def get_search(
         to_dos = status_update(
             self, tech, [proteins], group=sam_group, genome=genome)
 
-        outs = search_cmd(self, tech, sam_group, proteins, out_dir, key, to_dos)
+        search_ = caller(self, __name__)
+        outs = search_(self, tech, sam_group, proteins, out_dir, key, to_dos)
         if outs:
             self.outputs['outs'].setdefault((tech, sam_group), {}).update(outs)
 
@@ -1059,7 +1123,7 @@ def get_prokka(
     for config in configs:
 
         to_dos.extend(status_update(
-            self, tech, [inputs[0]], group=group, genome=config))
+            self, tech, [inputs[0]], group=group, genome=list(config)[0]))
 
         pref = '_'.join([config[x] for x in cols if config[x]])
         if config.get('proteins'):
@@ -1068,10 +1132,10 @@ def get_prokka(
         if self.config.force or to_do(file_out):
             cmd += prokka_cmd(self, inputs[0], out_dir, pref, config, cols)
             self.soft.add_status(
-                tech, self.sam_pool, 1, group=group, genome=config)
+                tech, self.sam_pool, 1, group=group, genome=list(config)[0])
         else:
             self.soft.add_status(
-                tech, self.sam_pool, 0, group=group, genome=config)
+                tech, self.sam_pool, 0, group=group, genome=list(config)[0])
     return to_dos, cmd
 
 
@@ -1823,6 +1887,86 @@ def ioncom(self):
     -----
     Paper   : https://doi.org/10.1093/bioinformatics/btw396
     Docs    : http://zhanglab.ccmb.med.umich.edu/IonCom
+
+    Parameters
+    ----------
+    self : Commands class instance
+    """
+    pass
+
+
+def gmove(self):
+    """Gene modelling using various evidence.
+
+    References
+    ----------
+
+
+    Notes
+    -----
+    GitHub  : https://github.com/institut-de-genomique/Gmove
+    Paper   :
+    Docs    :
+
+    Parameters
+    ----------
+    self : Commands class instance
+    """
+    pass
+
+
+def gmove(self):
+    """Gene modelling using various evidence.
+
+    References
+    ----------
+
+
+    Notes
+    -----
+    GitHub  : https://github.com/institut-de-genomique/Gmove
+    Paper   :
+    Docs    :
+
+    Parameters
+    ----------
+    self : Commands class instance
+    """
+    pass
+
+
+def srst2(self):
+    """
+
+    References
+    ----------
+
+
+    Notes
+    -----
+    GitHub  : https://github.com/katholt/srst2
+    Paper   :
+    Docs    :
+
+    Parameters
+    ----------
+    self : Commands class instance
+    """
+    pass
+
+
+def pirate(self):
+    """
+
+    References
+    ----------
+
+
+    Notes
+    -----
+    GitHub  : https://github.com/tseemann/PIRATE
+    Paper   :
+    Docs    :
 
     Parameters
     ----------
