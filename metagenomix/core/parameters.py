@@ -2854,15 +2854,29 @@ def check_binspreader(self, params, soft):
         'no_unbinned_bin': [False, True],
         'length_threshold': [None],
         'distance_bound': [None],
+        'dataset': [None],
         'reads': [False, True]
     }
+
+    if 'hi_c' in params:
+        if not isinstance(params['hi_c'], dict):
+            sys.exit('[binspreader] Param "hi_c" must be a dict')
+        for k, v in params['hi_c'].items():
+            if not isinstance(v, list) or len(
+                [x for x in v if x[0] == '/']
+            ) != 2:
+                sys.exit('[binspreader] Param "hi_c" dict value in not 2 paths')
+    else:
+        params['hi_c'] = {}
+
     ints = ['l', 'n']
     check_nums(self, params, defaults, ints, int, soft.name)
     floats = ['e', 'la', 'metaalpha', 'bin_weight']
     check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
-    check_default(self, params, defaults, soft.name, (ints + floats))
-    check_binary(self, soft.name, params, defaults, 'path')
-    defaults['path'] = '<Path to BinSPreader installation folder>'
+    defaults['hi_c'] = '<Dict of Hi-C fastq files (values) per sample (keys)>'
+    check_default(self, params, defaults, soft.name, (ints + floats + ['hi_c']))
+    check_binary(self, soft.name, params, defaults, 'binary')
+    defaults['binary'] = '<Path to BinSPreader installation executable>'
     return defaults
 
 
@@ -3378,11 +3392,20 @@ def check_gtdbtk(self, params, soft):
         'custom_msa_filters': [False, True],
         'write_single_copy_genes': [False, True],
     }
-    if params.get('outgroup_taxon', None) is None:
+    if params.get('outgroup_taxon'):
+        if not isinstance(params.get['outgroup_taxon'], dict):
+            sys.exit('[gtdbtk] Param "outgroup_taxon" must be a dict')
+        if not params['outgroup_taxon'].get('bacteria'):
+            params['outgroup_taxon']['bacteria'] = 'p__Cyanobacteria'
+        if not params['outgroup_taxon'].get('archaea'):
+            params['outgroup_taxon']['archaea'] = 'p__Undinarchaeota'
+    else:
+        params['outgroup_taxon'] = {}
         if params.get('bacteria', True):
-            params['outgroup_taxon'] = 'p__Cyanobacteria'
-        else:
-            params['outgroup_taxon'] = 'p__Undinarchaeota'
+            params['outgroup_taxon']['bacteria'] = 'p__Cyanobacteria'
+        if params.get('archaea', False):
+            params['outgroup_taxon']['archaea'] = 'p__Undinarchaeota'
+
     ints = ['rnd_seed', 'cols_per_gene']
     check_nums(self, params, defaults, ints, int, soft.name)
     ints2 = ['min_perc_aa', 'min_consensus', 'max_consensus', 'min_perc_taxa']
@@ -3391,8 +3414,8 @@ def check_gtdbtk(self, params, soft):
     check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
     check_default(self, params, defaults, soft.name,
                   (ints + ints2 + floats + ['outgroup_taxon']))
-    defaults['outgroup_taxon'] = 'outgroup taxon (bacteria: p__Cyanobacteria;' \
-                                 ' archaea: p__Undinarchaeota)'
+    defaults['outgroup_taxon'] = {'bacteria': 'p__Cyanobacteria',
+                                  'archaea': 'p__Undinarchaeota'}
     return defaults
 
 

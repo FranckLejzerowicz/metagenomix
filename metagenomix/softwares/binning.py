@@ -8,8 +8,13 @@
 
 import sys
 import glob
-from metagenomix._io_utils import caller, status_update, io_update, to_do
+import pkg_resources
+from os.path import dirname
+from metagenomix._io_utils import (
+    caller, status_update, io_update, to_do, get_assembly)
 from metagenomix.core.parameters import tech_params
+
+SCRIPTS = pkg_resources.resource_filename("metagenomix", "resources/scripts")
 
 
 def get_sams_fastqs(
@@ -1147,6 +1152,73 @@ def mycc(self):
     pass
 
 
+def binspreader_cmd(
+        self,
+        tech: str,
+        graph: str,
+        inputs: dict,
+        assembly: dict,
+        group: str,
+        out_dir: str
+):
+    """Collect the command line for BinSPreader.
+
+    Parameters
+    ----------
+    self
+    tech : str
+    graph : str
+    inputs : dict
+    assembly : dict
+    group : str
+    out_dir : str
+
+    Returns
+    -------
+    cmd : str
+        BinSPreader command line
+    """
+    params = tech_params(self, tech)
+
+    contigs_per_bin = '%s/contigs_per_bin.tsv' % out_dir
+    cmd = '%s/contigs_per_bin.py -i %s -m %s -o %s\n' % (
+        SCRIPTS, inputs, self.soft.prev, contigs_per_bin)
+
+    cmd += '%s' % params['binary']
+    cmd += ' -t %s' % params['cpus']
+    cmd += ' %s' % graph
+    cmd += ' %s' % contigs_per_bin
+    cmd += ' %s' % out_dir
+    # cmd += ' --paths %s' % paths
+    if params['dataset']:
+        cmd += ' --dataset %s' % params['dataset']
+    for param in ['l', 'e', 'n', 'la']:
+        cmd += ' -%s %s' % (param, params[param])
+    for param in ['metaalpha', 'bin_weight']:
+        cmd += ' --%s %s' % (param.replace('_', '-'), params[param])
+    for boolean in ['m', 'cami', 'zero_bin', 'tall_multi', 'bin_dist',
+                    'sparse_propagation', 'no_unbinned_bin', 'reads',
+                    'length_threshold', 'distance_bound']:
+        if params[boolean]:
+            if len(boolean) > 1:
+                cmd += ' --%s %s' % (param.replace('_', '-'), params[param])
+            else:
+                cmd += ' -%s %s' % (param, params[param])
+
+    if params['Smax']:
+        cmd += ' -Smax'
+    else:
+        cmd += ' -Smle'
+    if params['Rcorr']:
+        cmd += ' -Rcorr'
+    else:
+        cmd += ' -Rprop'
+
+    tmp_dir = '$TMPDIR/bnsprdr_%s_%s_%s' % (self.sam_pool, tech, group)
+    cmd += ' --tmp-dir %s' % tmp_dir
+    return cmd
+
+
 def binspreader(self):
     """
     BinSPreader is a novel tool that attempts to refine metagenome-assembled
@@ -1173,23 +1245,40 @@ def binspreader(self):
     self : Commands class instance
         Contains all the attributes needed for binning on the current sample
     """
-    reads = self.config.fastq_mv
-    if '_' in self.soft.name:
-        reads_tool = self.soft.name.split('_')[-1]
-        reads = self.softs[reads_tool].outputs
+    if self.config.tools[self.soft.prev] == 'binning':
+        assembly = get_assembly(self)
+        for (tech, group), inputs in self.inputs[self.sam_pool].items():
+            in_dir = inputs[0]
+            print()
+            print("inputs")
+            print(inputs)
+            print()
+            print("in_dir")
+            print(in_dir)
+            print(input_didsar)
 
-    for (tech, group), inputs in self.inputs[self.sam_pool].items():
-        fastxs = []
-        if tech in self.config.techs:
-            fastxs += [fastq for sam in self.pools[self.sam_pool][group]
-                       for fastq in reads[sam].get((tech, sam), [])]
-        else:
-            for t in self.config.techs:
-                if t in tech:
-                    fastxs += [fastq for sam in self.pools[self.sam_pool][group]
-                               for fastq in reads[sam].get((t, sam), [])]
-        contigs = inputs[0]
-        get_yamb(self, tech, group, contigs, fastxs)
+            graph = '%s/assembly_graph_with_scaffolds.gfa' % dirname(
+                assembly[(tech, group)][0])
+            to_dos = status_update(self, tech, [graph], group=group)
+            to_dos.extend(
+                status_update(self, tech, [in_dir], group=group, folder=True))
+
+            key = (tech, group)
+            out_dir = '/'.join([self.dir, tech, self.sam_pool, group])
+            self.outputs['dirs'].append(out_dir)
+            self.outputs['outs'][key] = out_dir
+
+            if self.config.force or to_do('%s/binning.tsv' % out_dir):
+                if to_dos:
+                    self.outputs['cmds'].setdefault(key, []).append(False)
+                else:
+                    cmd = binspreader_cmd(self, tech, graph, inputs, assembly,
+                                          group, out_dir)
+                    self.outputs['cmds'].setdefault(key, []).append(cmd)
+                io_update(self, i_f=graph, i_d=in_dir, o_d=out_dir, key=key)
+                self.soft.add_status(tech, self.sam_pool, 1, group=group)
+            else:
+                self.soft.add_status(tech, self.sam_pool, 0, group=group)
 
 
 def metabinner(self):
