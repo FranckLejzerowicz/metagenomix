@@ -882,3 +882,32 @@ def get_size_info(dat):
         fs += 's'
     info = '%s (./%s)' % (fs, '; ./'.join(['='.join(x) for x in sizes.items()]))
     return info, sizes
+
+
+def get_techs(tech: str):
+    """Get the list of technologies, incl. in hybrid assemblies.
+
+    Parameters
+    ----------
+    tech : str
+        Technology/ies iterated over
+
+    Returns
+    -------
+    techs : list
+        List of technologies
+    """
+    techs = [tech]
+    if tech.startswith('hybrid'):
+        techs = tech[8:].split('_')
+    return techs
+
+
+def get_assembly(self):
+    for software in self.soft.path[::-1]:
+        if self.config.tools[software] == 'assembling':
+            contigs = self.softs[software].outputs[self.sam_pool]
+            break
+    else:
+        sys.exit('[%s] No previous assembly output found' % self.soft.prev)
+    return contigs
