@@ -2857,24 +2857,11 @@ def check_binspreader(self, params, soft):
         'dataset': [None],
         'reads': [False, True]
     }
-
-    if 'hi_c' in params:
-        if not isinstance(params['hi_c'], dict):
-            sys.exit('[binspreader] Param "hi_c" must be a dict')
-        for k, v in params['hi_c'].items():
-            if not isinstance(v, list) or len(
-                [x for x in v if x[0] == '/']
-            ) != 2:
-                sys.exit('[binspreader] Param "hi_c" dict value in not 2 paths')
-    else:
-        params['hi_c'] = {}
-
     ints = ['l', 'n']
     check_nums(self, params, defaults, ints, int, soft.name)
     floats = ['e', 'la', 'metaalpha', 'bin_weight']
     check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
-    defaults['hi_c'] = '<Dict of Hi-C fastq files (values) per sample (keys)>'
-    check_default(self, params, defaults, soft.name, (ints + floats + ['hi_c']))
+    check_default(self, params, defaults, soft.name, (ints + floats))
     check_binary(self, soft.name, params, defaults, 'binary')
     defaults['binary'] = '<Path to BinSPreader installation executable>'
     return defaults
