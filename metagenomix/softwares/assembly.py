@@ -414,8 +414,10 @@ def megahit_cmd(
         self,
         inputs: list,
         group: str,
-        tmp: str,
         out: str,
+        contigs: str,
+        fastg: str,
+        key: tuple
 ) -> str:
     """Create command lines for SPAdes.
 
@@ -428,10 +430,13 @@ def megahit_cmd(
         Paths to the input fasta/fastq.gz files
     group : str
         Name of a group for the current co-assembly pool
-    tmp : str
-        Temporary folder for SPAdes
     out : str
         Path to the output folder
+    contigs : str
+        Path to the final contigs file
+    fastg : str
+        Path to the longest k-mer contigs file
+    key : tuple
 
     Returns
     -------
@@ -440,38 +445,50 @@ def megahit_cmd(
     inputs : list
         Path to the input files
     """
+    tmp = '$TMPDIR/megahit_%s_%s' % (self.sam_pool, group)
     cmd = 'mkdir -p %s\n' % tmp
-    cmd += 'rm -rf %s\n' % out
-    cmd += 'megahit'
-    cmd += ' --tmp-dir %s' % tmp
-    cmd += ' --out-prefix %s' % group
-    cmd += ' --num-cpu-threads %s' % self.soft.params['cpus']
+
+    m_cmd = 'megahit'
+    m_cmd += ' --tmp-dir %s' % tmp
+    m_cmd += ' --out-prefix %s' % group
+    m_cmd += ' --num-cpu-threads %s' % self.soft.params['cpus']
     for p in ['presets']:
         if self.soft.params[p]:
-            cmd += ' --%s %s' % (p.replace('_', '-'), self.soft.params[p])
+            m_cmd += ' --%s %s' % (p.replace('_', '-'), self.soft.params[p])
     for p in [
         'mem_flag', 'bubble_level', 'prune_level', 'k_min', 'k_max', 'k_step',
         'min_count', 'prune_depth', 'cleaning_rounds', 'min_contig_len',
         'merge_level', 'disconnect_ratio', 'low_local_ratio', 'memory'
     ]:
         if self.soft.params[p]:
-            cmd += ' --%s %s' % (p.replace('_', '-'), self.soft.params[p])
+            m_cmd += ' --%s %s' % (p.replace('_', '-'), self.soft.params[p])
     for boolean in [
         'no_mercy', 'no_local', 'kmin_1pass', 'no_hw_accel', 'keep_tmp_files'
     ]:
         if self.soft.params[boolean]:
-            cmd += ' --%s' % boolean.replace('_', '-')
-    cmd += ' --out-dir %s' % out
+            m_cmd += ' --%s' % boolean.replace('_', '-')
+    m_cmd += ' --out-dir %s' % out
     out_folder = '%s/intermediate_contigs' % out
     if self.soft.params['continue'] and not to_do(folder=out_folder):
-        cmd += ' --continue'
+        m_cmd += ' --continue\n'
     else:
         if len(inputs) == 3:
-            cmd += ' --read %s -1 %s -2 %s' % tuple(inputs)
+            m_cmd += ' --read %s -1 %s -2 %s\n' % tuple(inputs)
         if len(inputs) == 2:
-            cmd += ' -1 %s -2 %s' % tuple(inputs)
+            m_cmd += ' -1 %s -2 %s\n' % tuple(inputs)
         if len(inputs) == 1:
-            cmd += ' --read %s' % inputs[0]
+            m_cmd += ' --read %s\n' % inputs[0]
+
+    if to_do(contigs) or self.config.force:
+        cmd += 'rm -rf %s\n' % out
+        cmd += m_cmd
+    else:
+        io_update(self, i_d=out, o_d=out, key=key)
+
+    if to_do(fastg) or self.config.force:
+        cmd += 'megahit_toolkit contig2fastg %s %s > %s\n' % (
+            self.soft.params['k_max'], fastg.replace('.fg', '.fa'), fastg)
+
     cmd += '\nrm -rf %s\n' % tmp
     return cmd
 
@@ -517,16 +534,17 @@ def megahit(self) -> None:
         inputs = techs_inputs[tech]
         to_dos = status_update(self, tech, inputs, group=group)
 
-        tmp = '$TMPDIR/megahit_%s_%s' % (self.sam_pool, group)
         out = '%s/%s/%s' % (self.dir, self.sam_pool, group)
         self.outputs['dirs'].append(out)
 
         contigs = '%s/%s.contigs.fa' % (out, group)
-        self.outputs['outs'][(tech, group)] = [contigs, out]
+        fastg = '%s/intermediate_contigs/k%s.contigs.fg' % (
+            out, self.soft.params['k_max'])
+        self.outputs['outs'][(tech, group)] = [contigs, out, fastg]
 
-        if self.config.force or to_do(contigs):
-            cmd = megahit_cmd(self, inputs, group, tmp, out)
+        if self.config.force or to_do(contigs) or to_do(fastg):
             key = (tech, group)
+            cmd = megahit_cmd(self, inputs, group, out, contigs, fastg, key)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
@@ -1265,3 +1283,20 @@ def necat(self) -> None:
             self.soft.add_status(tech, self.sam_pool, 1, group=group)
         else:
             self.soft.add_status(tech, self.sam_pool, 0, group=group)
+
+
+def trycycler(self) -> None:
+    """
+
+    References
+    ----------
+
+    Notes
+    -----
+    Paper   : https://doi.org/10.1186/s13059-021-02483-z
+
+    Parameters
+    ----------
+    self : Commands class instance
+    """
+    pass
