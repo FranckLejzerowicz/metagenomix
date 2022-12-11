@@ -1180,11 +1180,11 @@ def binspreader_cmd(
     contigs_per_bin = '%s/contigs_per_bin.tsv' % out_dir
     cmd = '%s/contigs_per_bin.py -i %s -m %s -o %s\n' % (
         SCRIPTS, inputs, self.soft.prev, contigs_per_bin)
-    cmd += '%s' % params['binary']
-    cmd += ' -t %s' % params['cpus']
+    cmd += '%s/bin-refine' % params['path']
     cmd += ' %s' % graph
     cmd += ' %s' % contigs_per_bin
     cmd += ' %s' % out_dir
+    cmd += ' -t %s' % params['cpus']
     # cmd += ' --paths %s' % paths
     if params['dataset']:
         cmd += ' --dataset %s' % params['dataset']
