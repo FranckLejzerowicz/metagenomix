@@ -1064,7 +1064,7 @@ def get_yamb(self, tech, group, contigs, fastxs):
     key = (tech, group)
     out_dir = '/'.join([self.dir, tech, self.sam_pool, group])
     self.outputs['dirs'].append(out_dir)
-    self.outputs['outs'][key] = out_dir
+    self.outputs['outs'][key] = [out_dir]
 
     out = '%s/yamb-pp-*-hdbscan.csv' % out_dir
     if self.config.force or not glob.glob(out):
@@ -1157,7 +1157,6 @@ def binspreader_cmd(
         tech: str,
         graph: str,
         inputs: dict,
-        assembly: dict,
         group: str,
         out_dir: str
 ):
@@ -1169,7 +1168,6 @@ def binspreader_cmd(
     tech : str
     graph : str
     inputs : dict
-    assembly : dict
     group : str
     out_dir : str
 
@@ -1179,11 +1177,9 @@ def binspreader_cmd(
         BinSPreader command line
     """
     params = tech_params(self, tech)
-
     contigs_per_bin = '%s/contigs_per_bin.tsv' % out_dir
     cmd = '%s/contigs_per_bin.py -i %s -m %s -o %s\n' % (
         SCRIPTS, inputs, self.soft.prev, contigs_per_bin)
-
     cmd += '%s' % params['binary']
     cmd += ' -t %s' % params['cpus']
     cmd += ' %s' % graph
@@ -1204,7 +1200,6 @@ def binspreader_cmd(
                 cmd += ' --%s %s' % (param.replace('_', '-'), params[param])
             else:
                 cmd += ' -%s %s' % (param, params[param])
-
     if params['Smax']:
         cmd += ' -Smax'
     else:
@@ -1213,7 +1208,6 @@ def binspreader_cmd(
         cmd += ' -Rcorr'
     else:
         cmd += ' -Rprop'
-
     tmp_dir = '$TMPDIR/bnsprdr_%s_%s_%s' % (self.sam_pool, tech, group)
     cmd += ' --tmp-dir %s' % tmp_dir
     return cmd
@@ -1255,8 +1249,6 @@ def binspreader(self):
             print()
             print("in_dir")
             print(in_dir)
-            print(input_didsar)
-
             graph = '%s/assembly_graph_with_scaffolds.gfa' % dirname(
                 assembly[(tech, group)][0])
             to_dos = status_update(self, tech, [graph], group=group)
@@ -1266,13 +1258,13 @@ def binspreader(self):
             key = (tech, group)
             out_dir = '/'.join([self.dir, tech, self.sam_pool, group])
             self.outputs['dirs'].append(out_dir)
-            self.outputs['outs'][key] = out_dir
+            self.outputs['outs'][key] = [out_dir]
 
             if self.config.force or to_do('%s/binning.tsv' % out_dir):
                 if to_dos:
                     self.outputs['cmds'].setdefault(key, []).append(False)
                 else:
-                    cmd = binspreader_cmd(self, tech, graph, inputs, assembly,
+                    cmd = binspreader_cmd(self, tech, graph, inputs,
                                           group, out_dir)
                     self.outputs['cmds'].setdefault(key, []).append(cmd)
                 io_update(self, i_f=graph, i_d=in_dir, o_d=out_dir, key=key)
