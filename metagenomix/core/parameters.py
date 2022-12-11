@@ -2862,8 +2862,8 @@ def check_binspreader(self, params, soft):
     floats = ['e', 'la', 'metaalpha', 'bin_weight']
     check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
     check_default(self, params, defaults, soft.name, (ints + floats))
-    check_binary(self, soft.name, params, defaults, 'binary')
-    defaults['binary'] = '<Path to BinSPreader installation executable>'
+    check_binary(self, soft.name, params, defaults, 'path')
+    defaults['path'] = '<Path to BinSPreader installation folder>'
     return defaults
 
 
