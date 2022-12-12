@@ -12,6 +12,7 @@ from metagenomix._inputs import (sample_inputs, group_inputs, genome_key,
                                  genome_out_dir)
 from metagenomix._io_utils import (caller, io_update, to_do, tech_specificity,
                                    not_paired, status_update)
+from metagenomix.core.parameters import tech_params
 
 
 def predict_cmd(
@@ -492,6 +493,7 @@ def metamarc(self) -> None:
 
 def karga_kargva_cmd(
         self,
+        tech: str,
         merged: str,
         db_path: str
 ) -> str:
@@ -504,6 +506,8 @@ def karga_kargva_cmd(
             Name of the current software in the pipeline
         .soft.params
             Parameters
+    tech : str
+        Technology
     merged : str
         Path to the input file
     db_path : str
@@ -514,6 +518,7 @@ def karga_kargva_cmd(
     cmd : str
         KARGA or KARGVA command
     """
+    params = tech_params(self, tech)
     cmd = 'java %s' % self.soft.name.upper()
     cmd += ' f:%s' % merged
     cmd += ' d:%s' % db_path
@@ -521,8 +526,8 @@ def karga_kargva_cmd(
         if param == 's' and self.soft.name != 'karga':
             continue
         if self.soft.params[param]:
-            cmd += ' %s:%s' % (param, self.soft.params[param])
-    cmd += ' -Xmx16GB\n'
+            cmd += ' %s:%s' % (param, params[param])
+    cmd += ' -Xmx%s%s\n' % (params['mem'], params['mem_dim'])
     return cmd
 
 
@@ -581,7 +586,7 @@ def get_karga_kargva(
             # check if tool already run (or if --force) to allow getting command
             if self.config.force or to_do(fp):
                 # collect the command line
-                cmd += karga_kargva_cmd(self, merged, db_path)
+                cmd += karga_kargva_cmd(self, tech, merged, db_path)
 
         if cmd:
             if self.soft.name == 'karga':
@@ -1332,3 +1337,20 @@ def metacompare(self) -> None:
             proteins = group_inputs(self, inputs)
             contigs = contigs_dict[self.sam_pool][(tech, group)][0]
             get_metacompare(self, tech, proteins, contigs, group)
+
+
+def ariba(self) -> None:
+    """
+
+    References
+    ----------
+
+    Notes
+    -----
+    GitHub  : https://github.com/sanger-pathogens/ariba
+
+    Parameters
+    ----------
+    self : Commands class instance
+    """
+    pass
