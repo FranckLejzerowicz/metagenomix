@@ -926,9 +926,13 @@ def binning(self):
     """
     for (tech, group), inputs in self.inputs[self.sam_pool].items():
 
-        fastqs = [fastq for sam in self.pools[self.sam_pool][group] for fastq
-                  in self.config.fastq_mv[sam].get(('illumina', sam), [])]
-
+        for software in self.soft.path[::-1]:
+            if self.config.tools[software] == 'preprocessing':
+                break
+        else:
+            sys.exit('[metawrap_bining] No "preprocessing" fastqs found')
+        fastqs = [fq for sam in self.pools[self.sam_pool][group] for fq in
+                  self.softs[software].outputs[sam].get(('illumina', sam), [])]
         to_dos = []
         if not fastqs:
             self.soft.add_status(tech, self.sam_pool, [fastqs], group=group,
@@ -1240,20 +1244,20 @@ def binspreader(self):
         Contains all the attributes needed for binning on the current sample
     """
     if self.config.tools[self.soft.prev] == 'binning':
-        assembly = get_assembly(self)
+        assembler, assembly = get_assembly(self)
         for (tech, group), inputs in self.inputs[self.sam_pool].items():
-            in_dir = inputs[0]
-            print()
-            print("inputs")
-            print(inputs)
-            print()
-            print("in_dir")
-            print(in_dir)
-            graph = '%s/assembly_graph_with_scaffolds.gfa' % dirname(
-                assembly[(tech, group)][0])
-            to_dos = status_update(self, tech, [graph], group=group)
-            to_dos.extend(
-                status_update(self, tech, [in_dir], group=group, folder=True))
+
+            if assembler == 'spades':
+                graph = '%s/assembly_graph_with_scaffolds.gfa' % dirname(
+                    assembly[(tech, group)][0])
+            elif assembler == 'megahit':
+                graph = assembly[(tech, group)][-1]
+            else:
+                sys.exit('[binspreader] Not avail for %s assembler' % assembler)
+
+            inp = inputs[0]
+            to_dos = status_update(self, tech, [inp], group=group, folder=True)
+            to_dos.extend(status_update(self, tech, [graph], group=group))
 
             key = (tech, group)
             out_dir = '/'.join([self.dir, tech, self.sam_pool, group])
@@ -1267,7 +1271,7 @@ def binspreader(self):
                     cmd = binspreader_cmd(self, tech, graph, inputs,
                                           group, out_dir)
                     self.outputs['cmds'].setdefault(key, []).append(cmd)
-                io_update(self, i_f=graph, i_d=in_dir, o_d=out_dir, key=key)
+                io_update(self, i_f=graph, i_d=inp, o_d=out_dir, key=key)
                 self.soft.add_status(tech, self.sam_pool, 1, group=group)
             else:
                 self.soft.add_status(tech, self.sam_pool, 0, group=group)
