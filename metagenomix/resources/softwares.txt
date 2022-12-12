@@ -1,5 +1,5 @@
-filtering	sequence filtering
-count	preprocessing
+count	count
+filtering	preprocessing
 fastqc	preprocessing
 fastp	preprocessing
 cutadapt	preprocessing
