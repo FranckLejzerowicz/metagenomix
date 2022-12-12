@@ -482,6 +482,7 @@ def megahit_cmd(
     if to_do(contigs) or self.config.force:
         cmd += 'rm -rf %s\n' % out
         cmd += m_cmd
+        io_update(self, i_f=inputs, i_d=out, o_d=out, key=key)
     else:
         io_update(self, i_d=out, o_d=out, key=key)
 
@@ -549,7 +550,6 @@ def megahit(self) -> None:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
-            io_update(self, i_f=inputs, i_d=out, o_d=out, key=key)
             self.soft.add_status(tech, self.sam_pool, 1, group=group)
         else:
             self.soft.add_status(tech, self.sam_pool, 0, group=group)
