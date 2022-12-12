@@ -1,4 +1,4 @@
-count	count
+count	counting
 filtering	preprocessing
 fastqc	preprocessing
 fastp	preprocessing
