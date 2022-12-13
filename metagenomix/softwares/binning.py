@@ -55,17 +55,21 @@ def get_fqs(
 
     Returns
     -------
+    gz : bool
+        Whether the fastq were gzipped
     fqs : list
         Paths to gunzipped fastq files for the current sample to reassemble
     cmd : str
         gunzip commands
     """
+    gz = False
     fqs = []
     cmd = ''
     for f in fastq_fps:
         if f.endswith('.gz'):
             f_q = f.replace('.gz', '')
             cmd += 'gunzip -c %s > %s\n' % (f, f_q)
+            gz = True
         else:
             f_q = f
         if f_q.endswith('_R1.fastq'):
@@ -77,7 +81,7 @@ def get_fqs(
         else:
             f_q_ = f_q
         fqs.append(f_q_)
-    return fqs, cmd
+    return gz, fqs, cmd
 
 
 def quantify_cmd(
@@ -120,7 +124,7 @@ def quantify_cmd(
     cmd : str
         metaWRAP quantify command
     """
-    fqs, fqs_cmd = get_fqs(fastq)
+    gz, fqs, fqs_cmd = get_fqs(fastq)
     cmd = 'export PATH=$PATH:%s/bin\n' % self.soft.params['path']
     cmd += 'metawrap quant_bins'
     cmd += ' -b %s' % bins
@@ -129,7 +133,9 @@ def quantify_cmd(
     cmd += ' -t %s' % self.soft.params['cpus']
     cmd += ' %s\n' % ' '.join(fqs)
     if fqs_cmd:
-        cmd = fqs_cmd + cmd + 'rm %s\n' % ' '.join(fqs)
+        cmd = fqs_cmd + cmd
+    if gz:
+        cmd += 'rm %s\n' % ' '.join(fqs)
     return cmd
 
 
@@ -509,7 +515,7 @@ def blobology_cmd(
     cmd : str
         metaWRAP blobology command
     """
-    fqs, fqs_cmd = get_fqs(fastq_fps)
+    gz, fqs, fqs_cmd = get_fqs(fastq_fps)
     cmd = 'export PATH=$PATH:%s/bin\n' % self.soft.params['path']
     cmd += 'metawrap blobology'
     cmd += ' -o %s' % out
@@ -518,7 +524,9 @@ def blobology_cmd(
     cmd += ' --bins %s' % bins
     cmd += ' %s\n' % ' '.join(fqs)
     if fqs_cmd:
-        cmd = fqs_cmd + cmd + 'rm %s\n' % ' '.join(fqs)
+        cmd = fqs_cmd + cmd
+    if gz:
+        cmd += 'rm %s\n' % ' '.join(fqs)
     return cmd
 
 
@@ -611,7 +619,7 @@ def reassembly_bins_cmd(
     cmd : str
         metaWRAP bin reassembly command
     """
-    fqs, fqs_cmd = get_fqs(fastq)
+    gz, fqs, fqs_cmd = get_fqs(fastq)
     cmd = 'export PATH=$PATH:%s/bin\n' % self.soft.params['path']
     cmd += 'metawrap reassemble_bins'
     cmd += ' -o %s' % out
@@ -627,7 +635,9 @@ def reassembly_bins_cmd(
         cmd += ' --parallel'
     cmd += '\n'
     if fqs_cmd:
-        cmd = fqs_cmd + cmd + 'rm %s\n' % ' '.join(fqs)
+        cmd = fqs_cmd + cmd
+    if gz:
+        cmd += 'rm %s\n' % ' '.join(fqs)
     return cmd
 
 
@@ -889,7 +899,7 @@ def binning_cmd(
     binners = get_binners(self, binned)
     cmd = ''
     if binners:
-        fqs, fqs_cmd = get_fqs(fastq)
+        gz, fqs, fqs_cmd = get_fqs(fastq)
         cmd += 'export PATH=$PATH:%s/bin\n' % self.soft.params['path']
         cmd += 'metawrap binning'
         cmd += ' -o %s' % out
@@ -901,7 +911,9 @@ def binning_cmd(
             cmd += ' --%s' % binner
         cmd += ' %s\n' % ' '.join(fqs)
         if fqs_cmd:
-            cmd = fqs_cmd + cmd + 'rm %s\n' % ' '.join(fqs)
+            cmd = fqs_cmd + cmd
+        if gz:
+            cmd += 'rm %s\n' % ' '.join(fqs)
     return cmd
 
 
@@ -925,6 +937,9 @@ def binning(self):
             Configurations
     """
     for (tech, group), inputs in self.inputs[self.sam_pool].items():
+
+        print(self.soft.path[::-1])
+        print([self.config.tools[x] for x in self.soft.path[::-1]])
 
         for software in self.soft.path[::-1]:
             if self.config.tools[software] == 'preprocessing':
