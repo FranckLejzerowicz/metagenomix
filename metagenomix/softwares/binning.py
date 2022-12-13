@@ -938,9 +938,6 @@ def binning(self):
     """
     for (tech, group), inputs in self.inputs[self.sam_pool].items():
 
-        print(self.soft.path[::-1])
-        print([self.config.tools[x] for x in self.soft.path[::-1]])
-
         for software in self.soft.path[::-1]:
             if self.config.tools[software] == 'preprocessing':
                 break
@@ -948,6 +945,7 @@ def binning(self):
             sys.exit('[metawrap_bining] No "preprocessing" fastqs found')
         fastqs = [fq for sam in self.pools[self.sam_pool][group] for fq in
                   self.softs[software].outputs[sam].get(('illumina', sam), [])]
+
         to_dos = []
         if not fastqs:
             self.soft.add_status(tech, self.sam_pool, [fastqs], group=group,
