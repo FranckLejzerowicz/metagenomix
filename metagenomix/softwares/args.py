@@ -495,6 +495,8 @@ def karga_kargva_cmd(
         self,
         tech: str,
         merged: str,
+        out: str,
+        db: str,
         db_path: str
 ) -> str:
     """Collect KARGA or KARGVA command.
@@ -510,6 +512,10 @@ def karga_kargva_cmd(
         Technology
     merged : str
         Path to the input file
+    out : str
+        Path to the output folder
+    db : str
+        Name of the database
     db_path : str
         Path to ARG/MGE fasta file with resistance annotation/mutation in header
 
@@ -528,6 +534,8 @@ def karga_kargva_cmd(
         if self.soft.params[param]:
             cmd += ' %s:%s' % (param, params[param])
     cmd += ' -Xmx%s%s\n' % (params['mem'], params['mem_dim'])
+    cmd += 'mv %s/*_mappedGenes.csv %s/db_%s\n' % (out, out, db)
+    cmd += 'rm %s\n' % merged
     return cmd
 
 
@@ -582,11 +590,12 @@ def get_karga_kargva(
             self.outputs['dirs'].append(out_dir)
             outs.append(out)
             bas = splitext(basename(merged))[0]
-            fp = '%s/%s_%s_mappedReads.csv' % (out, self.soft.name.upper(), bas)
+            fp = '%s/db_%s/%s_%s_mappedReads.csv' % (
+                out, db, self.soft.name.upper(), bas)
             # check if tool already run (or if --force) to allow getting command
             if self.config.force or to_do(fp):
                 # collect the command line
-                cmd += karga_kargva_cmd(self, tech, merged, db_path)
+                cmd += karga_kargva_cmd(self, tech, merged, out, db, db_path)
 
         if cmd:
             if self.soft.name == 'karga':
@@ -761,6 +770,8 @@ def abricate_cmd(
     self : Commands class instance
         .soft.params
             Parameters
+    tech : str
+        Technology
     inputs : list
         Paths to the input files
     out_d : str
