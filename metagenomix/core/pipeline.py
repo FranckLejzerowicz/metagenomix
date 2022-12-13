@@ -6,6 +6,7 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
+import re
 import yaml
 from collections import defaultdict, Counter
 from metagenomix.core import parameters
@@ -278,7 +279,7 @@ class Workflow(object):
             params = params_show
         return params
 
-    def show_params(self, soft):
+    def print_params(self, soft):
         params_show = dict(x for x in soft.params.items())
         if params_show:
             x = '=' * (13 + len(soft.name))
@@ -306,7 +307,14 @@ class Workflow(object):
             self.set_scratch(soft)
             self.set_user_params(soft)
             # self.write_params(soft)
-        if self.config.show_params:
-            print('  User parameters and defaults:')
-            for _, soft in self.softs.items():
-                self.show_params(soft)
+
+    def show_params(self) -> None:
+        print('* Showing parameters (user-defined and defaults):')
+        for _, soft in self.softs.items():
+            if 'all' in self.config.show_params:
+                self.print_params(soft)
+            else:
+                for s in self.config.show_params:
+                    if re.search(s, soft.name):
+                        self.print_params(soft)
+                        break

@@ -56,6 +56,9 @@ from metagenomix import __version__
     help="Number of chunks for script copying back from storage (default: to "
          "one per software)")
 @click.option(
+    "-s", "--show-params", multiple=True, default=None, show_default=False,
+    help="Software(s) parameters to show (default: None; 'all' in pipeline)")
+@click.option(
     "--force/--no-force", default=False, show_default=True,
     help="Force the re-writing of scripts for all commands"
          "(default is to not re-run if output file exists)")
@@ -77,9 +80,6 @@ from metagenomix import __version__
 @click.option(
     "--move-back/--no-move-back", default=True, show_default=True,
     help="Do not move back from scratch (makes sense only for --userscratch)")
-@click.option(
-    "--show-params/--no-show-params", default=False, show_default=False,
-    help="Show all possible parameters for each software")
 @click.option(
     "--show-status/--no-show-status", default=False, show_default=False,
     help="Show status (needed inputs, done/to do outputs) for each software")
@@ -116,6 +116,7 @@ def create(
         account,
         chunks,
         links_chunks,
+        show_params,
         force,
         jobs,
         torque,
@@ -123,7 +124,6 @@ def create(
         scratch,
         userscratch,
         move_back,
-        show_params,
         show_status,
         show_pfams,
         purge_pfams,
@@ -151,11 +151,11 @@ def create(
         account=account,
         chunks=chunks,
         links_chunks=links_chunks,
+        show_params=show_params,
         localscratch=localscratch,
         scratch=scratch,
         userscratch=userscratch,
         move_back=move_back,
-        show_params=show_params,
         show_status=show_status,
         show_pfams=show_pfams,
         purge_pfams=purge_pfams,

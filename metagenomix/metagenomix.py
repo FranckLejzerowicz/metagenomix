@@ -6,6 +6,7 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
+import sys
 from metagenomix.core.pipeline import Workflow
 from metagenomix.core.config import AnalysesConfig
 from metagenomix.core.databases import ReferenceDatabases
@@ -45,6 +46,10 @@ def metagenomix(**kwargs) -> tuple:
     workflow.setup()
     print('* Checking parameters')
     workflow.parametrize()
+
+    if config.show_params:
+        workflow.show_params()
+        sys.exit('Do not use "-s"/"--show-params" to proceed with create')
 
     # Collect command line and workflow of softwares to run as a pipeline
     commands = Commands(config, databases, workflow)
