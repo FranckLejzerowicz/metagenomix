@@ -534,7 +534,7 @@ def karga_kargva_cmd(
         if self.soft.params[param]:
             cmd += ' %s:%s' % (param, params[param])
     cmd += ' -Xmx%s%s\n' % (params['mem'], params['mem_dim'])
-    cmd += 'mv %s/*_mappedGenes.csv %s/db_%s\n' % (out, out, db)
+    cmd += 'mv %s/*_mapped*.csv %s/db_%s\n' % (out, out, db)
     cmd += 'rm %s\n' % merged
     return cmd
 
