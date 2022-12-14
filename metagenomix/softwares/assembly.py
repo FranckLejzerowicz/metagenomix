@@ -117,7 +117,7 @@ def quast_cmd(
         'max_ref_number', 'operons', 'gene_thresholds', 'k_mer_size',
         'ambiguity_usage', 'r', 'references_list', 'g'
     ]:
-        if params[param]:
+        if params[param] or param in ['max_ref_number']:
             cmd += ' --%s %s' % (param.replace('_', '-'), params[param])
 
     if params['gene_finding']:
