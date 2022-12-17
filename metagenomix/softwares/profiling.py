@@ -754,7 +754,7 @@ def woltka_aligments(
         self,
         tech: str
 ) -> dict:
-    """Get the alignment paths per sample.
+    """Get the .bam alignment paths per sample.
 
     Parameters
     ----------
@@ -774,11 +774,11 @@ def woltka_aligments(
     alignments = {}
     for sample, sam_inputs in self.inputs.items():
         if sam_inputs[(tech, sample)]:
-            for (db, aligner), sam in sam_inputs[(tech, sample)].items():
-                if sam and db == 'wol':
+            for (db, aligner), bam in sam_inputs[(tech, sample)].items():
+                if bam and db == 'wol':
                     if aligner not in alignments:
                         alignments[aligner] = {}
-                    alignments[aligner][sample] = sam
+                    alignments[aligner][sample] = bam
     return alignments
 
 
@@ -817,10 +817,16 @@ def woltka_write_map(
     out_dir = '/'.join([self.dir, tech, aligner, pairing])
     self.outputs['dirs'].append(out_dir)
 
+    sam_cmds = ''
+    for idx, sample in enumerate(alis.keys()):
+        bam = alis[sample]
+        sam_cmds += 'samtools view %s > %s.sam\n' % (bam, bam.rstrip('.bam'))
+
     map_cmds = ''
     map_fp = '%s/samples.map' % out_dir
-    for idx, sam in enumerate(alis.keys()):
-        echo = 'echo -e "%s\\t%s"' % (sam, alis[sam])
+
+    for idx, sample in enumerate(alis.keys()):
+        echo = 'echo -e "%s\\t%s.sam"' % (sample, alis[sample].rstrip('.bam'))
         if idx:
             map_cmds += '%s >> %s\n' % (echo, map_fp)
         else:
