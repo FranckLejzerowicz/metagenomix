@@ -501,7 +501,7 @@ def megahit_cmd(
             m_cmd += ' -1 %s -2 %s\n' % tuple(inputs)
         if len(inputs) == 1:
             m_cmd += ' --read %s\n' % inputs[0]
-    m_cmd += 'gzip %s\n' % contigs.rstrip('.gz')
+    m_cmd += 'gzip %s\n' % contigs[:-3]
 
     if to_do(contigs) or self.config.force:
         cmd += 'rm -rf %s\n' % out
@@ -513,8 +513,8 @@ def megahit_cmd(
     if to_do(fastg) or self.config.force:
         fasta = '%s/%s' % (inter_dir, basename(fastg).replace('.fg.gz', '.fa'))
         cmd += 'megahit_toolkit contig2fastg %s %s > %s\n' % (
-            self.soft.params['k_max'], fasta, fastg.rstrip('.gz'))
-        cmd += 'gzip %s\n' % (fastg.rstrip('.gz'))
+            self.soft.params['k_max'], fasta, fastg[:-3])
+        cmd += 'gzip %s\n' % (fastg[:-3])
 
     if to_do('%s.tar.gz' % inter_dir):
         cmd += '\ntar cpfz %s.tar.gz %s\n' % (inter_dir, inter_dir)
