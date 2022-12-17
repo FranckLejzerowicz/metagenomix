@@ -613,13 +613,14 @@ def condition_ali_command(
     return cmd
 
 
-def get_bowtie2_cmd(
+def bowtie2_cmd(
         sample_name: str,
         fastx: list,
         db_path: str,
         out_dir: str,
+        bam: str,
         params: dict
-) -> tuple:
+) -> str:
     """Get the bowtie2 alignment command.
 
     Parameters
@@ -632,6 +633,8 @@ def get_bowtie2_cmd(
         Path to the bowtie2 database
     out_dir: str
         Path to the output folder
+    bam : str
+        Path to the output .bam file
     params : dict
         Run parameters
 
@@ -644,7 +647,6 @@ def get_bowtie2_cmd(
     """
     cmd = 'bowtie2'
     cmd += ' -x %s' % db_path
-    sam = '%s/alignment.bowtie2.sam' % out_dir
     if params['paired'] and len(fastx) == 2:
         cmd += ' -1 %s' % fastx[0]
         cmd += ' -2 %s' % fastx[1]
@@ -663,6 +665,8 @@ def get_bowtie2_cmd(
                     out_dir, sample_name)
     else:
         cmd += ' -U %s' % ','.join(fastx)
+
+    sam = '%s.sam' % splitext(bam)[0]
     cmd += ' -S %s' % sam
 
     if params['un']:
@@ -722,7 +726,9 @@ def get_bowtie2_cmd(
                 else:
                     cmd += ' --%s' % boolean.replace('_', '-')
 
-    return cmd, sam
+    cmd += '\nsamtools view -S -b %s > %s' % (sam, bam)
+    cmd += '\nrm %s' % sam
+    return cmd
 
 
 def get_alignment_cmd(
@@ -799,10 +805,10 @@ def bowtie2(self) -> None:
             else:
                 out_dir = '%s/%s/unpaired' % (out, db)
             params = tech_params(self, tech)
-            cmd, sam = get_bowtie2_cmd(sample, fastxs, db_path, out_dir, params)
-            self.outputs['outs'][(tech, sample)][(db, 'bowtie2')] = sam
-            if self.config.force or to_do(sam):
-                cmd = get_alignment_cmd(fastxs, cmd, sam)
+            bam = '%s/alignment.bowtie2.bam' % out_dir
+            self.outputs['outs'][(tech, sample)][(db, 'bowtie2')] = bam
+            if self.config.force or to_do(bam):
+                cmd = bowtie2_cmd(sample, fastxs, db_path, out_dir, bam, params)
                 if to_dos:
                     self.outputs['cmds'].setdefault((tech,), []).append(False)
                 else:
@@ -814,7 +820,7 @@ def bowtie2(self) -> None:
             self.outputs['dirs'].append(out_dir)
 
 
-def get_minimap2_cmd(
+def minimap2_cmd(
         fastx: list,
         db_path: str,
         db_out: str,
@@ -837,14 +843,12 @@ def get_minimap2_cmd(
     -------
     cmd : str
         Alignment command
-    sam : str
-        Alignment .sam file
+    bam : str
+        Alignment .bam file
     """
-    sam = '%s/alignment.minimap2' % db_out
 
     cmd = 'minimap2'
     cmd += ' -t %s' % params['cpus']
-
     x = params['x']
     if x:
         cmd += ' -x %s' % x
@@ -951,17 +955,20 @@ def get_minimap2_cmd(
             if params[param]:
                 cmd += ' --%s' % param.replace('_', '-')
 
+    sam = '%s/alignment.minimap2' % db_out
     if len(fastx) == 2 and params['no_pairing']:
         cmd += ' --no-pairing'
         sam += '.unpaired'
-
     sam += '.sam'
     cmd += ' -o %s' % sam
 
     cmd += ' %s' % db_path
-    cmd += ' %s' % ' '.join(fastx)
+    cmd += ' %s\n' % ' '.join(fastx)
 
-    return cmd, sam
+    bam = '%s.bam' % splitext(sam)[0]
+    cmd += '\nsamtools view -S -b %s > %s' % (sam, bam)
+    cmd += '\nrm %s' % sam
+    return cmd, bam
 
 
 def get_minimap2_indexing_cmd(
@@ -1051,10 +1058,10 @@ def minimap2(self) -> None:
 
             db_out = '%s/%s' % (out, db)
             params = tech_params(self, tech)
-            cmd, sam = get_minimap2_cmd(fastxs, db_path, db_out, params)
-            self.outputs['outs'][(tech, self.sam_pool)][(db, 'minimap2')] = sam
+            cmd, bam = minimap2_cmd(fastxs, db_path, db_out, params)
+            self.outputs['outs'][(tech, self.sam_pool)][(db, 'minimap2')] = bam
 
-            if self.config.force or to_do(sam):
+            if self.config.force or to_do(bam):
                 if to_dos:
                     self.outputs['cmds'].setdefault((tech,), []).append(False)
                 else:
