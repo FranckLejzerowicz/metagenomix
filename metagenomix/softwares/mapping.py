@@ -13,17 +13,20 @@ from metagenomix.core.parameters import tech_params
 from metagenomix._inputs import (
     sample_inputs, group_inputs, genome_key, genome_out_dir)
 from metagenomix.softwares.alignment import (
-    get_bowtie2_cmd,
-    get_minimap2_cmd,
-    # get_bbmap_cmd,
-    # get_bwa_cmd,
+    bowtie2_cmd,
+    minimap2_cmd,
+    # bbmap_cmd,
+    # bwa_cmd,
 )
 
+# Keep line because read mapping alignments will be python scripts
+# scripts = pkg_resources.resource_filename('metagenomix', 'resources/scripts')
 
-def get_target(self) -> tuple:
+
+def get_mapping_target(self) -> tuple:
     source = self.soft.name.split('_', 1)[-1]
     if '_' not in self.soft.name or source == 'mapping':
-        sys.exit('[mapping] Add "_<software>" to specify what to map to "%s"' %
+        sys.exit('[mapping] Add "_<soft>" to specify what to map to "%s"' %
                  self.soft.prev)
     category = self.config.tools.get(source)
     if category == 'preprocessing':
@@ -50,7 +53,7 @@ def bwa():
 
 def get_reads(self, source, tech, group) -> dict:
     sams = self.pools[self.sam_pool][group]
-    same_tech = self.soft.params['per_tech']
+    same_tech = self.soft.params.get('per_tech', False)
     reads = {}
     for sam in sams:
         tech_sam = self.softs[source].outputs[sam]
@@ -171,7 +174,7 @@ def raw(
                 params = tech_params(self, reads_tech)
                 for aligner in params['aligners']:
                     get_aligner_db_cmd = 'get_%s_db_cmd' % aligner
-                    get_aligner_cmd = 'get_%s_cmd' % aligner
+                    get_aligner_cmd = '%s_cmd' % aligner
                     db_cmds, dbs = globals()[get_aligner_db_cmd](
                         fasta, sam_tech_dir, params)
                     for db, db_index in dbs.items():
@@ -225,7 +228,7 @@ def mapping(self):
     self : Commands class instance
         Contains all the attributes needed for binning on the current sample
     """
-    func, source = get_target(self)
+    func, source = get_mapping_target(self)
     if self.sam_pool in self.pools:
         for (tech, group), inputs in self.inputs[self.sam_pool].items():
             reads = get_reads(self, source, tech, group)
@@ -241,30 +244,279 @@ def mapping(self):
             get_mapping(self, func, tech, mags, reads, references)
 
 
-def prep_map__spades_prodigal(self):
-    if 'prodigal' not in self.softs or 'mapping' not in self.softs:
-        return None
-    if self.softs['prodigal'].prev != 'spades':
-        return None
-    if self.softs['mapping'].prev != 'spades':
-        return None
-    prodigals_fps = self.softs['prodigal'].outputs
-    sams_fps = self.softs['mapping'].outputs
-    group_fps = self.inputs[self.pool]
-    self.outputs['outs'] = {}
-    for group, fps in group_fps.items():
-        self.outputs['outs'][group] = {}
-        for sam in self.pools[self.pool][group]:
-            bam = sams_fps[self.pool][group][sam]
-            prot = prodigals_fps[self.pool][group][1]
-            out_dir = '%s/%s/%s' % (self.dir, self.pool, sam)
-            out = '%s/reads.txt' % out_dir
-            if not isfile(out):
-                cmd = 'pysam_reads_to_prodigal.py \\\n'
-                cmd += '-prodigal %s \\\n' % prot
-                cmd += '-bam %s \\\n' % bam
-                cmd += '-out %s\n' % out
-                self.outputs['cmds'].setdefault(
-                    (self.pool, group), []).append(cmd)
-            self.outputs['outs'][group][sam] = out
-            io_update(self, i_f=[prot, bam, out])
+# def prep_map__spades_prodigal(self):
+#     if 'prodigal' not in self.softs or 'mapping' not in self.softs:
+#         return None
+#     if self.softs['prodigal'].prev != 'spades':
+#         return None
+#     if self.softs['mapping'].prev != 'spades':
+#         return None
+#     prodigals_fps = self.softs['prodigal'].outputs
+#     sams_fps = self.softs['mapping'].outputs
+#     group_fps = self.inputs[self.pool]
+#     self.outputs['outs'] = {}
+#     for group, fps in group_fps.items():
+#         self.outputs['outs'][group] = {}
+#         for sam in self.pools[self.pool][group]:
+#             bam = sams_fps[self.pool][group][sam]
+#             prot = prodigals_fps[self.pool][group][1]
+#             out_dir = '%s/%s/%s' % (self.dir, self.pool, sam)
+#             out = '%s/reads.txt' % out_dir
+#             if not isfile(out):
+#                 cmd = 'pysam_reads_to_prodigal.py \\\n'
+#                 cmd += '-prodigal %s \\\n' % prot
+#                 cmd += '-bam %s \\\n' % bam
+#                 cmd += '-out %s\n' % out
+#                 self.outputs['cmds'].setdefault(
+#                     (self.pool, group), []).append(cmd)
+#             self.outputs['outs'][group][sam] = out
+#             io_update(self, i_f=[prot, bam, out])
+
+
+def get_salmon_reads_cmd(
+        self,
+        tech: str,
+        fastx: str,
+        fastqs: list,
+        out_dir: str,
+        key: tuple
+) -> str:
+    """Get the Salmon quant command (using reads).
+
+    Parameters
+    ----------
+    self
+    tech : str
+    fastx : str
+    fastqs : list
+    out_dir : str
+    key: tuple
+
+    Returns
+    -------
+    cmd : str
+        Salmon quant command (using reads)
+    """
+    params = tech_params(self, tech)
+    cmd = 'salmon quant'
+    cmd += ' --libType %s'
+    cmd += ' --index %s' % fastx
+    if len(fastqs) == 3:
+        cmd += ' --unmatedReads %s' % fastqs[0]
+        cmd += ' --mates1 %s' % fastqs[1]
+        cmd += ' --mates2 %s' % fastqs[2]
+    elif len(fastqs) == 2:
+        cmd += ' --mates1 %s' % fastqs[0]
+        cmd += ' --mates2 %s' % fastqs[1]
+    elif len(fastqs) == 1:
+        cmd += ' --unmatedReads %s' % fastqs[0]
+    cmd += ' --output %s' % out_dir
+
+    for param in [
+        'sigDigits', 'thinningFactor', 'numBootstraps', 'numGibbsSamples',
+        'rangeFactorizationBins', 'numBiasSamples', 'numAuxModelSamples',
+        'numPreAuxModelSamples', 'maxOccsPerHit', 'maxReadOcc',
+        'maxRecoverReadOcc', 'minAssignedFrags', 'reduceGCMemory',
+        'biasSpeedSamp', 'fldMax', 'fldMean', 'fldSD', 'minAssignedFrags',
+        'kmerLen', 'filterSize', 'scoreExp', 'numErrorBins',
+        'mappingCacheMemoryLimit', 'mismatchSeedSkip', 'ma', 'mp', 'go',
+        'ge', 'bandwidth', 'vbPrior', 'minAlnProb', 'decoyThreshold',
+        'consensusSlack', 'preMergeChainSubThresh', 'postMergeChainSubThresh',
+        'orphanChainSubThresh', 'minScoreFraction', 'incompatPrior',
+        'forgettingFactor'
+    ]:
+        cmd += ' --%s %s' % (param, params[param])
+    return cmd
+
+
+def get_salmon_sam_cmd(
+        self,
+        tech: str,
+        fastx: str,
+        sam: str,
+        key: tuple
+) -> str:
+    """Get the Salmon command.
+
+    Parameters
+    ----------
+    self
+    tech : str
+    fastx : str
+    sam : str
+    key : tuple
+
+    Returns
+    -------
+    cmd : str
+        Salmon quant command
+    """
+    params = tech_params(self, tech)
+    cmd = 'salmon quant'
+    for param in [
+        'sigDigits', 'thinningFactor', 'numBootstraps', 'numGibbsSamples',
+        'rangeFactorizationBins', 'numBiasSamples', 'numAuxModelSamples',
+        'numPreAuxModelSamples', 'maxOccsPerHit', 'maxReadOcc',
+        'maxRecoverReadOcc', 'minAssignedFrags', 'reduceGCMemory',
+        'biasSpeedSamp', 'fldMax', 'fldMean', 'fldSD', 'minAssignedFrags',
+        'kmerLen', 'filterSize', 'scoreExp', 'numErrorBins',
+        'mappingCacheMemoryLimit', 'mismatchSeedSkip', 'ma', 'mp', 'go',
+        'ge', 'bandwidth', 'vbPrior', 'minAlnProb', 'decoyThreshold',
+        'consensusSlack', 'preMergeChainSubThresh', 'postMergeChainSubThresh',
+        'orphanChainSubThresh', 'minScoreFraction', 'incompatPrior',
+        'forgettingFactor'
+    ]:
+        cmd += ' --%s %s' % (param, params[param])
+    return cmd
+
+
+def get_salmon_indexing_cmd(
+        self,
+        tech: str,
+        fasta: str,
+        fastx: str,
+        key: tuple
+) -> str:
+    """Get the Salmon indexing command.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .soft.params
+            Parameters for humann
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    fasta : str
+        Path to the reference fasta file
+    fastx : str
+        Path to the indexed reference fasta file
+    key : tuple
+        Current input unit keys
+
+    Returns
+    -------
+    cmd : str
+        Salmon indexing command
+    """
+    tmp = '$TMPDIR/%s_%s_%s' % (self.soft.name, self.sam_pool, '_'.join(key))
+    params = tech_params(self, tech)
+    cmd = 'salmon index'
+    cmd += ' --transcripts %s' % fasta
+    cmd += ' --index %s' % fastx
+    cmd += ' --threads %s' % params['cpus']
+    for boolean in [
+        'gencode', 'features', 'keepDuplicates', 'keepFixedFasta', 'sparse'
+    ]:
+        if params[boolean]:
+            cmd += ' --%s' % boolean
+    for param in [
+        'kmerLen', 'filterSize', 'decoys', 'type'
+    ]:
+        cmd += ' --%s %s' % (param, params[param])
+    cmd += ' --tmpdir %s' % tmp
+    return cmd
+
+
+def salmon(self) -> None:
+    """Salmon is a tool for wicked-fast transcript quantification from
+    RNA-seq data. It requires a set of target transcripts (either from a
+    reference or de-novo assembly) to quantify. All you need to run Salmon
+    is a FASTA file containing your reference transcripts and a (set of)
+    FASTA/FASTQ file(s) containing your reads. Optionally, Salmon can make
+    use of pre-computed alignments (in the form of a SAM/BAM file) to the
+    transcripts rather than the raw reads.
+
+    References
+    ----------
+    Patro, Rob, et al. "Salmon provides fast and bias-aware quantification of
+    transcript expression." Nature methods 14.4 (2017): 417-419.
+
+    Notes
+    -----
+    GitHub  : https://github.com/COMBINE-lab/salmon
+    Docs    : https://salmon.readthedocs.io/en/latest/salmon.html
+    Paper   : https://doi.org/10.1038/nmeth.4197
+
+    Parameters
+    ----------
+    self
+    """
+    if self.soft.params['useAlignments']:
+        print(self.config.__dict__.keys())
+        print(self.config.softs)
+        print(selfconfigsofts)
+
+    if self.sam_pool in self.pools:
+        for (tech, group), inputs in self.inputs[self.sam_pool].items():
+            reads = get_reads(self, tech, group)
+            references = group_inputs(self, inputs)
+            get_mapping(self, func, tech, group, reads, references)
+            # get_salmon_indexing_cmd(self, tech, fasta, fastx, key)
+
+    elif set(self.inputs) == {''}:
+        for (tech, mags), inputs in self.inputs[''].items():
+            reads = get_reads(self, tech, mags)
+            references = group_inputs(self, inputs)
+            get_mapping(self, func, tech, mags, reads, references)
+            # get_salmon_indexing_cmd(self, tech, fasta, fastx, key)
+
+    idx = '%s.si' % (out_dir, basename(splitext(fasta)[0]))
+
+    for (tech, sample), fastxs in self.inputs[self.sam_pool].items():
+        if tech_specificity(self, fastxs, tech, sample):
+            continue
+
+        out = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
+        self.outputs['outs'][(tech, self.sam_pool)] = dict()
+
+        for db, db_path in self.soft.params['databases'].items():
+
+            db_out = '%s/%s' % (out, db)
+            params = tech_params(self, tech)
+            cmd, sam = get_minimap2_cmd(fastxs, db_path, db_out, params)
+            self.outputs['outs'][(tech, self.sam_pool)][(db, 'minimap2')] = sam
+
+            if self.config.force or to_do(sam):
+                if status_update(self, tech, fastxs):
+                    self.outputs['cmds'].setdefault((tech,), []).append(False)
+                else:
+                    self.outputs['cmds'].setdefault((tech,), []).append(cmd)
+                io_update(self, i_f=fastxs, i_d=db_out, o_d=db_out, key=tech)
+                self.soft.add_status(tech, self.sam_pool, 1)
+            else:
+                self.soft.add_status(tech, self.sam_pool, 0)
+            self.outputs['dirs'].append(db_out)
+
+
+def kallisto(self) -> None:
+    """kallisto is a program for quantifying abundances of transcripts from
+    RNA-Seq data, or more generally of target sequences using high-throughput
+    sequencing reads. It is based on the novel idea of pseudoalignment for
+    rapidly determining the compatibility of reads with targets, without the
+    need for alignment. On benchmarks with standard RNA-Seq data, kallisto
+    can quantify 30 million human bulk RNA-seq reads in less than 3 minutes
+    on a Mac desktop computer using only the read sequences and a
+    transcriptome index that itself takes than 10 minutes to build.
+    Pseudoalignment of reads preserves the key information needed for
+    quantification, and kallisto is therefore not only fast, but also
+    comparably accurate to other existing quantification tools. In fact,
+    because the pseudoalignment procedure is robust to errors in the reads,
+    in many benchmarks kallisto significantly outperforms existing tools.
+
+    References
+    ----------
+    Bray, N.L., Pimentel, H., Melsted, P. and Pachter, L., 2016. Near-optimal
+    probabilistic RNA-seq quantification. Nature biotechnology, 34(5),
+    pp.525-527.
+
+    Notes
+    -----
+    GitHub  : https://github.com/pachterlab/kallisto
+    Docs    : http://pachterlab.github.io/kallisto/manual.html
+    Paper   : https://doi.org/10.1038/nbt.3519
+
+    Parameters
+    ----------
+    self
+    """
+    pass
