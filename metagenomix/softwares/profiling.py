@@ -2252,24 +2252,31 @@ def get_kraken2_cmd(
         Kraken2 command
     """
     params = tech_params(self, tech)
-    cmd = 'kraken2 '
-    cmd += ' -db %s' % db_path
-    cmd += ' --report %s/report.tsv' % out
-    cmd += ' --threads %s' % params['cpus']
-    cmd += ' --confidence %s' % params['confidence']
-    names = ['classified', 'unclassified']
-    if len(inputs) > 1:
-        #fqs = ['%s/%s_%s.fastq' % (out, x, r) for r in [1, 2] for x in names]
-        #cmd += ' --unclassified-out %s/unclassified#.fastq' % out
-        #cmd += ' --classified-out %s/classified#.fastq' % out
-        cmd += ' --paired'
-    #else:
-        #fqs = ['%s/%s.fastq' % (out, x) for x in names]
-        #cmd += ' --unclassified-out %s/unclassified.fastq' % out
-        #cmd += ' --classified-out %s/classified.fastq' % out
-    if inputs[0].endswith('.gz'):
-        cmd += ' --gzip-compressed'
-    cmd += ' %s > %s/result.tsv\n' % (' '.join(inputs), out)
+
+    cmd = ''
+    result = '%s/result.tsv' % out
+    if to_do(result):
+        cmd += 'kraken2 '
+        cmd += ' -db %s' % db_path
+        cmd += ' --report %s/report.tsv' % result
+        cmd += ' --threads %s' % params['cpus']
+        cmd += ' --confidence %s' % params['confidence']
+        # names = ['classified', 'unclassified']
+        if len(inputs) > 1:
+            #fqs = ['%s/%s_%s.fastq' % (out, x, r) for r in [1, 2] for x in names]
+            #cmd += ' --unclassified-out %s/unclassified#.fastq' % out
+            #cmd += ' --classified-out %s/classified#.fastq' % out
+            cmd += ' --paired'
+        #else:
+            #fqs = ['%s/%s.fastq' % (out, x) for x in names]
+            #cmd += ' --unclassified-out %s/unclassified.fastq' % out
+            #cmd += ' --classified-out %s/classified.fastq' % out
+        # if inputs[0].endswith('.gz'):
+        #     cmd += ' --gzip-compressed'
+        cmd += ' %s > %s\n' % (' '.join(inputs), result)
+
+    cmd += 'gzip %s\n' % result
+    cmd += 'gzip %s/report.tsv\n' % out
     #for fq in fqs:
     #    cmd += 'if [ -e %s ]; then gzip %s; fi\n' % (fq, fq)
     return cmd
@@ -2327,7 +2334,7 @@ def kraken2(self) -> None:
             out = '/'.join([self.dir, tech, self.sam_pool, db])
             self.outputs['dirs'].append(out)
             self.outputs['outs'].setdefault((tech, sam), []).append((db, out))
-            if self.config.force or to_do('%s/result.tsv' % out):
+            if self.config.force or to_do('%s/result.tsv.gz' % out):
                 db_path = get_kraken2_db(self, db)
                 cmd = get_kraken2_cmd(self, tech, inputs, out, db_path)
                 if to_dos:
@@ -2407,7 +2414,7 @@ def bracken_cmd(
     db_path : str
         Path tho the Bracken database
     report : str
-        Path to the kraken2 output folder
+        Path to the kraken2 input file
     out_dir : str
         Path to the output folder
 
@@ -2417,15 +2424,24 @@ def bracken_cmd(
         Bracken command
     """
     params = tech_params(self, tech)
-    cmd = 'export PATH=$PATH:%s:%s/src\n' % (params['path'], params['path'])
-    cmd += 'bracken'
-    cmd += ' -d %s' % db_path
-    cmd += ' -i %s' % report
-    cmd += ' -o %s/results.tsv' % out_dir
-    cmd += ' -w %s/report.tsv' % out_dir
-    cmd += ' -r %s' % params['read_len']
-    cmd += ' -l %s' % params['level']
-    cmd += ' -t %s' % params['threshold']
+
+    cmd = ''
+    result = '%s/result.tsv' % out_dir
+    if to_do(result):
+        cmd += 'PATH=$PATH:%s:%s/src\n' % (params['path'], params['path'])
+        cmd += 'export PATH\n'
+        cmd += 'gunzip %s\n' % report
+        cmd += 'bracken'
+        cmd += ' -d %s' % db_path
+        cmd += ' -i %s' % report.rstrip('.gz')
+        cmd += ' -o %s' % result
+        cmd += ' -w %s/report.tsv' % out_dir
+        cmd += ' -r %s' % params['read_len']
+        cmd += ' -l %s' % params['level']
+        cmd += ' -t %s' % params['threshold']
+
+    cmd += 'gzip %s\n' % result
+    cmd += 'gzip %s/report.tsv\n' % out_dir
     return cmd
 
 
@@ -2479,14 +2495,14 @@ def bracken(self) -> None:
         if tech_specificity(self, inputs, tech, sam):
             continue
         for (db, k2) in inputs:
-            report = '%s/report.tsv' % k2
+            report = '%s/report.tsv.gz' % k2
             to_dos = status_update(self, tech, [report])
 
             db_path = get_bracken_db(self, db)
             out = '/'.join([self.dir, tech, self.sam_pool, db])
             self.outputs['dirs'].append(out)
             self.outputs['outs'].setdefault((tech, sam), []).extend(out)
-            if self.config.force or to_do('%s/results.tsv' % out):
+            if self.config.force or to_do('%s/results.tsv.gz' % out):
                 cmd = bracken_cmd(self, tech, db_path, report, out)
                 if to_dos:
                     self.outputs['cmds'].setdefault((tech,), []).append(False)
