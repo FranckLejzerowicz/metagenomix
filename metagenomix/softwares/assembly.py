@@ -7,6 +7,7 @@
 # ----------------------------------------------------------------------------
 
 import sys
+from os.path import basename
 from metagenomix._io_utils import io_update, to_do, status_update
 from metagenomix.core.parameters import tech_params
 
@@ -97,13 +98,24 @@ def quast_cmd(
     to_dos = status_update(self, tech, contigs, pool=pool)
 
     params = tech_params(self, tech)
-    cmd = '%s/metaquast.py' % params['path']
+
+    cmd, cmd_rm = '', '\n'
+    contigs_in = []
+    for contig in contigs:
+        if contig.endswith('.gz'):
+            contigs_in.append('%s.gz' % contig)
+            cmd += 'gunzip -c %s > %s.tmp\n' % (contig, contig)
+            cmd_rm += 'rm %s.tmp\n' % contig
+        else:
+            contigs_in.append(contig)
+
+    cmd += '%s/metaquast.py' % params['path']
     # cmd += 'pe1'
     # cmd += 'pe2'
     # cmd += 'single'
     # cmd += 'pacbio'
     # cmd += 'nanopore'
-    cmd += ' %s' % ' '.join(contigs)
+    cmd += ' %s' % ' '.join(contigs_in)
     if labels:
         cmd += ' --labels "%s"' % ','.join(labels)
     cmd += ' --output-dir %s' % out_dir
@@ -144,6 +156,7 @@ def quast_cmd(
             if params[boolean]:
                 cmd += ' --%s' % boolean.replace('_', '-')
 
+    cmd += cmd_rm
     return cmd, contigs, to_dos
 
 
@@ -210,6 +223,7 @@ def spades_cmd(
         techs: list,
         tmp: str,
         out: str,
+        outs: list,
         log: str,
         hybrid: str,
         group: str
@@ -229,6 +243,8 @@ def spades_cmd(
         Temporary folder for SPAdes
     out : str
         Path to the output folder
+    outs : list
+        Paths to the output files (gzipped)
     log : str
         Path to the output log file
     hybrid : str
@@ -299,12 +315,17 @@ def spades_cmd(
                             cmd += ' -2 %s' % fastq
                         elif 'R2.fastq' in fastq:
                             cmd += ' -2 %s' % fastq
+
     cmd += '\nrm -rf %s\n' % tmp
+    for o in outs:
+        cmd += 'gzip %s\n' % o
+
     cmd += 'if [ -d %s/misc ]; then rm -rf %s/misc; fi\n' % (out, out)
     cmd += 'if [ -d %s/pipeline_state ];' % out
     cmd += ' then rm -rf %s/pipeline_state; fi\n' % out
     for k in self.soft.params['k']:
         cmd += 'if [ -d %s/K%s ]; then rm -rf %s/K%s; fi\n' % (out, k, out, k)
+
     return cmd, inputs, to_dos
 
 
@@ -387,18 +408,18 @@ def spades(self) -> None:
         self.outputs['dirs'].append(out)
 
         # get expected output files
-        before_rr = '%s/before_rr.fasta' % out
-        contigs = '%s/contigs.fasta' % out
-        first_pe = '%s/first_pe_contigs.fasta' % out
-        scaffolds = '%s/scaffolds.fasta' % out
-        log = '%s/spades.log' % out
+        contigs = '%s/contigs.fasta.gz' % out
+        before_rr = '%s/before_rr.fasta.gz' % out
+        first_pe = '%s/first_pe_contigs.fasta.gz' % out
+        scaffolds = '%s/scaffolds.fasta.gz' % out
+        log = '%s/spades.log.gz' % out
         outs = [contigs, before_rr, first_pe, scaffolds, log]
         self.outputs['outs'][(hybrid, group)] = outs
 
         # check if there is a need to run
         if self.config.force or to_do(contigs):
             cmd, inputs, to_dos = spades_cmd(
-                self, techs_inputs, techs, tmp, out, log, hybrid, group)
+                self, techs_inputs, techs, tmp, out, outs, log, hybrid, group)
             key = (hybrid, group)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
@@ -415,6 +436,7 @@ def megahit_cmd(
         inputs: list,
         group: str,
         out: str,
+        inter_dir: str,
         contigs: str,
         fastg: str,
         key: tuple
@@ -432,10 +454,12 @@ def megahit_cmd(
         Name of a group for the current co-assembly pool
     out : str
         Path to the output folder
+    inter_dir : str
+        Path to the intermediate_contigs folder
     contigs : str
-        Path to the final contigs file
+        Path to the final contigs (gzipped)
     fastg : str
-        Path to the longest k-mer contigs file
+        Path to the longest k-mer contigs file (gzipped)
     key : tuple
 
     Returns
@@ -468,8 +492,7 @@ def megahit_cmd(
         if self.soft.params[boolean]:
             m_cmd += ' --%s' % boolean.replace('_', '-')
     m_cmd += ' --out-dir %s' % out
-    out_folder = '%s/intermediate_contigs' % out
-    if self.soft.params['continue'] and not to_do(folder=out_folder):
+    if self.soft.params['continue'] and not to_do(folder=inter_dir):
         m_cmd += ' --continue\n'
     else:
         if len(inputs) == 3:
@@ -478,6 +501,7 @@ def megahit_cmd(
             m_cmd += ' -1 %s -2 %s\n' % tuple(inputs)
         if len(inputs) == 1:
             m_cmd += ' --read %s\n' % inputs[0]
+    m_cmd += 'gzip %s\n' % contigs.rstrip('.gz')
 
     if to_do(contigs) or self.config.force:
         cmd += 'rm -rf %s\n' % out
@@ -487,8 +511,14 @@ def megahit_cmd(
         io_update(self, i_d=out, o_d=out, key=key)
 
     if to_do(fastg) or self.config.force:
+        fasta = '%s/%s' % (inter_dir, basename(fastg).replace('.fg.gz', '.fa'))
         cmd += 'megahit_toolkit contig2fastg %s %s > %s\n' % (
-            self.soft.params['k_max'], fastg.replace('.fg', '.fa'), fastg)
+            self.soft.params['k_max'], fasta, fastg.rstrip('.gz'))
+        cmd += 'gzip %s\n' % (fastg.rstrip('.gz'))
+
+    if to_do('%s.tar.gz' % inter_dir):
+        cmd += '\ntar cpfz %s.tar.gz %s\n' % (inter_dir, inter_dir)
+        cmd += '\nrm -rf %s\n' % inter_dir
 
     cmd += '\nrm -rf %s\n' % tmp
     return cmd
@@ -538,14 +568,15 @@ def megahit(self) -> None:
         out = '%s/%s/%s' % (self.dir, self.sam_pool, group)
         self.outputs['dirs'].append(out)
 
-        contigs = '%s/%s.contigs.fa' % (out, group)
-        fastg = '%s/intermediate_contigs/k%s.contigs.fg' % (
-            out, self.soft.params['k_max'])
+        inter_dir = '%s/intermediate_contigs' % out
+        contigs = '%s/%s.contigs.fa.gz' % (out, group)
+        fastg = '%s/k%s.contigs.fg.gz' % (out, self.soft.params['k_max'])
         self.outputs['outs'][(tech, group)] = [contigs, out, fastg]
 
         if self.config.force or to_do(contigs) or to_do(fastg):
             key = (tech, group)
-            cmd = megahit_cmd(self, inputs, group, out, contigs, fastg, key)
+            cmd = megahit_cmd(
+                self, inputs, group, out, inter_dir, contigs, fastg, key)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
