@@ -517,7 +517,7 @@ def megahit_cmd(
         cmd += 'gzip %s\n' % (fastg[:-3])
 
     if to_do('%s.tar.gz' % inter_dir):
-        cmd += '\ntar cpfz %s.tar.gz %s\n' % (inter_dir, inter_dir)
+        cmd += '\ntar cpfz %s.tar.gz -C %s .\n' % (inter_dir, inter_dir)
         cmd += '\nrm -rf %s\n' % inter_dir
 
     cmd += '\nrm -rf %s\n' % tmp
