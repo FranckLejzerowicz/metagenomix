@@ -56,11 +56,12 @@ def prodigal_cmd(
         Prodigal command
     """
     params = tech_params(self, tech)
-    cmd = ''
+    cmd, cmd_rm = '', ''
 
     contig_fa = fasta_fp
     if fasta_fp.endswith('.fa.gz') or fasta_fp.endswith('.fasta.gz'):
         cmd += 'gunzip -c %s > %s\n' % (fasta_fp, fasta_fp.rstrip('.gz'))
+        cmd_rm += 'rm %s\n' % fasta_fp.rstrip('.gz')
         contig_fa = fasta_fp.rstrip('.gz')
     elif fasta_fp.endswith('fastq.gz'):
         contig_fa = fasta_fp.replace('fastq.gz', 'fasta')
@@ -77,12 +78,8 @@ def prodigal_cmd(
     for boolean in ['c', 'm', 'n', 'q']:
         if params[boolean]:
             cmd += ' -%s' % params[boolean]
-
-    if fasta_fp.endswith('.fa.gz') or fasta_fp.endswith('.fasta.gz'):
-        cmd += 'rm %s\n' % fasta_fp.rstrip('.gz')
-
-    # cmd += 'for i in %s/*; do gzip $i; do\n' % out
-
+    cmd += '\n' + cmd_rm
+    cmd += 'for i in %s/*; do gzip $i; do\n' % out
     return cmd
 
 
@@ -229,9 +226,15 @@ def macsyfinder_cmd(
     outs : dict
         Paths to the output folder per model
     """
-    proteins_fp = proteins
     params = tech_params(self, tech)
-    cmd_header = ''
+
+    cmd_header, cmd_rm = '', ''
+    if proteins.endswith('.fasta.gz'):
+        cmd_header += 'gunzip -c %s > %s\n' % (proteins, proteins.rstrip('.gz'))
+        cmd_rm += 'rm %s\n' % proteins.rstrip('.gz')
+        proteins = proteins.rstrip('.gz')
+
+    proteins_fp = proteins
     if tech in ['illumina', 'pacbio', 'nanopore']:
         proteins_fp = '%s_edit.fasta' % proteins.replace('.fasta', '')
         cmd_header += '%s/header_space_replace.py -i %s -o %s --n\n' % (
@@ -284,7 +287,7 @@ def macsyfinder_cmd(
             self.soft.add_status(
                 tech, self.sam_pool, 0, group=sam_group, genome=genome)
     if cmd:
-        cmd = cmd_header + cmd
+        cmd = cmd_header + cmd + cmd_rm
     return cmd, outs
 
 
@@ -318,7 +321,7 @@ def get_macsyfinder(
 
         proteins = fasta[0]
         if self.soft.prev == 'prodigal':
-            proteins = '%s/protein.translations.fasta' % fasta[0]
+            proteins = '%s/protein.translations.fasta.gz' % fasta[0]
 
         to_dos = status_update(
             self, tech, [proteins], group=sam_group, genome=genome)
@@ -455,14 +458,17 @@ def integronfinder_cmd(
     """
     params = tech_params(self, tech)
 
-    cmd = ''
+    cmd, cmd_rm = '', ''
     fasta = fastx
-    if fastx.endswith('fastq.gz') or fastx.endswith('fastq'):
-        fasta = fastx.replace('fastq.gz', 'fasta')
+    if fastx.endswith('.fa.gz') or fastx.endswith('.fasta.gz'):
+        cmd += 'gunzip -c %s > %s\n' % (fastx, fastx.rstrip('.gz'))
+        cmd_rm += 'rm %s\n' % fastx.rstrip('.gz')
+        fasta = fastx.rstrip('.gz')
+    if fastx.endswith('.fastq.gz') or fastx.endswith('.fastq'):
+        fasta = '%s.fasta' % fastx.rsplit('.fastq', 1)[0]
         cmd += 'seqtk seq -a %s > %s\n' % (fastx, fasta)
 
     fasta_out = '%s_min%snt.fasta' % (splitext(fasta)[0], params['min_length'])
-
     cmd += '\n%s/filter_on_length.py' % RESOURCES
     cmd += ' -i %s' % fasta
     cmd += ' -o %s' % fasta_out
@@ -496,7 +502,8 @@ def integronfinder_cmd(
             cmd += ' --topology linear'
         elif '_drep_' in out or '_metawrap' in out:
             cmd += ' --topology circ'
-    cmd += ' %s' % fasta_out
+    cmd += ' %s\n' % fasta_out
+    cmd += cmd_rm
     return cmd
 
 
@@ -541,7 +548,7 @@ def get_integronfinder(
 
         fasta = fasta_[0]
         if self.soft.prev == 'prodigal':
-            fasta = '%s/nucleotide.sequences.fasta' % fasta_[0]
+            fasta = '%s/nucleotide.sequences.fasta.gz' % fasta_[0]
 
         to_dos = status_update(
             self, tech, [fasta], group=sam_group, genome=genome)
@@ -1022,9 +1029,10 @@ def prokka_cmd(
     cmd : str
         Prokka command
     """
-    cmd = ''
+    cmd, cmd_rm = '', ''
     if contigs.endswith('.gz'):
         cmd += 'gunzip -c %s > %s\n' % (contigs, contigs.rstrip('.gz'))
+        cmd_rm += 'rm %s\n' % contigs.rstrip('.gz')
 
     cmd += 'prokka'
     cmd += ' --mincontiglen %s' % self.soft.params['mincontiglen']
@@ -1038,15 +1046,13 @@ def prokka_cmd(
             cmd += ' --%s %s' % (col, config[col])
     cmd += ' --prefix %s' % pref
     cmd += ' --outdir %s' % out_dir
-
     if contigs.endswith('.gz'):
-        cmd += ' %s' % contigs.rstrip('.gz')
+        cmd += ' %s\n' % contigs.rstrip('.gz')
     else:
-        cmd += ' %s' % contigs
+        cmd += ' %s\n' % contigs
 
-    if contigs.endswith('.gz'):
-        cmd += 'rm %s\n' % contigs.rstrip('.gz')
-
+    cmd += 'gzip %s/%s.out\n' % (out_dir, pref)
+    cmd += cmd_rm
     return cmd
 
 
@@ -1151,7 +1157,7 @@ def get_prokka(
         pref = '_'.join([config[x] for x in cols if config[x]])
         if config.get('proteins'):
             pref += '_%s' % splitext(basename(config['proteins']))[0]
-        file_out = '%s/%s.out' % (out_dir, pref)
+        file_out = '%s/%s.out.gz' % (out_dir, pref)
         if self.config.force or to_do(file_out):
             cmd += prokka_cmd(self, inputs[0], out_dir, pref, config, cols)
             self.soft.add_status(
@@ -1238,11 +1244,17 @@ def barrnap_cmd(
         Barrnap command
     """
     params = tech_params(self, tech)
-    cmd = ''
+
     fasta = fastx
-    if fastx.endswith('fastq.gz') or fasta.endswith('fastq'):
-        fasta = fasta.replace('fastq.gz', 'fasta').replace('fastq', 'fasta')
+    cmd, cmd_rm = '', ''
+    if fastx.endswith('.fa.gz') or fastx.endswith('.fasta.gz'):
+        cmd += 'gunzip -c %s > %s\n' % (fastx, fastx.rstrip('.gz'))
+        cmd_rm += 'rm %s\n' % fastx.rstrip('.gz')
+        fasta = fastx.rstrip('.gz')
+    elif fastx.endswith('.fastq.gz') or fastx.endswith('.fastq'):
+        fasta = '%s.fasta' % fastx.rsplit('.fastq', 1)[0]
         cmd += 'seqtk seq -a %s > %s\n' % (fastx, fasta)
+
     cmd += 'barrnap'
     cmd += ' --kingdom %s' % params['kingdom']
     cmd += ' --threads %s' % params['cpus']
@@ -1252,7 +1264,8 @@ def barrnap_cmd(
     if params['incseq']:
         cmd += ' --incseq'
     cmd += ' --outseq %s' % out
-    cmd += ' %s' % fasta
+    cmd += ' %s\n' % fasta
+    cmd += cmd_rm
     return cmd
 
 
@@ -1284,13 +1297,20 @@ def ccfind_cmd(
         ccfind command
     """
     params = tech_params(self, tech)
-    cmd = ''
+    cmd, cmd_rm = '', ''
     if self.config.force:
         cmd += 'if [ -d "%s" ]; then rm -rf %s; fi\n' % (out_dir, out_dir)
+
     fasta = fastx
-    if fastx.endswith('fastq.gz') or fasta.endswith('fastq'):
-        fasta = fasta.replace('fastq.gz', 'fasta').replace('fastq', 'fasta')
+    cmd, cmd_rm = '', ''
+    if fastx.endswith('.fa.gz') or fastx.endswith('.fasta.gz'):
+        cmd += 'gunzip -c %s > %s\n' % (fastx, fastx.rstrip('.gz'))
+        cmd_rm += 'rm %s\n' % fastx.rstrip('.gz')
+        fasta = fastx.rstrip('.gz')
+    elif fastx.endswith('.fastq.gz') or fastx.endswith('.fastq'):
+        fasta = '%s.fasta' % fastx.rsplit('.fastq', 1)[0]
         cmd += 'seqtk seq -a %s > %s\n' % (fastx, fasta)
+
     cmd += 'ccfind %s %s' % (fasta, out_dir)
     cmd += ' --terminal-fragment-size %s' % params['terminal_fragment_size']
     cmd += ' --min-percent-identity %s' % params['min_percent_identity']
@@ -1298,6 +1318,7 @@ def ccfind_cmd(
     cmd += ' --ncpus %s' % params['cpus']
     if params['preserve_tmpdir']:
         cmd += ' --preserve-tmpdir'
+    cmd += '\n' + cmd_rm
     return cmd
 
 
@@ -1646,6 +1667,48 @@ def antismash(self) -> None:
             get_antismash(self, fastas, tech, self.sam_pool)
 
 
+def tiara_cmd(self, contig: str, out_dir: str, out_fp: str):
+    """Get the tiara command line.
+
+    Parameters
+    ----------
+    self
+    contig : str
+        Path to the input contigs file
+    out_dir : str
+        Path to the output folder
+    out_fp : str
+        Path to the output file
+
+    Returns
+    -------
+    cmd : str
+        tiara command line
+    """
+    cmd, cmd_rm = '', ''
+    if contig.endswith('.fa.gz') or contig.endswith('.fasta.gz'):
+        cmd += 'gunzip -c %s > %s\n' % (contig, contig.rstrip('.gz'))
+        contig = contig.rstrip('.gz')
+        cmd_rm += 'rm %s\n' % contig
+
+    cmd += 'cd %s\n' % out_dir
+
+    cmd += 'tiara'
+    cmd += ' --input %s' % contig
+    cmd += ' --output %s' % out_fp
+    cmd += ' --threads %s' % self.soft.params['cpus']
+    for boolean in ['probabilities', 'verbose', 'gzip']:
+        if self.soft.params[boolean]:
+            cmd += ' --%s' % boolean
+    for param in ['min_len', 'first_stage_kmer', 'second_stage_kmer']:
+        cmd += ' --%s %s' % (param, self.soft.params[param])
+    for param in ['prob_cutoff', 'to_fasta']:
+        cmd += ' --%s %s' % (param, ' '.join(self.soft.params[param]))
+    cmd += '\n' + cmd_rm
+    cmd += 'for i in %s/*; gzip $i; done\n' % out_dir
+    return cmd
+
+
 def tiara(self) -> None:
     """Deep-learning-based approach for identification of eukaryotic
     sequences in the metagenomic data powered by PyTorch. The sequences are
@@ -1680,34 +1743,23 @@ def tiara(self) -> None:
     """
     if self.config.tools[self.soft.prev] != 'assembling':
         sys.exit('[tiara] can only be run on assembly output')
-    for (tech, group), spades in self.inputs[self.sam_pool].items():
+    for (tech, group), contigs in self.inputs[self.sam_pool].items():
 
         out_dir = '/'.join([self.dir, tech, self.sam_pool, group])
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'][group] = out_dir
-        out_fp = '%s/classifications.txt' % out_dir
+        out_fp = '%s/classifications.txt.gz' % out_dir
 
-        to_dos = status_update(self, tech, [spades[0]], group=group)
-
+        contig = contigs[0]
+        to_dos = status_update(self, tech, [contig], group=group)
         if self.config.force or to_do(out_fp):
-            cmd = 'cd %s\n' % out_dir
-            cmd += 'tiara'
-            cmd += ' --input %s' % spades[0]
-            cmd += ' --output %s' % out_fp
-            cmd += ' --threads %s' % self.soft.params['cpus']
-            for boolean in ['probabilities', 'verbose', 'gzip']:
-                if self.soft.params[boolean]:
-                    cmd += ' --%s' % boolean
-            for param in ['min_len', 'first_stage_kmer', 'second_stage_kmer']:
-                cmd += ' --%s %s' % (param, self.soft.params[param])
-            for param in ['prob_cutoff', 'to_fasta']:
-                cmd += ' --%s %s' % (param, ' '.join(self.soft.params[param]))
+            cmd = tiara_cmd(self, contig, out_dir, out_fp)
             key = (tech, group)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
-            io_update(self, i_f=spades[0], o_d=out_dir, key=key)
+            io_update(self, i_f=contig, o_d=out_dir, key=key)
             self.soft.add_status(tech, self.sam_pool, 1, group=group)
         else:
             self.soft.add_status(tech, self.sam_pool, 0, group=group)
