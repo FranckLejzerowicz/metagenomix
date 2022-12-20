@@ -223,7 +223,6 @@ def spades_cmd(
         techs: list,
         tmp: str,
         out: str,
-        outs: list,
         log: str,
         hybrid: str,
         group: str
@@ -243,8 +242,6 @@ def spades_cmd(
         Temporary folder for SPAdes
     out : str
         Path to the output folder
-    outs : list
-        Paths to the output files (gzipped)
     log : str
         Path to the output log file
     hybrid : str
@@ -317,14 +314,12 @@ def spades_cmd(
                             cmd += ' -2 %s' % fastq
 
     cmd += '\nrm -rf %s\n' % tmp
-    for o in outs:
-        cmd += 'gzip %s\n' % o
-
     cmd += 'if [ -d %s/misc ]; then rm -rf %s/misc; fi\n' % (out, out)
     cmd += 'if [ -d %s/pipeline_state ];' % out
     cmd += ' then rm -rf %s/pipeline_state; fi\n' % out
     for k in self.soft.params['k']:
         cmd += 'if [ -d %s/K%s ]; then rm -rf %s/K%s; fi\n' % (out, k, out, k)
+    cmd += 'for i in %s/*; do gzip $i; done\n' % out
 
     return cmd, inputs, to_dos
 
@@ -418,8 +413,8 @@ def spades(self) -> None:
 
         # check if there is a need to run
         if self.config.force or to_do(contigs):
-            cmd, inputs, to_dos = spades_cmd(
-                self, techs_inputs, techs, tmp, out, outs, log, hybrid, group)
+            cmd, inputs, to_dos = spades_cmd(self, techs_inputs, techs, tmp,
+                                             out, log, hybrid, group)
             key = (hybrid, group)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
