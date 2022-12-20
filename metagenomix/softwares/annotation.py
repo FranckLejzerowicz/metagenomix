@@ -57,10 +57,15 @@ def prodigal_cmd(
     """
     params = tech_params(self, tech)
     cmd = ''
+
     contig_fa = fasta_fp
-    if fasta_fp.endswith('fastq.gz'):
+    if fasta_fp.endswith('.fa.gz') or fasta_fp.endswith('.fasta.gz'):
+        cmd += 'gunzip -c %s > %s\n' % (fasta_fp, fasta_fp.rstrip('.gz'))
+        contig_fa = fasta_fp.rstrip('.gz')
+    elif fasta_fp.endswith('fastq.gz'):
         contig_fa = fasta_fp.replace('fastq.gz', 'fasta')
         cmd += 'seqtk seq -a %s > %s\n' % (fasta_fp, contig_fa)
+
     cmd = 'prodigal'
     cmd += ' -i %s' % contig_fa
     cmd += ' -a %s/protein.translations.fasta' % out
@@ -72,6 +77,12 @@ def prodigal_cmd(
     for boolean in ['c', 'm', 'n', 'q']:
         if params[boolean]:
             cmd += ' -%s' % params[boolean]
+
+    if fasta_fp.endswith('.fa.gz') or fasta_fp.endswith('.fasta.gz'):
+        cmd += 'rm %s\n' % fasta_fp.rstrip('.gz')
+
+    # cmd += 'for i in %s/*; do gzip $i; do\n' % out
+
     return cmd
 
 
@@ -114,7 +125,7 @@ def get_prodigal(
         self.outputs['dirs'].append(out)
         self.outputs['outs'].setdefault((tech, sam_group), []).append(out)
 
-        proteins = '%s/protein.translations.fasta' % out
+        proteins = '%s/protein.translations.fasta.gz' % out
         if self.config.force or to_do(proteins):
             cmd = prodigal_cmd(self, tech, fasta[0], out)
             self.soft.add_status(
@@ -1011,7 +1022,11 @@ def prokka_cmd(
     cmd : str
         Prokka command
     """
-    cmd = 'prokka'
+    cmd = ''
+    if contigs.endswith('.gz'):
+        cmd += 'gunzip -c %s > %s\n' % (contigs, contigs.rstrip('.gz'))
+
+    cmd += 'prokka'
     cmd += ' --mincontiglen %s' % self.soft.params['mincontiglen']
     cmd += ' --cpus %s' % self.soft.params['cpus']
     for boolean in ['metagenome', 'notrna', 'norrna']:
@@ -1023,7 +1038,15 @@ def prokka_cmd(
             cmd += ' --%s %s' % (col, config[col])
     cmd += ' --prefix %s' % pref
     cmd += ' --outdir %s' % out_dir
-    cmd += ' %s' % contigs
+
+    if contigs.endswith('.gz'):
+        cmd += ' %s' % contigs.rstrip('.gz')
+    else:
+        cmd += ' %s' % contigs
+
+    if contigs.endswith('.gz'):
+        cmd += 'rm %s\n' % contigs.rstrip('.gz')
+
     return cmd
 
 
