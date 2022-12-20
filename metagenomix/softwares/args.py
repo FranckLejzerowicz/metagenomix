@@ -496,6 +496,8 @@ def karga_kargva_cmd(
         tech: str,
         merged: str,
         out: str,
+        genes: str,
+        reads: str,
         db: str,
         db_path: str
 ) -> str:
@@ -514,6 +516,10 @@ def karga_kargva_cmd(
         Path to the input file
     out : str
         Path to the output folder
+    genes : str
+        Path to the output mappedGenes.csv
+    reads : str
+        Path to the output mappedReads.csv
     db : str
         Name of the database
     db_path : str
@@ -534,8 +540,10 @@ def karga_kargva_cmd(
         if self.soft.params[param]:
             cmd += ' %s:%s' % (param, params[param])
     cmd += ' -Xmx%s%s\n' % (params['mem'], params['mem_dim'])
-    cmd += 'mv %s/*_mapped*.csv %s/db_%s\n' % (out, out, db)
-    cmd += 'rm %s\n' % merged
+    cmd += 'grep -v ",?,?" %s > %s.tmp\n' % (reads, reads)
+    cmd += 'mv %s.tmp %s\n' % (reads, reads)
+    cmd += 'gzip %s %s\n' % (reads, genes)
+    cmd += 'mv %s/*_mapped*.csv.gz %s/db_%s\n' % (out, out, db)
     return cmd
 
 
@@ -577,26 +585,26 @@ def get_karga_kargva(
         to_dos = status_update(
             self, tech, inputs, group=sam_group, genome=genome)
 
-        merge_cmd = ''
+        merge_cmd, rm_cmd = '', ''
         if len(inputs) == 1:
             merged = fastx
         elif len(inputs) > 1:
-            merged = '%s/%s' % (out_dir, basename(fastx))
+            merged = '%s/merged_%s' % (out_dir, basename(fastx))
             merge_cmd += 'cat %s > %s\n' % (' '.join(inputs), merged)
+            rm_cmd += 'rm %s\n' % merged
 
         outs, cmd = [], ''
+        bas = splitext(basename(fastx))[0]
         for db, db_path in self.soft.params['databases'].items():
             out = '%s/db_%s' % (out_dir, db)
             self.outputs['dirs'].append(out_dir)
             outs.append(out)
-            bas = splitext(basename(merged))[0]
-            fp = '%s/db_%s/%s_%s_mappedReads.csv' % (
-                out, db, self.soft.name.upper(), bas)
-            # check if tool already run (or if --force) to allow getting command
-            if self.config.force or to_do(fp):
+            r = '%s/db_%s/%s_%s_mapped' % (out, db, bas, self.soft.name.upper())
+            genes, reads = '%sGenes.csv.gz' % r, '%sReads.csv.gz' % r
+            if self.config.force or to_do(genes) or to_do(reads):
                 # collect the command line
-                cmd += karga_kargva_cmd(self, tech, merged, out, db, db_path)
-
+                cmd += karga_kargva_cmd(
+                    self, tech, merged, out, genes, reads, db, db_path)
         if cmd:
             if self.soft.name == 'karga':
                 ps = ['openjdk-8', 'AMRGene.class']
@@ -611,6 +619,7 @@ def get_karga_kargva(
             for p in ps:
                 full_cmd += 'rm -rf %s\n' % p
             full_cmd += 'rm -rf KARG*\n'
+            full_cmd += rm_cmd
 
             key = genome_key(tech, sam_group)
             if to_dos:
