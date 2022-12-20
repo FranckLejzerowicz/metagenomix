@@ -899,11 +899,18 @@ def binning_cmd(
     binners = get_binners(self, binned)
     cmd = ''
     if binners:
+
+        if contigs.endswith('.gz'):
+            cmd += 'gunzip -c %s > %s\n' % (contigs, contigs.rstrip('.gz'))
+
         gz, fqs, fqs_cmd = get_fqs(fastq)
         cmd += 'export PATH=$PATH:%s/bin\n' % self.soft.params['path']
         cmd += 'metawrap binning'
         cmd += ' -o %s' % out
-        cmd += ' -a %s' % contigs
+        if contigs.endswith('.gz'):
+            cmd += ' -a %s' % contigs.rstrip('.gz')
+        else:
+            cmd += ' -a %s' % contigs
         cmd += ' -t %s' % self.soft.params['cpus']
         cmd += ' -l %s' % self.soft.params['min_contig_length']
         cmd += ' --universal'
@@ -914,6 +921,13 @@ def binning_cmd(
             cmd = fqs_cmd + cmd
         if gz:
             cmd += 'rm %s\n' % ' '.join(fqs)
+
+        # cmd += 'for i in %s/%s/*.fa; do gzip $i; done\n' % (out, binner)
+        # cmd += 'gzip %s/work_files\n' % out
+
+        if contigs.endswith('.gz'):
+            cmd += 'rm %s\n' % contigs.rstrip('.gz')
+
     return cmd
 
 
@@ -964,7 +978,7 @@ def binning(self):
 
         binned = {binner: '%s/%s_bins' % (out, binner)
                   for binner in self.soft.params['binners']}
-        bin_dirs = sorted(binned.values()) + ['%s/work_files' % out]
+        bin_dirs = sorted(binned.values())  # + ['%s/work_files' % out]
 
         key = (tech, group)
         self.outputs['outs'][key] = bin_dirs
@@ -1051,8 +1065,14 @@ def yamb_cmd(
         Command line for YAMB
     """
     params = tech_params(self, tech)
-    cmd = '%s/yamb.sh' % params['path']
-    cmd += ' -c %s' % contigs
+    if contigs.endswith('.gz'):
+        cmd = 'gunzip -c %s > %s\n' % (contigs, contigs.rstrip('.gz'))
+
+    cmd += '%s/yamb.sh' % params['path']
+    if contigs.endswith('.gz'):
+        cmd += ' -c %s' % contigs.rstrip('.gz')
+    else:
+        cmd += ' -c %s' % contigs
     if len(fastxs) == 3:
         cmd += ' -s %s' % fastxs[0]
         cmd += ' -f %s' % fastxs[1]
@@ -1065,7 +1085,11 @@ def yamb_cmd(
     cmd += ' -o %s' % out_dir
     cmd += ' -t %s' % params['cpus']
     cmd += ' -m %s' % params['m']
-    cmd += ' -l %s' % params['l']
+    cmd += ' -l %s\n' % params['l']
+
+    cmd += 'for i in %s/yamb-pp-*-hdbscan.csv; do gzip $i; done\n' % out_dir
+    if contigs.endswith('.gz'):
+        cmd += 'rm %s\n' % contigs.rstrip('.gz')
     return cmd
 
 
@@ -1083,7 +1107,7 @@ def get_yamb(self, tech, group, contigs, fastxs):
     self.outputs['dirs'].append(out_dir)
     self.outputs['outs'][key] = [out_dir]
 
-    out = '%s/yamb-pp-*-hdbscan.csv' % out_dir
+    out = '%s/yamb-pp-*-hdbscan.csv.gz' % out_dir
     if self.config.force or not glob.glob(out):
         if to_dos:
             self.outputs['cmds'].setdefault(key, []).append(False)
@@ -1134,8 +1158,7 @@ def yamb(self):
                 if t in tech:
                     fastxs += [fastq for sam in self.pools[self.sam_pool][group]
                                for fastq in reads[sam].get((t, sam), [])]
-        contigs = inputs[0]
-        get_yamb(self, tech, group, contigs, fastxs)
+        get_yamb(self, tech, group, inputs[0], fastxs)
 
 
 def summarize_yamb(self):
