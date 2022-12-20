@@ -1411,7 +1411,7 @@ def denovo_cmd(
         cmd += ' --tmpdir $TMPDIR'
         cmd += ' --extension %s' % get_extension(self)
         cmd += ' --cpus %s' % self.soft.params['cpus']
-        cmd += ' --%s' % params[taxon]
+        cmd += ' --%s' % taxon
         for param in [
             'cols_per_gene', 'min_consensus', 'max_consensus', 'min_perc_taxa',
             'min_perc_aa', 'rnd_seed', 'prot_model', 'genes', 'taxa_filter',
