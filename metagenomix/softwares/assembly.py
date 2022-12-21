@@ -99,13 +99,13 @@ def quast_cmd(
 
     params = tech_params(self, tech)
 
-    cmd, cmd_rm = '', '\n'
     contigs_in = []
+    cmd, cmd_rm = '', '\n'
     for contig in contigs:
         if contig.endswith('.gz'):
-            contigs_in.append('%s.gz' % contig)
-            cmd += 'gunzip -c %s > %s.tmp\n' % (contig, contig)
-            cmd_rm += 'rm %s.tmp\n' % contig
+            contigs_in.append(contig.rstrip('.gz'))
+            cmd += 'gunzip -c %s > %s\n' % (contig, contig.rstrip('.gz'))
+            cmd_rm += 'rm %s\n' % contig.rstrip('.gz')
         else:
             contigs_in.append(contig)
 
