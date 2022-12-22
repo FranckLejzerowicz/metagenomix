@@ -1425,7 +1425,7 @@ def denovo_cmd(
         ]:
             if params[boolean]:
                 cmd += ' --%s' % boolean
-        cmd += '--outgroup_taxon %s' % params['outgroup_taxon'][taxon]
+        cmd += ' --outgroup_taxon %s' % params['outgroup_taxon'][taxon]
         cmd = scratch_cmd + cmd + '\n'
     return cmd
 
