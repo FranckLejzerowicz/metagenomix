@@ -1415,7 +1415,7 @@ def denovo_cmd(
         for param in [
             'cols_per_gene', 'min_consensus', 'max_consensus', 'min_perc_taxa',
             'min_perc_aa', 'rnd_seed', 'prot_model', 'genes', 'taxa_filter',
-            'outgroup_taxon', 'custom_taxonomy_file'
+            'custom_taxonomy_file'
         ]:
             if params[param]:
                 cmd += ' --%s %s' % (param, params[param])
@@ -1425,7 +1425,7 @@ def denovo_cmd(
         ]:
             if params[boolean]:
                 cmd += ' --%s' % boolean
-
+        cmd += '--outgroup_taxon %s' % params[param][taxon]
         cmd = scratch_cmd + cmd + '\n'
     return cmd
 
