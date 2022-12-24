@@ -896,20 +896,18 @@ def binning_cmd(
         metaWRAP binning comand
     """
     binners = get_binners(self, binned)
-    cmd = ''
+    cmd, cmd_rm = '', ''
     if binners:
-
         if contigs.endswith('.gz'):
             cmd += 'gunzip -c %s > %s\n' % (contigs, contigs.rstrip('.gz'))
+            contigs = contigs.rstrip('.gz')
+            cmd_rm += 'rm %s\n' % contigs
 
         gz, fqs, fqs_cmd = get_fqs(fastq)
         cmd += 'export PATH=$PATH:%s/bin\n' % self.soft.params['path']
         cmd += 'metawrap binning'
         cmd += ' -o %s' % out
-        if contigs.endswith('.gz'):
-            cmd += ' -a %s' % contigs.rstrip('.gz')
-        else:
-            cmd += ' -a %s' % contigs
+        cmd += ' -a %s' % contigs
         cmd += ' -t %s' % self.soft.params['cpus']
         cmd += ' -l %s' % self.soft.params['min_contig_length']
         cmd += ' --universal'
@@ -920,12 +918,7 @@ def binning_cmd(
             cmd = fqs_cmd + cmd
         if gz:
             cmd += 'rm %s\n' % ' '.join(fqs)
-
-        # cmd += 'for i in %s/%s/*.fa; do gzip $i; done\n' % (out, binner)
-        # cmd += 'gzip %s/work_files\n' % out
-
-        if contigs.endswith('.gz'):
-            cmd += 'rm %s\n' % contigs.rstrip('.gz')
+        cmd += cmd_rm
 
     return cmd
 
@@ -1064,14 +1057,14 @@ def yamb_cmd(
         Command line for YAMB
     """
     params = tech_params(self, tech)
+    cmd, cmd_rm = '', ''
     if contigs.endswith('.gz'):
-        cmd = 'gunzip -c %s > %s\n' % (contigs, contigs.rstrip('.gz'))
+        cmd += 'gunzip -c %s > %s\n' % (contigs, contigs.rstrip('.gz'))
+        contigs = contigs.rstrip('.gz')
+        cmd_rm += 'rm %s\n' % contigs
 
     cmd += '%s/yamb.sh' % params['path']
-    if contigs.endswith('.gz'):
-        cmd += ' -c %s' % contigs.rstrip('.gz')
-    else:
-        cmd += ' -c %s' % contigs
+    cmd += ' -c %s' % contigs
     if len(fastxs) == 3:
         cmd += ' -s %s' % fastxs[0]
         cmd += ' -f %s' % fastxs[1]
@@ -1085,10 +1078,8 @@ def yamb_cmd(
     cmd += ' -t %s' % params['cpus']
     cmd += ' -m %s' % params['m']
     cmd += ' -l %s\n' % params['l']
-
-    cmd += 'for i in %s/yamb-pp-*-hdbscan.csv; do gzip $i; done\n' % out_dir
-    if contigs.endswith('.gz'):
-        cmd += 'rm %s\n' % contigs.rstrip('.gz')
+    cmd += cmd_rm
+    cmd += 'for i in %s/*; do gzip -q $i; done\n' % out_dir
     return cmd
 
 
