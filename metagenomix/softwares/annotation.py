@@ -79,7 +79,7 @@ def prodigal_cmd(
         if params[boolean]:
             cmd += ' -%s' % params[boolean]
     cmd += '\n' + cmd_rm
-    cmd += 'for i in %s/*; do gzip $i; do\n' % out
+    cmd += 'for i in %s/*; do gzip $i; done\n' % out
     return cmd
 
 
