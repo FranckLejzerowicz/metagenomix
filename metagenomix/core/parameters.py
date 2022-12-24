@@ -388,6 +388,8 @@ def check_ccfind(self, params, soft):
     let_go = [
         'terminal_fragment_size', 'min_aligned_length', 'min_percent_identity']
     check_default(self, params, defaults, soft.name, let_go)
+    check_binary(self, soft.name, params, defaults, 'path')
+    defaults['path'] = '<path to the ccfind installation folder>'
     return defaults
 
 
