@@ -35,9 +35,13 @@ def viralverify_cmd(
     cmd : str
         ViralVerify command
     """
+    cmd_rm = ''
     cmd = 'export PATH=$PATH:%s' % self.soft.params['path']
+    if contigs.endswith('.fa.gz') or contigs.endswith('.fasta.gz'):
+        cmd += 'gunzip -c %s > %s\n' % (contigs, contigs.rstrip('.gz'))
+        cmd_rm += 'rm %s\n' % contigs.rstrip('.gz')
     cmd += '\nviralverify'
-    cmd += ' -f %s' % contigs
+    cmd += ' -f %s' % contigs.rstrip('.gz')
     cmd += ' -o %s' % out
     if self.soft.params['db']:
         cmd += ' --db'
@@ -45,7 +49,10 @@ def viralverify_cmd(
         cmd += ' --p'
     cmd += ' -t %s' % self.soft.params['cpus']
     cmd += ' --thr %s' % self.soft.params['thr']
-    cmd += ' --hmm %s' % '%s/Pfam-A.hmm' % self.databases.paths.get('pfam')
+    cmd += ' --hmm %s\n' % '%s/Pfam-A.hmm' % self.databases.paths.get('pfam')
+    cmd += 'for i in %s/*; do gzip -q $i; done\n' % out
+    cmd += 'gzip %s/Prediction_results_fasta/*fasta\n' % out
+    cmd += cmd_rm
     return cmd
 
 
@@ -108,14 +115,13 @@ def viralverify(self) -> None:
 
     for (tech, group), inputs in self.inputs[self.sam_pool].items():
 
-        to_dos = status_update(self, tech, [inputs[0]], group=group)
-
+        contigs = inputs[0]
+        to_dos = status_update(self, tech, [contigs], group=group)
         out = '/'.join([self.dir, tech, self.sam_pool, group])
         self.outputs['dirs'].append(out)
 
-        contigs = inputs[0]
         base = splitext(basename(contigs))[0]
-        out_fp = '%s/%s_result_table.csv' % (out, base)
+        out_fp = '%s/%s_result_table.csv.gz' % (out, base)
         self.outputs['outs'][(tech, group)] = out_fp
 
         if self.config.force or to_do(out_fp):
@@ -158,7 +164,6 @@ def coconet_cmd(
     """
     cmd = 'coconet run'
     cmd += ' --fasta %s' % fp
-    cmd += ' --output %s' % out_dir
     cmd += ' --threads %s' % self.soft.params['cpus']
     for boolean in ['quiet', 'no_rc', 'silent', 'continue',
                     'patience', 'recruit_small_contigs']:
@@ -181,7 +186,8 @@ def coconet_cmd(
     if bam:
         for b in bam:
             print(kjsrbf)
-        cmd += ' --bam %s\n' % ' '.join(bam)
+        cmd += ' --bam %s' % ' '.join(bam)
+    cmd += ' --output %s\n' % out_dir
     return cmd
 
 
