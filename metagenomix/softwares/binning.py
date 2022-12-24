@@ -784,7 +784,7 @@ def refine_cmd(
     cmd += 'metawrap bin_refinement'
     cmd += ' -o %s' % out_dir
     for fdx, folder in enumerate(bin_folders):
-        folders = '%s/bin.*.fa' % folder.replace('${SCRATCH_FOLDER}', '')
+        folders = '%s/*.fa' % folder.replace('${SCRATCH_FOLDER}', '')
         if len(glob.glob(folders)) or self.config.force:
             n_bins += 1
         cmd += ' -%s %s' % (['A', 'B', 'C'][fdx], folder)
@@ -813,27 +813,26 @@ def refine(self):
         .config
             Configurations
     """
-    for (tech, group), inputs in self.inputs[self.sam_pool].items():
+    for (tech, group), bin_dirs in self.inputs[self.sam_pool].items():
         key = (tech, group)
 
         out_dir = '/'.join([self.dir, tech, self.sam_pool, group])
         self.outputs['dirs'].append(out_dir)
+        to_dos = status_update(self, tech, bin_dirs, group=group, folder=True)
 
-        bin_folders = inputs[:-1]
-        to_dos = status_update(self, tech, inputs, group=group, folder=True)
-
-        cmd, n_bins = refine_cmd(self, out_dir, bin_folders)
-        out = '%s/metawrap_%s_%s' % (
-            out_dir, self.soft.params['min_completion'],
-            self.soft.params['max_contamination'])
-        stats, bins = '%s.stats' % out, '%s_bins' % out
+        cmd, n_bins = refine_cmd(self, out_dir, bin_dirs)
+        out = '%s/metawrap_%s_%s' % (out_dir.replace('${SCRATCH_FOLDER}', ''),
+                                     self.soft.params['min_completion'],
+                                     self.soft.params['max_contamination'])
+        bins = '%s_bins' % out
+        stats = '%s.stats' % out
         self.outputs['outs'][key] = [bins, stats]
         if self.config.force or not glob.glob('%s/*.fa' % bins):
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
-            io_update(self, i_d=bin_folders, o_f=stats, o_d=bins, key=key)
+            io_update(self, i_d=bin_dirs, o_f=stats, o_d=bins, key=key)
             self.soft.add_status(tech, self.sam_pool, 1, group=group)
         else:
             self.soft.add_status(tech, self.sam_pool, 0, group=group)
