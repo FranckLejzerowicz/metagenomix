@@ -1417,16 +1417,17 @@ def get_barrnap(
         out = '%s/rrna_seqs.fas' % out_dir
         self.outputs['outs'].setdefault((tech, sam_group), []).append(out)
 
+        contigs = fasta[0]
         to_dos = status_update(
-            self, tech, [fasta[0]], group=sam_group, genome=genome)
+            self, tech, [contigs], group=sam_group, genome=genome)
 
         if self.config.force or not to_do(out):
-            cmd = barrnap_cmd(self, tech, fasta[0], out)
+            cmd = barrnap_cmd(self, tech, contigs, out)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
-            io_update(self, i_f=fasta[0], o_d=out_dir, key=key)
+            io_update(self, i_f=contigs, o_d=out_dir, key=key)
             self.soft.add_status(
                 tech, self.sam_pool, 1, group=sam_group, genome=genome)
         else:
@@ -1455,16 +1456,16 @@ def dispatch(self) -> None:
         .config
             Configurations
     """
-    __plasmid_tool__ = getattr(sys.modules[__name__], 'get_%s' % self.soft.name)
+    g_barrnap_ccfind = getattr(sys.modules[__name__], 'get_%s' % self.soft.name)
 
     if self.sam_pool in self.pools:
         for (tech, group), inputs in self.inputs[self.sam_pool].items():
             fastas = group_inputs(self, inputs)
-            __plasmid_tool__(self, tech, fastas, group)
+            g_barrnap_ccfind(self, tech, fastas, group)
     else:
         tech_fastas = sample_inputs(self, ['pacbio', 'nanopore'])
         for tech, fastas in tech_fastas.items():
-            __plasmid_tool__(self, tech, fastas, self.sam_pool)
+            g_barrnap_ccfind(self, tech, fastas, self.sam_pool)
 
 
 def barrnap(self) -> None:
