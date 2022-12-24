@@ -43,7 +43,7 @@ def plasforest_cmd(
     cmd = 'cd %s\n' % out_dir
     cmd_rm = ''
     if fasta.endswith('.fa.gz') or fasta.endswith('.fasta.gz'):
-        cmd += 'gunzip -c %s > %s\n' % (fasta, fasta.rstrip('.gz'))
+        cmd += '\ngunzip -c %s > %s\n' % (fasta, fasta.rstrip('.gz'))
         fasta = fasta.rstrip('.gz')
         cmd_rm += 'rm %s\n' % fasta
 
