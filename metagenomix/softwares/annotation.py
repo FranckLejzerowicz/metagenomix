@@ -67,7 +67,7 @@ def prodigal_cmd(
         contig_fa = fasta_fp.replace('fastq.gz', 'fasta')
         cmd += 'seqtk seq -a %s > %s\n' % (fasta_fp, contig_fa)
 
-    cmd = 'prodigal'
+    cmd += 'prodigal'
     cmd += ' -i %s' % contig_fa
     cmd += ' -a %s/protein.translations.fasta' % out
     cmd += ' -d %s/nucleotide.sequences.fasta' % out
