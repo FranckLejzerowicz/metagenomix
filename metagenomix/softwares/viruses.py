@@ -120,7 +120,7 @@ def viralverify(self) -> None:
         out = '/'.join([self.dir, tech, self.sam_pool, group])
         self.outputs['dirs'].append(out)
 
-        base = splitext(contigs.rsplit('.', 2)[0])[0]
+        base = basename(contigs).rsplit('.', 2)[0]
         out_fp = '%s/%s_result_table.csv.gz' % (out, base)
         self.outputs['outs'][(tech, group)] = out_fp
 
