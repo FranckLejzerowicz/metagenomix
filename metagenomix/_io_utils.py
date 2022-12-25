@@ -338,6 +338,10 @@ def get_to_dos(
             to_do_inp = to_do(folder=inp)
         else:
             to_do_inp = to_do(inp)
+        if self.soft.name == 'metawrap_refine':
+            print()
+            print("to_do_inp")
+            print(to_do_inp)
         if to_do_inp:
             to_dos.append(inp)
         if isinstance(inp, list):
@@ -345,6 +349,10 @@ def get_to_dos(
         else:
             inps = [inp]
         inps = [x.replace('${SCRATCH_FOLDER}', '') for x in inps]
+        if self.soft.name == 'metawrap_refine':
+            print()
+            print("inps")
+            print(inps)
         if folder:
             links = {}
             for inp in inps:
