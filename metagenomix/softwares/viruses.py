@@ -36,11 +36,11 @@ def viralverify_cmd(
         ViralVerify command
     """
     cmd_rm = ''
-    cmd = 'export PATH=$PATH:%s' % self.soft.params['path']
+    cmd = 'export PATH=$PATH:%s\n' % self.soft.params['path']
     if contigs.endswith('.fa.gz') or contigs.endswith('.fasta.gz'):
         cmd += 'gunzip -c %s > %s\n' % (contigs, contigs.rstrip('.gz'))
         cmd_rm += 'rm %s\n' % contigs.rstrip('.gz')
-    cmd += '\nviralverify'
+    cmd += 'viralverify'
     cmd += ' -f %s' % contigs.rstrip('.gz')
     cmd += ' -o %s' % out
     if self.soft.params['db']:
