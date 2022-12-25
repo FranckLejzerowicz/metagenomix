@@ -348,8 +348,14 @@ def get_to_dos(
         if folder:
             links = {}
             for inp in inps:
-                for root, dirs, files in os.walk(inp):
-                    links = {x: os.readlink(x) for x in files if islink(x)}
+                for root, dirs, fs in os.walk(inp):
+                    links.update({f: os.readlink(f) for f in fs if islink(f)})
+            if self.soft.name == 'metawrap_refine':
+                print()
+                print()
+                print()
+                print(self.soft.name)
+                print(links)
         else:
             links = {x: os.readlink(x) for x in inps if islink(x)}
         self.soft.links.update(links)
