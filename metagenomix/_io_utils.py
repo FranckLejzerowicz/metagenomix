@@ -362,7 +362,7 @@ def get_to_dos(
                 for root, dirs, files in os.walk(inp):
                     for fil in files:
                         fp = '%s/%s' % (root, fil)
-                        print('fp:', fp)
+                        print('fp:', fp, islink(fp))
                         if islink(fp):
                             links[fp] = os.readlink(fp)
             if self.soft.name == 'metawrap_refine':
