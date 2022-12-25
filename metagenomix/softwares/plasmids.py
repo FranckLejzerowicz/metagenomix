@@ -51,7 +51,7 @@ def plasforest_cmd(
     cmd += 'cp %s/*.fasta* %s/.\n' % (dirname(binary), out_dir)
     cmd += 'python3 %s' % binary
     cmd += ' -i %s' % fasta
-    cmd += ' -o %s' % out_fp
+    cmd += ' -o %s' % out_fp.rstrip('.gz')
     if self.soft.params['size_of_batch']:
         cmd += ' --size_of_batch %s' % self.soft.params['size_of_batch']
     cmd += ' --threads %s' % self.soft.params['cpus']
