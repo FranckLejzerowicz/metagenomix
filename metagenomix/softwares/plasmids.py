@@ -17,7 +17,6 @@ from metagenomix.core.parameters import tech_params
 def plasforest_cmd(
         self,
         fasta: str,
-        out_fp: str,
         out_dir: str
 ) -> str:
     """Collect plasforest command.
@@ -29,8 +28,6 @@ def plasforest_cmd(
             Parameters
     fasta : str
         Path to the input file
-    out_fp : str
-        Path to the output file
     out_dir : str
         Path to the output folder
 
@@ -51,7 +48,7 @@ def plasforest_cmd(
     cmd += 'cp %s/*.fasta* %s/.\n' % (dirname(binary), out_dir)
     cmd += 'python3 %s' % binary
     cmd += ' -i %s' % fasta
-    cmd += ' -o %s' % out_fp.rstrip('.gz')
+    cmd += ' -o %s/plasmids.csv' % out_dir
     if self.soft.params['size_of_batch']:
         cmd += ' --size_of_batch %s' % self.soft.params['size_of_batch']
     cmd += ' --threads %s' % self.soft.params['cpus']
@@ -59,8 +56,8 @@ def plasforest_cmd(
         if self.soft.params[boolean]:
             cmd += ' -%s' % boolean
     cmd += '\nrm %s/plasforest.sav\n' % out_dir
+    cmd += 'gzip %s/plasmids.csv\n' % out_dir
     cmd += 'rm %s/*.fasta*\n' % out_dir
-    cmd += 'gzip %s\n' % out_fp
     return cmd
 
 
@@ -97,7 +94,7 @@ def get_plasforest(
 
         if self.config.force or to_do(out_fp):
             key = genome_key(tech, sam_group, genome)
-            cmd = plasforest_cmd(self, fasta, out_fp, out_dir)
+            cmd = plasforest_cmd(self, fasta, out_dir)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
