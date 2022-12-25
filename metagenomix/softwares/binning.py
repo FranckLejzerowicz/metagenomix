@@ -832,7 +832,7 @@ def refine(self):
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
-            io_update(self, i_d=bin_dirs, o_f=stats, o_d=bins, key=key)
+            io_update(self, i_d=(bin_dirs + bins), o_f=stats, o_d=bins, key=key)
             self.soft.add_status(tech, self.sam_pool, 1, group=group)
         else:
             self.soft.add_status(tech, self.sam_pool, 0, group=group)
