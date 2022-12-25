@@ -776,22 +776,22 @@ def refine_cmd(
     -------
     cmd : str
         metaWRAP bin refinement command
-    n_bins : int
-        Number of binners used
+    bins : str
+        Path to the output folder
     """
-    n_bins = 0
     cmd = 'export PATH=$PATH:%s/bin\n' % self.soft.params['path']
     cmd += 'metawrap bin_refinement'
     cmd += ' -o %s' % out_dir
     for fdx, folder in enumerate(bin_folders):
-        folders = '%s/*.fa' % folder.replace('${SCRATCH_FOLDER}', '')
-        if len(glob.glob(folders)) or self.config.force:
-            n_bins += 1
         cmd += ' -%s %s' % (['A', 'B', 'C'][fdx], folder)
     cmd += ' -t %s' % self.soft.params['cpus']
     cmd += ' -c %s' % self.soft.params['min_completion']
     cmd += ' -x %s' % self.soft.params['max_contamination']
-    return cmd, n_bins
+    out = '%s/metawrap_%s_%s' % (out_dir.replace('${SCRATCH_FOLDER}', ''),
+                                 self.soft.params['min_completion'],
+                                 self.soft.params['max_contamination'])
+    bins = '%s_bins' % out
+    return cmd, bins
 
 
 def refine(self):
@@ -820,13 +820,10 @@ def refine(self):
         self.outputs['dirs'].append(out_dir)
         to_dos = status_update(self, tech, bin_dirs, group=group, folder=True)
 
-        cmd, n_bins = refine_cmd(self, out_dir, bin_dirs)
-        out = '%s/metawrap_%s_%s' % (out_dir.replace('${SCRATCH_FOLDER}', ''),
-                                     self.soft.params['min_completion'],
-                                     self.soft.params['max_contamination'])
-        bins = '%s_bins' % out
-        stats = '%s.stats' % out
+        cmd, bins = refine_cmd(self, out_dir, bin_dirs)
+        stats = '%s.stats' % bins.rstrip('_bins')
         self.outputs['outs'][key] = [bins, stats]
+
         if self.config.force or not glob.glob('%s/*.fa' % bins):
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
