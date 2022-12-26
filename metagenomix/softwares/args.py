@@ -345,19 +345,18 @@ def mmarc_cmd(
             cmd += ' --dedup'
         cmd += ' --multicorrect'
     cmd += ' --threads %s' % self.soft.params['cpus']
-    cmd += ' --output %s' % out
     cmd += ' --filename output'
     cmd += ' --skewness %s/skewness.txt' % out
     cmd += ' --graphs %s/graphs' % out
     cmd += ' --level %s' % level
-
     for boolean in ['dedup', 'multicorrect']:
         if self.soft.params[boolean]:
             cmd += ' --%s' % boolean
-
     for param in ['coverage', 'evalue', 'kmer']:
         cmd += ' --%s %s' % (param.replace('_', '-'), self.soft.params[param])
-
+    cmd += ' --output %s\n' % out
+    cmd += 'for i in %s/*; do gzip $i; done\n' % out
+    cmd += 'gzip %s/duplicate_tables/output_dupcounts.txt\n' % out
     return cmd
 
 
@@ -400,9 +399,8 @@ def get_metamarc(
             out = '%s/model_level_%s' % (out_dir, level)
             self.outputs['dirs'].append(out_dir)
             outs.append(out)
-            skewness = '%s/skewness.txt' % out
-            # check if tool already run (or if --force) to allow getting command
-            if self.config.force or to_do(skewness):
+            out_fp = '%s/output_dedup.fasta.gz' % out
+            if self.config.force or to_do(out_fp):
                 # collect the command line
                 cmd += mmarc_cmd(self, tech, inputs, out, genome, level)
 
@@ -791,22 +789,25 @@ def abricate_cmd(
     cmd : str
         abricate command
     """
-    cmd, seqtk_cmd = '', ''
+    cmd, seqtk_cmd, cmd_rm = '', '', ''
+    if tech in ['nanopore', 'pacbio']:
+        outs = []
+        for idx, inp in enumerate(inputs):
+            out = '%s/%s.fa' % (out_d, idx)
+            outs.append(out)
+            seqtk_cmd += 'seqtk seq -A %s > %s\n' % (inp, out)
+        out = '%s/%s.fasta' % (out_d, splitext(basename(inputs[0]))[0])
+        seqtk_cmd += 'cat %s > %s\n' % (' '.join(outs), out)
+        cmd_rm += 'rm %s\n' % ' '.join(outs)
+    else:
+        out = inputs[0]
+        if out.endswith('.fa.gz') or out.endswith('.fasta.gz'):
+            cmd += 'gunzip -c %s > %s\n' % (out, out.rstrip('.gz'))
+            cmd_rm += 'rm %s\n' % out.rstrip('.gz')
+            out = out.rstrip('.gz')
+
     for db in self.soft.params['databases']:
-
         cmd += '\nabricate'
-
-        if tech in ['nanopore', 'pacbio']:
-            outs = []
-            for idx, inp in enumerate(inputs):
-                out = '%s/%s.fa' % (out_d, idx)
-                outs.append(out)
-                seqtk_cmd += 'seqtk seq -A %s > %s/%s\n' % (inp, out_d, out)
-            out = '%.fasta' % splitext(basename(inputs[0]))[0]
-            seqtk_cmd += 'cat %s > %s/%s\n' % (' '.join(outs), out_d, out)
-        else:
-            out = inputs[0]
-
         cmd += ' %s' % out
         cmd += ' --threads %s' % self.soft.params['cpus']
         cmd += ' --db %s' % db
@@ -815,11 +816,10 @@ def abricate_cmd(
                 cmd += ' --%s' % boolean
         for param in ['minid', 'mincov']:
             cmd += ' --%s %s' % (param, self.soft.params[param])
-        cmd += ' > %s/%s.txt' % (out_d, db)
+        cmd += ' > %s/%s.txt\n' % (out_d, db)
 
     if seqtk_cmd:
-        cmd = seqtk_cmd + cmd
-
+        cmd = seqtk_cmd + cmd + cmd_rm
     return cmd
 
 
@@ -851,13 +851,11 @@ def get_abricate(
     """
     for genome, inputs in fastas_folders.items():
 
-        fasta = inputs[0]
         out_d = genome_out_dir(self, tech, sam_group, genome)
         self.outputs['dirs'].append(out_d)
         self.outputs['outs'].setdefault((tech, sam_group), []).append(out_d)
-
         to_dos = status_update(
-            self, tech, [fasta], group=sam_group, genome=genome)
+            self, tech, inputs, group=sam_group, genome=genome)
 
         outs = ['%s/%s.txt' % (out_d, x) for x in self.soft.params['databases']]
         # check if tool already run (or if --force) to allow getting command
@@ -1368,6 +1366,33 @@ def ariba(self) -> None:
     Notes
     -----
     GitHub  : https://github.com/sanger-pathogens/ariba
+
+    Parameters
+    ----------
+    self : Commands class instance
+    """
+    pass
+
+
+def staramr(self) -> None:
+    """staramr (*AMR) scans bacterial genome contigs against the ResFinder,
+    PointFinder, and PlasmidFinder databases (used by the ResFinder
+    webservice and other webservices offered by the Center for Genomic
+    Epidemiology) and compiles a summary report of detected antimicrobial
+    resistance genes. The star|* in staramr indicates that it can handle all
+    of the ResFinder, PointFinder, and PlasmidFinder databases.
+
+    References
+    ----------
+    Bharat, A., Petkau, A., Avery, B.P., Chen, J.C., Folster, J.P., Carson,
+    C.A., Kearney, A., Nadon, C., Mabon, P., Thiessen, J. and Alexander,
+    D.C., 2022. Correlation between Phenotypic and In Silico Detection of
+    Antimicrobial Resistance in Salmonella enterica in Canada Using Staramr.
+    Microorganisms, 10(2), p.292.
+
+    Notes
+    -----
+    GitHub  : https://github.com/phac-nml/staramr
 
     Parameters
     ----------
