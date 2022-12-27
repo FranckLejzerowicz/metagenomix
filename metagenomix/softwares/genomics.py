@@ -1401,6 +1401,8 @@ def denovo_cmd(
         batch = "%s/batch_file.tsv" % out_dir
         cmd += "tail -n +2 %s | awk '{print \"%s/\"$1\".fa\\t\"$1}' > %s\n" % (
             classified, in_dir, batch)
+        cmd += 'envsubst < %s > %s.tmp\n' % (batch, batch)
+        cmd += 'mv %s.tmp %s\n' % (batch, batch)
         cmd += 'gtdbtk de_novo_wf'
         cmd += ' --batchfile %s' % batch
         # if params['batchfile']:
