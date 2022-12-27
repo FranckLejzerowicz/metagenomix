@@ -312,7 +312,8 @@ def get_lorikeet(
             to_dos = status_update(self, tech, [fasta_folder])
 
         assembler, assembly = get_assembly(self)
-        contigs = assembly[(tech, group)][0]
+        print(assembly)
+        print(assemblyfdsa)
         to_dos.extend(status_update(self, tech, [contigs]))
 
         if self.config.force or not glob.glob('%s/*' % out_dir):
