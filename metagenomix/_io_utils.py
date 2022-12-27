@@ -910,7 +910,7 @@ def get_assembly(self):
     for assembler in self.soft.path[::-1]:
         if self.config.tools[assembler] == 'assembling':
             if self.sam_pool == '':
-                contigs = [x[0] for x in self.softs[assembler].outputs.values()]
+                contigs = self.softs[assembler].outputs.values()
             else:
                 contigs = self.softs[assembler].outputs[self.sam_pool]
             break
