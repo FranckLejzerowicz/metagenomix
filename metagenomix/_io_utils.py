@@ -909,7 +909,10 @@ def get_techs(tech: str):
 def get_assembly(self):
     for assembler in self.soft.path[::-1]:
         if self.config.tools[assembler] == 'assembling':
-            contigs = self.softs[assembler].outputs[self.sam_pool]
+            if self.sam_pool == '':
+                contigs = [x[0] for x in self.softs[assembler].outputs.values()]
+            else:
+                contigs = self.softs[assembler].outputs[self.sam_pool]
             break
     else:
         sys.exit('[%s] No previous assembly output found' % self.soft.prev)
