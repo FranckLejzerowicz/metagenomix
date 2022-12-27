@@ -531,14 +531,11 @@ def get_reads(self) -> dict:
     reads : dict
         per-sample reads for the last step performed before assembly
     """
-    steps = self.graph.paths[self.soft.name][0]
-    steps_before_pooling = steps[:steps.index('pooling')]
-    step = 'fastq'
-    for step_before_pooling in steps_before_pooling:
-        if self.config.tools[step_before_pooling] == 'preprocessing':
+    reads = self.config.fastq_mv
+    for software in self.soft.path[::-1]:
+        if self.config.tools[software] == 'preprocessing':
             break
-        step = step_before_pooling
-    reads = self.softs[step].outputs
+        reads = self.softs[software].outputs
     return reads
 
 
