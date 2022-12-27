@@ -1310,7 +1310,9 @@ def ccfind_cmd(
     elif fastx.endswith('.fastq.gz') or fastx.endswith('.fastq'):
         fasta = '%s.fasta' % fastx.rsplit('.fastq', 1)[0]
         cmd += 'seqtk seq -a %s > %s\n' % (fastx, fasta)
-    cmd += 'rm %s\n' % out_dir
+
+    cmd += 'rm -rf %s\n' % out_dir
+
     cmd += '%s/ccfind' % self.soft.params['path']
     cmd += ' %s' % fasta
     cmd += ' %s' % out_dir
