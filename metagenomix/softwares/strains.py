@@ -7,14 +7,17 @@
 # ----------------------------------------------------------------------------
 
 import glob
-from metagenomix._io_utils import caller, io_update, to_do, status_update
-from metagenomix._inputs import (group_inputs, genome_key, genome_out_dir,
-                                 get_extension, get_reads, add_folder)
+from metagenomix._io_utils import (
+    caller, io_update, to_do, status_update, get_assembly)
+from metagenomix._inputs import (
+    group_inputs, genome_key, genome_out_dir, get_extension, get_reads,
+    add_folder)
 
 
 def lorikeet_cmd(
         self,
         is_folder: bool,
+        contigs: str,
         fasta_folder: str,
         group_reads: dict,
         out_dir: str,
@@ -30,6 +33,8 @@ def lorikeet_cmd(
             Parameters
     is_folder : bool
         Whether fasta_folder is a folder or not
+    contigs : str
+        Paths to the input contigs fasta file
     fasta_folder : str
         Path to aseembly fasta or to an input folder with the genomes/MAGs
     group_reads : dict
@@ -47,7 +52,11 @@ def lorikeet_cmd(
         lorikeet command
     """
     tmp_dir = '$TMPDIR/lorikeet_%s_%s' % ('_'.join(key), step)
-    cmd = 'mkdir -p %s\n' % tmp_dir
+    cmd_rm, cmd = '', 'mkdir -p %s\n' % tmp_dir
+    if contigs.endswith('.gz'):
+        cmd += 'gunzip -c %s > %s\n' % (contigs, contigs.rstrip('.gz'))
+        contigs = contigs.rstrip('.gz')
+        cmd_rm += 'rm %s\n' % contigs
 
     cmd += 'lorikeet %s' % step
     cmd += ' --output-directory %s' % out_dir
@@ -57,8 +66,7 @@ def lorikeet_cmd(
     if is_folder:
         cmd += ' --genome-fasta-directory %s' % fasta_folder
         cmd += ' --genome-fasta-extension %s' % get_extension(self)
-    else:
-        cmd += ' --reference %s' % fasta_folder
+    cmd += ' --reference %s' % contigs
 
     cmd += ' --method "%s"' % ' '.join(self.soft.params['method'])
     cmd_single, cmd_coupled, cmd_longreads = '', '', ''
@@ -128,7 +136,8 @@ def lorikeet_cmd(
             cmd += ' --%s "%s"' % (
                 param.replace('_', '-'), ' '.join(self.soft.params[param]))
 
-    cmd += ' --force'
+    cmd += ' --force\n'
+    cmd += cmd_rm
     return cmd
 
 
@@ -302,6 +311,10 @@ def get_lorikeet(
             is_folder = False
             to_dos = status_update(self, tech, [fasta_folder])
 
+        assembler, assembly = get_assembly(self)
+        contigs = assembly[(tech, group)][0]
+        to_dos.extend(status_update(self, tech, [contigs]))
+
         if self.config.force or not glob.glob('%s/*' % out_dir):
             if self.sam_pool:
                 groups = self.pools[self.sam_pool][group]
@@ -309,7 +322,7 @@ def get_lorikeet(
             else:
                 group_reads = reads
 
-            cmd = lorikeet_cmd(self, is_folder, fasta_folder,
+            cmd = lorikeet_cmd(self, is_folder, contigs, fasta_folder,
                                group_reads, out_dir, key, step)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
