@@ -51,7 +51,14 @@ def get_merge_cmd(
         cmd += ' --min_cov %s' % params['min_cov']
     else:
         cmd += ' --num_cores %s' % params['cpus']
-        cmd += ' --midasdb_name %s' % db
+        if 'uhgg' in db:
+            cmd += ' --midasdb_name uhgg'
+        elif 'gtdb' in db:
+            cmd += ' --midasdb_name gtdb'
+        elif 'newdb' in db:
+            cmd += ' --midasdb_name newdb'
+        elif 's3db' in db:
+            cmd += ' --midasdb_name s3db'
         cmd += ' --midasdb_dir %s' % self.databases.paths[db]
 
         if spc_list:
