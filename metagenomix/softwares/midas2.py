@@ -87,7 +87,7 @@ def get_merge_cmd(
                 'snp_pooled_method', 'snp_maf', 'snp_type', 'locus_type'
             ]:
                 if param == 'snp_type':
-                    cmd += ' --snp_type %s' % ','.join(params[param])
+                    cmd += ' --snp_type {%s}' % ','.join(params[param])
                 else:
                     cmd += ' --%s %s' % (param, params[param])
             for boolean in ['chunk_size', 'advanced', 'robust_chunk']:
