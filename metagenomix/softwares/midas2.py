@@ -158,6 +158,7 @@ def get_samples(
 
     Parameters
     ----------
+    self : Commands class instance
     sams_inputs : dict
         Output data structure from the MIDAS analysis steps (midas2 run_*)
     tech_step_samples : dict
@@ -219,7 +220,9 @@ def merge(self):
     for step, inputs in self.softs.items():
         if step.startswith('midas2') and step != self.soft.name:
             get_samples(self, inputs.outputs, tech_step_samples)
-
+    print()
+    print("tech_step_samples")
+    print(tech_step_samples)
     for (tech, step), samples in tech_step_samples.items():
         for (db, focus, spc_list), sams_dirs in samples.items():
             out_dir = '/'.join([self.dir, tech, db, focus])
