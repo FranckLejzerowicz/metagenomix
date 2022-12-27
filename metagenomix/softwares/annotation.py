@@ -1312,8 +1312,8 @@ def ccfind_cmd(
         cmd += 'seqtk seq -a %s > %s\n' % (fastx, fasta)
 
     cmd += 'rm -rf %s\n' % out_dir
-
-    cmd += '%s/ccfind' % self.soft.params['path']
+    cmd += 'export PATH=$PATH:%s\n' % self.soft.params['path']
+    cmd += '%s' % self.soft.params['binary']
     cmd += ' %s' % fasta
     cmd += ' %s' % out_dir
     cmd += ' --terminal-fragment-size %s' % params['terminal_fragment_size']
