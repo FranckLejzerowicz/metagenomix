@@ -1040,7 +1040,7 @@ def qa(
         to_dos = status_update(self, tech, [lineage_ms], group=group,
                                genome=genome, software='checkm')
 
-        out = '%s/1_completeness_contamination.txt' % qa_dir
+        out = '%s/1_qa_completeness_contamination.txt' % qa_dir
         if self.config.force or to_do(out):
             cmd = qa_cmd(self, lineage_ms, analyze_dir, qa_dir, cov)
             if to_dos:# and self.soft.name != 'checkm':
