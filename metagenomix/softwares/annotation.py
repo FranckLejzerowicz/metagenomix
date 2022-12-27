@@ -1311,7 +1311,7 @@ def ccfind_cmd(
         fasta = '%s.fasta' % fastx.rsplit('.fastq', 1)[0]
         cmd += 'seqtk seq -a %s > %s\n' % (fastx, fasta)
 
-    cmd += 'ccfind %s %s' % (fasta, out_dir)
+    cmd += '%s/ccfind %s %s' % (self.soft.params['path'], fasta, out_dir)
     cmd += ' --terminal-fragment-size %s' % params['terminal_fragment_size']
     cmd += ' --min-percent-identity %s' % params['min_percent_identity']
     cmd += ' --min-aligned-length %s' % params['min_aligned_length']
