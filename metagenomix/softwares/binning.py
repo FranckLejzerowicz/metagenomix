@@ -422,9 +422,9 @@ def classify_or_annotate_condition(
     condition : bool
         True if classify_bins or annotate_bins was not already run
     """
+    out = out.replace('${SCRATCH_FOLDER}', '')
     if command == 'annotate_bins':
-        tab = '%s/bin_funct_annotations/*.tab' % out.replace(
-            '${SCRATCH_FOLDER}', '')
+        tab = '%s/bin_funct_annotations/*.tab' % out
         condition = not glob.glob(tab)
     elif command == 'classify_bins':
         tab = '%s/bin_taxonomy.tab' % out
