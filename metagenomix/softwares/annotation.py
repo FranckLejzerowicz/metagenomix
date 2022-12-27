@@ -1457,10 +1457,13 @@ def dispatch(self) -> None:
             Configurations
     """
     g_barrnap_ccfind = getattr(sys.modules[__name__], 'get_%s' % self.soft.name)
+    print(g_barrnap_ccfind)
 
     if self.sam_pool in self.pools:
         for (tech, group), inputs in self.inputs[self.sam_pool].items():
             fastas = group_inputs(self, inputs)
+            print("fastas")
+            print(fastas)
             g_barrnap_ccfind(self, tech, fastas, group)
     else:
         tech_fastas = sample_inputs(self, ['pacbio', 'nanopore'])
