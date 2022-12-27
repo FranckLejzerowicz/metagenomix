@@ -1362,7 +1362,7 @@ def get_ccfind(
             self, tech, [fasta[0]], group=sam_group, genome=genome)
 
         out = '%s/circ.detected.list' % out_dir
-        if self.config.force or not to_do(out):
+        if self.config.force or to_do(out):
             cmd = ccfind_cmd(self, tech, fasta[0], out_dir)
             key = genome_key(tech, sam_group, genome)
             if to_dos:
@@ -1421,7 +1421,7 @@ def get_barrnap(
         to_dos = status_update(
             self, tech, [contigs], group=sam_group, genome=genome)
 
-        if self.config.force or not to_do(out):
+        if self.config.force or to_do(out):
             cmd = barrnap_cmd(self, tech, contigs, out)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
@@ -1457,13 +1457,9 @@ def dispatch(self) -> None:
             Configurations
     """
     g_barrnap_ccfind = getattr(sys.modules[__name__], 'get_%s' % self.soft.name)
-    print(g_barrnap_ccfind)
-
     if self.sam_pool in self.pools:
         for (tech, group), inputs in self.inputs[self.sam_pool].items():
             fastas = group_inputs(self, inputs)
-            print("fastas")
-            print(fastas)
             g_barrnap_ccfind(self, tech, fastas, group)
     else:
         tech_fastas = sample_inputs(self, ['pacbio', 'nanopore'])
