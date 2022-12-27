@@ -535,7 +535,7 @@ def get_reads(self) -> dict:
     steps_before_pooling = steps[:steps.index('pooling')]
     step = 'fastq'
     for step_before_pooling in steps_before_pooling:
-        if self.config.tools[step_before_pooling] == 'paired read merging':
+        if self.config.tools[step_before_pooling] == 'preprocessing':
             break
         step = step_before_pooling
     reads = self.softs[step].outputs
