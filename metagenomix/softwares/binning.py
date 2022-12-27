@@ -386,7 +386,7 @@ def classify_or_annotate(
                 self.outputs['dirs'].append(out)
 
                 to_dos = status_update(
-                    self, tech, [bin_dir], group=group, genome=sam)
+                    self, tech, [bin_dir], group=group, genome=sam, folder=True)
                 cmd = classify_or_annotate_cmd(self, command, bin_dir, out)
                 self.outputs['outs'][key][sam] = [out]
 
