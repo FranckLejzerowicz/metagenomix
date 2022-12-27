@@ -9,7 +9,7 @@
 import sys
 import glob
 import pkg_resources
-from os.path import dirname
+from os.path import basename, dirname, splitext
 from metagenomix._io_utils import (
     caller, status_update, io_update, to_do, get_assembly)
 from metagenomix.core.parameters import tech_params
@@ -214,22 +214,21 @@ def quantify(self):
             sams_fastqs = get_sams_fastqs(mode, fastqs)
             for sam, fastq in sams_fastqs.items():
                 to_dos = status_update(self, tech, fastq, group=group)
-                to_dos.extend(status_update(
-                    self, tech, [bins], group=group, folder=True))
+                to_dos.extend(
+                    status_update(self, tech, [bins], group=group, folder=True))
                 if sam:
-                    out = out_ + '/%s' % sam
+                    o = out_ + '/%s' % sam
                 else:
-                    out = out_
-                self.outputs['dirs'].append(out)
-
-                cmd = quantify_cmd(self, bins, fastq, out, contigs)
-                if self.config.force or not glob.glob('%s/*' % out):
-                    self.outputs['outs'][key][mode][sam] = out
+                    o = out_
+                self.outputs['dirs'].append(o)
+                cmd = quantify_cmd(self, bins, fastq, o, contigs)
+                if self.config.force or to_do('%s/bin_abundance_table.tab' % o):
+                    self.outputs['outs'][key][mode][sam] = o
                     if to_dos:
                         self.outputs['cmds'].setdefault(key, []).append(False)
                     else:
                         self.outputs['cmds'].setdefault(key, []).append(cmd)
-                    io_update(self, i_f=fastq, o_d=out, key=key)
+                    io_update(self, i_f=fastq, o_d=o, key=key)
                     self.soft.add_status(
                         tech, self.sam_pool, 1, group=group, genome=sam)
                 else:
@@ -568,19 +567,23 @@ def blobology(self):
         io_update(self, i_f=contigs, i_d=bins, key=key)
         for mode in self.soft.params['blobology']:
             self.outputs['outs'][key][mode] = {}
-            out = '/'.join([self.dir, tech, self.sam_pool, group, mode])
+            out_ = '/'.join([self.dir, tech, self.sam_pool, group, mode])
             sams_fastqs = get_sams_fastqs(mode, fastqs)
             for sam, fastq_fps in sams_fastqs.items():
                 to_dos = status_update(
                     self, tech, fastq_fps, group=group, genome=sam)
-                to_dos.extend(status_update(self, tech, [bins], group=group,
-                                            genome=sam, folder=True))
+                to_dos.extend(status_update(
+                    self, tech, [bins], group=group, genome=sam, folder=True))
                 if sam:
-                    out += '/%s' % sam
+                    out = out_ + '/%s' % sam
+                else:
+                    out = out_
+
                 self.outputs['dirs'].append(out)
-                plot = '%s/contigs.binned.blobplot' % out
+                base = basename(splitext(contigs.rstrip('.gz'))[0])
+                blobplot = '%s/%s.binned.blobplot' % (out, base)
                 self.outputs['outs'][key][mode][sam] = out
-                if self.config.force or to_do(plot):
+                if self.config.force or to_do(blobplot):
                     cmd = blobology_cmd(self, fastq_fps, out, contigs, bins)
                     if to_dos:
                         self.outputs['cmds'].setdefault(key, []).append(False)
