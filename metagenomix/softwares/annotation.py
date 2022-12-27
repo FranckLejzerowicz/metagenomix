@@ -1310,8 +1310,10 @@ def ccfind_cmd(
     elif fastx.endswith('.fastq.gz') or fastx.endswith('.fastq'):
         fasta = '%s.fasta' % fastx.rsplit('.fastq', 1)[0]
         cmd += 'seqtk seq -a %s > %s\n' % (fastx, fasta)
-
-    cmd += '%s/ccfind %s %s' % (self.soft.params['path'], fasta, out_dir)
+    cmd += 'rm %s\n' % out_dir
+    cmd += '%s/ccfind' % self.soft.params['path']
+    cmd += ' %s' % fasta
+    cmd += ' %s' % out_dir
     cmd += ' --terminal-fragment-size %s' % params['terminal_fragment_size']
     cmd += ' --min-percent-identity %s' % params['min_percent_identity']
     cmd += ' --min-aligned-length %s' % params['min_aligned_length']
