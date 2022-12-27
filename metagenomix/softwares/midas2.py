@@ -72,11 +72,11 @@ def get_merge_cmd(
             cmd += ' --genome_depth 5.0'
 
         if params['sample_counts']:
-            cmd += ' --sample_counts %s' % params['sample_counts']
+            cmd += ' --sample_counts %s' % int(params['sample_counts'])
         elif step == 'midas2_genes':
-            cmd += ' --sample_counts 1.0'
+            cmd += ' --sample_counts 1'
         else:
-            cmd += ' --sample_counts 2.0'
+            cmd += ' --sample_counts 2'
 
         if step == 'midas2_genes':
             cmd += ' --min_copy %s' % params['min_copy']
