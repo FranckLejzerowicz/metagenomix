@@ -1313,7 +1313,6 @@ def ccfind_cmd(
 
     cmd += 'rm -rf %s\n' % out_dir
     cmd += 'export PATH=$PATH:%s\n' % self.soft.params['path']
-    print(self.soft.params)
     cmd += self.soft.params['binary']
     cmd += ' %s' % fasta
     cmd += ' %s' % out_dir
