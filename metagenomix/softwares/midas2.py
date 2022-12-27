@@ -136,11 +136,11 @@ def get_sams_list(
         i_d.append(folder_sam)
 
         if step == 'midas2_species':
-            out = '%s/species_profile.tsv' % folder_sam
+            out = '%s/species/species_profile.tsv' % folder_sam
         elif step == 'midas2_genes':
-            out = '%s/genes_summary.tsv' % folder_sam
+            out = '%s/genes/genes_summary.tsv' % folder_sam
         else:
-            out = '%s/snps_summary.tsv' % folder_sam
+            out = '%s/snps/snps_summary.tsv' % folder_sam
         to_dos.extend(status_update(self, tech, [out], group=db, genome=focus))
 
         if not sdx:
@@ -220,9 +220,7 @@ def merge(self):
     for step, inputs in self.softs.items():
         if step.startswith('midas2') and step != self.soft.name:
             get_samples(self, inputs.outputs, tech_step_samples)
-    print()
-    print("tech_step_samples")
-    print(tech_step_samples)
+
     for (tech, step), samples in tech_step_samples.items():
         for (db, focus, spc_list), sams_dirs in samples.items():
             out_dir = '/'.join([self.dir, tech, db, focus])
