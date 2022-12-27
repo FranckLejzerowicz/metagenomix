@@ -117,7 +117,7 @@ def quantify_cmd(
     out : str
         Paths to the output folder
     contigs : str
-        Paths to the input contifs fasta file
+        Paths to the input contigs fasta file
 
     Returns
     -------
