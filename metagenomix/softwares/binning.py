@@ -787,8 +787,7 @@ def refine_cmd(
     cmd += ' -t %s' % self.soft.params['cpus']
     cmd += ' -c %s' % self.soft.params['min_completion']
     cmd += ' -x %s' % self.soft.params['max_contamination']
-    out = '%s/metawrap_%s_%s' % (out_dir.replace('${SCRATCH_FOLDER}', ''),
-                                 self.soft.params['min_completion'],
+    out = '%s/metawrap_%s_%s' % (out_dir, self.soft.params['min_completion'],
                                  self.soft.params['max_contamination'])
     bins = '%s_bins' % out
     return cmd, bins
@@ -824,7 +823,8 @@ def refine(self):
         stats = '%s.stats' % bins.rstrip('_bins')
         self.outputs['outs'][key] = [bins, stats]
 
-        if self.config.force or not glob.glob('%s/*.fa' % bins):
+        globs = glob.glob('%s/*.fa' % bins.replace('${SCRATCH_FOLDER}', ''))
+        if self.config.force or not globs:
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
