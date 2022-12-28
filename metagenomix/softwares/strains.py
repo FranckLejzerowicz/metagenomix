@@ -55,6 +55,7 @@ def lorikeet_cmd(
     cmd_rm, cmd = '', 'mkdir -p %s\n' % tmp_dir
     for contig in contigs:
         if contig.endswith('.gz'):
+            io_update(self, i_f=contig, key=key)
             cmd += 'gunzip -c %s > %s\n' % (contig, contig.rstrip('.gz'))
             cmd_rm += 'rm %s\n' % contig.rstrip('.gz')
 
@@ -72,6 +73,7 @@ def lorikeet_cmd(
     cmd_single, cmd_coupled, cmd_longreads = '', '', ''
     for sam, tech_sam_fastqs in group_reads.items():
         for tech_sam, fastqs in tech_sam_fastqs.items():
+            io_update(self, i_f=fastqs, key=key)
             if tech_sam[0] == 'illumina':
                 if len(fastqs) == 1:
                     cmd_single += ' %s' % fastqs[0]
