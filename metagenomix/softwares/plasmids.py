@@ -48,16 +48,18 @@ def plasforest_cmd(
     cmd += 'cp %s/*.fasta* %s/.\n' % (dirname(binary), out_dir)
     cmd += 'python3 %s' % binary
     cmd += ' -i %s' % fasta
-    cmd += ' -o %s/plasmids.csv' % out_dir
     if self.soft.params['size_of_batch']:
         cmd += ' --size_of_batch %s' % self.soft.params['size_of_batch']
     cmd += ' --threads %s' % self.soft.params['cpus']
     for boolean in ['b', 'f', 'r']:
         if self.soft.params[boolean]:
             cmd += ' -%s' % boolean
-    cmd += '\nrm %s/plasforest.sav\n' % out_dir
-    cmd += 'gzip %s/plasmids.csv\n' % out_dir
+    cmd += ' -o %s/plasmids.csv\n' % out_dir
+
+    cmd += 'rm %s/plasforest.sav\n' % out_dir
     cmd += 'rm %s/*.fasta*\n' % out_dir
+    cmd += 'gzip -q %s/plasmids.csv\n' % out_dir
+    cmd += cmd_rm
     return cmd
 
 
@@ -148,7 +150,6 @@ def plasmidfinder_cmd(
 
     cmd += '%s' % self.soft.params['binary']
     cmd += ' --infile %s' % infile
-    cmd += ' --outputPath %s' % out_dir
     cmd += ' --tmp_dir %s' % tmp_dir
     cmd += ' --methodPath %s' % self.soft.params['methodPath']
     cmd += ' --databasePath %s' % self.soft.params['databasePath']
@@ -158,9 +159,11 @@ def plasmidfinder_cmd(
     cmd += ' --threshold %s' % (float(self.soft.params['threshold']) / 100)
     if self.soft.params['extented_output']:
         cmd += ' --extented_output'
-    cmd += '\nrm -rf %s\n' % tmp_dir
+    cmd += ' --outputPath %s\n' % out_dir
+
+    cmd += 'rm -rf %s\n' % tmp_dir
+    cmd += 'for i in %s/*; do gzip -q $i; done\n' % out_dir
     cmd += cmd_rm
-    cmd += 'for i in %s/*; do gzip $i; done\n' % out_dir
     return cmd
 
 
@@ -228,17 +231,10 @@ def dispatch(self) -> None:
             Configurations
     """
     __plasmid_tool__ = getattr(sys.modules[__name__], 'get_%s' % self.soft.name)
-
     if self.sam_pool in self.pools:
         for (tech, group), inputs in self.inputs[self.sam_pool].items():
             fastas = group_inputs(self, inputs)
             __plasmid_tool__(self, tech, fastas, group)
-
-    elif set(self.inputs) == {''}:
-        for (tech, mags), inputs in self.inputs[''].items():
-            fastas = group_inputs(self, inputs)
-            __plasmid_tool__(self, tech, fastas, mags)
-
     else:
         if self.soft.name == 'plasmidfinder':
             tech_fastas = sample_inputs(self, raw=True)
@@ -356,7 +352,6 @@ def mob_typer_cmd(
 
     cmd += '\nmob_typer'
     cmd += ' --infile %s' % contig
-    cmd += ' --out_file %s' % typer_out
     cmd += ' --mge_report_file %s' % mge_report
     cmd += ' --analysis_dir %s' % tmp_dir
     cmd += ' --num_threads %s' % params['cpus']
@@ -381,8 +376,10 @@ def mob_typer_cmd(
     ]:
         if params[path]:
             cmd += ' --%s %s' % (path, params[path])
-    cmd += '\n' + cmd_rm
+    cmd += ' --out_file %s\n' % typer_out
+
     cmd += 'gzip -q %s\n' % typer_out
+    cmd += cmd_rm
     return cmd
 
 
@@ -418,7 +415,6 @@ def mob_recon_cmd(
 
     cmd += '\nmob_recon'
     cmd += ' --infile %s' % contig
-    cmd += ' --outdir %s' % out_dir
     cmd += ' --num_threads %s' % params['cpus']
 
     if params['prefix']:
@@ -457,8 +453,10 @@ def mob_recon_cmd(
     ]:
         if params[path]:
             cmd += ' --%s %s' % (path, params[path])
-    cmd += '\n' + cmd_rm
+    cmd += ' --outdir %s\n' % out_dir
+
     cmd += 'for i in %s/*; do gzip -q $i; done\n' % out_dir
+    cmd += cmd_rm
     return cmd
 
 
@@ -734,14 +732,6 @@ def oritfinder(self):
         for (tech, group), inputs in self.inputs[self.sam_pool].items():
             fastas = group_inputs(self, inputs)
             get_oritfinder(self, tech, fastas, group)
-
-    elif set(self.inputs) == {''}:
-        if self.soft.prev != 'prodigal':
-            sys.exit('[%s] Runs on protein data (plass, prodigal...)' % name)
-        for (tech, mags), inputs in self.inputs[''].items():
-            fastas = group_inputs(self, inputs)
-            get_oritfinder(self, tech, fastas, mags)
-
     else:
         prev = self.soft.prev
         if prev not in ['plass', 'prodigal']:
