@@ -99,10 +99,10 @@ def flash(self) -> None:
         self.outputs['dirs'].append(out)
 
         rad = out + '/' + self.sam_pool
-        ext = '%s.extendedFrags.fastq.gz' % rad
         nc1 = '%s.notCombined_1.fastq.gz' % rad
         nc2 = '%s.notCombined_2.fastq.gz' % rad
-        outs = [ext, nc1, nc2]
+        ext = '%s.extendedFrags.fastq.gz' % rad
+        outs = [nc1, nc2, ext]
 
         if self.config.force or sum([to_do(x) for x in outs]):
             cmd = flash_cmd(self, tech, paired, out)
@@ -234,7 +234,7 @@ def ngmerge(self) -> None:
         fail = '%s.notCombined' % rad
         nc1 = '%s.notCombined_1.fastq.gz' % rad
         nc2 = '%s.notCombined_2.fastq.gz' % rad
-        outs = [ext, nc1, nc2]
+        outs = [nc1, nc2, ext]
 
         if self.config.force or sum([to_do(x) for x in outs]):
             cmd = ngmerge_cmd(self, tech, paired, ext, log, fail)
@@ -354,14 +354,14 @@ def pear(self) -> None:
         self.outputs['dirs'].append(out)
 
         rad = out + '/' + self.sam_pool
-        ext_ = '%s.assembled.fastq.gz' % rad
         nc1_ = '%s.unassembled.forward.fastq.gz' % rad
         nc2_ = '%s.unassembled.reverse.fastq.gz' % rad
-        outs_ = [ext_, nc1_, nc2_]
-        ext = '%s.extendedFrags.fastq.gz' % rad
+        ext_ = '%s.assembled.fastq.gz' % rad
+        outs_ = [nc1_, nc2_, ext_]
         nc1 = '%s.notCombined_1.fastq.gz' % rad
         nc2 = '%s.notCombined_2.fastq.gz' % rad
-        outs = [ext, nc1, nc2]
+        ext = '%s.extendedFrags.fastq.gz' % rad
+        outs = [nc1, nc2, ext]
         na = '%s.discarded.fastq.gz' % rad
 
         if self.config.force or sum([to_do(x) for x in outs]):
@@ -408,7 +408,7 @@ def bbmerge_cmd(
     params = tech_params(self, tech)
     cmd = 'bbmerge.sh'
     cmd += ' in1=%s in2=%s' % tuple(fastqs)
-    cmd += ' out=%s outu1=%s outu2=%s outinsert=%s outc=%s ihist=%s' % tuple(fs)
+    cmd += ' outu1=%s outu2=%s out=%s outinsert=%s outc=%s ihist=%s' % tuple(fs)
     if params['strictness']:
         cmd += ' %s=t' % params['strictness']
     else:
@@ -503,13 +503,13 @@ def bbmerge(self) -> None:
         # - those you want to collect in 'outs' because they will be future inpt
         # - at least one that will help knowing whether the software already run
         rad = out + '/' + self.sam_pool
-        ext = '%s.extendedFrags.fastq.gz' % rad
         nc1 = '%s.notCombined_1.fastq.gz' % rad
         nc2 = '%s.notCombined_2.fastq.gz' % rad
+        ext = '%s.extendedFrags.fastq.gz' % rad
         ins = '%s.inserts.txt' % rad
         kmer = '%s.kmer_cardinality.txt' % rad
         ihist = '%s.insert_length.hist' % rad
-        outs = [ext, nc1, nc2]
+        outs = [nc1, nc2, ext]
         outs_cmd = outs + [ins, kmer, ihist]
 
         # check if the tool already run (or if --force) to allow getting command
