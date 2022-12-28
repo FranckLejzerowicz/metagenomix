@@ -8,17 +8,18 @@
 
 import sys
 from os.path import basename, dirname, splitext
-from metagenomix._inputs import (sample_inputs, group_inputs, genome_key,
-                                 genome_out_dir)
-from metagenomix._io_utils import (caller, io_update, to_do, tech_specificity,
-                                   not_paired, status_update)
+from metagenomix._inputs import (
+    sample_inputs, group_inputs, genome_key, genome_out_dir)
+from metagenomix._io_utils import (
+    caller, io_update, to_do, tech_specificity, not_paired,
+    status_update, get_assembly)
 from metagenomix.core.parameters import tech_params
 
 
 def predict_cmd(
         self,
         fasta: str,
-        out: str,
+        prefix: str,
         typ: str
 ) -> str:
     """Collect deeparg predict commands.
@@ -30,7 +31,7 @@ def predict_cmd(
             Parameters
     fasta : str
         Path to the input fasta file
-    out : str
+    prefix : str
         Paths to the output file's prefix
     typ : str
         Type of input data: 'nucl' (DNA) or 'prot' (protein)
@@ -40,9 +41,14 @@ def predict_cmd(
     cmd : str
         deeparg predict commands
     """
-    cmd = 'deeparg predict'
+    cmd, cmd_rm = '', ''
+    if fasta.endswith('.fa.gz') or fasta.endswith('.fasta.gz'):
+        cmd += 'gunzip -c %s > %s\n' % (fasta, fasta.rstrip('.gz'))
+        cmd_rm += 'rm %s\n' % fasta.rstrip('.gz')
+        fasta = fasta.rstrip('.gz')
+
+    cmd += 'deeparg predict'
     cmd += ' --input-file %s' % fasta
-    cmd += ' --output-file %s' % out
     cmd += ' --data-path %s' % self.soft.params['db_dir']
     cmd += ' --type %s' % typ
     for param in [
@@ -55,6 +61,9 @@ def predict_cmd(
         cmd += ' --model SS'
     else:
         cmd += ' --model LS'
+    cmd += ' --output-file %s\n' % prefix
+    cmd += 'for i in %s*; do gzip -q $i; done\n' % prefix
+    cmd += cmd_rm
     return cmd
 
 
@@ -78,11 +87,11 @@ def predict_inputs(
         Paths to the input fasta file per sequence type
     """
     if self.soft.prev == 'prodigal':
-        typ_seqs = {'prot': '%s/protein.translations.fasta' % fasta,
-                    'nucl': '%s/nucleotide.sequences.fasta' % fasta}
+        typ_seqs = {'prot': '%s/protein.translations.fasta.gz' % fasta,
+                    'nucl': '%s/nucleotide.sequences.fasta.gz' % fasta}
     elif self.soft.prev == 'plass':
-        typ_seqs = {'prot': '%s/prot_contigs.fasta' % dirname(fasta),
-                    'nucl': '%s/nucl_contigs.fasta' % dirname(fasta)}
+        typ_seqs = {'prot': '%s/prot_contigs.fasta.gz' % dirname(fasta),
+                    'nucl': '%s/nucl_contigs.fasta.gz' % dirname(fasta)}
     else:
         sys.exit('[%s] Only avail after prodigal or plass' % self.soft.name)
     return typ_seqs
@@ -126,8 +135,8 @@ def get_predict(
 
             base = splitext(basename(seq))[0]
             prefix = '%s/%s' % (out_dir, base)
-            arg = '%s.mapping.ARG' % prefix
-            pot_arg = '%s.potential.ARG' % prefix
+            arg = '%s.mapping.ARG.gz' % prefix
+            pot_arg = '%s.potential.ARG.gz' % prefix
             outs = [arg, pot_arg]
             self.outputs['outs'].setdefault((tech, sam_group), []).append(outs)
 
@@ -172,11 +181,6 @@ def predict(self) -> None:
         for (tech, group), inputs in self.inputs[self.sam_pool].items():
             fastas = group_inputs(self, inputs)
             get_predict(self, fastas, tech, group)
-
-    elif self.soft.prev == 'drep':
-        for (tech, bin_algo), inputs in self.inputs[''].items():
-            fastas = group_inputs(self, inputs)
-            get_predict(self, fastas, tech, bin_algo)
     else:
         tech_fastas = sample_inputs(self)
         for tech, fastas in tech_fastas.items():
@@ -207,12 +211,13 @@ def short_cmd(
     """
     cmd = 'deeparg short_reads_pipeline'
     cmd += ' --forward_pe_file %s --reverse_pe_file %s' % tuple(fastqs)
-    cmd += ' --output_file %s' % prefix
     for param in [
         'deeparg_data_path', 'deeparg_identity', 'deeparg_probability',
         'deeparg_evalue', 'gene_coverage', 'bowtie_16s_identity'
     ]:
         cmd += ' --%s %s' % (param.replace('_', '-'), self.soft.params[param])
+    cmd += ' --output_file %s\n' % prefix
+    cmd += 'for i in %s*; do gzip -q $i; done\n' % prefix
     return cmd
 
 
@@ -246,8 +251,8 @@ def short(self) -> None:
         self.outputs['dirs'].append(out)
 
         prefix = out + '/' + self.sam_pool
-        arg = '%s.mapping.ARG' % prefix
-        pot_arg = '%s.potential.ARG' % prefix
+        arg = '%s.mapping.ARG.gz' % prefix
+        pot_arg = '%s.potential.ARG.gz' % prefix
         outs = [arg, pot_arg]
         self.outputs['outs'].setdefault((tech, self.sam_pool), []).extend(outs)
 
@@ -355,15 +360,15 @@ def mmarc_cmd(
     for param in ['coverage', 'evalue', 'kmer']:
         cmd += ' --%s %s' % (param.replace('_', '-'), self.soft.params[param])
     cmd += ' --output %s\n' % out
-    cmd += 'for i in %s/*; do gzip $i; done\n' % out
-    cmd += 'gzip %s/duplicate_tables/output_dupcounts.txt\n' % out
+    cmd += 'for i in %s/*; do gzip -q $i; done\n' % out
+    cmd += 'gzip -q %s/duplicate_tables/output_dupcounts.txt\n' % out
     return cmd
 
 
 def get_metamarc(
         self,
         tech: str,
-        fastas_folders: dict,
+        folders: dict,
         sam_group: str
 ) -> None:
     """
@@ -381,12 +386,12 @@ def get_metamarc(
             Configurations
     tech : str
         Technology: 'illumina', 'pacbio', or 'nanopore'
-    fastas_folders : dict
+    folders : dict
         Paths to the input fasta files per genome/MAG
     sam_group : str
         Name of the current sample or co-assembly group
     """
-    for genome, inputs in fastas_folders.items():
+    for genome, inputs in folders.items():
 
         out_dir = genome_out_dir(self, tech, sam_group, genome)
         self.outputs['outs'].setdefault((tech, sam_group), []).append(out_dir)
@@ -475,14 +480,8 @@ def metamarc(self) -> None:
     """
     if self.sam_pool in self.pools:
         for (tech, group), inputs in self.inputs[self.sam_pool].items():
-            fastas_folders = group_inputs(self, inputs)
-            get_metamarc(self, tech, fastas_folders, group)
-
-    elif self.soft.prev == 'drep':
-        for (tech, bin_algo), inputs in self.inputs[''].items():
             folders = group_inputs(self, inputs)
-            get_metamarc(self, tech, folders, bin_algo)
-
+            get_metamarc(self, tech, folders, group)
     else:
         tech_fastas = sample_inputs(self, raw=True)
         for tech, fastas in tech_fastas.items():
@@ -817,6 +816,7 @@ def abricate_cmd(
         for param in ['minid', 'mincov']:
             cmd += ' --%s %s' % (param, self.soft.params[param])
         cmd += ' > %s/%s.txt\n' % (out_d, db)
+        cmd += 'gzip -q %s/%s.txt\n' % (out_d, db)
 
     if seqtk_cmd:
         cmd = seqtk_cmd + cmd + cmd_rm
@@ -826,7 +826,7 @@ def abricate_cmd(
 def get_abricate(
         self,
         tech: str,
-        fastas_folders: dict,
+        folders: dict,
         sam_group: str
 ) -> None:
     """
@@ -844,12 +844,12 @@ def get_abricate(
             Configurations
     tech : str
         Technology: 'illumina', 'pacbio', or 'nanopore'
-    fastas_folders : dict
+    folders : dict
         Paths to the input fasta files per genome/MAG
     sam_group : str
         Name of the current sample or co-assembly group
     """
-    for genome, inputs in fastas_folders.items():
+    for genome, inputs in folders.items():
 
         out_d = genome_out_dir(self, tech, sam_group, genome)
         self.outputs['dirs'].append(out_d)
@@ -857,9 +857,9 @@ def get_abricate(
         to_dos = status_update(
             self, tech, inputs, group=sam_group, genome=genome)
 
-        outs = ['%s/%s.txt' % (out_d, x) for x in self.soft.params['databases']]
+        o = ['%s/%s.txt.gz' % (out_d, x) for x in self.soft.params['databases']]
         # check if tool already run (or if --force) to allow getting command
-        if self.config.force or sum([to_do(x) for x in outs]):
+        if self.config.force or sum([to_do(x) for x in o]):
             # collect the command line
             cmd = abricate_cmd(self, tech, inputs, out_d)
             key = genome_key(tech, sam_group, genome)
@@ -910,14 +910,8 @@ def abricate(self) -> None:
     """
     if self.sam_pool in self.pools:
         for (tech, group), inputs in self.inputs[self.sam_pool].items():
-            fastas_folders = group_inputs(self, inputs)
-            get_abricate(self, tech, fastas_folders, group)
-
-    elif self.soft.prev == 'drep':
-        for (tech, bin_algo), inputs in self.inputs[''].items():
             folders = group_inputs(self, inputs)
-            get_abricate(self, tech, folders, bin_algo)
-
+            get_abricate(self, tech, folders, group)
     else:
         tech_fastas = sample_inputs(self, ['nanopore', 'pacbio'], raw=True)
         for tech, fastas in tech_fastas.items():
@@ -1124,20 +1118,6 @@ def amrfinderplus(self) -> None:
         .config
             Configurations
     """
-    # # iterate over the inputs
-    #
-    #     # make the output directory
-    #
-    #     # get the expected names of some of the ouptuts:
-    #     # - those you want to collect in 'outs' because they will be future inpt
-    #     # - at least one that will help knowing whether the software already run
-    #
-    #     # check if the tool already run (or if --force) to allow getting command
-    #     if self.config.force or :
-    #         # collect the command line
-    #         # add is to the 'cmds'
-    #     else:
-    #
     pass
 
 
@@ -1242,19 +1222,36 @@ def metacompare_cmd(
     ----------
     self
     contigs : str
+        Path to the contigs file
     genes : str
+        Path to the protein sequence predictions file
     out : str
+        Path to the output file
 
     Returns
     -------
     cmd : str
         MetaCompare command line
     """
-    cmd = '%s/metacmp.py' % self.soft.params['path']
+    cmd, cmd_rm = '', ''
+    if contigs.endswith('.fa.gz') or contigs.endswith('.fasta.gz'):
+        cmd += 'gunzip -c %s > %s\n' % (contigs, contigs.rstrip('.gz'))
+        cmd_rm += 'rm %s\n' % contigs.rstrip('.gz')
+        contigs = contigs.rstrip('.gz')
+
+    if genes.endswith('.gz'):
+        cmd += 'gunzip -c %s > %s\n' % (genes, genes.rstrip('.gz'))
+        cmd_rm += 'rm %s\n' % genes.rstrip('.gz')
+        genes = genes.rstrip('.gz')
+
+    cmd += '%s/metacmp.py' % self.soft.params['path']
     cmd += ' -c %s' % contigs
     cmd += ' -g %s' % genes
     cmd += ' -t %s' % self.soft.params['cpus']
-    cmd += ' -v 1 > %s' % out
+    cmd += ' -v 1 > %s\n' % out
+
+    cmd += cmd_rm
+    cmd += 'gzip %s\n' % out
     return cmd
 
 
@@ -1271,6 +1268,7 @@ def get_metacompare(
     self
     tech : str
     contigs : str
+        Path to the contigs file
     proteins : dict
     group : str
     """
@@ -1280,12 +1278,12 @@ def get_metacompare(
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
 
-        genes = '%s/nucleotide.sequences.fasta' % prodigal_dir[0]
+        genes = '%s/nucleotide.sequences.fasta.gz' % prodigal_dir[0]
         to_dos = status_update(self, tech, [genes])
         to_dos.extend(status_update(self, tech, [contigs]))
 
         # check if tool already run (or if --force) to allow getting command
-        out = '%s/output.txt' % out_dir
+        out = '%s/output.txt.gz' % out_dir
         if self.config.force or to_do(out):
             cmd = metacompare_cmd(self, contigs, genes, out)
             key = genome_key(tech, group)
@@ -1293,7 +1291,7 @@ def get_metacompare(
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
-            io_update(self, i_f=[contigs, genes], o_d=out_dir, key=key)
+            io_update(self, i_f=[contigs, genes], o_f=out, key=key)
             self.soft.add_status(tech, self.sam_pool, 1)
         else:
             self.soft.add_status(tech, self.sam_pool, 0)
@@ -1343,17 +1341,12 @@ def metacompare(self) -> None:
     if self.soft.prev not in ['prodigal']:
         sys.exit('[metacompare] Only after protein predictions')
 
-    for s in self.soft.path[::-1]:
-        if s in self.config.tools['assembling']:
-            contigs_dict = self.softs[s].outputs
-            break
-    else:
-        sys.exit('[metacompare] No previous assembly output')
+    assembler, assembly = get_assembly(self)
 
-    if self.sam_pool in self.pools and set(self.inputs) != {''}:
+    if self.sam_pool in self.pools:
         for (tech, group), inputs in self.inputs[self.sam_pool].items():
             proteins = group_inputs(self, inputs)
-            contigs = contigs_dict[self.sam_pool][(tech, group)][0]
+            contigs = assembly[self.sam_pool][(tech, group)][0]
             get_metacompare(self, tech, proteins, contigs, group)
 
 
