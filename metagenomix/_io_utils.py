@@ -907,6 +907,17 @@ def get_techs(tech: str):
 
 
 def get_assembly(self):
+    """Get the assembly output data structure.
+
+    Parameters
+    ----------
+    self
+
+    Returns
+    -------
+    contigs : dict
+        Path(s) to the assembly files per co-assembly and co-assembly group
+    """
     for assembler in self.soft.path[::-1]:
         if self.config.tools[assembler] == 'assembling':
             contigs = self.softs[assembler].outputs
@@ -914,3 +925,66 @@ def get_assembly(self):
     else:
         sys.exit('[%s] No previous assembly output found' % self.soft.prev)
     return assembler, contigs
+
+
+def get_assembly_contigs(
+        self,
+        tech: str,
+        group: str,
+        assembly: tuple
+) -> list:
+    """Get path(s) contigs file(s).
+
+    Parameters
+    ----------
+    self
+    tech : str
+        Technology/ies iterated over
+    group : str
+        Group for the current co-assembly and
+    assembly : tuple
+        (Name of the assembler, Paths to the assembly results)
+
+    Returns
+    -------
+    contigs : list
+        Paths to the assembly contigs files
+    """
+    if self.sam_pool:
+        contigs = assembly[-1][self.sam_pool][(tech, group)][-1]
+    else:
+        contigs = assembly[-1][self.sam_pool]
+    return contigs
+
+
+def get_assembly_graph(
+        self,
+        tech: str,
+        group: str,
+        assembly: tuple,
+) -> str:
+    """Get path to an assembly graph.
+
+    Parameters
+    ----------
+    self
+    tech : str
+        Technology/ies iterated over
+    group : str
+        Group for the current co-assembly and
+    assembly : tuple
+        (Name of the assembler, Paths to the assembly results)
+
+    Returns
+    -------
+    graph : str
+        Paths to the assembly graph file
+    """
+    if assembly[0] == 'spades':
+        graph = '%s/assembly_graph_with_scaffolds.gfa' % dirname(
+            assembly[1][self.sam_pool][(tech, group)][0])
+    elif assembly[0] == 'megahit':
+        graph = assembly[11][self.sam_pool][(tech, group)][-1]
+    else:
+        sys.exit('[binspreader] Not avail for %s assembler' % assembly[0])
+    return graph
