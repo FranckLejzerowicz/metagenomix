@@ -313,7 +313,11 @@ def get_lorikeet(
 
         assembler, assembly = get_assembly(self)
         print(assembly)
-        print(assemblyfdsa)
+        if self.sam_pool:
+            contigs = assembly[self.sam_pool][(tech, group)][-1]
+        else:
+            contigs = assembly[self.sam_pool][(tech, group)]
+        print(contigs)
         to_dos.extend(status_update(self, tech, [contigs]))
 
         if self.config.force or not glob.glob('%s/*' % out_dir):
@@ -323,6 +327,8 @@ def get_lorikeet(
             else:
                 group_reads = reads
 
+            print(group_reads)
+            print(assemblyfdsa)
             cmd = lorikeet_cmd(self, is_folder, contigs, fasta_folder,
                                group_reads, out_dir, key, step)
             if to_dos:
