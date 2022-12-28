@@ -427,6 +427,37 @@ def group_inputs(
     return fastas
 
 
+def get_group_reads(
+        self,
+        group: str,
+        reads: dict
+) -> dict:
+    """Subset to the path(s) of input fastq file(s) per sample and
+    tech/sample for the samples in the current co-assembly group(s).
+
+    Parameters
+    ----------
+    self
+    group : str
+        Name of a co-assembly pool's group
+    reads : dict
+        Path(s) to the input fastq file(s) per sample and tech/sample
+
+    Returns
+    -------
+    group_reads : dict
+        Path(s) to the input fastq file(s) per sample and tech/sample
+    """
+    pools = self.pools[self.sam_pool]
+    if group in pools:
+        sams = pools[group]
+    else:
+        sams = sorted(set(sam for pool in pools.values() for sam in pool))
+    group_reads = {x: dict(z for z in y.items() if z[1])
+                   for x, y in reads.items() if x in sams}
+    return group_reads
+
+
 def genomes_fastas(
         self,
         path: str,
@@ -534,8 +565,8 @@ def get_reads(self) -> dict:
     reads = self.config.fastq_mv
     for software in self.soft.path[::-1]:
         if self.config.tools[software] == 'preprocessing':
+            reads = self.softs[software].outputs
             break
-        reads = self.softs[software].outputs
     return reads
 
 
