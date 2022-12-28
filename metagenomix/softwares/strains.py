@@ -8,7 +8,7 @@
 
 import glob
 from metagenomix._io_utils import (
-    caller, io_update, to_do, status_update, get_assembly)
+    caller, io_update, status_update, get_assembly, get_assembly_contigs)
 from metagenomix._inputs import (
     group_inputs, genome_key, genome_out_dir, get_extension, get_reads,
     add_folder)
@@ -311,14 +311,15 @@ def get_lorikeet(
             is_folder = False
             to_dos = status_update(self, tech, [fasta_folder])
 
-        assembler, assembly = get_assembly(self)
+        print("self.sam_pool")
+        print(self.sam_pool)
+        assembly = get_assembly(self)
+        print("assembly")
         print(assembly)
-        if self.sam_pool:
-            contigs = assembly[self.sam_pool][(tech, group)][-1]
-        else:
-            contigs = assembly[self.sam_pool][(tech, group)]
+        contigs = get_assembly_contigs(self, tech, group, assembly)
+        print("contigs")
         print(contigs)
-        to_dos.extend(status_update(self, tech, [contigs]))
+        # to_dos.extend(status_update(self, tech, [contigs]))
 
         if self.config.force or not glob.glob('%s/*' % out_dir):
             if self.sam_pool:
@@ -327,6 +328,7 @@ def get_lorikeet(
             else:
                 group_reads = reads
 
+            print("group_reads")
             print(group_reads)
             print(assemblyfdsa)
             cmd = lorikeet_cmd(self, is_folder, contigs, fasta_folder,
