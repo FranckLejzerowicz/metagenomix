@@ -987,7 +987,7 @@ def get_assembly_graph(
         graph = '%s/assembly_graph_with_scaffolds.gfa' % dirname(
             assembly[1][self.sam_pool][(tech, group)][0])
     elif assembly[0] == 'megahit':
-        graph = assembly[11][self.sam_pool][(tech, group)][-1]
+        graph = assembly[1][self.sam_pool][(tech, group)][-1]
     else:
         sys.exit('[binspreader] Not avail for %s assembler' % assembly[0])
     return graph
