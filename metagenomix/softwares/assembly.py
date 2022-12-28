@@ -491,7 +491,7 @@ def megahit_cmd(
         m_cmd += ' --continue\n'
     else:
         if len(inputs) == 3:
-            m_cmd += ' --read %s -1 %s -2 %s\n' % tuple(inputs)
+            m_cmd += ' -1 %s -2 %s --read %s\n' % tuple(inputs)
         if len(inputs) == 2:
             m_cmd += ' -1 %s -2 %s\n' % tuple(inputs)
         if len(inputs) == 1:
@@ -991,7 +991,7 @@ def unicycler_cmd(
             elif len(illumina) == 2:
                 cmd += ' --short1 %s --short2 %s' % illumina
             elif len(illumina) == 3:
-                cmd += ' --unpaired %s --short1 %s --short2 %s' % illumina
+                cmd += ' --short1 %s --short2 %s --unpaired %s' % illumina
         else:
             if len(techs_inputs[tech]):
                 cmd += ' --long %s' % techs_inputs[tech][0]
