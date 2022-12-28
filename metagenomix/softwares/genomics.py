@@ -255,10 +255,17 @@ def drep(self):
     """
     genomes = get_drep_bins(self)
     for (tech, pool), pool_paths in genomes.items():
+        print()
+        print()
+        print("tech, pool:", tech, pool)
         self.outputs['outs'][''] = {}
         for binning, paths in pool_paths.items():
+            print()
+            print("binning:", binning)
+            print("paths:", paths)
             for algo in self.soft.params['S_algorithm']:
-
+                print()
+                print("algo:", algo)
                 bin_algo = '_'.join([binning, algo])
                 pool_binning_algo = pool + '/' + bin_algo
                 drep_out = '/'.join([self.dir, tech, pool_binning_algo])
@@ -266,7 +273,9 @@ def drep(self):
 
                 dereps = '%s/dereplicated_genomes' % drep_out
                 self.outputs['outs'][''][(tech, pool_binning_algo)] = [dereps]
-
+                print()
+                print("self.outputs['outs']")
+                print(self.outputs['outs'])
                 to_dos = status_update(
                     self, tech, paths, group=bin_algo, folder=True)
                 cmd_paths, cmd_rms, bin_paths = get_bin_paths(self, paths)
