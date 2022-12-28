@@ -11,13 +11,13 @@ from metagenomix._io_utils import (
     caller, io_update, status_update, get_assembly, get_assembly_contigs)
 from metagenomix._inputs import (
     group_inputs, genome_key, genome_out_dir, get_extension, get_reads,
-    add_folder)
+    get_group_reads, add_folder)
 
 
 def lorikeet_cmd(
         self,
         is_folder: bool,
-        contigs: str,
+        contigs: list,
         fasta_folder: str,
         group_reads: dict,
         out_dir: str,
@@ -33,8 +33,8 @@ def lorikeet_cmd(
             Parameters
     is_folder : bool
         Whether fasta_folder is a folder or not
-    contigs : str
-        Paths to the input contigs fasta file
+    contigs : list
+        Path(s) to the input contigs fasta file(s)
     fasta_folder : str
         Path to aseembly fasta or to an input folder with the genomes/MAGs
     group_reads : dict
@@ -53,10 +53,10 @@ def lorikeet_cmd(
     """
     tmp_dir = '$TMPDIR/lorikeet_%s_%s' % ('_'.join(key), step)
     cmd_rm, cmd = '', 'mkdir -p %s\n' % tmp_dir
-    if contigs.endswith('.gz'):
-        cmd += 'gunzip -c %s > %s\n' % (contigs, contigs.rstrip('.gz'))
-        contigs = contigs.rstrip('.gz')
-        cmd_rm += 'rm %s\n' % contigs
+    for contig in contigs:
+        if contig.endswith('.gz'):
+            cmd += 'gunzip -c %s > %s\n' % (contig, contig.rstrip('.gz'))
+            cmd_rm += 'rm %s\n' % contig.rstrip('.gz')
 
     cmd += 'lorikeet %s' % step
     cmd += ' --output-directory %s' % out_dir
@@ -66,7 +66,7 @@ def lorikeet_cmd(
     if is_folder:
         cmd += ' --genome-fasta-directory %s' % fasta_folder
         cmd += ' --genome-fasta-extension %s' % get_extension(self)
-    cmd += ' --reference %s' % contigs
+    cmd += ' --reference %s' % ' '.join([c.rstrip('.gz') for c in contigs])
 
     cmd += ' --method "%s"' % ' '.join(self.soft.params['method'])
     cmd_single, cmd_coupled, cmd_longreads = '', '', ''
@@ -78,8 +78,8 @@ def lorikeet_cmd(
                 elif len(fastqs) == 2:
                     cmd_coupled += ' %s' % ' '.join(fastqs)
                 elif len(fastqs) == 3:
-                    cmd_single += ' %s' % fastqs[0]
-                    cmd_coupled += ' %s' % ' '.join(fastqs)
+                    cmd_coupled += ' %s' % ' '.join(fastqs[:2])
+                    cmd_single += ' %s' % fastqs[-1]
             elif fastqs:
                 cmd_longreads += ' %s' % fastqs[0]
 
@@ -259,7 +259,7 @@ def get_lorikeet(
         self,
         tech: str,
         fastas_folders: dict,
-        reads: dict,
+        group_reads: dict,
         group: str,
         step: str
 ) -> None:
@@ -286,8 +286,8 @@ def get_lorikeet(
     tech : str
         Technology or technologies used for assembly
     fastas_folders : dict
-        Path(s) to aseembly fasta or to the input folders with the genomes/MAGs
-    reads : dict
+        Path(s) to assembly fasta or to the input folders with the genomes/MAGs
+    group_reads : dict
         Path(s) to the input fastq file(s) per sample and tech/sample
     group : str
         Name of a co-assembly pool's group
@@ -296,10 +296,6 @@ def get_lorikeet(
     """
     for genome, fasta_folder_ in fastas_folders.items():
 
-        print()
-        print()
-        print("fasta_folder_")
-        print(fasta_folder_)
         fasta_folder = fasta_folder_[0]
         out_dir = genome_out_dir(self, tech, group, genome)
         if self.soft.name == 'lorikeet':
@@ -315,26 +311,11 @@ def get_lorikeet(
             is_folder = False
             to_dos = status_update(self, tech, [fasta_folder])
 
-        print("self.sam_pool")
-        print(self.sam_pool)
         assembly = get_assembly(self)
-        print("assembly")
-        print(assembly)
         contigs = get_assembly_contigs(self, tech, group, assembly)
-        print("contigs")
-        print(contigs)
-        # to_dos.extend(status_update(self, tech, [contigs]))
+        to_dos.extend(status_update(self, tech, contigs))
 
         if self.config.force or not glob.glob('%s/*' % out_dir):
-            if self.sam_pool:
-                groups = self.pools[self.sam_pool][group]
-                group_reads = dict(x for x in reads.items() if x[0] in groups)
-            else:
-                group_reads = reads
-
-            print("group_reads")
-            print(group_reads)
-            print(assemblyfdsa)
             cmd = lorikeet_cmd(self, is_folder, contigs, fasta_folder,
                                group_reads, out_dir, key, step)
             if to_dos:
@@ -351,7 +332,7 @@ def lorikeet_(
         self,
         tech: str,
         fastas_folders: dict,
-        reads: dict,
+        group_reads: dict,
         group: str
 ) -> None:
     """Perform all the key steps of the lorikeet analysis.
@@ -382,13 +363,13 @@ def lorikeet_(
         Technology or technologies used for assembly
     fastas_folders : dict
         Path(s) to aseembly fasta or to the input folders with the genomes/MAGs
-    reads : dict
+    group_reads : dict
         Path(s) to the input fastq file(s) per sample and tech/sample
     group : str
         Name of a co-assembly pool's group
     """
     for step in ['call', 'consensus', 'genotype']:
-        get_lorikeet(self, tech, fastas_folders, reads, group, step)
+        get_lorikeet(self, tech, fastas_folders, group_reads, group, step)
 
 
 def lorikeet(self) -> None:
@@ -444,17 +425,12 @@ def lorikeet(self) -> None:
             Configurations
     """
     reads = get_reads(self)
-
     module_call = caller(self, __name__)
     if self.sam_pool in self.pools:
         for (tech, group), inputs in self.inputs[self.sam_pool].items():
             fastas_folders = group_inputs(self, inputs, True)
-            module_call(self, tech, fastas_folders, reads, group)
-
-    elif set(self.inputs) == {''}:
-        for (tech, bin_algo), inputs in self.inputs[''].items():
-            folders = group_inputs(self, inputs, True)
-            module_call(self, tech, folders, reads, bin_algo)
+            group_reads = get_group_reads(self, group, reads)
+            module_call(self, tech, fastas_folders, group_reads, group)
 
 
 def instrain(self):
