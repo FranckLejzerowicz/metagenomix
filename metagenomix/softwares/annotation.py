@@ -79,7 +79,7 @@ def prodigal_cmd(
         if params[boolean]:
             cmd += ' -%s' % params[boolean]
     cmd += '\n' + cmd_rm
-    cmd += 'for i in %s/*; do gzip $i; done\n' % out
+    cmd += 'for i in %s/*; do gzip -q $i; done\n' % out
     return cmd
 
 
@@ -172,13 +172,6 @@ def prodigal(self) -> None:
             fastas = group_inputs(self, inputs)
             out_dir = '/'.join([self.dir, tech, self.sam_pool, group])
             get_prodigal(self, tech, fastas, out_dir, group)
-
-    elif set(self.inputs) == {''}:
-        for (tech, mags), inputs in self.inputs[''].items():
-            fastas = group_inputs(self, inputs)
-            out_dir = '/'.join([self.dir, tech, mags])
-            get_prodigal(self, tech, fastas, out_dir, mags)
-
     else:
         tech_fastas = sample_inputs(self, ['pacbio', 'nanopore'])
         for tech, fastas in tech_fastas.items():
@@ -376,12 +369,6 @@ def macsyfinder(self) -> None:
         for (tech, group), inputs in self.inputs[self.sam_pool].items():
             fastas = group_inputs(self, inputs)
             get_macsyfinder(self, tech, fastas, group)
-
-    elif set(self.inputs) == {''}:
-        for (tech, mags), inputs in self.inputs[''].items():
-            fastas = group_inputs(self, inputs)
-            get_macsyfinder(self, tech, fastas, mags)
-
     else:
         prev = self.soft.prev
         if prev not in ['plass', 'prodigal']:
@@ -612,12 +599,6 @@ def integronfinder(self) -> None:
         for (tech, group), inputs in self.inputs[self.sam_pool].items():
             fastas = group_inputs(self, inputs)
             get_integronfinder(self, tech, fastas, group)
-
-    elif set(self.inputs) == {''}:
-        for (tech, mags), inputs in self.inputs[''].items():
-            fastas = group_inputs(self, inputs)
-            get_integronfinder(self, tech, fastas, mags)
-
     else:
         tech_fastas = sample_inputs(self)
         for tech, fastas in tech_fastas.items():
@@ -939,7 +920,7 @@ def get_search(
 
         proteins = fasta[0]
         if self.soft.prev == 'prodigal':
-            proteins = '%s/protein.translations.fasta' % fasta[0]
+            proteins = '%s/protein.translations.fasta.gz' % fasta[0]
 
         to_dos = status_update(
             self, tech, [proteins], group=sam_group, genome=genome)
@@ -981,14 +962,6 @@ def search(self) -> None:
         for (tech, group), inputs in self.inputs[self.sam_pool].items():
             fastas = group_inputs(self, inputs)
             get_search(self, tech, fastas, group)
-
-    elif set(self.inputs) == {''}:
-        if self.soft.prev != 'prodigal':
-            sys.exit('[%s] Runs on protein data (plass, prodigal...)' % name)
-        for (tech, mags), inputs in self.inputs[''].items():
-            fastas = group_inputs(self, inputs)
-            get_search(self, tech, fastas, mags)
-
     else:
         prev = self.soft.prev
         if prev not in ['plass', 'prodigal']:
@@ -1002,7 +975,7 @@ def prokka_cmd(
         self,
         contigs: str,
         out_dir: str,
-        pref: str,
+        prefix: str,
         config: dict,
         cols: list
 ) -> str:
@@ -1017,7 +990,7 @@ def prokka_cmd(
         Path to the contigs input file
     out_dir : str
         Path to the output folder
-    pref : str
+    prefix : str
         Prefix to add to the output files
     config : dict
         One field#:taxon dict obtained by parsing the user-defined config
@@ -1044,14 +1017,13 @@ def prokka_cmd(
     for col in cols:
         if col and config[col]:
             cmd += ' --%s %s' % (col, config[col])
-    cmd += ' --prefix %s' % pref
+    cmd += ' --prefix %s' % prefix
     cmd += ' --outdir %s' % out_dir
     if contigs.endswith('.gz'):
         cmd += ' %s\n' % contigs.rstrip('.gz')
     else:
         cmd += ' %s\n' % contigs
-
-    cmd += 'gzip %s/%s.out\n' % (out_dir, pref)
+    cmd += 'for i in %s/%s*; do gzip -q $i; done\n' % (out_dir, prefix)
     cmd += cmd_rm
     return cmd
 
@@ -1154,12 +1126,12 @@ def get_prokka(
         to_dos.extend(status_update(
             self, tech, [inputs[0]], group=group, genome=list(config)[0]))
 
-        pref = '_'.join([config[x] for x in cols if config[x]])
+        prefix = '_'.join([config[x] for x in cols if config[x]])
         if config.get('proteins'):
-            pref += '_%s' % splitext(basename(config['proteins']))[0]
-        file_out = '%s/%s.out.gz' % (out_dir, pref)
+            prefix += '_%s' % splitext(basename(config['proteins']))[0]
+        file_out = '%s/%s.out.gz' % (out_dir, prefix)
         if self.config.force or to_do(file_out):
-            cmd += prokka_cmd(self, inputs[0], out_dir, pref, config, cols)
+            cmd += prokka_cmd(self, inputs[0], out_dir, prefix, config, cols)
             self.soft.add_status(
                 tech, self.sam_pool, 1, group=group, genome=list(config)[0])
         else:
@@ -1319,10 +1291,10 @@ def ccfind_cmd(
     cmd += ' --terminal-fragment-size %s' % params['terminal_fragment_size']
     cmd += ' --min-percent-identity %s' % params['min_percent_identity']
     cmd += ' --min-aligned-length %s' % params['min_aligned_length']
-    cmd += ' --ncpus %s' % params['cpus']
     if params['preserve_tmpdir']:
         cmd += ' --preserve-tmpdir'
-    cmd += '\n' + cmd_rm
+    cmd += ' --ncpus %s\n' % params['cpus']
+    cmd += cmd_rm
     return cmd
 
 
@@ -1460,15 +1432,15 @@ def dispatch(self) -> None:
         .config
             Configurations
     """
-    g_barrnap_ccfind = getattr(sys.modules[__name__], 'get_%s' % self.soft.name)
+    get_ = getattr(sys.modules[__name__], 'get_%s' % self.soft.name)
     if self.sam_pool in self.pools:
         for (tech, group), inputs in self.inputs[self.sam_pool].items():
             fastas = group_inputs(self, inputs)
-            g_barrnap_ccfind(self, tech, fastas, group)
+            get_(self, tech, fastas, group)
     else:
         tech_fastas = sample_inputs(self, ['pacbio', 'nanopore'])
         for tech, fastas in tech_fastas.items():
-            g_barrnap_ccfind(self, tech, fastas, self.sam_pool)
+            get_(self, tech, fastas, self.sam_pool)
 
 
 def barrnap(self) -> None:
@@ -1660,11 +1632,6 @@ def antismash(self) -> None:
         for (tech, group), inputs in self.inputs[self.sam_pool].items():
             fastas = group_inputs(self, inputs)
             get_antismash(self, fastas, tech, group)
-
-    elif self.soft.prev == 'drep':
-        for (tech, bin_algo), inputs in self.inputs[''].items():
-            fastas = group_inputs(self, inputs)
-            get_antismash(self, fastas, tech, bin_algo)
     else:
         tech_fastas = sample_inputs(self, ['pacbio', 'nanopore'])
         for tech, fastas in tech_fastas.items():
@@ -1699,7 +1666,6 @@ def tiara_cmd(self, contig: str, out_dir: str, out_fp: str):
 
     cmd += 'tiara'
     cmd += ' --input %s' % contig
-    cmd += ' --output %s' % out_fp
     cmd += ' --threads %s' % self.soft.params['cpus']
     for boolean in ['probabilities', 'verbose', 'gzip']:
         if self.soft.params[boolean]:
@@ -1708,8 +1674,9 @@ def tiara_cmd(self, contig: str, out_dir: str, out_fp: str):
         cmd += ' --%s %s' % (param, self.soft.params[param])
     for param in ['prob_cutoff', 'to_fasta']:
         cmd += ' --%s %s' % (param, ' '.join(self.soft.params[param]))
-    cmd += '\n' + cmd_rm
-    cmd += 'for i in %s/*; gzip $i; done\n' % out_dir
+    cmd += ' --output %s\n' % out_fp
+    cmd += 'for i in %s/*; gzip -q $i; done\n' % out_dir
+    cmd += cmd_rm
     return cmd
 
 
