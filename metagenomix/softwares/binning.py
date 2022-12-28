@@ -9,9 +9,9 @@
 import sys
 import glob
 import pkg_resources
-from os.path import basename, dirname, splitext
+from os.path import basename, splitext
 from metagenomix._io_utils import (
-    caller, status_update, io_update, to_do, get_assembly)
+    caller, status_update, io_update, to_do, get_assembly, get_assembly_graph)
 from metagenomix.core.parameters import tech_params
 
 SCRIPTS = pkg_resources.resource_filename("metagenomix", "resources/scripts")
@@ -1271,16 +1271,10 @@ def binspreader(self):
         Contains all the attributes needed for binning on the current sample
     """
     if self.config.tools[self.soft.prev] == 'binning':
-        assembler, assembly = get_assembly(self)
+        assembly = get_assembly(self)
         for (tech, group), inputs in self.inputs[self.sam_pool].items():
 
-            if assembler == 'spades':
-                graph = '%s/assembly_graph_with_scaffolds.gfa' % dirname(
-                    assembly[(tech, group)][0])
-            elif assembler == 'megahit':
-                graph = assembly[(tech, group)][-1]
-            else:
-                sys.exit('[binspreader] Not avail for %s assembler' % assembler)
+            graph = get_assembly_graph(self, tech, group, assembly)
 
             inp = inputs[0]
             to_dos = status_update(self, tech, [inp], group=group, folder=True)
