@@ -160,6 +160,7 @@ class Commands(object):
         if self.soft.name in self.holistics:
             self.soft.outputs = self.outputs['outs']
         else:
+            print("[else] self.sam_pool:", self.sam_pool, '->', self.soft.name)
             self.soft.outputs[self.sam_pool] = self.outputs['outs']
         self.soft.bash = self.outputs['bash']
 
