@@ -924,7 +924,7 @@ def get_assembly(self) -> tuple:
             contigs = self.softs[assembler].outputs
             break
     else:
-        sys.exit('[%s] No previous assembly output found' % self.soft.prev)
+        sys.exit('[%s] No previous assembly output found' % self.soft.name)
     return assembler, contigs
 
 
@@ -952,10 +952,11 @@ def get_assembly_contigs(
     contigs : list
         Paths to the assembly contigs files
     """
-    if self.sam_pool:
-        contigs = assembly[-1][self.sam_pool][(tech, group)][-1]
+    contigs = assembly[-1][self.sam_pool]
+    if (tech, group) in contigs:
+        contigs = contigs[(tech, group)][:1]
     else:
-        contigs = assembly[-1][self.sam_pool]
+        contigs = [contigs[(tech, x)][0] for x in self.pools[self.sam_pool]]
     return contigs
 
 
