@@ -255,27 +255,14 @@ def drep(self):
     """
     genomes = get_drep_bins(self)
     for (tech, pool), pool_paths in genomes.items():
-        print()
-        print()
-        print("tech, pool:", tech, pool)
-        self.outputs['outs'][''] = {}
+        self.outputs['outs'][pool] = {}
         for binning, paths in pool_paths.items():
-            print()
-            print("binning:", binning)
-            print("paths:", paths)
             for algo in self.soft.params['S_algorithm']:
-                print()
-                print("algo:", algo)
                 bin_algo = '_'.join([binning, algo])
-                pool_binning_algo = pool + '/' + bin_algo
-                drep_out = '/'.join([self.dir, tech, pool_binning_algo])
+                drep_out = '/'.join([self.dir, tech, pool, bin_algo])
                 self.outputs['dirs'].append(drep_out)
-
                 dereps = '%s/dereplicated_genomes' % drep_out
-                self.outputs['outs'][''][(tech, pool_binning_algo)] = [dereps]
-                print()
-                print("self.outputs['outs']")
-                print(self.outputs['outs'])
+                self.outputs['outs'][pool][(tech, bin_algo)] = [dereps]
                 to_dos = status_update(
                     self, tech, paths, group=bin_algo, folder=True)
                 cmd_paths, cmd_rms, bin_paths = get_bin_paths(self, paths)
@@ -285,12 +272,11 @@ def drep(self):
                                          message='run previous')
                     if self.config.dev:
                         bin_paths = ['x'] * 5001
-
                 out_dereps = '%s/*.fa' % dereps.replace('${SCRATCH_FOLDER}', '')
                 if not self.config.force and glob.glob(out_dereps):
                     self.soft.add_status(tech, pool, 0, group=bin_algo)
                     continue
-                key = (tech, pool_binning_algo)
+                key = (tech, bin_algo)
                 cmd = drep_cmd(self, algo, drep_in, drep_out,
                                bin_paths, cmd_paths, cmd_input, cmd_rms)
                 if to_dos:
@@ -323,10 +309,10 @@ def tree_cmd(
     cmd : str
         checkm tree command
     """
-    cmd = 'CHECKM_DATA_PATH=/cluster/projects/nn8075k/03_databases/checkm\n'
-    cmd += 'export CHECKM_DATA_PATH\n'
+    cmd = 'export CHECKM_DATA_PATH=%s\n' % self.databases.paths['checkm']
     cmd += '\ncheckm tree'
     cmd += ' --extension %s' % get_extension(self)
+    cmd += ' --threads %s' % self.soft.params['cpus']
     cmd += ' --pplacer_threads %s' % self.soft.params['cpus']
     cmd += ' %s' % genomes_dir
     cmd += ' %s\n' % tree_dir
@@ -417,9 +403,7 @@ def treeqa_cmd(
     cmd : str
         checkm tree_qa command
     """
-    cmd = ''
-    cmd += 'CHECKM_DATA_PATH=/cluster/projects/nn8075k/03_databases/checkm\n'
-    cmd += 'export CHECKM_DATA_PATH\n'
+    cmd = 'export CHECKM_DATA_PATH=%s\n' % self.databases.paths['checkm']
     for (filename, out_format) in [
         ('tree_placement_summary.txt', '1'),
         ('tree_placement_lineage_stats.txt', '2'),
@@ -531,8 +515,7 @@ def lineageset_cmd(
     cmd : str
         checkm lineage_set command
     """
-    cmd = 'CHECKM_DATA_PATH=/cluster/projects/nn8075k/03_databases/checkm\n'
-    cmd += 'export CHECKM_DATA_PATH\n'
+    cmd = 'export CHECKM_DATA_PATH=%s\n' % self.databases.paths['checkm']
     cmd += '\ncheckm lineage_set'
     cmd += ' --unique %s' % self.soft.params['unique']
     cmd += ' --multi %s' % self.soft.params['multi']
@@ -638,8 +621,7 @@ def analyze_cmd(
     cmd : str
         checkm analyze command
     """
-    cmd = 'CHECKM_DATA_PATH=/cluster/projects/nn8075k/03_databases/checkm\n'
-    cmd += 'export CHECKM_DATA_PATH\n'
+    cmd = 'export CHECKM_DATA_PATH=%s\n' % self.databases.paths['checkm']
     cmd += '\ncheckm analyze'
     cmd += ' --extension %s' % get_extension(self)
     cmd += ' --threads %s' % self.soft.params['cpus']
@@ -751,8 +733,7 @@ def coverage_cmd(
     cmd : str
         checkm coverage command
     """
-    cmd = 'CHECKM_DATA_PATH=/cluster/projects/nn8075k/03_databases/checkm\n'
-    cmd += 'export CHECKM_DATA_PATH\n'
+    cmd = 'export CHECKM_DATA_PATH=%s\n' % self.databases.paths['checkm']
     cmd += '\ncheckm coverage'
     cmd += ' --extension %s' % get_extension(self)
     if self.soft.params['all_reads']:
@@ -905,9 +886,7 @@ def qa_cmd(
     cmd : str
         checkm qa command
     """
-    cmd = ''
-    cmd += 'CHECKM_DATA_PATH=/cluster/projects/nn8075k/03_databases/checkm\n'
-    cmd += 'export CHECKM_DATA_PATH\n'
+    cmd = 'export CHECKM_DATA_PATH=%s\n' % self.databases.paths['checkm']
     for idx, (filename, out_format) in enumerate([
         ('completeness_contamination.txt', 1),
         ('bin_statistics.txt', 2),
@@ -1092,8 +1071,7 @@ def unbinned_cmd(
     cmd : str
         checkm unbinned command
     """
-    cmd = 'CHECKM_DATA_PATH=/cluster/projects/nn8075k/03_databases/checkm\n'
-    cmd += 'export CHECKM_DATA_PATH\n'
+    cmd = 'export CHECKM_DATA_PATH=%s\n' % self.databases.paths['checkm']
     cmd += '\ncheckm unbinned'
     cmd += ' --extension %s' % get_extension(self)
     cmd += ' --min_seq_len %s' % self.soft.params['min_seq_len']
@@ -1191,8 +1169,7 @@ def tetra_cmd(
     cmd : str
         checkm tetra command
     """
-    cmd = 'CHECKM_DATA_PATH=/cluster/projects/nn8075k/03_databases/checkm\n'
-    cmd += 'export CHECKM_DATA_PATH\n'
+    cmd = 'export CHECKM_DATA_PATH=%s\n' % self.databases.paths['checkm']
     cmd += '\ncheckm tetra'
     cmd += ' --threads %s' % self.soft.params['cpus']
     cmd += ' %s' % fasta
@@ -1344,6 +1321,9 @@ def checkm(self) -> None:
         .config
             Configurations
     """
+    if 'checkm' not in self.databases.paths:
+        sys.exit('[checkm] Path to "checkm" database folder needed')
+
     __module_call__ = caller(self, __name__)
     assemblers = self.config.tools['assembling']
     if self.soft.name == 'checkm_tetra' and self.soft.prev not in assemblers:
@@ -1353,11 +1333,6 @@ def checkm(self) -> None:
         for (tech, group), inputs in self.inputs[self.sam_pool].items():
             folders = group_inputs(self, inputs, True)
             __module_call__(self, tech, folders, group)
-
-    elif set(self.inputs) == {''}:
-        for (tech, bin_algo), inputs in self.inputs[''].items():
-            folders = group_inputs(self, inputs, True)
-            __module_call__(self, tech, folders, bin_algo)
 
 
 def denovo_cmd(
@@ -1393,7 +1368,8 @@ def denovo_cmd(
     """
     params = tech_params(self, tech)
     scratch_cmd = ''
-    cmd = 'TMPDIR="$(dirname $TMPDIR)/dnv"\n'
+    cmd = "export GTDBTK_DATA_PATH=%s\n" % self.databases.paths['gtdbtk']
+    cmd += 'TMPDIR="$(dirname $TMPDIR)/dnv"\n'
     cmd += 'mkdir -p $TMPDIR\n'
 
     for taxon in ['bacteria', 'archaea']:
@@ -1480,11 +1456,6 @@ def classify_cmd(
     cmd += ' --extension %s' % get_extension(self)
     cmd += ' --cpus %s' % self.soft.params['cpus']
     cmd += ' --pplacer_cpus %s' % self.soft.params['cpus']
-    # if params['scratch']:
-    #     key_folder = 'gtdbtk_classify_%s_%s' % (self.sam_pool, '-'.join(key))
-    #     scratch_dir = '${SCRATCH_FOLDER}/%s' % key_folder
-    #     scratch_cmd += 'mkdir -p %s\n' % scratch_dir
-    #     cmd += ' --scratch_dir %s' % scratch_dir
     for param in ['min_af', 'min_perc_aa', 'genes']:
         if params[param]:
             cmd += ' --%s %s' % (param, params[param])
@@ -1549,10 +1520,9 @@ def denovo(
         key = genome_key(tech, group)
         to_dos = status_update(self, tech, [in_dir], group=group, folder=True)
 
-        cmd = "export GTDBTK_DATA_PATH=%s\n" % self.databases.paths['gtdbtk']
-        # if self.config.force:  # or to_do(out):
-        if 1:
-            cmd += denovo_cmd(self, tech, key, in_dir, out_dir, classify_in)
+        out = '%s/identify/gtdbtk.failed_genomes.tsv' % out_dir
+        if self.config.force or to_do(out):
+            cmd = denovo_cmd(self, tech, key, in_dir, out_dir, classify_in)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
@@ -1608,10 +1578,9 @@ def classify(
         key = genome_key(tech, group)
         to_dos = status_update(self, tech, [in_dir], group=group, folder=True)
 
-        out = '%s/gtdbtk.bac120.summary.tsv' % out_dir
-        cmd = "export GTDBTK_DATA_PATH=%s\n" % self.databases.paths['gtdbtk']
+        out = '%s/identify/gtdbtk.failed_genomes.tsv' % out_dir
         if self.config.force or to_do(out):
-            cmd += classify_cmd(self, tech, in_dir, out_dir)
+            cmd = classify_cmd(self, tech, in_dir, out_dir)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
@@ -1704,11 +1673,6 @@ def gtdbtk(self) -> None:
         for (tech, group), inputs in self.inputs[self.sam_pool].items():
             folders = group_inputs(self, inputs, True)
             __module_call__(self, tech, folders, group)
-
-    elif set(self.inputs) == {''}:
-        for (tech, bin_algo), inputs in self.inputs[''].items():
-            folders = group_inputs(self, inputs, True)
-            __module_call__(self, tech, folders, bin_algo)
 
 
 def checkm2_cmd(
@@ -1859,8 +1823,3 @@ def checkm2(self) -> None:
         for (tech, group), inputs in self.inputs[self.sam_pool].items():
             folders = group_inputs(self, inputs, True)
             get_checkm2(self, tech, folders, group)
-
-    elif set(self.inputs) == {''}:
-        for (tech, bin_algo), inputs in self.inputs[''].items():
-            folders = group_inputs(self, inputs, True)
-            get_checkm2(self, tech, folders, bin_algo)
