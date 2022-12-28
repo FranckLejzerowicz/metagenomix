@@ -133,10 +133,10 @@ def get_predict(
             to_dos = status_update(
                 self, tech, [seq], group=sam_group, genome=genome)
 
-            base = splitext(basename(seq))[0]
+            base = splitext(basename(seq.rstrip('.gz')))[0]
             prefix = '%s/%s' % (out_dir, base)
             arg = '%s.mapping.ARG.gz' % prefix
-            pot_arg = '%s.potential.ARG.gz' % prefix
+            pot_arg = '%s.mapping.potential.ARG.gz' % prefix
             outs = [arg, pot_arg]
             self.outputs['outs'].setdefault((tech, sam_group), []).append(outs)
 
