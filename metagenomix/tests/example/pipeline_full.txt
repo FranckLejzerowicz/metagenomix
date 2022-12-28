@@ -70,7 +70,8 @@ spades yamb
 spades yamb_fastp
 spades yamb_flash
 spades mycc
-spades binspreader
+
+yamb binspreader
 
 spades prodigal
 
