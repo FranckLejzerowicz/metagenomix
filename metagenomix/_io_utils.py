@@ -906,7 +906,7 @@ def get_techs(tech: str):
     return techs
 
 
-def get_assembly(self):
+def get_assembly(self) -> tuple:
     """Get the assembly output data structure.
 
     Parameters
@@ -915,8 +915,9 @@ def get_assembly(self):
 
     Returns
     -------
-    contigs : dict
-        Path(s) to the assembly files per co-assembly and co-assembly group
+    contigs : tuple
+        (Name of the assembler,
+         Path(s) to the assembly files per co-assembly and co-assembly group)
     """
     for assembler in self.soft.path[::-1]:
         if self.config.tools[assembler] == 'assembling':
@@ -943,7 +944,8 @@ def get_assembly_contigs(
     group : str
         Group for the current co-assembly and
     assembly : tuple
-        (Name of the assembler, Paths to the assembly results)
+        (Name of the assembler,
+         Path(s) to the assembly files per co-assembly and co-assembly group)
 
     Returns
     -------
@@ -973,7 +975,8 @@ def get_assembly_graph(
     group : str
         Group for the current co-assembly and
     assembly : tuple
-        (Name of the assembler, Paths to the assembly results)
+        (Name of the assembler,
+         Path(s) to the assembly files per co-assembly and co-assembly group)
 
     Returns
     -------
