@@ -53,7 +53,6 @@ class Commands(object):
         self.links = {}
         self.links_stats = {}
         self.holistics = [
-            'antismash',
             'simka',
             'quast',
             'qiita_wol',
