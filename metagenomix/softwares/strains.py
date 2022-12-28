@@ -70,7 +70,7 @@ def lorikeet_cmd(
     cmd += ' --reference %s' % ' '.join([c.rstrip('.gz') for c in contigs])
 
     cmd += ' --method "%s"' % ' '.join(self.soft.params['method'])
-    cmd_single, cmd_coupled, cmd_longreads = '', '', ''
+    cmd_1, cmd_2, cmd_single, cmd_coupled, cmd_longreads = '', '', '', '', ''
     for sam, tech_sam_fastqs in group_reads.items():
         for tech_sam, fastqs in tech_sam_fastqs.items():
             io_update(self, i_f=fastqs, key=key)
@@ -78,13 +78,18 @@ def lorikeet_cmd(
                 if len(fastqs) == 1:
                     cmd_single += ' %s' % fastqs[0]
                 elif len(fastqs) == 2:
-                    cmd_coupled += ' %s' % ' '.join(fastqs)
+                    cmd_1 += ' %s' % fastqs[0]
+                    cmd_2 += ' %s' % fastqs[1]
                 elif len(fastqs) == 3:
                     cmd_coupled += ' %s' % ' '.join(fastqs[:2])
                     cmd_single += ' %s' % fastqs[-1]
             elif fastqs:
                 cmd_longreads += ' %s' % fastqs[0]
 
+    if cmd_1:
+        cmd += ' -1%s' % cmd_1
+    if cmd_2:
+        cmd += ' -2%s' % cmd_2
     if cmd_single:
         cmd += ' --single%s' % cmd_single
     if cmd_coupled:
