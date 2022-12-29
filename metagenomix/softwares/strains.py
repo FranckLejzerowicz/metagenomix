@@ -69,7 +69,8 @@ def lorikeet_cmd(
         cmd += ' --genome-fasta-extension %s' % get_extension(self)
     cmd += ' --reference %s' % ' '.join([c.rstrip('.gz') for c in contigs])
 
-    cmd += ' --method "%s"' % ' '.join(self.soft.params['method'])
+    cmd += ' --method %s' % self.soft.params['method']
+    # cmd += ' --method "%s"' % ' '.join(self.soft.params['method'])
     cmd_1, cmd_2, cmd_single, cmd_coupled, cmd_longreads = '', '', '', '', ''
     for sam, tech_sam_fastqs in group_reads.items():
         for tech_sam, fastqs in tech_sam_fastqs.items():
