@@ -622,7 +622,7 @@ def mobsuite(self) -> None:
     """
     assemblers = self.config.tools['assembling']
     if self.soft.prev not in assemblers:
-        sys.exit('[mobsuite] Only after assembly (%s)' % ''.join(assemblers))
+        sys.exit('[mobsuite] Only after assembly (%s)' % ', '.join(assemblers))
 
     if self.sam_pool in self.pools:
         for (tech, group), inputs in self.inputs[self.sam_pool].items():
