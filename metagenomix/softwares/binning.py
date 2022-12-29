@@ -125,7 +125,12 @@ def quantify_cmd(
         metaWRAP quantify command
     """
     gz, fqs, fqs_cmd = get_fqs(fastq)
-    cmd = 'export PATH=$PATH:%s/bin\n' % self.soft.params['path']
+    cmd, cmd_rm = '', ''
+    if contigs.endswith('.gz'):
+        cmd += 'gunzip -c %s > %s\n' % (contigs, contigs.rstrip('.gz'))
+        contigs = contigs.rstrip('.gz')
+        cmd_rm += 'rm %s\n' % contigs
+    cmd += 'export PATH=$PATH:%s/bin\n' % self.soft.params['path']
     cmd += 'metawrap quant_bins'
     cmd += ' -b %s' % bins
     cmd += ' -o %s' % out
@@ -136,6 +141,7 @@ def quantify_cmd(
         cmd = fqs_cmd + cmd
     if gz:
         cmd += 'rm %s\n' % ' '.join(fqs)
+    cmd += cmd_rm
     return cmd
 
 
