@@ -1295,6 +1295,8 @@ def ccfind_cmd(
         cmd += ' --preserve-tmpdir'
     cmd += ' --ncpus %s\n' % params['cpus']
     cmd += cmd_rm
+    cmd += 'for i in %s/result/*; do gzip -q $i; done\n'
+    cmd += 'for i in %s/result/intermediate/*; do gzip -q $i; done\n'
     return cmd
 
 
@@ -1337,7 +1339,7 @@ def get_ccfind(
         to_dos = status_update(
             self, tech, [fasta[0]], group=sam_group, genome=genome)
 
-        out = '%s/circ.detected.list' % out_dir
+        out = '%s/result/circ.detected.list.gz' % out_dir
         if self.config.force or to_do(out):
             cmd = ccfind_cmd(self, tech, fasta[0], out_dir)
             key = genome_key(tech, sam_group, genome)
