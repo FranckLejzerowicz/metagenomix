@@ -2496,8 +2496,8 @@ def check_lorikeet(self, params, soft):
         'parallel_genomes': 4,
         'min_variant_depth_for_genotyping': 5
     }
-    if 'method' not in params:
-        params['method'] = ['trimmed_mean', 'mean', 'metabat']
+    # if 'method' not in params:
+    #     params['method'] = ['trimmed_mean', 'mean', 'metabat']
     ints = [
         'min_read_aligned_length', 'min_read_aligned_length_pair',
         'contig_end_exclusion', 'kmer_sizes', 'ploidy', 'qual_by_depth_filter',
@@ -2525,8 +2525,8 @@ def check_lorikeet(self, params, soft):
         'active_probability_threshold', 'pruning_log_odds_threshold',
     ]
     check_nums(self, params, defaults, flo2, float, soft.name, 0, 1)
-    check_default(
-        self, params, defaults, soft.name, (ints + flo1 + flo2), ['method'])
+    check_default(self, params, defaults, soft.name, (ints + flo1 + flo2))
+        # self, params, defaults, soft.name, (ints + flo1 + flo2), ['method'])
     return defaults
 
 
