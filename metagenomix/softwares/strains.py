@@ -79,8 +79,8 @@ def lorikeet_cmd(
                 if len(fastqs) == 1:
                     cmd_single += ' %s' % fastqs[0]
                 elif len(fastqs) >= 2:
-                    cmd_1 += ' %s' % fastqs[0]
-                    cmd_2 += ' %s' % fastqs[1]
+                    # cmd_1 += ' %s' % fastqs[0]
+                    # cmd_2 += ' %s' % fastqs[1]
                     cmd_coupled += ' %s' % ' '.join(fastqs[:2])
                     if len(fastqs) == 3:
                         cmd_single += ' %s' % fastqs[-1]
