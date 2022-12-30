@@ -2536,7 +2536,7 @@ def check_lorikeet(self, params, soft):
             'pruning_log_odds_threshold']
     check_nums(self, params, defaults, flo2, float, soft.name, 0, 1)
     check_default(self, params, defaults, soft.name, (
-            ints + flo1 + flo1 + flo2 + ['kmer_sizes', 'limiting_interval']))
+            ints + flo + flo1 + flo2 + ['kmer_sizes', 'limiting_interval']))
     return defaults
 
 
