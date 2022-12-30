@@ -51,6 +51,17 @@ def lorikeet_cmd(
     cmd : str
         lorikeet command
     """
+
+    'graph_output'
+    '1'
+    '2'
+    'coupled'
+    'interleaved'
+    'single'
+    'longreads'
+    'bam_files'
+    'longread_bam_files'
+
     tmp_dir = '$TMPDIR/lorikeet_%s_%s' % ('_'.join(key), step)
     cmd_rm, cmd = '', 'mkdir -p %s\n' % tmp_dir
     for contig in contigs:
@@ -62,15 +73,15 @@ def lorikeet_cmd(
     cmd += 'lorikeet %s' % step
     cmd += ' --output-directory %s' % out_dir
     cmd += ' --bam-file-cache-directory %s' % tmp_dir
-    cmd += ' --threads %s' % self.soft.params['cpus']
-
     if is_folder:
         cmd += ' --genome-fasta-directory %s' % fasta_folder
         cmd += ' --genome-fasta-extension %s' % get_extension(self)
-    cmd += ' --reference %s' % ' '.join([c.rstrip('.gz') for c in contigs])
+    else:
+        cmd += ' --reference %s' % ' '.join([c.rstrip('.gz') for c in contigs])
 
-    cmd += ' --method %s' % self.soft.params['method']
-    # cmd += ' --method "%s"' % ' '.join(self.soft.params['method'])
+    if self.soft.params['features_vcf']:
+        cmd += ' --features-vcf %s' % self.soft.params['features_vcf']
+
     cmd_1, cmd_2, cmd_single, cmd_coupled, cmd_longreads = '', '', '', '', ''
     for sam, tech_sam_fastqs in group_reads.items():
         for tech_sam, fastqs in tech_sam_fastqs.items():
@@ -99,38 +110,38 @@ def lorikeet_cmd(
         cmd += ' --longreads%s' % cmd_longreads
 
     for param in [
-        'min_read_aligned_length', 'min_read_percent_identity',
-        'min_read_aligned_percent', 'min_read_aligned_length_pair',
-        'min_read_percent_identity_pair', 'min_read_aligned_percent_pair',
-        'min_covered_fraction', 'contig_end_exclusion', 'trim_min', 'trim_max',
-        'mapper', 'longread_mapper', 'kmer_sizes', 'ploidy',
+        'mapper', 'longread_mapper', 'kmer_sizes', 'limiting_interval',
+        'pcr_indel_model', 'parallel_genomes', 'min_read_aligned_length',
+        'min_read_aligned_length_pair', 'contig_end_exclusion', 'ploidy',
         'qual_by_depth_filter', 'qual_threshold', 'depth_per_sample_filter',
+        'min_long_read_size', 'min_long_read_average_base_qual',
         'min_base_quality', 'min_mapq', 'base_quality_score_threshold',
         'max_input_depth', 'min_contig_size', 'min_sv_qual',
         'phred_scaled_global_read_mismapping_rate',
-        'pair_hmm_gap_continuation_penalty',
-        # 'heterozygosity',
-        'heterozygosity_stdev', 'indel_heterozygosity',
-        'standard_min_confidence_threshold_for_calling',
-        'active_probability_threshold', 'min_assembly_region_size',
+        'pair_hmm_gap_continuation_penalty', 'min_assembly_region_size',
         'max_assembly_region_size', 'assembly_region_padding',
-        'min_dangling_branch_length', 'min_prune_factor', 'num_pruning_samples',
-        'initial_error_rate_for_pruning', 'pruning_log_odds_threshold',
-        'max_unpruned_variants', 'max_prob_propagation_distance',
-        'max_mnp_distance', 'parallel_genomes'
+        'min_dangling_branch_length', 'min_prune_factor',
+        'num_pruning_samples', 'max_unpruned_variants',
+        'max_prob_propagation_distance', 'max_mnp_distance',
+        'heterozygosity', 'heterozygosity_stdev', 'indel_heterozygosity',
+        'standard_min_confidence_threshold_for_calling',
+        'initial_error_rate_for_pruning', 'min_read_percent_identity',
+        'min_read_aligned_percent', 'min_read_percent_identity_pair',
+        'min_read_aligned_percent_pair', 'trim_min', 'trim_max',
+        'active_probability_threshold', 'pruning_log_odds_threshold',
     ]:
         cmd += ' --%s %s' % (param.replace('_', '-'), self.soft.params[param])
 
     for boolean in [
-        'discard_improper_pairs', 'discard_supplementary', 'include_secondary',
-        'discard_unmapped', 'high_memory', 'splitbams',
-        'minimap2_reference_is_index', 'calculate_fst', 'calculate_dnds',
-        'features_vcf', 'do_not_call_svs', 'use_posteriors_to_calculate_qual',
+        'quiet', 'verbose', 'sharded', 'split_bams', 'calculate_fst',
+        'calculate_dnds', 'do_not_call_svs', 'include_secondary',
+        'proper_pairs_only', 'exclude_supplementary',
+        'minimap2_reference_is_index', 'use_posteriors_to_calculate_qual',
         'annotate_with_num_discovered_alleles',
-        'dont_increase_kmer_sizes_for_cycles', 'allow_non_unique_kmers_in_ref',
-        'do_not_run_physical_phasing', 'recover_all_dangling_branches',
-        'use_adaptive_pruning', 'graph_output', 'dont_use_soft_clipped_bases',
-        'disable_optimizations', 'disable_avx'
+        'dont_increase_kmer_sizes_for_cycles',
+        'allow_non_unique_kmers_in_ref', 'recover_all_dangling_branches',
+        'do_not_run_physical_phasing', 'disable_optimizations',
+        'use_adaptive_pruning', 'discard_unmapped', 'disable_avx', 'force'
     ]:
         if self.soft.params[boolean]:
             cmd += ' --%s' % boolean.replace('_', '-')
@@ -139,12 +150,12 @@ def lorikeet_cmd(
     if step == 'genotype' and self.soft.params[md]:
         cmd += ' --%s %s' % (md.replace('_', '-'), self.soft.params[md])
 
-    for param in ['minimap2_params', 'bwa_params', 'ngmlr_params']:
+    for param in ['minimap2_params', 'ngmlr_params', 'bwa_params']:
         if self.soft.params[param]:
             cmd += ' --%s "%s"' % (
                 param.replace('_', '-'), ' '.join(self.soft.params[param]))
 
-    cmd += ' --force\n'
+    cmd += ' --threads %s\n' % self.soft.params['cpus']
     cmd += cmd_rm
     return cmd
 
@@ -314,10 +325,9 @@ def get_lorikeet(
         key = genome_key(tech, group, genome)
         if genome:
             is_folder = True
-            to_dos = status_update(self, tech, [fasta_folder], folder=True)
         else:
             is_folder = False
-            to_dos = status_update(self, tech, [fasta_folder])
+        to_dos = status_update(self, tech, [fasta_folder], folder=is_folder)
 
         assembly = get_assembly(self)
         contigs = get_assembly_contigs(self, tech, group, assembly)
