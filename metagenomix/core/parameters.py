@@ -2482,6 +2482,7 @@ def check_lorikeet(self, params, soft):
         'include_secondary': [False, True],
         'proper_pairs_only': [False, True],
         'exclude_supplementary': [False, True],
+        'dont_use_soft_clipped_bases': [False, True],
         'minimap2_reference_is_index': [False, True],
         'use_posteriors_to_calculate_qual': [False, True],
         'annotate_with_num_discovered_alleles': [False, True],

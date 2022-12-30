@@ -141,14 +141,14 @@ def lorikeet_cmd(
         'dont_increase_kmer_sizes_for_cycles',
         'allow_non_unique_kmers_in_ref', 'recover_all_dangling_branches',
         'do_not_run_physical_phasing', 'disable_optimizations',
-        'use_adaptive_pruning', 'discard_unmapped', 'disable_avx', 'force'
+        'use_adaptive_pruning', 'discard_unmapped', 'disable_avx', 'force',
     ]:
         if self.soft.params[boolean]:
             cmd += ' --%s' % boolean.replace('_', '-')
 
-    md = 'min_variant_depth_for_genotyping'
-    if step == 'genotype' and self.soft.params[md]:
-        cmd += ' --%s %s' % (md.replace('_', '-'), self.soft.params[md])
+    if self.soft.params['dont_use_soft_clipped_bases']:
+        if step in ['consensus', 'genotype']:
+            cmd += ' --dont-use-soft-clipped-bases'
 
     for param in ['minimap2_params', 'ngmlr_params', 'bwa_params']:
         if self.soft.params[param]:
