@@ -111,12 +111,11 @@ def lorikeet_cmd(
 
     for param in [
         'mapper', 'longread_mapper', 'kmer_sizes', 'pcr_indel_model',
-        'min_read_aligned_length', 'contig_end_exclusion', 'ploidy',
-        'qual_by_depth_filter', 'qual_threshold', 'depth_per_sample_filter',
-        'min_long_read_size', 'min_long_read_average_base_qual',
-        'min_base_quality', 'min_mapq', 'base_quality_score_threshold',
-        'max_input_depth', 'min_contig_size', 'min_sv_qual',
-        'phred_scaled_global_read_mismapping_rate',
+        'contig_end_exclusion', 'ploidy', 'qual_by_depth_filter',
+        'qual_threshold', 'depth_per_sample_filter', 'min_long_read_size',
+        'min_long_read_average_base_qual', 'min_base_quality', 'min_mapq',
+        'base_quality_score_threshold', 'max_input_depth', 'min_contig_size',
+        'min_sv_qual', 'phred_scaled_global_read_mismapping_rate',
         'pair_hmm_gap_continuation_penalty', 'min_assembly_region_size',
         'max_assembly_region_size', 'assembly_region_padding',
         'min_dangling_branch_length', 'min_prune_factor',
@@ -125,18 +124,18 @@ def lorikeet_cmd(
         # 'heterozygosity',
         'heterozygosity_stdev', 'indel_heterozygosity',
         'standard_min_confidence_threshold_for_calling',
-        'initial_error_rate_for_pruning', 'min_read_percent_identity',
-        'min_read_aligned_percent', 'trim_min', 'trim_max',
+        'initial_error_rate_for_pruning', 'trim_min', 'trim_max',
         'active_probability_threshold', 'pruning_log_odds_threshold',
     ]:
         cmd += ' --%s %s' % (param.replace('_', '-'), self.soft.params[param])
 
-    if self.soft.params['proper_pairs_only']:
-        for param in ['min_read_aligned_length_pair',
-                      'min_read_percent_identity_pair',
-                      'min_read_aligned_percent_pair']:
-            cmd += ' --%s %s' % (
-                param.replace('_', '-'), self.soft.params[param])
+    for param_ in ['min_read_aligned_length',
+                   'min_read_percent_identity',
+                   'min_read_aligned_percent']:
+        param = param_.replace('_', '-')
+        if self.soft.params['proper_pairs_only']:
+            param += '-pair'
+        cmd += ' --%s %s' % (param, self.soft.params[param_])
 
     for boolean in [
         'quiet', 'verbose', 'sharded', 'split_bams', 'calculate_fst',
