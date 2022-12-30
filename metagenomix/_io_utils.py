@@ -372,7 +372,8 @@ def inputs_to_scratch(io) -> list:
             folder = folder_.rstrip('/')
             src = folder_.rstrip('/').replace('${SCRATCH_FOLDER}', '')
             mkdirs.add('mkdir -p %s' % folder)
-            rsyncs.add('rsync -avO --no-o --no-g %s/ %s' % (src, folder))
+            rsyncs.add('rsync -lrtvDO %s/ %s' % (src,
+                                                                     folder))
     # folders
     if ('O', 'd') in io:
         for folder in io[('O', 'd')]:
@@ -383,7 +384,7 @@ def inputs_to_scratch(io) -> list:
             folder = dirname(file)
             src = file.replace('${SCRATCH_FOLDER}', '')
             mkdirs.add('mkdir -p %s' % folder)
-            rsyncs.add('rsync -avO --no-o --no-g %s %s' % (src, file))
+            rsyncs.add('rsync -lrtvDO %s %s' % (src, file))
     return sorted(mkdirs) + sorted(rsyncs)
 
 
@@ -394,7 +395,7 @@ def outputs_back(io) -> list:
         for folder_ in io[('O', 'd')]:
             folder = folder_.rstrip('/')
             src = folder_.rstrip('/').replace('${SCRATCH_FOLDER}', '')
-            cmd = 'mkdir -p %s; rsync -avO --no-o --no-g %s/ %s' % (src, folder, src)
+            cmd = 'mkdir -p %s; rsync -lrtvDO %s/ %s' % (src, folder, src)
             cmd = 'if [ -d %s ]; then %s; fi' % (folder, cmd)
             outbound.add(cmd)
     if ('O', 'f') in io:
@@ -402,7 +403,7 @@ def outputs_back(io) -> list:
         for file in io[('O', 'f')]:
             src = file.replace('${SCRATCH_FOLDER}', '')
             folder = dirname(src)
-            cmd = 'mkdir -p %s; rsync -avO --no-o --no-g %s %s' % (folder, file, src)
+            cmd = 'mkdir -p %s; rsync -lrtvDO %s %s' % (folder, file, src)
             cmd = 'if [ -f %s ]; then %s; fi' % (file, cmd)
             outbound.add(cmd)
     return sorted(outbound)
