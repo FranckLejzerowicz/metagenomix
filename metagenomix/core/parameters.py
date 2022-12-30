@@ -2422,12 +2422,12 @@ def check_deeparg(self, params, soft):
 def check_lorikeet(self, params, soft):
     defaults = {
         'mapper': [
-            "minimap2_sr", "bwa_mem", "bwa_mem2", "ngmlr_ont", "ngmlr_pb",
-            "minimap2_ont", "minimap2_pb", "minimap2_hifi", "minimap2_no_preset"
+            "minimap2-sr", "bwa-mem", "bwa-mem2", "ngmlr-ont", "ngmlr-pb",
+            "minimap2-ont", "minimap2-pb", "minimap2-hifi", "minimap2-no-preset"
         ],
         'longread_mapper': [
-            "minimap2_ont", "minimap2_pb", "minimap2_hifi",
-            "minimap2_no_preset", "ngmlr_ont", "ngmlr_pb"],
+            "minimap2-ont", "minimap2-pb", "minimap2-hifi",
+            "minimap2-no-preset", "ngmlr-ont", "ngmlr-pb"],
         'minimap2_params': [""],
         'bwa_params': [""],
         'ngmlr_params': [""],
