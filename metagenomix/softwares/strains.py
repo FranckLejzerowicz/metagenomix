@@ -111,8 +111,7 @@ def lorikeet_cmd(
 
     for param in [
         'mapper', 'longread_mapper', 'kmer_sizes', 'pcr_indel_model',
-        'parallel_genomes', 'min_read_aligned_length',
-        'min_read_aligned_length_pair', 'contig_end_exclusion', 'ploidy',
+        'min_read_aligned_length', 'contig_end_exclusion', 'ploidy',
         'qual_by_depth_filter', 'qual_threshold', 'depth_per_sample_filter',
         'min_long_read_size', 'min_long_read_average_base_qual',
         'min_base_quality', 'min_mapq', 'base_quality_score_threshold',
@@ -127,17 +126,23 @@ def lorikeet_cmd(
         'heterozygosity_stdev', 'indel_heterozygosity',
         'standard_min_confidence_threshold_for_calling',
         'initial_error_rate_for_pruning', 'min_read_percent_identity',
-        'min_read_aligned_percent', 'min_read_percent_identity_pair',
-        'min_read_aligned_percent_pair', 'trim_min', 'trim_max',
+        'min_read_aligned_percent', 'trim_min', 'trim_max',
         'active_probability_threshold', 'pruning_log_odds_threshold',
     ]:
         cmd += ' --%s %s' % (param.replace('_', '-'), self.soft.params[param])
 
+    if self.soft.params['proper_pairs_only']:
+        for param in ['min_read_aligned_length_pair',
+                      'min_read_percent_identity_pair',
+                      'min_read_aligned_percent_pair']:
+            cmd += ' --%s %s' % (
+                param.replace('_', '-'), self.soft.params[param])
+
     for boolean in [
         'quiet', 'verbose', 'sharded', 'split_bams', 'calculate_fst',
         'calculate_dnds', 'do_not_call_svs', 'include_secondary',
-        'proper_pairs_only', 'exclude_supplementary',
-        'minimap2_reference_is_index', 'use_posteriors_to_calculate_qual',
+        'exclude_supplementary', 'minimap2_reference_is_index',
+        'use_posteriors_to_calculate_qual',
         'annotate_with_num_discovered_alleles',
         'dont_increase_kmer_sizes_for_cycles',
         'allow_non_unique_kmers_in_ref', 'recover_all_dangling_branches',
@@ -159,6 +164,7 @@ def lorikeet_cmd(
             cmd += ' --%s "%s"' % (
                 param.replace('_', '-'), ' '.join(self.soft.params[param]))
 
+    cmd += ' --parallel-genomes %s\n' % self.soft.params['cpus']
     cmd += ' --threads %s\n' % self.soft.params['cpus']
     cmd += cmd_rm
     return cmd
