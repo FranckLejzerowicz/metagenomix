@@ -130,6 +130,8 @@ def lorikeet_cmd(
         'min_read_aligned_percent_pair', 'trim_min', 'trim_max',
         'active_probability_threshold', 'pruning_log_odds_threshold',
     ]:
+        if not len(self.soft.params[param]):
+            continue
         cmd += ' --%s %s' % (param.replace('_', '-'), self.soft.params[param])
 
     for boolean in [
