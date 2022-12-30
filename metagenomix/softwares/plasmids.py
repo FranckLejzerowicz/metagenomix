@@ -321,8 +321,7 @@ def mob_typer_cmd(
         self,
         tech: str,
         contig: str,
-        typer_out: str,
-        mge_report: str,
+        out_dir: str,
         key: tuple
 ) -> str:
     """Collect the mob_typer command line.
@@ -332,8 +331,7 @@ def mob_typer_cmd(
     self
     tech : str
     contig : str
-    typer_out : str
-    mge_report : str
+    out_dir : str
     key : tuple
 
     Returns
@@ -352,7 +350,6 @@ def mob_typer_cmd(
 
     cmd += '\nmob_typer'
     cmd += ' --infile %s' % contig
-    cmd += ' --mge_report_file %s' % mge_report
     cmd += ' --analysis_dir %s' % tmp_dir
     cmd += ' --num_threads %s' % params['cpus']
     cmd += ' --force'
@@ -376,9 +373,11 @@ def mob_typer_cmd(
     ]:
         if params[path]:
             cmd += ' --%s %s' % (path, params[path])
-    cmd += ' --out_file %s\n' % typer_out
 
-    cmd += 'gzip -q %s\n' % typer_out
+    cmd += ' --mge_report_file %s/typer_mge_report.txt' % out_dir
+    cmd += ' --out_file %s/mobtyper_results.txt\n' % out_dir
+
+    cmd += 'for i in %s/*; do gzip -q $i; done\n' % out_dir
     cmd += cmd_rm
     return cmd
 
@@ -388,7 +387,6 @@ def mob_recon_cmd(
         tech: str,
         contig: str,
         out_dir: str,
-        key: tuple
 ) -> str:
     """Collect the mob_recon command line.
 
@@ -419,8 +417,6 @@ def mob_recon_cmd(
 
     if params['prefix']:
         cmd += ' --prefix %s' % params['prefix']
-    else:
-        cmd += ' --prefix %s_%s_%s' % (tech, self.sam_pool, key[-1])
 
     cmd += ' --force'
     for boolean in ['multi', 'keep_tmp', 'run_overhang']:
@@ -483,33 +479,37 @@ def mob_cluster_cmd(
     params = tech_params(self, tech)
 
     cmd, cmd_rm = '', ''
-    mob_typer_file = typer_report
-    if params['mob_typer_file']:
-        mob_typer_file = params['mob_typer_file']
 
-    if mob_typer_file.endswith('.gz'):
-        cmd += 'gunzip -c %s > %s' % (mob_typer_file,
-                                      mob_typer_file.rstrip('.gz'))
-        mob_typer_file = mob_typer_file.rstrip('.gz')
-        cmd_rm += 'rm %s\n' % mob_typer_file.rstrip('.gz')
+    typer_report = '%s/typer_mge_report.txt.gz' % out_dir
+    if params['mob_typer_file']:
+        typer_report = params['mob_typer_file']
+
+    if typer_report.endswith('.gz'):
+        cmd += 'gunzip -c %s > %s' % (typer_report, typer_report.rstrip('.gz'))
+        typer_report = typer_report.rstrip('.gz')
+        cmd_rm += 'rm %s\n' % typer_report.rstrip('.gz')
 
     cmd += 'mob_cluster'
     if params['mode']:
         cmd += ' --mode %s' % params['mode']
+
     cmd += ' --infile %s' % params['new_plasmids']
-    cmd += ' --mob_typer_file %s' % mob_typer_file
+    cmd += ' --mob_typer_file %s' % typer_report
     if params['taxonomy']:
         cmd += ' --taxonomy %s' % params['taxonomy']
+
     cmd += ' --outdir %s' % out_dir
     if params['ref_cluster_file']:
         cmd += ' --ref_cluster_file %s' % params['ref_cluster_file']
     if params['ref_fasta_file']:
         cmd += ' --ref_fasta_file %s' % params['ref_fasta_file']
+
     cmd += ' --num_threads %s' % params['cpus']
     cmd += ' --primary_cluster_dist %s' % params['primary_cluster_dist']
     cmd += ' --secondary_cluster_dist %s\n' % params['secondary_cluster_dist']
-    cmd += cmd_rm
+
     cmd += 'for i in %s/*; do gzip -q $i; done\n' % out_dir
+    cmd += cmd_rm
     return cmd
 
 
@@ -518,7 +518,6 @@ def mobsuite_cmds(
         tech: str,
         contig: str,
         out_dir: str,
-        typer_out: str,
         key: tuple
 ) -> str:
     """
@@ -537,17 +536,15 @@ def mobsuite_cmds(
     cmd : str
     """
     cmd = ''
-    typer_report = '%s/typer_mge_report.txt.gz' % out_dir
-    if to_do(typer_report):
-        cmd += mob_typer_cmd(self, tech, contig, typer_out, typer_report, key)
+    if to_do('%s/typer_mge_report.txt.gz' % out_dir):
+        cmd += mob_typer_cmd(self, tech, contig, out_dir, key)
 
-    mge_report = '%s/mge.report.txt.gz' % out_dir
-    if to_do(mge_report):
-        cmd += mob_recon_cmd(self, tech, contig, out_dir, key)
+    if to_do('%s/mge.report.txt.gz' % out_dir):
+        cmd += mob_recon_cmd(self, tech, contig, out_dir)
 
     params = tech_params(self, tech)
     if params['cluster'] or params['new_plasmids']:
-        cmd += mob_cluster_cmd(self, tech, typer_report, out_dir)
+        cmd += mob_cluster_cmd(self, tech, out_dir)
     return cmd
 
 
@@ -577,7 +574,7 @@ def get_mobsuite(
         key = (tech, group)
         typer_out = '%s/mobtyper_results.txt.gz' % out_dir
         if self.config.force or to_do(typer_out):
-            cmds = mobsuite_cmds(self, tech, contig, out_dir, typer_out, key)
+            cmds = mobsuite_cmds(self, tech, contig, out_dir, key)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
