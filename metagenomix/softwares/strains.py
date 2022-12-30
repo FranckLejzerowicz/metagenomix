@@ -119,13 +119,16 @@ def lorikeet_cmd(
     ]:
         cmd += ' --%s %s' % (param.replace('_', '-'), self.soft.params[param])
 
-    for param_ in ['min_read_aligned_length',
-                   'min_read_percent_identity',
-                   'min_read_aligned_percent']:
+    for pdx, param_ in enumerate(['min_read_aligned_length',
+                                  'min_read_percent_identity',
+                                  'min_read_aligned_percent']):
         param = param_.replace('_', '-')
         if (cmd_1 or cmd_coupled) and self.soft.params['proper_pairs_only']:
+            if not pdx:
+                cmd += ' --proper-pairs-only'
             param += '-pair'
         cmd += ' --%s %s' % (param, self.soft.params[param_])
+
 
     for boolean in [
         'quiet', 'verbose', 'sharded', 'split_bams', 'calculate_fst',
