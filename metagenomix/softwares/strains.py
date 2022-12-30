@@ -51,17 +51,6 @@ def lorikeet_cmd(
     cmd : str
         lorikeet command
     """
-
-    'graph_output'
-    '1'
-    '2'
-    'coupled'
-    'interleaved'
-    'single'
-    'longreads'
-    'bam_files'
-    'longread_bam_files'
-
     tmp_dir = '$TMPDIR/lorikeet_%s_%s' % ('_'.join(key), step)
     cmd_rm, cmd = '', 'mkdir -p %s\n' % tmp_dir
     for contig in contigs:
@@ -72,6 +61,7 @@ def lorikeet_cmd(
 
     cmd += 'lorikeet %s' % step
     cmd += ' --output-directory %s' % out_dir
+    cmd += ' --graph-output %s/assembly_graph_debug.txt' % out_dir
     cmd += ' --bam-file-cache-directory %s' % tmp_dir
     if is_folder:
         cmd += ' --genome-fasta-directory %s' % fasta_folder
@@ -133,7 +123,7 @@ def lorikeet_cmd(
                    'min_read_percent_identity',
                    'min_read_aligned_percent']:
         param = param_.replace('_', '-')
-        if self.soft.params['proper_pairs_only']:
+        if (cmd_1 or cmd_coupled) and self.soft.params['proper_pairs_only']:
             param += '-pair'
         cmd += ' --%s %s' % (param, self.soft.params[param_])
 
@@ -163,7 +153,7 @@ def lorikeet_cmd(
             cmd += ' --%s "%s"' % (
                 param.replace('_', '-'), ' '.join(self.soft.params[param]))
 
-    cmd += ' --parallel-genomes %s\n' % self.soft.params['cpus']
+    cmd += ' --parallel-genomes %s' % self.soft.params['cpus']
     cmd += ' --threads %s\n' % self.soft.params['cpus']
     cmd += cmd_rm
     return cmd
