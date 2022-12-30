@@ -2507,7 +2507,7 @@ def check_lorikeet(self, params, soft):
         sys.exit("[lorikeet] Param 'kmer_sizes' should be INTs only")
 
     if 'limiting_interval' not in params:
-        params['limiting_interval'] = [None]
+        params['limiting_interval'] = defaults['limiting_interval']
     elif params['limiting_interval'].count('-') != 1:
         sys.exit("[lorikeet] Param 'limiting_interval' should contain 1 hyphen")
     elif [x for x in params['limiting_interval'].split('-') if not x.isdigit()]:
