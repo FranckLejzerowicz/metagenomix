@@ -99,6 +99,16 @@ def lorikeet_cmd(
     if cmd_longreads:
         cmd += ' --longreads%s' % cmd_longreads
 
+    for pdx, param_ in enumerate(['min_read_aligned_length',
+                                  'min_read_percent_identity',
+                                  'min_read_aligned_percent']):
+        param = param_.replace('_', '-')
+        if (cmd_1 or cmd_coupled) and self.soft.params['proper_pairs_only']:
+            if not pdx:
+                cmd += ' --proper-pairs-only'
+            param += '-pair'
+        cmd += ' --%s %s' % (param, self.soft.params[param_])
+
     for param in [
         'mapper', 'longread_mapper', 'kmer_sizes', 'pcr_indel_model',
         'contig_end_exclusion', 'ploidy', 'qual_by_depth_filter',
@@ -118,17 +128,6 @@ def lorikeet_cmd(
         'active_probability_threshold', 'pruning_log_odds_threshold',
     ]:
         cmd += ' --%s %s' % (param.replace('_', '-'), self.soft.params[param])
-
-    for pdx, param_ in enumerate(['min_read_aligned_length',
-                                  'min_read_percent_identity',
-                                  'min_read_aligned_percent']):
-        param = param_.replace('_', '-')
-        if (cmd_1 or cmd_coupled) and self.soft.params['proper_pairs_only']:
-            if not pdx:
-                cmd += ' --proper-pairs-only'
-            param += '-pair'
-        cmd += ' --%s %s' % (param, self.soft.params[param_])
-
 
     for boolean in [
         'quiet', 'verbose', 'sharded', 'split_bams', 'calculate_fst',
