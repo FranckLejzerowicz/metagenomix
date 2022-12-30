@@ -110,8 +110,8 @@ def lorikeet_cmd(
         cmd += ' --longreads%s' % cmd_longreads
 
     for param in [
-        'mapper', 'longread_mapper', 'kmer_sizes', 'limiting_interval',
-        'pcr_indel_model', 'parallel_genomes', 'min_read_aligned_length',
+        'mapper', 'longread_mapper', 'kmer_sizes', 'pcr_indel_model',
+        'parallel_genomes', 'min_read_aligned_length',
         'min_read_aligned_length_pair', 'contig_end_exclusion', 'ploidy',
         'qual_by_depth_filter', 'qual_threshold', 'depth_per_sample_filter',
         'min_long_read_size', 'min_long_read_average_base_qual',
@@ -130,8 +130,6 @@ def lorikeet_cmd(
         'min_read_aligned_percent_pair', 'trim_min', 'trim_max',
         'active_probability_threshold', 'pruning_log_odds_threshold',
     ]:
-        if not len(self.soft.params[param]):
-            continue
         cmd += ' --%s %s' % (param.replace('_', '-'), self.soft.params[param])
 
     for boolean in [
@@ -147,6 +145,9 @@ def lorikeet_cmd(
     ]:
         if self.soft.params[boolean]:
             cmd += ' --%s' % boolean.replace('_', '-')
+
+    if self.soft.params['limiting_interval']:
+        cmd += ' --limiting-interval %s' % self.soft.params['limiting_interval']
 
     if self.soft.params['dont_use_soft_clipped_bases']:
         if step in ['consensus', 'genotype']:
