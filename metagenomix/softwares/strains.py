@@ -36,13 +36,13 @@ def lorikeet_cmd(
     contigs : list
         Path(s) to the input contigs fasta file(s)
     fasta_folder : str
-        Path to aseembly fasta or to an input folder with the genomes/MAGs
+        Path to assembly fasta or to an input folder with the genomes/MAGs
     group_reads : dict
         Path(s) to the fastq files per sample
     out_dir : str
         Path to the output folder
     key : tuple
-        Turrent tech, pool, group, genome, etc
+        Current tech, pool, group, genome, etc
     step : str
         name of the Lorikeet module ("call", "consensus", or "genotype")
 
