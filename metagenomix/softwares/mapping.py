@@ -186,7 +186,7 @@ def raw(
                 # print("to_dos:", to_dos)
                 # print("reads_to_dos:", reads_to_dos)
                 # print("fastqs:", fastqs)
-                if self.config.force or glob.glob(
+                if self.config.force or not glob.glob(
                         '%s/*.bam' % out.replace('${SCRATCH_FOLDER}', '')):
                     cmd, bams = get_cmds(sam, fastqs, fastas, out, ali, params)
                     if to_dos or reads_to_dos:
