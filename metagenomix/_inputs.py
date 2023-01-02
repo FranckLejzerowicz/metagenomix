@@ -510,7 +510,7 @@ def get_assembler(self) -> str:
         self.soft.name, '", "'.join(steps), tools))
 
 
-def get_reads(self, step: str =     'preprocessing') -> dict:
+def get_reads(self, step: str = 'preprocessing', soft: str = None) -> dict:
     """Get the output dict structure containing the per-sample reads for the
     last step performed before assembly.
 
@@ -527,6 +527,8 @@ def get_reads(self, step: str =     'preprocessing') -> dict:
             Configurations
     step : str
         Category of the step (default: preprocessed reads)
+    soft: str
+        Software to get the reads from (default: None)
 
     Returns
     -------
@@ -534,15 +536,46 @@ def get_reads(self, step: str =     'preprocessing') -> dict:
         per-sample reads for the last step performed before assembly
     """
     reads = self.config.fastq_mv
+
+    has_soft, has_step = '', ''
     for software in self.soft.path[::-1]:
-        if self.config.tools[software] == step:
-            reads = self.softs[software].outputs
-            break
+        if software == soft and not has_soft:
+            has_soft = software
+        if self.config.tools.get(software) == step and not has_step:
+            has_step = software
+
+    if has_soft:
+        reads = self.softs[has_soft].outputs
+    elif has_step:
+        reads = self.softs[has_step].outputs
     return reads
+
+
+def get_sams(self, group: str) -> list:
+    """Get the sample name(s).
+
+    Parameters
+    ----------
+    self
+    group : str
+        Name of a co-assembly pool's group
+
+    Returns
+    -------
+    sams : list
+        Sample name(s)
+    """
+    pools = self.pools[self.sam_pool]
+    if group in pools:
+        sams = pools[group]
+    else:
+        sams = sorted(set(sam for pool in pools.values() for sam in pool))
+    return sams
 
 
 def get_group_reads(
         self,
+        tech: str,
         group: str,
         reads: dict
 ) -> dict:
@@ -552,6 +585,8 @@ def get_group_reads(
     Parameters
     ----------
     self
+    tech : str
+        Technology/ies
     group : str
         Name of a co-assembly pool's group
     reads : dict
@@ -562,13 +597,18 @@ def get_group_reads(
     group_reads : dict
         Path(s) to the input fastq file(s) per sample and tech/sample
     """
-    pools = self.pools[self.sam_pool]
-    if group in pools:
-        sams = pools[group]
-    else:
-        sams = sorted(set(sam for pool in pools.values() for sam in pool))
-    group_reads = {x: dict(z for z in y.items() if z[1])
-                   for x, y in reads.items() if x in sams}
+    sams = get_sams(self, group)
+    per_tech = self.soft.params.get('per_tech', False)
+    group_reads = {}
+    for sam in sams:
+        for tech_sam, files in reads[sam].items():
+            if not files:
+                continue
+            if per_tech:
+                if tech == tech_sam[0]:
+                    group_reads.setdefault(sam, {}).update({tech_sam: files})
+            else:
+                group_reads.setdefault(sam, {}).update({tech_sam: files})
     return group_reads
 
 
