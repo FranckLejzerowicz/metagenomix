@@ -168,10 +168,17 @@ def get_fastqs(
     fastqs : dict
         Paths to fastqs files per sample
     """
+
+    for software in self.soft.path[::-1]:
+        if self.config.tools[software] == 'preprocessing':
+            break
+    else:
+        sys.exit('[metawrap_bining] No "preprocessing" fastqs found')
+
     fastqs = {}
     for sam in self.pools[self.sam_pool][group]:
-        if self.config.fastq_mv[sam].get(('illumina', sam)):
-            fastqs[sam] = self.config.fastq_mv[sam][('illumina', sam)]
+        if self.softs[software].outputs[sam].get(('illumina', sam), []):
+            fastqs[sam] = self.softs[software].outputs[sam][('illumina', sam)]
     return fastqs
 
 
