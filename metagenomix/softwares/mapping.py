@@ -94,8 +94,7 @@ def get_bowtie2_db_cmd(
         fastas: list,
         out_dir: str,
         params: dict,
-        cmd: str
-) -> dict:
+) -> tuple:
     """Commands to build a Bowtie2 database indices for the current fasta
     reference and paths to these indices.
 
@@ -104,14 +103,14 @@ def get_bowtie2_db_cmd(
     fastas : list
     out_dir : str
     params : dict
-    cmd: str
 
     Returns
     -------
     dbs : dict
         Databases indices
+    cmd : str
     """
-    cmd_rm, dbs = '', {}
+    cmd, cmd_rm, dbs = '', '', {}
     for fasta_ in fastas:
         fasta = fasta_
         if fasta.endswith('.gz'):
@@ -125,7 +124,7 @@ def get_bowtie2_db_cmd(
         cmd += ' %s %s\n' % (fasta, dbs[db])
         cmd += 'rm %s\n' % fasta
     cmd += cmd_rm
-    return dbs
+    return dbs, cmd
 
 
 def get_cmds(
@@ -138,8 +137,8 @@ def get_cmds(
 ) -> tuple:
     ali_db_cmd = globals()['get_%s_db_cmd' % aligner]
     ali_cmd = globals()['%s_cmd' % aligner]
-    cmd, bams = '', []
-    dbs = ali_db_cmd(fastas, out_dir, params, cmd)
+    bams = []
+    dbs, cmd = ali_db_cmd(fastas, out_dir, params)
     for db, db_index in dbs.items():
         bam = '%s/%s/alignment.bowtie2.bam' % (out_dir, db)
         cmd += ali_cmd(sam, fastqs, db_index, out_dir, bam, params)
