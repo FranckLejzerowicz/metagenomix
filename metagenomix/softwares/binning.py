@@ -585,16 +585,18 @@ def blobology(self):
             for sam, fastq_fps in sams_fastqs.items():
                 to_dos = status_update(
                     self, tech, fastq_fps, group=group, genome=sam)
+                print(to_dos)
                 to_dos.extend(status_update(
                     self, tech, [bins], group=group, genome=sam, folder=True))
+                print(to_dos)
                 if sam:
                     out = out_ + '/%s' % sam
                 else:
                     out = out_
-
                 self.outputs['dirs'].append(out)
                 base = basename(splitext(contigs.rstrip('.gz'))[0])
                 blobplot = '%s/%s.binned.blobplot' % (out, base)
+                print(blobplot)
                 self.outputs['outs'][key][mode][sam] = out
                 if self.config.force or to_do(blobplot):
                     cmd = blobology_cmd(self, fastq_fps, out, contigs, bins)
