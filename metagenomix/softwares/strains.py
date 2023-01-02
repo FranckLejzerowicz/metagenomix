@@ -453,7 +453,7 @@ def lorikeet(self) -> None:
     if self.sam_pool in self.pools:
         for (tech, group), inputs in self.inputs[self.sam_pool].items():
             fastas_folders = group_inputs(self, inputs, True)
-            group_reads = get_group_reads(self, group, reads)
+            group_reads = get_group_reads(self, tech, group, reads)
             module_call(self, tech, fastas_folders, group_reads, group)
 
 
