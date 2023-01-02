@@ -642,12 +642,10 @@ def bowtie2_cmd(
     -------
     cmd : str
         Alignment command
-    sam : str
-        Alignment .sam file
     """
     cmd = 'bowtie2'
     cmd += ' -x %s' % db_path
-    if params['paired'] and len(fastx) == 2:
+    if params['paired'] and len(fastx) >= 2:
         cmd += ' -1 %s' % fastx[0]
         cmd += ' -2 %s' % fastx[1]
         for boolean, name in [('no_mixed', 'noMix'),
@@ -663,6 +661,8 @@ def bowtie2_cmd(
             if params['al_conc']:
                 cmd += ' --al-conc-gz %s/%s_okali_pairs.fastq.gz' % (
                     out_dir, sample_name)
+        if len(fastx) > 2:
+            cmd += ' -U %s' % ','.join(fastx[2:])
     else:
         cmd += ' -U %s' % ','.join(fastx)
 
