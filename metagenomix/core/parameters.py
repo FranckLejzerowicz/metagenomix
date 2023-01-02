@@ -14,10 +14,16 @@ from os.path import dirname, isdir, isfile
 from metagenomix._io_utils import read_yaml
 
 
-def tech_params(self, tech: str):
+def tech_params(self, tech: str, soft: str = None):
+
     params = self.soft.params
+    if soft in params and isinstance(params[soft], dict):
+        tool_params = params.pop(soft)
+        params.update(tool_params)
+
     if tech not in ['illumina', 'pacbio', 'nanopore']:
         return params
+
     params = {}
     for param, values in self.soft.params.items():
         if isinstance(values, dict) and tech in set(values):
