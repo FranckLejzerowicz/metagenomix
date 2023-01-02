@@ -1677,7 +1677,7 @@ def tiara_cmd(self, contig: str, out_dir: str, out_fp: str):
     for param in ['prob_cutoff', 'to_fasta']:
         cmd += ' --%s %s' % (param, ' '.join(self.soft.params[param]))
     cmd += ' --output %s\n' % out_fp
-    cmd += 'for i in %s/*; gzip -q $i; done\n' % out_dir
+    cmd += 'for i in %s/*; do gzip -q $i; done\n' % out_dir
     cmd += cmd_rm
     return cmd
 
