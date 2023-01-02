@@ -5,13 +5,13 @@
 #
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
-
+import glob
 import sys
-from os.path import splitext
+from os.path import basename, splitext
 from metagenomix._io_utils import io_update, status_update, to_do
 from metagenomix.core.parameters import tech_params
 from metagenomix._inputs import (
-    sample_inputs, group_inputs, genome_key, genome_out_dir)
+    group_inputs, genome_key, genome_out_dir, get_reads, get_group_reads)
 from metagenomix.softwares.alignment import (
     bowtie2_cmd,
     minimap2_cmd,
@@ -26,21 +26,21 @@ from metagenomix.softwares.alignment import (
 def get_mapping_target(self) -> tuple:
     source = self.soft.name.split('_', 1)[-1]
     if '_' not in self.soft.name or source == 'mapping':
-        sys.exit('[mapping] Add "_<soft>" to specify what to map to "%s"' %
+        sys.exit('[mapping] Add "_<soft>" to specify what to map to "%s" data' %
                  self.soft.prev)
-    category = self.config.tools.get(source)
-    if category == 'preprocessing':
+    step = self.config.tools.get(source)
+    if step == 'preprocessing':
         func = raw
-    elif category in ['paired read merging', 'coassembly setup']:
+    elif step in ['paired-read merging', 'coassembly setup']:
         func = merged
-    elif category in ['MAG', 'binning']:
+    elif step in ['MAG', 'binning']:
         func = genomes
-    elif category == 'assembling':
+    elif step == 'assembling':
         func = assembly
     else:
         sys.exit('[mapping] Not possible to map "%s" on "%s"' % (
             source, self.soft.prev))
-    return func, source
+    return func, source, step
 
 
 def bwa():
@@ -49,19 +49,6 @@ def bwa():
     cmd += ' | samtools view -bh'
     cmd += ' | samtools sort -o %s/%s\n' % (out_dir, bam)
     cmd += 'samtools index %s %s\n' % (bam, bai)
-
-
-def get_reads(self, source, tech, group) -> dict:
-    sams = self.pools[self.sam_pool][group]
-    same_tech = self.soft.params.get('per_tech', False)
-    reads = {}
-    for sam in sams:
-        tech_sam = self.softs[source].outputs[sam]
-        if same_tech:
-            reads[sam] = {tech: tech_sam[(tech, sam)]}
-        else:
-            reads[sam] = {t: paths for (t, sam), paths in tech_sam.items()}
-    return reads
 
 
 def assembly(self, func, fastas, tech, group):
@@ -74,33 +61,6 @@ def merged(self, func, fastas, tech, group):
 
 def genomes(self, func, fastas, tech, group):
     pass
-
-
-def get_bowtie2_db_cmd(
-        fasta: str,
-        sam_tech_dir: str,
-        params: dict
-) -> tuple:
-    """Commands to build a Bowtie2 database indices for the current fasta
-    reference and paths to these indices.
-
-    Parameters
-    ----------
-    fasta : str
-    sam_tech_dir : str
-    params : dict
-
-    Returns
-    -------
-    db_cmds : tuple
-        (Command to create the fasta db, Command to delete the fasta db)
-    dbs : dict
-        Databases indices
-    """
-    db_cmds = ''
-    dbs = {}
-
-    return db_cmds, dbs
 
 
 def get_minimap2_db_cmd(
@@ -130,12 +90,69 @@ def get_minimap2_db_cmd(
     return db_cmds, dbs
 
 
+def get_bowtie2_db_cmd(
+        fastas: list,
+        out_dir: str,
+        params: dict,
+        cmd: str
+) -> dict:
+    """Commands to build a Bowtie2 database indices for the current fasta
+    reference and paths to these indices.
+
+    Parameters
+    ----------
+    fastas : list
+    out_dir : str
+    params : dict
+    cmd: str
+
+    Returns
+    -------
+    dbs : dict
+        Databases indices
+    """
+    cmd_rm, dbs = '', {}
+    for fasta_ in fastas:
+        fasta = fasta_
+        if fasta.endswith('.gz'):
+            cmd += 'gunzip -c %s > %s\n' % (fasta, fasta.rstrip('.gz'))
+            fasta = fasta.rstrip('.gz')
+            cmd_rm += 'rm %s\n' % fasta
+        db = splitext(basename(fasta))[0]
+        dbs[db] = '%s/dbs/%s' % (out_dir, db)
+        cmd += '\nbowtie2-build'
+        cmd += ' --threads %s' % params['cpus']
+        cmd += ' %s %s\n' % (fasta, dbs[db])
+        cmd += 'rm %s\n' % fasta
+    cmd += cmd_rm
+    return dbs
+
+
+def get_cmds(
+        sam: str,
+        fastqs: list,
+        fastas: list,
+        out_dir: str,
+        aligner: str,
+        params: dict
+) -> tuple:
+    ali_db_cmd = globals()['get_%s_db_cmd' % aligner]
+    ali_cmd = globals()['%s_cmd' % aligner]
+    cmd, bams = '', []
+    dbs = ali_db_cmd(fastas, out_dir, params, cmd)
+    for db, db_index in dbs.items():
+        bam = '%s/%s/alignment.bowtie2.bam' % (out_dir, db)
+        cmd += ali_cmd(sam, fastqs, db_index, out_dir, bam, params)
+        bams.append(bam)
+    return cmd, bams
+
+
 def raw(
         self,
         tech: str,
         group: str,
         reads: dict,
-        fasta: list,
+        fastas: list,
         key: list,
         out_dir: str,
         to_dos: list
@@ -148,43 +165,38 @@ def raw(
     tech : str
     group : str
     reads : dict
-    fasta : list
+    fastas : list
     key : list
     out_dir : str
     to_dos: list
     """
     for sam, reads_tech_fastqs in reads.items():
-        for reads_tech, fastqs in reads_tech_fastqs.items():
+        # print("sample:", sam)
+        for (reads_tech, _), fastqs in reads_tech_fastqs.items():
             reads_to_dos = status_update(self, reads_tech, fastqs)
-            cur_key = tuple(key + [sam, reads_tech])
-            sam_tech_dir = '/'.join([
-                self.dir, tech, self.sam_pool, group, sam, reads_tech])
-            self.outputs['dirs'].append(sam_tech_dir)
-            self.outputs['outs'].setdefault(cur_key, []).append(sam_tech_dir)
-            out = '%s/ali' % sam_tech_dir
-            print()
-            print(to_dos)
-            print(reads_to_dos)
-            print(sam_tech_dir)
-            print(fasta)
-            print(fastqs)
-            print(out)
-            # print(tech_fastqsfds)
-            if self.config.force or to_do(out):
-                params = tech_params(self, reads_tech)
-                for aligner in params['aligners']:
-                    get_aligner_db_cmd = 'get_%s_db_cmd' % aligner
-                    get_aligner_cmd = '%s_cmd' % aligner
-                    db_cmds, dbs = globals()[get_aligner_db_cmd](
-                        fasta, sam_tech_dir, params)
-                    for db, db_index in dbs.items():
-                        cmd, sam = globals()[get_aligner_cmd](
-                            sam, fastqs, db, sam_tech_dir, params)
-                        bam = '%s.bam' % splitext(sam)[0]
-                        bai = '%s.bai' % splitext(sam)[0]
-                        cmd += ' | samtools view -bh'
-                        # cmd += ' | samtools sort -o %s/%s\n' %
-                        cmd += 'samtools index %s %s\n' % (bam, bai)
+            for ali in self.soft.params['aligners']:
+                params = tech_params(self, reads_tech, ali)
+                cur_key = tuple(list(key) + [sam, reads_tech])
+                out = '/'.join([out_dir, sam, reads_tech, ali])
+                self.outputs['dirs'].append(out)
+                self.outputs['outs'].setdefault(cur_key, []).append(out)
+                # print("reads_tech:", reads_tech)
+                # print("cur_key:", cur_key)
+                # print("sam_tech_dir:", out)
+                # print("to_dos:", to_dos)
+                # print("reads_to_dos:", reads_to_dos)
+                # print("fastqs:", fastqs)
+                if self.config.force or glob.glob(
+                        '%s/*.bam' % out.replace('${SCRATCH_FOLDER}', '')):
+                    cmd, bams = get_cmds(sam, fastqs, fastas, out, ali, params)
+                    if to_dos or reads_to_dos:
+                        self.outputs['cmds'].setdefault(key, []).append(False)
+                    else:
+                        self.outputs['cmds'].setdefault(key, []).append(cmd)
+                    io_update(self, i_f=(fastqs + fastas), o_d=out, key=key)
+                    self.soft.add_status(tech, self.sam_pool, 1, group=group)
+                else:
+                    self.soft.add_status(tech, self.sam_pool, 0, group=group)
 
 
 def get_mapping(
@@ -206,11 +218,15 @@ def get_mapping(
     reads : dict
     references : dict
     """
-    for genome, fasta in references.items():
-        key = list(genome_key(tech, group, genome))
+    for genome, fastas in references.items():
+        key = genome_key(tech, group, genome)
         out_dir = genome_out_dir(self, tech, group, genome)
-        to_dos = status_update(self, tech, fasta, group=group, genome=genome)
-        func(self, tech, group, reads, fasta, key, out_dir, to_dos)
+        to_dos = status_update(self, tech, fastas, group=group, genome=genome)
+        # print('genome:', genome)
+        # print('fastas:', fastas)
+        # print('key:', key)
+        # print('out_dir:', out_dir)
+        func(self, tech, group, reads, fastas, key, out_dir, to_dos)
 
 
 def mapping(self):
@@ -228,20 +244,22 @@ def mapping(self):
     self : Commands class instance
         Contains all the attributes needed for binning on the current sample
     """
-    func, source = get_mapping_target(self)
+    func, source, step = get_mapping_target(self)
+    all_reads = get_reads(self, soft=source)
+    # print("func:", func)
+    # print("source:", source)
+    # print("step:", step)
+    # print("all_reads:", all_reads)
     if self.sam_pool in self.pools:
-        for (tech, group), inputs in self.inputs[self.sam_pool].items():
-            reads = get_reads(self, source, tech, group)
+        for (ref_tech, group), inputs in self.inputs[self.sam_pool].items():
             references = group_inputs(self, inputs)
-            get_mapping(self, func, tech, group, reads, references)
-
-    elif set(self.inputs) == {''}:
-        print("self.sam_pool")
-        print(self.sam_pool)
-        for (tech, mags), inputs in self.inputs[''].items():
-            reads = get_reads(self, source, tech, mags)
-            references = group_inputs(self, inputs)
-            get_mapping(self, func, tech, mags, reads, references)
+            reads = get_group_reads(self, ref_tech, group, all_reads)
+            # print("ref_tech:", ref_tech)
+            # print("group:", group)
+            # print("inputs:", inputs)
+            # print("references:", references)
+            # print("reads:", reads)
+            get_mapping(self, func, ref_tech, group, reads, references)
 
 
 # def prep_map__spades_prodigal(self):
@@ -417,106 +435,99 @@ def get_salmon_indexing_cmd(
     return cmd
 
 
-def salmon(self) -> None:
-    """Salmon is a tool for wicked-fast transcript quantification from
-    RNA-seq data. It requires a set of target transcripts (either from a
-    reference or de-novo assembly) to quantify. All you need to run Salmon
-    is a FASTA file containing your reference transcripts and a (set of)
-    FASTA/FASTQ file(s) containing your reads. Optionally, Salmon can make
-    use of pre-computed alignments (in the form of a SAM/BAM file) to the
-    transcripts rather than the raw reads.
-
-    References
-    ----------
-    Patro, Rob, et al. "Salmon provides fast and bias-aware quantification of
-    transcript expression." Nature methods 14.4 (2017): 417-419.
-
-    Notes
-    -----
-    GitHub  : https://github.com/COMBINE-lab/salmon
-    Docs    : https://salmon.readthedocs.io/en/latest/salmon.html
-    Paper   : https://doi.org/10.1038/nmeth.4197
-
-    Parameters
-    ----------
-    self
-    """
-    if self.soft.params['useAlignments']:
-        print(self.config.__dict__.keys())
-        print(self.config.softs)
-        print(selfconfigsofts)
-
-    if self.sam_pool in self.pools:
-        for (tech, group), inputs in self.inputs[self.sam_pool].items():
-            reads = get_reads(self, tech, group)
-            references = group_inputs(self, inputs)
-            get_mapping(self, func, tech, group, reads, references)
-            # get_salmon_indexing_cmd(self, tech, fasta, fastx, key)
-
-    elif set(self.inputs) == {''}:
-        for (tech, mags), inputs in self.inputs[''].items():
-            reads = get_reads(self, tech, mags)
-            references = group_inputs(self, inputs)
-            get_mapping(self, func, tech, mags, reads, references)
-            # get_salmon_indexing_cmd(self, tech, fasta, fastx, key)
-
-    idx = '%s.si' % (out_dir, basename(splitext(fasta)[0]))
-
-    for (tech, sample), fastxs in self.inputs[self.sam_pool].items():
-        if tech_specificity(self, fastxs, tech, sample):
-            continue
-
-        out = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
-        self.outputs['outs'][(tech, self.sam_pool)] = dict()
-
-        for db, db_path in self.soft.params['databases'].items():
-
-            db_out = '%s/%s' % (out, db)
-            params = tech_params(self, tech)
-            cmd, sam = get_minimap2_cmd(fastxs, db_path, db_out, params)
-            self.outputs['outs'][(tech, self.sam_pool)][(db, 'minimap2')] = sam
-
-            if self.config.force or to_do(sam):
-                if status_update(self, tech, fastxs):
-                    self.outputs['cmds'].setdefault((tech,), []).append(False)
-                else:
-                    self.outputs['cmds'].setdefault((tech,), []).append(cmd)
-                io_update(self, i_f=fastxs, i_d=db_out, o_d=db_out, key=tech)
-                self.soft.add_status(tech, self.sam_pool, 1)
-            else:
-                self.soft.add_status(tech, self.sam_pool, 0)
-            self.outputs['dirs'].append(db_out)
-
-
-def kallisto(self) -> None:
-    """kallisto is a program for quantifying abundances of transcripts from
-    RNA-Seq data, or more generally of target sequences using high-throughput
-    sequencing reads. It is based on the novel idea of pseudoalignment for
-    rapidly determining the compatibility of reads with targets, without the
-    need for alignment. On benchmarks with standard RNA-Seq data, kallisto
-    can quantify 30 million human bulk RNA-seq reads in less than 3 minutes
-    on a Mac desktop computer using only the read sequences and a
-    transcriptome index that itself takes than 10 minutes to build.
-    Pseudoalignment of reads preserves the key information needed for
-    quantification, and kallisto is therefore not only fast, but also
-    comparably accurate to other existing quantification tools. In fact,
-    because the pseudoalignment procedure is robust to errors in the reads,
-    in many benchmarks kallisto significantly outperforms existing tools.
-
-    References
-    ----------
-    Bray, N.L., Pimentel, H., Melsted, P. and Pachter, L., 2016. Near-optimal
-    probabilistic RNA-seq quantification. Nature biotechnology, 34(5),
-    pp.525-527.
-
-    Notes
-    -----
-    GitHub  : https://github.com/pachterlab/kallisto
-    Docs    : http://pachterlab.github.io/kallisto/manual.html
-    Paper   : https://doi.org/10.1038/nbt.3519
-
-    Parameters
-    ----------
-    self
-    """
-    pass
+# def salmon(self) -> None:
+#     """Salmon is a tool for wicked-fast transcript quantification from
+#     RNA-seq data. It requires a set of target transcripts (either from a
+#     reference or de-novo assembly) to quantify. All you need to run Salmon
+#     is a FASTA file containing your reference transcripts and a (set of)
+#     FASTA/FASTQ file(s) containing your reads. Optionally, Salmon can make
+#     use of pre-computed alignments (in the form of a SAM/BAM file) to the
+#     transcripts rather than the raw reads.
+#
+#     References
+#     ----------
+#     Patro, Rob, et al. "Salmon provides fast and bias-aware quantification of
+#     transcript expression." Nature methods 14.4 (2017): 417-419.
+#
+#     Notes
+#     -----
+#     GitHub  : https://github.com/COMBINE-lab/salmon
+#     Docs    : https://salmon.readthedocs.io/en/latest/salmon.html
+#     Paper   : https://doi.org/10.1038/nmeth.4197
+#
+#     Parameters
+#     ----------
+#     self
+#     """
+#     if self.soft.params['useAlignments']:
+#         print(self.config.__dict__.keys())
+#         print(self.config.softs)
+#         print(selfconfigsofts)
+#
+#     if self.sam_pool in self.pools:
+#         for (tech, group), inputs in self.inputs[self.sam_pool].items():
+#             reads = get_reads(self, tech, group)
+#             references = group_inputs(self, inputs)
+#             get_mapping(self, func, tech, group, reads, references)
+#             # get_salmon_indexing_cmd(self, tech, fasta, fastx, key)
+#
+#     idx = '%s.si' % (out_dir, basename(splitext(fasta)[0]))
+#
+#     for (tech, sample), fastxs in self.inputs[self.sam_pool].items():
+#         if tech_specificity(self, fastxs, tech, sample):
+#             continue
+#
+#         out = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
+#         self.outputs['outs'][(tech, self.sam_pool)] = dict()
+#
+#         for db, db_path in self.soft.params['databases'].items():
+#
+#             db_out = '%s/%s' % (out, db)
+#             params = tech_params(self, tech)
+#             cmd, sam = get_minimap2_cmd(fastxs, db_path, db_out, params)
+#             self.outputs['outs'][(tech, self.sam_pool)][(db, 'minimap2')] = sam
+#
+#             if self.config.force or to_do(sam):
+#                 if status_update(self, tech, fastxs):
+#                     self.outputs['cmds'].setdefault((tech,), []).append(False)
+#                 else:
+#                     self.outputs['cmds'].setdefault((tech,), []).append(cmd)
+#                 io_update(self, i_f=fastxs, i_d=db_out, o_d=db_out, key=tech)
+#                 self.soft.add_status(tech, self.sam_pool, 1)
+#             else:
+#                 self.soft.add_status(tech, self.sam_pool, 0)
+#             self.outputs['dirs'].append(db_out)
+#
+#
+# def kallisto(self) -> None:
+#     """kallisto is a program for quantifying abundances of transcripts from
+#     RNA-Seq data, or more generally of target sequences using high-throughput
+#     sequencing reads. It is based on the novel idea of pseudoalignment for
+#     rapidly determining the compatibility of reads with targets, without the
+#     need for alignment. On benchmarks with standard RNA-Seq data, kallisto
+#     can quantify 30 million human bulk RNA-seq reads in less than 3 minutes
+#     on a Mac desktop computer using only the read sequences and a
+#     transcriptome index that itself takes than 10 minutes to build.
+#     Pseudoalignment of reads preserves the key information needed for
+#     quantification, and kallisto is therefore not only fast, but also
+#     comparably accurate to other existing quantification tools. In fact,
+#     because the pseudoalignment procedure is robust to errors in the reads,
+#     in many benchmarks kallisto significantly outperforms existing tools.
+#
+#     References
+#     ----------
+#     Bray, N.L., Pimentel, H., Melsted, P. and Pachter, L., 2016. Near-optimal
+#     probabilistic RNA-seq quantification. Nature biotechnology, 34(5),
+#     pp.525-527.
+#
+#     Notes
+#     -----
+#     GitHub  : https://github.com/pachterlab/kallisto
+#     Docs    : http://pachterlab.github.io/kallisto/manual.html
+#     Paper   : https://doi.org/10.1038/nbt.3519
+#
+#     Parameters
+#     ----------
+#     self
+#     """
+#     pass
