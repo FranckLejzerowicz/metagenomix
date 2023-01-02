@@ -1721,11 +1721,12 @@ def tiara(self) -> None:
         out_dir = '/'.join([self.dir, tech, self.sam_pool, group])
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'][group] = out_dir
-        out_fp = '%s/classifications.txt.gz' % out_dir
 
         contig = contigs[0]
         to_dos = status_update(self, tech, [contig], group=group)
-        if self.config.force or to_do(out_fp):
+
+        out_fp = '%s/classifications.txt' % out_dir
+        if self.config.force or to_do('%s.gz' % out_fp):
             cmd = tiara_cmd(self, contig, out_dir, out_fp)
             key = (tech, group)
             if to_dos:
