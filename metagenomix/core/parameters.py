@@ -19,6 +19,9 @@ def tech_params(self, tech: str, soft: str = None):
     params = self.soft.params
     if soft in params and isinstance(params[soft], dict):
         tool_params = params.pop(soft)
+        for param in list(tool_params):
+            if param in params:
+                del tool_params[param]
         params.update(tool_params)
 
     if tech not in ['illumina', 'pacbio', 'nanopore']:
