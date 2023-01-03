@@ -726,8 +726,8 @@ def bowtie2_cmd(
                 else:
                     cmd += ' --%s' % boolean.replace('_', '-')
 
-    cmd += '\nsamtools view -S -b %s > %s' % (sam, bam)
-    cmd += '\nrm %s' % sam
+    cmd += '\nsamtools view -S -b %s > %s\n' % (sam, bam)
+    cmd += 'rm %s\n' % sam
     return cmd
 
 
