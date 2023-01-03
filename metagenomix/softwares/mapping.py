@@ -148,7 +148,7 @@ def get_cmds(
         bam = '%s/alignment.bowtie2.bam' % bam_dir
         cmd += 'mkdir -p %s\n' % bam_dir
         cmd += ali_cmd(sam, fastqs, db_index, out_dir, bam, params)
-        cmd += 'rm -rf %s\n' % dirname(db_index)
+        cmd += '\nrm -rf %s\n' % dirname(db_index)
         bams.append(bam)
     return cmd, bams
 
