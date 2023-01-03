@@ -109,6 +109,7 @@ def get_bowtie2_db_cmd(
     dbs : dict
         Databases indices
     cmd : str
+        bowtie2-build command
     """
     cmd, cmd_rm, dbs = '', '', {}
     for fasta_ in fastas:
@@ -117,12 +118,15 @@ def get_bowtie2_db_cmd(
             cmd += 'gunzip -c %s > %s\n' % (fasta, fasta.rstrip('.gz'))
             fasta = fasta.rstrip('.gz')
             cmd_rm += 'rm %s\n' % fasta
+
         db = splitext(basename(fasta))[0]
         dbs[db] = '%s/dbs/%s' % (out_dir, db)
-        cmd += '\nbowtie2-build'
+
+        cmd += 'mkdir -p %s\n' % dbs[db]
+        cmd += 'bowtie2-build'
         cmd += ' --threads %s' % params['cpus']
         cmd += ' %s %s\n' % (fasta, dbs[db])
-        cmd += 'rm %s\n' % fasta
+
     cmd += cmd_rm
     return dbs, cmd
 
