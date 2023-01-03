@@ -22,10 +22,16 @@ def monitoring(**kwargs):
 
     # Collect all command and init the script creating instance
     monitor = Monitored(**kwargs)
+    print("monitor.output_dir:", monitor.output_dir)
+    print("monitor.time:", monitor.time)
+    print("monitor.log_dir:", monitor.log_dir)
+    print("monitor.roles:", monitor.roles)
+    print("monitor.monitored:", monitor.monitored)
 
     print('* setting up the output file name')
     monitor.make_status_dir()
     monitor.get_out()
+    print("monitor.summary_fp:", monitor.summary_fp)
 
     print('* collecting and showing the current status of the analyses')
     monitor.monitor_status()
@@ -40,14 +46,13 @@ def monitoring(**kwargs):
 class Monitored(object):
 
     def __init__(self, **kwargs):
-        kwargs['localscratch'] = None
-        kwargs['userscratch'] = False
-        kwargs['purge_pfams'] = None
-        kwargs['show_params'] = None
-        kwargs['show_pfams'] = None
-        kwargs['scratch'] = False
-        kwargs['chunks'] = None
         kwargs['jobs'] = None
+        kwargs['chunks'] = None
+        kwargs['scratch'] = False
+        kwargs['show_pfams'] = None
+        kwargs['purge_pfams'] = None
+        kwargs['userscratch'] = False
+        kwargs['localscratch'] = None
         config, databases, workflow, commands = metagenomix(**kwargs)
         self.__dict__.update(kwargs)
         self.config = config
@@ -58,7 +63,7 @@ class Monitored(object):
         # self.softs = {'res': {}, 'dir': set(), 'pip': set(), 'usr': set()}
         # USE THE SOFTWARES OF THE PARSED COMMANDS----
         self.time = dt.datetime.now().strftime("%d-%m-%Y_%H-%M")
-        self.log_dir = '%s/_monitors' % config.dir
+        self.log_dir = '%s/_monitored' % config.dir
         self.roles = {}
         self.monitored = {}
 
@@ -106,7 +111,6 @@ class Monitored(object):
         for name, soft in self.commands.softs.items():
             if isdir(self.output_dir + '/' + name):
                 output = Output(self.output_dir, name)
-                output.get_afters()
                 output.get_outputs()
                 self.monitored[name] = output.outputs
 
@@ -118,15 +122,19 @@ class Monitored(object):
             print()
             print()
             print('#' * 40)
-            print('software:', name)
+            print('name:', name)
             print('#' * 40)
             for (after, hash_value), data in outputs.items():
                 print()
-                print()
-                print("after, hash_value", after, hash_value)
+                print('name:', name)
+                print("after:", after)
+                print("hash_value:", hash_value)
                 for k, d in data.items():
                     print()
-                    print(k)
+                    print('-----------------------')
+                    print("        ", k)
+                    print('-----------------------')
                     print(d)
+            print(sdkjvdsb)
             # print(pd.DataFrame(soft.jobs))
 
