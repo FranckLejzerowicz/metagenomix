@@ -7,8 +7,8 @@
 # ----------------------------------------------------------------------------
 import glob
 import sys
-from os.path import basename, splitext
-from metagenomix._io_utils import io_update, status_update, to_do
+from os.path import basename, dirname, splitext
+from metagenomix._io_utils import io_update, status_update
 from metagenomix.core.parameters import tech_params
 from metagenomix._inputs import (
     group_inputs, genome_key, genome_out_dir, get_reads, get_group_reads)
@@ -148,6 +148,7 @@ def get_cmds(
         bam = '%s/alignment.bowtie2.bam' % bam_dir
         cmd += 'mkdir -p %s\n' % bam_dir
         cmd += ali_cmd(sam, fastqs, db_index, out_dir, bam, params)
+        cmd += 'rm -rf %s\n' % dirname(db_index)
         bams.append(bam)
     return cmd, bams
 
