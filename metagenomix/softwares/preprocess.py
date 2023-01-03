@@ -1032,3 +1032,23 @@ def mapdamage2(self) -> None:
             Configurations
     """
     pass
+
+
+def berokka(self):
+    """
+
+    References
+    ----------
+
+
+    Notes
+    -----
+    GitHub  : https://github.com/tseemann/berokka
+    Paper   :
+    Docs    :
+
+    Parameters
+    ----------
+    self : Commands class instance
+    """
+    pass
