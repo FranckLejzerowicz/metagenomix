@@ -24,42 +24,27 @@ class Output(object):
         self.after = None
         self.script = None
         self.after_dir = None
-        self.directives = {
-            'account', 'partition', 'gres', 'time', 'mem', 'ntasks', 'job-name'}
+        self.directives = {'account', 'partition', 'gres',
+                           'time', 'mem', 'ntasks', 'job-name'}
         self.oe = []
         self.hpc = []
         self.input = []
+        self.scripts = []
         self.outputs = {}
-        # self.sample_pool = {}
-        self.run_scripts = {}
         self.dir_scripts = {}
 
-    def get_afters(self):
-        for folder in glob('%s/after_*' % self.soft_dir):
-            after = tuple(folder.split('after_')[-1].rsplit('_', 1))
-            self.outputs[after] = {
-                'sample_pool': 'sample',
-                'provenance': {},
-                'results': {},
-                'sizes': {},
-                'stdouts': {}
-            }
-
     def get_outputs(self):
-        for after in list(self.outputs):
-            self.after = after
-            self.get_contents()
+        for folder in glob('%s/after_*' % self.soft_dir):
+            self.after = tuple(folder.split('after_')[-1].rsplit('_', 1))
+            self.after_dir = folder
+            self.outputs[self.after] = {
+                'sample_pool': 'sample', 'provenance': {}, 'results': {},
+                'sizes': {}}
             self.get_results()
             self.parse_provenance()
             self.parse_run_sh()
             self.job_outputs()
-            self.make_table(after)
-
-    def get_contents(self):
-        """Collect paths to job scripts."""
-        self.after_dir = '%s/after_%s' % (self.soft_dir, '_'.join(self.after))
-        all_scripts = glob('%s/jobs/*.*' % self.after_dir)
-        self.outputs[self.after]['all_scripts'] = all_scripts
+            self.make_table()
 
     def get_results(self):
         """Collect the output files (values) of each folder (keys) located
@@ -91,7 +76,6 @@ class Output(object):
                             break
                         if line.split()[1] == 'pooling':
                             self.outputs[self.after]['sample_pool'] = 'pool'
-                            # self.sample_pool[self.after] = 'pool'
                         n, soft = line.split()[:2]
                         self.outputs[self.after]['provenance'][n] = soft
 
@@ -100,30 +84,29 @@ class Output(object):
         and collect their directives, status and outputs."""
         run_sh = '%s/run.sh' % self.after_dir
         if isfile(run_sh):
-            scripts = set()
             with open(run_sh) as run_handle:
                 for ldx, line in enumerate(run_handle):
                     if ldx < 2:
                         continue
                     self.script = line.strip().split()[-1]  # latest job script
-                    scripts.add(self.script)
                     if self.script.endswith('.slm'):
-                        print("self.script:", self.script)
-                        self.parse_scripts()  # set self.name; extend self.hpc
-                        self.outputs[self.after][self.name] = self.script
+                        self.parse_scripts()
+                        self.scripts.append(
+                            {'name': self.name, 'script': self.script})
                     self.get_inputs()
-            self.outputs[self.after]['run_scripts'] = scripts
 
-    def make_table(self, after):
+    def make_table(self):
         for (tab, attr) in [
             ('oe', self.oe),
             ('hpc', self.hpc),
             ('input', self.input),
+            ('scripts', self.scripts)
         ]:
-            self.outputs[after][tab] = pd.DataFrame(attr)
+            self.outputs[self.after][tab] = pd.DataFrame(attr)
         self.oe = []
         self.hpc = []
         self.input = []
+        self.scripts = []
 
     def parse_scripts(self):
         """Set to the value of class attribute 'name' to the job name and add
@@ -143,11 +126,9 @@ class Output(object):
         o_fps = '%s/jobs/output/*.o' % self.after_dir
         for sdx, stdout in enumerate(sorted(glob(o_fps))):
             name, job_id = basename(stdout[:-2]).split('-', 1)[1].rsplit('_', 1)
-            self.outputs[self.after]['stdouts'][(name, job_id)] = stdout
-            status = {'name': name, 'id': job_id, 'done': 'N',
+            status = {'name': name, 'id': job_id, 'stdout': stdout, 'done': 'N',
                       'AllocCPUS': 1, 'MinCPU': None, 'AveCPU': None,
                       'MaxRSS': None, 'AveRSS': None, 'error': None}
-
             ls = open(stdout).readlines()[-25:]
             uses = {
                 'Memory usage stats:\n': ['MaxRSS', 'AveRSS'],
