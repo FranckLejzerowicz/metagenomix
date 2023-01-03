@@ -144,7 +144,9 @@ def get_cmds(
     bams = []
     dbs, cmd = ali_db_cmd(fastas, out_dir, params)
     for db, db_index in dbs.items():
-        bam = '%s/%s/alignment.bowtie2.bam' % (out_dir, db)
+        bam_dir = out_dir + '/' + db
+        bam = '%s/alignment.bowtie2.bam' % bam_dir
+        cmd += 'mkdir -p %s\n' % bam_dir
         cmd += ali_cmd(sam, fastqs, db_index, out_dir, bam, params)
         bams.append(bam)
     return cmd, bams
