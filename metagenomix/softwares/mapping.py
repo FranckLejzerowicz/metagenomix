@@ -5,8 +5,8 @@
 #
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
-import glob
 import sys
+import glob
 from os.path import basename, dirname, splitext
 from metagenomix._io_utils import io_update, status_update
 from metagenomix.core.parameters import tech_params
@@ -18,9 +18,6 @@ from metagenomix.softwares.alignment import (
     # bbmap_cmd,
     # bwa_cmd,
 )
-
-# Keep line because read mapping alignments will be python scripts
-# scripts = pkg_resources.resource_filename('metagenomix', 'resources/scripts')
 
 
 def get_mapping_target(self) -> tuple:
@@ -118,15 +115,12 @@ def get_bowtie2_db_cmd(
             cmd += 'gunzip -c %s > %s\n' % (fasta, fasta.rstrip('.gz'))
             fasta = fasta.rstrip('.gz')
             cmd_rm += 'rm %s\n' % fasta
-
         db = splitext(basename(fasta))[0]
         dbs[db] = '%s/dbs/%s' % (out_dir, db)
-
         cmd += 'mkdir -p %s\n' % dbs[db]
         cmd += 'bowtie2-build'
         cmd += ' --threads %s' % params['cpus']
         cmd += ' %s %s\n' % (fasta, dbs[db])
-
     cmd += cmd_rm
     return dbs, cmd
 
@@ -139,6 +133,22 @@ def get_cmds(
         aligner: str,
         params: dict
 ) -> tuple:
+    """
+
+    Parameters
+    ----------
+    sam : str
+    fastqs : list
+    fastas : list
+    out_dir : str
+    aligner : str
+    params : dict
+
+    Returns
+    -------
+    cmd : str
+    bams : list
+    """
     ali_db_cmd = globals()['get_%s_db_cmd' % aligner]
     ali_cmd = globals()['%s_cmd' % aligner]
     bams = []
@@ -177,7 +187,6 @@ def raw(
     to_dos: list
     """
     for sam, reads_tech_fastqs in reads.items():
-        # print("sample:", sam)
         for (reads_tech, _), fastqs in reads_tech_fastqs.items():
             reads_to_dos = status_update(self, reads_tech, fastqs)
             for ali in self.soft.params['aligners']:
@@ -186,12 +195,6 @@ def raw(
                 out = '/'.join([out_dir, sam, reads_tech, ali])
                 self.outputs['dirs'].append(out)
                 self.outputs['outs'].setdefault(cur_key, []).append(out)
-                # print("reads_tech:", reads_tech)
-                # print("cur_key:", cur_key)
-                # print("sam_tech_dir:", out)
-                # print("to_dos:", to_dos)
-                # print("reads_to_dos:", reads_to_dos)
-                # print("fastqs:", fastqs)
                 if self.config.force or not glob.glob(
                         '%s/*.bam' % out.replace('${SCRATCH_FOLDER}', '')):
                     cmd, bams = get_cmds(sam, fastqs, fastas, out, ali, params)
@@ -228,10 +231,6 @@ def get_mapping(
         key = genome_key(tech, group, genome)
         out_dir = genome_out_dir(self, tech, group, genome)
         to_dos = status_update(self, tech, fastas, group=group, genome=genome)
-        # print('genome:', genome)
-        # print('fastas:', fastas)
-        # print('key:', key)
-        # print('out_dir:', out_dir)
         func(self, tech, group, reads, fastas, key, out_dir, to_dos)
 
 
@@ -252,19 +251,10 @@ def mapping(self):
     """
     func, source, step = get_mapping_target(self)
     all_reads = get_reads(self, soft=source)
-    # print("func:", func)
-    # print("source:", source)
-    # print("step:", step)
-    # print("all_reads:", all_reads)
     if self.sam_pool in self.pools:
         for (ref_tech, group), inputs in self.inputs[self.sam_pool].items():
             references = group_inputs(self, inputs)
             reads = get_group_reads(self, ref_tech, group, all_reads)
-            # print("ref_tech:", ref_tech)
-            # print("group:", group)
-            # print("inputs:", inputs)
-            # print("references:", references)
-            # print("reads:", reads)
             get_mapping(self, func, ref_tech, group, reads, references)
 
 
