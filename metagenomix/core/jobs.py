@@ -22,6 +22,7 @@ from metagenomix._io_utils import (
     mkdr, get_roundtrip, print_status_table, compute_hash, get_md5, get_dates)
 
 STORAGE = pkg_resources.resource_filename("metagenomix", "storage")
+TESTS = pkg_resources.resource_filename("metagenomix", "tests")
 
 
 class Created(object):
@@ -55,6 +56,8 @@ class Created(object):
         self.scripts_parts = []
         self.log_dir = '%s/_created' % config.dir
         self.link_script = None
+        self.outro = open('%s/outro.o' % TESTS).readlines()
+        self.outro_err = open('%s/outro_err.o' % TESTS).readlines()
 
     def make_dirs(self):
         for name, soft in self.commands.softs.items():
@@ -543,6 +546,10 @@ class Created(object):
                 job_fp_oe = '%s/%s%s' % (job_dir, job_fp, oe)
                 with open(job_fp_oe, 'w') as o_dev:
                     o_dev.write('\n'.join(lines))
+                    if random.choice([0, 1]):
+                        o_dev.write('\n%s' % ''.join(self.outro))
+                    else:
+                        o_dev.write('\n%s' % ''.join(self.outro_err))
 
     def write_script(self, soft=None):
         if self.config.jobs:
