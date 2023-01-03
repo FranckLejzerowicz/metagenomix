@@ -164,8 +164,8 @@ class Created(object):
             self.write_main(db)
 
     def get_modules(self, name: str):
-        self.modules = self.config.modules.get(name.split('_')[0], [])
-        self.modules.extend(self.config.modules.get(name, []))
+        self.modules = set(self.config.modules.get(name.split('_')[0], set()))
+        self.modules.update(set(self.config.modules.get(name, set())))
 
     def scratch(self, soft, key, cmds):
         if soft.params['scratch'] and self.config.jobs and key in soft.io:
