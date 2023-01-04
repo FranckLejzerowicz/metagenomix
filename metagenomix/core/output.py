@@ -19,22 +19,19 @@ class Output(object):
     def __init__(self, folder, soft):
         self.soft = soft
         self.soft_dir = folder + '/' + soft
-        # summary information about
         self.name = None
         self.after = None
         self.script = None
         self.after_dir = None
-        self.directives = {'account', 'partition', 'gres',
-                           'time', 'mem', 'ntasks', 'job-name'}
         self.oe = []
         self.hpc = []
         self.input = []
         self.scripts = []
         self.outputs = {}
-        self.dir_scripts = {}
 
     def get_outputs(self):
         for folder in glob('%s/after_*' % self.soft_dir):
+            print('folder:', folder)
             self.after = tuple(folder.split('after_')[-1].rsplit('_', 1))
             self.after_dir = folder
             self.outputs[self.after] = {
@@ -89,10 +86,10 @@ class Output(object):
                     if ldx < 2:
                         continue
                     self.script = line.strip().split()[-1]  # latest job script
-                    if self.script.endswith('.slm'):
-                        self.parse_scripts()
+                    if self.script.endswith('.slm') and isfile(self.script):
                         self.scripts.append(
                             {'name': self.name, 'script': self.script})
+                        self.parse_scripts()
                     self.get_inputs()
 
     def make_table(self):
@@ -111,16 +108,16 @@ class Output(object):
     def parse_scripts(self):
         """Set to the value of class attribute 'name' to the job name and add
         the directives as a dict to the 'hpc' attribute (to cast a table)."""
-        if isfile(self.script):
-            directives = {}
-            with open(self.script) as f:
-                for line in f:
-                    if line.startswith('#SBATCH') and '=' in line:
-                        key, val = line.strip().split('SBATCH ')[-1].split('=')
-                        if key.strip('-') in self.directives:
-                            directives[key.split('-')[-1]] = val
-            self.name = directives.get('name')
-            self.hpc.append(directives)
+        directives = {}
+        with open(self.script) as f:
+            for line in f:
+                if line.startswith('#SBATCH') and '=' in line:
+                    k, v = line.strip().split('SBATCH ')[-1].split('=')
+                    if k.strip('-') in {'account', 'partition', 'gres', 'time',
+                                        'mem', 'ntasks', 'job-name'}:
+                        directives[k.split('-')[-1]] = v
+        self.name = directives.get('name')
+        self.hpc.append(directives)
 
     def job_outputs(self):
         o_fps = '%s/jobs/output/*.o' % self.after_dir
