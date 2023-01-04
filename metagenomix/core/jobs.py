@@ -56,8 +56,6 @@ class Created(object):
         self.scripts_parts = []
         self.log_dir = '%s/_created' % config.dir
         self.link_script = None
-        self.outro = open('%s/outro.o' % TESTS).readlines()
-        self.outro_err = open('%s/outro_err.o' % TESTS).readlines()
 
     def make_dirs(self):
         for name, soft in self.commands.softs.items():
@@ -531,6 +529,8 @@ class Created(object):
         self.job_name += '.' + chunk.replace('/', '_')
 
     def write_dummy_oe(self):
+        outro = open('%s/outro.o' % TESTS).readlines()
+        outro_err = open('%s/outro_err.o' % TESTS).readlines()
         job_dir = '%s/output' % dirname(self.sh)
         if not isdir(job_dir):
             os.makedirs(job_dir)
@@ -547,9 +547,9 @@ class Created(object):
                 with open(job_fp_oe, 'w') as o_dev:
                     o_dev.write('\n'.join(lines))
                     if random.choice([0, 1]):
-                        o_dev.write('\n%s' % ''.join(self.outro))
+                        o_dev.write('\n%s' % ''.join(outro))
                     else:
-                        o_dev.write('\n%s' % ''.join(self.outro_err))
+                        o_dev.write('\n%s' % ''.join(outro_err))
 
     def write_script(self, soft=None):
         if self.config.jobs:
