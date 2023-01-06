@@ -131,7 +131,7 @@ class Created(object):
             fp = '%s/provenance_%s.txt' % (self.sh.rsplit('/', 2)[0], name)
         return fp
 
-    def write_provenance(self, name, soft=None) -> None:
+    def write_provenance(self, name, soft) -> None:
         steps = self.graph.paths[soft.name][0]
         step_max = max([len(x) for x in steps])
         provenance_fp = self.get_provenance_fp(name, soft)
