@@ -1278,13 +1278,13 @@ def get_metacompare(
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
 
-        genes = '%s/nucleotide.sequences.fasta.gz' % prodigal_dir[0]
+        genes = '%s/nucleotide.sequences.fasta' % prodigal_dir[0]
         to_dos = status_update(self, tech, [genes])
         to_dos.extend(status_update(self, tech, [contigs]))
 
         # check if tool already run (or if --force) to allow getting command
-        out = '%s/output.txt.gz' % out_dir
-        if self.config.force or to_do(out):
+        out = '%s/output.txt' % out_dir
+        if self.config.force or to_do('%s.gz' % out):
             cmd = metacompare_cmd(self, contigs, genes, out)
             key = genome_key(tech, group)
             if to_dos:
