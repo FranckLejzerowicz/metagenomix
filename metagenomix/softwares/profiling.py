@@ -2269,10 +2269,10 @@ def get_kraken2_cmd(
         cmd += ' --confidence %s' % params['confidence']
         # names = ['classified', 'unclassified']
         if len(inputs) > 1:
+            cmd += ' --paired'
             #fqs = ['%s/%s_%s.fastq' % (out, x, r) for r in [1, 2] for x in names]
             #cmd += ' --unclassified-out %s/unclassified#.fastq' % out
             #cmd += ' --classified-out %s/classified#.fastq' % out
-            cmd += ' --paired'
         #else:
             #fqs = ['%s/%s.fastq' % (out, x) for x in names]
             #cmd += ' --unclassified-out %s/unclassified.fastq' % out
