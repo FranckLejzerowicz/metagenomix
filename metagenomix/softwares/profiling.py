@@ -2264,7 +2264,7 @@ def get_kraken2_cmd(
     if to_do(result):
         cmd += 'kraken2 '
         cmd += ' -db %s' % db_path
-        cmd += ' --report %s/report.tsv' % result
+        cmd += ' --report %s/report.tsv' % out
         cmd += ' --threads %s' % params['cpus']
         cmd += ' --confidence %s' % params['confidence']
         # names = ['classified', 'unclassified']
