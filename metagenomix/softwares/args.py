@@ -597,8 +597,8 @@ def get_karga_kargva(
             self.outputs['dirs'].append(out_dir)
             outs.append(out)
             r = '%s/db_%s/%s_%s_mapped' % (out, db, bas, self.soft.name.upper())
-            genes, reads = '%sGenes.csv.gz' % r, '%sReads.csv.gz' % r
-            if self.config.force or to_do(genes) or to_do(reads):
+            genes, reads = '%sGenes.csv' % r, '%sReads.csv' % r
+            if self.config.force or to_do(genes+'.gz') or to_do(reads+'.gz'):
                 # collect the command line
                 cmd += karga_kargva_cmd(
                     self, tech, merged, out, genes, reads, db, db_path)
