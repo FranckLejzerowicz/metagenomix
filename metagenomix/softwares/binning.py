@@ -803,7 +803,9 @@ def refine_cmd(
         cmd += ' -%s %s' % (['A', 'B', 'C'][fdx], folder)
     cmd += ' -t %s' % self.soft.params['cpus']
     cmd += ' -c %s' % self.soft.params['min_completion']
-    cmd += ' -x %s' % self.soft.params['max_contamination']
+    cmd += ' -x %s\n' % self.soft.params['max_contamination']
+    cmd += 'rm -rf %s/work_files\n' % out_dir
+
     out = '%s/metawrap_%s_%s' % (out_dir, self.soft.params['min_completion'],
                                  self.soft.params['max_contamination'])
     bins = '%s_bins' % out
