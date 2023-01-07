@@ -26,7 +26,6 @@ class Output(object):
         self.oe = []
         self.hpc = []
         self.input = []
-        self.scripts = []
         self.outputs = {}
 
     def get_outputs(self):
@@ -35,7 +34,8 @@ class Output(object):
             self.after = tuple(folder.split('after_')[-1].rsplit('_', 1))
             self.after_dir = folder
             self.outputs[self.after] = {
-                'sample_pool': 'sample', 'provenance': {}, 'results': {},
+                'sample_pool': 'sample', 'provenance': {},
+                # 'results': {},
                 'sizes': {}}
             self.get_results()
             self.parse_provenance()
@@ -50,7 +50,7 @@ class Output(object):
             cur_dir = self.after_dir + '/' + data_dir
             if not isdir(cur_dir) or data_dir == 'jobs':
                 continue
-            self.outputs[self.after]['results'][data_dir] = {}
+            # self.outputs[self.after]['results'][data_dir] = {}
             self.outputs[self.after]['sizes'][data_dir] = 0
             for root_, dirs, fs in os.walk(cur_dir):
                 if root_ == cur_dir:
@@ -58,7 +58,7 @@ class Output(object):
                 root = root_.split('%s/' % cur_dir)[-1]
                 sizes = sum([getsize('%s/%s' % (root_, x)) for x in fs])
                 self.outputs[self.after]['sizes'][data_dir] += sizes
-                self.outputs[self.after]['results'][data_dir].update({root: fs})
+                # self.outputs[self.after]['results'][data_dir].update({root: fs})
 
     def parse_provenance(self):
         """Collect the provenance as step (key) - software (value) dict and set
@@ -87,8 +87,6 @@ class Output(object):
                         continue
                     self.script = line.strip().split()[-1]  # latest job script
                     if self.script.endswith('.slm') and isfile(self.script):
-                        self.scripts.append(
-                            {'name': self.name, 'script': self.script})
                         self.parse_scripts()
                     self.get_inputs()
 
@@ -97,20 +95,20 @@ class Output(object):
             ('oe', self.oe),
             ('hpc', self.hpc),
             ('input', self.input),
-            ('scripts', self.scripts)
         ]:
             self.outputs[self.after][tab] = pd.DataFrame(attr)
         self.oe = []
         self.hpc = []
         self.input = []
-        self.scripts = []
 
     def parse_scripts(self):
         """Set to the value of class attribute 'name' to the job name and add
         the directives as a dict to the 'hpc' attribute (to cast a table)."""
-        directives = {}
+        directives = {'script': self.script}
         with open(self.script) as f:
             for line in f:
+                if not line.strip():
+                    break
                 if line.startswith('#SBATCH') and '=' in line:
                     k, v = line.strip().split('SBATCH ')[-1].split('=')
                     if k.strip('-') in {'account', 'partition', 'gres', 'time',
@@ -192,15 +190,18 @@ class Softwares(object):
                 self.inputs['res'][soft] = role
 
     def _from_pipeline(self):
-        if self.pipeline:
-            with open(self.pipeline) as f:
+        if self.pipeline_tsv:
+            with open(self.pipeline_tsv) as f:
                 self.inputs['pip'].update([x.strip().split()[-1] for x in
                                            f if x.strip() and x[0] != '#'])
 
     def _intersection(self) -> set:
         softs = self.inputs['dir'] & set(self.inputs['res'])
         if self.inputs['pip'] | self.inputs['usr']:
-            softs = softs & (self.inputs['pip'] | self.inputs['usr'])
+            if self.command == 'monitor':
+                softs = softs & self.inputs['pip'] & self.inputs['usr']
+            else:
+                softs = softs & (self.inputs['pip'] | self.inputs['usr'])
         return softs
 
     def _to_manage(self) -> dict:
