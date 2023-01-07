@@ -88,27 +88,28 @@ def get_minimap2_db_cmd(
 
 
 def get_bowtie2_db_cmd(
+        out: str,
         fastas: list,
-        out_dir: str,
         params: dict,
 ) -> tuple:
-    """Commands to build a Bowtie2 database indices for the current fasta
-    reference and paths to these indices.
+    """Commands to build a Bowtie2 database indices for the
+    current fasta reference and paths to these indices.
 
     Parameters
     ----------
+    out : str
     fastas : list
-    out_dir : str
     params : dict
 
     Returns
     -------
-    dbs : dict
-        Databases indices
     cmd : str
         bowtie2-build command
+    dbs : list
+        Databases indices
     """
-    cmd, cmd_rm, dbs = '', '', {}
+    dbs = []
+    cmd, cmd_rm = '', ''
     for fasta_ in fastas:
         fasta = fasta_
         if fasta.endswith('.gz'):
@@ -116,20 +117,20 @@ def get_bowtie2_db_cmd(
             fasta = fasta.rstrip('.gz')
             cmd_rm += 'rm %s\n' % fasta
         db = splitext(basename(fasta))[0]
-        dbs[db] = '%s/dbs/%s' % (out_dir, db)
+        dbs.append('%s/dbs/%s' % (out, db))
         cmd += 'mkdir -p %s\n' % dbs[db]
         cmd += 'bowtie2-build'
         cmd += ' --threads %s' % params['cpus']
-        cmd += ' %s %s\n' % (fasta, dbs[db])
+        cmd += ' %s %s\n' % (fasta, dbs[-1])
     cmd += cmd_rm
-    return dbs, cmd
+    return cmd, dbs
 
 
 def get_cmds(
         sam: str,
+        out: str,
         fastqs: list,
         fastas: list,
-        out_dir: str,
         aligner: str,
         params: dict
 ) -> tuple:
@@ -138,9 +139,9 @@ def get_cmds(
     Parameters
     ----------
     sam : str
+    out : str
     fastqs : list
     fastas : list
-    out_dir : str
     aligner : str
     params : dict
 
@@ -149,16 +150,14 @@ def get_cmds(
     cmd : str
     bams : list
     """
-    ali_db_cmd = globals()['get_%s_db_cmd' % aligner]
-    ali_cmd = globals()['%s_cmd' % aligner]
     bams = []
-    dbs, cmd = ali_db_cmd(fastas, out_dir, params)
-    for db, db_index in dbs.items():
-        bam_dir = out_dir + '/' + db
+    cmd, dbs = globals()['get_%s_db_cmd' % aligner](out, fastas, params)
+    for db in dbs.items():
+        bam_dir = out + '/' + db
         bam = '%s/alignment.bowtie2.bam' % bam_dir
         cmd += 'mkdir -p %s\n' % bam_dir
-        cmd += ali_cmd(sam, fastqs, db_index, out_dir, bam, params)
-        cmd += '\nrm -rf %s\n' % dirname(db_index)
+        cmd += globals()['%s_cmd' % aligner](sam, fastqs, db, out, bam, params)
+        cmd += '\nrm -rf %s\n' % dirname(db)
         bams.append(bam)
     return cmd, bams
 
@@ -197,7 +196,7 @@ def raw(
                 self.outputs['outs'].setdefault(cur_key, []).append(out)
                 if self.config.force or not glob.glob(
                         '%s/*.bam' % out.replace('${SCRATCH_FOLDER}', '')):
-                    cmd, bams = get_cmds(sam, fastqs, fastas, out, ali, params)
+                    cmd, bams = get_cmds(sam, out, fastqs, fastas, ali, params)
                     if to_dos or reads_to_dos:
                         self.outputs['cmds'].setdefault(key, []).append(False)
                     else:
