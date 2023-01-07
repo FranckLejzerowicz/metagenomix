@@ -117,11 +117,11 @@ def get_bowtie2_db_cmd(
             fasta = fasta.rstrip('.gz')
             cmd_rm += 'rm %s\n' % fasta
         db = splitext(basename(fasta))[0]
-        dbs.append('%s/dbs/%s' % (out, db))
-        cmd += 'mkdir -p %s\n' % dbs[db]
+        dbs.append(db)
+        cmd += 'mkdir -p %s/dbs/%s\n' % (out, db)
         cmd += 'bowtie2-build'
         cmd += ' --threads %s' % params['cpus']
-        cmd += ' %s %s\n' % (fasta, dbs[-1])
+        cmd += ' %s %s/dbs/%s\n' % (fasta, out, db)
     cmd += cmd_rm
     return cmd, dbs
 
@@ -152,13 +152,14 @@ def get_cmds(
     """
     bams = []
     cmd, dbs = globals()['get_%s_db_cmd' % aligner](out, fastas, params)
-    for db in dbs.items():
-        bam_dir = out + '/' + db
+    for db_ in dbs:
+        bam_dir = out + '/' + db_
         bam = '%s/alignment.bowtie2.bam' % bam_dir
         cmd += 'mkdir -p %s\n' % bam_dir
+        db = '%s/dbs/%s' % (out, db_)
         cmd += globals()['%s_cmd' % aligner](sam, fastqs, db, out, bam, params)
-        cmd += '\nrm -rf %s\n' % dirname(db)
         bams.append(bam)
+    cmd += '\nrm -rf %s/dbs\n' % out
     return cmd, bams
 
 
