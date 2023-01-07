@@ -5,11 +5,11 @@
 #
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
-
+import os
 import sys
 import glob
 import pkg_resources
-from os.path import basename, splitext
+from os.path import basename, dirname, splitext
 from metagenomix._io_utils import (
     caller, status_update, io_update, to_do, get_assembly, get_assembly_graph)
 from metagenomix.core.parameters import tech_params
@@ -832,7 +832,7 @@ def refine(self):
         key = (tech, group)
 
         out_dir = '/'.join([self.dir, tech, self.sam_pool, group])
-        self.outputs['dirs'].append(out_dir)
+        self.outputs['dirs'].append(dirname(out_dir))
         to_dos = status_update(self, tech, bin_dirs, group=group, folder=True)
 
         cmd, bins = refine_cmd(self, out_dir, bin_dirs)
@@ -845,7 +845,7 @@ def refine(self):
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
-            io_update(self, i_d=bin_dirs, o_f=stats, o_d=bins, key=key)
+            io_update(self, i_d=bin_dirs, o_f=stats, o_d=out_dir, key=key)
             self.soft.add_status(tech, self.sam_pool, 1, group=group)
         else:
             self.soft.add_status(tech, self.sam_pool, 0, group=group)
