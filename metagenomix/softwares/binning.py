@@ -796,6 +796,7 @@ def refine_cmd(
         Path to the output folder
     """
     cmd = 'export PATH=$PATH:%s/bin\n' % self.soft.params['path']
+    cmd += 'rm -rf %s\n' % out_dir
     cmd += 'metawrap bin_refinement'
     cmd += ' -o %s' % out_dir
     for fdx, folder in enumerate(bin_folders):
