@@ -839,16 +839,16 @@ def refine(self):
         to_dos = status_update(self, tech, bin_dirs, group=group, folder=True)
 
         cmd, bins = refine_cmd(self, out_dir, bin_dirs)
-        stats = '%s.stats' % bins.rstrip('_bins')
-        self.outputs['outs'][key] = [bins, stats]
+        self.outputs['outs'][key] = [bins]
 
-        globs = glob.glob('%s/*.fa' % bins.replace('${SCRATCH_FOLDER}', ''))
-        if self.config.force or not globs:
+        # globs = glob.glob('%s/*.fa' % bins.replace('${SCRATCH_FOLDER}', ''))
+        # if self.config.force or not globs:
+        if self.config.force or not to_do(bins):
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
-            io_update(self, i_d=bin_dirs, o_f=stats, o_d=out_dir, key=key)
+            io_update(self, i_d=bin_dirs, o_d=out_dir, key=key)
             self.soft.add_status(tech, self.sam_pool, 1, group=group)
         else:
             self.soft.add_status(tech, self.sam_pool, 0, group=group)
