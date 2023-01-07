@@ -843,7 +843,7 @@ def refine(self):
 
         # globs = glob.glob('%s/*.fa' % bins.replace('${SCRATCH_FOLDER}', ''))
         # if self.config.force or not globs:
-        if self.config.force or not to_do(bins):
+        if self.config.force or to_do(bins):
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
