@@ -1314,6 +1314,10 @@ def check_metawrap(self, params, soft):
         'reassembly': ['permissive', 'strict'],
         'blobology': ['coassembly', 'sample']
     }
+    if 'skip_samples' not in params:
+        params['skip_samples'] = [None]
+    elif not isinstance(params['skip_samples'], list):
+        sys.exit('[%s] Param "skip_samples" not a (samples) list' % soft.name)
     if 'binners' not in params:
         params['binners'] = defaults['binners']
     mins = ['min_completion', 'min_completion_reassembly',
@@ -1323,9 +1327,10 @@ def check_metawrap(self, params, soft):
         self, params, defaults, ['min_contig_length'], int, 'metawrap:binning')
     mins.append('min_contig_length')
     check_default(self, params, defaults, soft.name, mins,
-                  ['binners', 'reassembly', 'blobology'])
+                  ['binners', 'reassembly', 'blobology', 'skip_samples'])
     check_binary(self, soft.name, params, defaults, 'path')
     defaults['path'] = '<path to the metaWRAP installation folder>'
+    defaults['skip_samples'] = '<list of samples / co-assembly groups to skip>'
     return defaults
 
 
