@@ -78,13 +78,12 @@ class Commands(object):
 
     def get_inputs(self):
         """Update the `inputs` attribute of the software object."""
-        if not self.soft.prev or self.soft.name == 'map__drep':
+        if self.soft.prev:
+            self.inputs = self.softs[self.soft.prev].outputs
+        else:
+            self.inputs = self.config.fastq
             if self.soft.params['scratch'] and self.config.jobs:
                 self.inputs = self.config.fastq_mv
-            else:
-                self.inputs = self.config.fastq
-        else:
-            self.inputs = self.softs[self.soft.prev].outputs
         show_inputs(self)
 
     def get_hash(self):
@@ -159,7 +158,6 @@ class Commands(object):
         else:
             outputs = dict(x for x in self.outputs['outs'].items() if x[1])
             self.soft.outputs[self.sam_pool] = outputs
-            # self.soft.outputs[self.sam_pool] = self.outputs['outs']
 
     def extract_data(self):
         if self.outputs.get('cmds'):
