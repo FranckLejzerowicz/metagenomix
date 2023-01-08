@@ -1391,7 +1391,7 @@ def abritamr_cmd(
 
     cmd += 'abritamr run'
     cmd += ' --contigs %s' % txt
-    cmd += ' --identity %s' % self.soft.params['identify']
+    cmd += ' --identity %s' % self.soft.params['identity']
     if self.soft.params['species']:
         cmd += ' --species %s' % self.soft.params['species']
     cmd += ' --jobs %s\n' % self.soft.params['cpus']
