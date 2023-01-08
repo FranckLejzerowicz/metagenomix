@@ -1771,10 +1771,10 @@ def diting_cmd(
                 continue
             for r in [0, 1]:
                 if fs[r].endswith('.gz'):
-                    fqs[r][0].append(fs[r])
+                    fqs[r][0].append(fs[r].replace('${SCRATCH_FOLDER}', ''))
                 else:
                     fqs[r][0].append('tmp/%s.gz' % basename(fs[r]))
-                    fqs[r][1].append(fs[r])
+                    fqs[r][1].append(fs[r].replace('${SCRATCH_FOLDER}', ''))
 
     cmd_rm = ''
     cmd = 'cd %s\n' % out
