@@ -130,6 +130,7 @@ class Monitored(object):
             if isdir(self.output_dir + '/' + name):
                 output = Output(self.output_dir, name)
                 output.get_outputs()
+                print(output.outputs)
                 self.monitored[name] = output.outputs
 
     def monitor_softs(self):
@@ -149,5 +150,5 @@ class Monitored(object):
                     print('-----------------------')
                     print("        ", k)
                     print('-----------------------')
-                    print()
+                    print(d)
 
