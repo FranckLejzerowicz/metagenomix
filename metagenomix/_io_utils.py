@@ -416,7 +416,7 @@ def get_scratch_cmds(
         soft,
         cur_cmds,
         cmds
-) -> dict:
+) -> None:
     if key in soft.io:
         roundtrip = get_roundtrip(soft.io[key])
         scratch_cmds = ['\n# Move to SCRATCH_FOLDER'] + roundtrip['to']
