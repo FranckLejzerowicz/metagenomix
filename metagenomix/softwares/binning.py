@@ -1023,7 +1023,8 @@ def binning(self):
         bin_dirs = sorted(binned.values())  # + ['%s/work_files' % out]
 
         key = (tech, group)
-        self.outputs['outs'][key] = bin_dirs
+        if process_outputs(self, key, group, bin_dirs):
+            continue
 
         cmd = binning_cmd(self, fastqs, out, contigs, binned)
         if cmd:
