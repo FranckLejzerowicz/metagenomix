@@ -110,7 +110,6 @@ class Manage(object):
             self.role = role
             for soft in softs:
                 output = Output(self.dir, soft)
-                output.get_afters()
                 output.get_outputs()
                 self.managed[soft] = output.outputs
 
@@ -481,7 +480,7 @@ class Manage(object):
                     o.write('# Storing folder: "%s"\n' % key)
                     for (step, args, j) in [
                         ('mkdir', 'p', ' '),
-                        ('rsync', 'rptgoDuqv', '/ '),
+                        ('rsync', 'lrtvDO', '/ '),
                         ('rm', 'rf', ' '),
                         ('ln', 's', ' '),
                     ]:
