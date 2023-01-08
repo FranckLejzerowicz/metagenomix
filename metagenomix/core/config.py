@@ -62,7 +62,7 @@ class AnalysesConfig(object):
             If it exists, nothing happens and the code proceeds.
             Otherwise, the code ends and tells what to do.
         """
-        if self.jobs:
+        if self.jobs and self.command == 'create':
             ret, _ = subprocess.getstatusoutput('which Xhpc')
             if ret:
                 raise IOError('Xhpc not installed')
