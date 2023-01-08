@@ -12,8 +12,8 @@ import sys
 import pkg_resources
 from os.path import basename, isdir, splitext
 
-from metagenomix._inputs import (sample_inputs, group_inputs,
-                                 genome_key, genome_out_dir)
+from metagenomix._inputs import (sample_inputs, group_inputs, genome_key,
+                                 genome_out_dir, get_reads, get_group_reads)
 from metagenomix._io_utils import caller, io_update, to_do, status_update
 from metagenomix.core.parameters import tech_params
 
@@ -1740,6 +1740,127 @@ def tiara(self) -> None:
             self.soft.add_status(tech, self.sam_pool, 0, group=group)
 
 
+def diting_cmd(
+        self,
+        tech: str,
+        contig: str,
+        reads: dict,
+        out: str
+) -> str:
+    """Get command line for DiTing.
+
+    Parameters
+    ----------
+    self
+    tech : str
+    contig : str
+    reads : dict
+    out : str
+
+    Returns
+    -------
+    cmd : str
+       DiTing command
+    """
+    params = tech_params(self, tech)
+
+    fqs = {0: ([], []), 1: ([], [])}
+    for sam, tech_files in reads.items():
+        for (tech, _), fs in tech_files.items():
+            if len(fs) < 2:
+                continue
+            for r in [0, 1]:
+                if fs[r].endswith('.gz'):
+                    fqs[r][0].append(fs[r])
+                else:
+                    fqs[r][0].append('tmp/%s.gz' % basename(fs[r]))
+                    fqs[r][1].append(fs[r])
+
+    cmd_rm = ''
+    cmd = 'cd %s\n' % out
+    cmd += 'mkdir tmp\n'
+    cmd += 'mkdir reads\n'
+    cmd += 'mkdir contigs\n'
+    if contig.endswith('.fa.gz') or contig.endswith('.fasta.gz'):
+        cmd += 'gunzip -c %s > %s\n' % (contig, contig.rstrip('.gz'))
+        contig = contig.rstrip('.gz')
+        cmd_rm += 'rm %s\n' % contig
+
+    for r, fq in fqs.items():
+        for f in fq[1]:
+            cmd += 'gzip -c %s > tmp/%s.gz\n' % (f[1], basename(f[1]))
+    base = basename(contig).rsplit('.f', 1)[0]
+    cmd += 'cat %s > reads/%s_1.fastq.gz\n' % (' '.join(fqs[0][0]), base)
+    cmd += 'cat %s > reads/%s_2.fastq.gz\n' % (' '.join(fqs[1][0]), base)
+
+    cmd += 'cp %s contigs/.\n' % contig
+
+    cmd += 'diting.py'
+    cmd += ' --reads reads'
+    cmd += ' --assembly contigs'
+    cmd += ' --outdir %s' % out
+    if params['noclean']:
+        cmd += ' --noclean'
+    cmd += ' --threads %s\n' % params['cpus']
+    cmd += 'diting.py --visualization pathways_relative_abundance.tab\n'
+    cmd += 'rm -rf tmp reads contigs\n'
+    cmd += cmd_rm
+    return cmd
+
+
+def diting(self):
+    """DiTing is designed to determine the relative abundance of metabolic
+    and biogeochemical functional pathways in a set of given metagenomic/
+    metatranscriptomic data. The input is expected to be a folder containing
+    a group of paired-end clean reads. These reads will be assembled, annotated,
+    and parsed for producing a table of relative abundance of elemental/
+    biogeochemical cycling pathways (e.g., Nitrogen, Carbon, Sulfur) in each
+    sample. Sketch maps and heatmaps will also be produced accordingly for
+    comparing biogeochemical functions visually.
+
+    References
+    ----------
+    Xue, C.X., Lin, H., Zhu, X.Y., Liu, J., Zhang, Y., Rowley, G., Todd,
+    J.D., Li, M. and Zhang, X.H., 2021. DiTing: a pipeline to infer and
+    compare biogeochemical pathways from metagenomic and metatranscriptomic
+    data. Frontiers in microbiology, p.2118.
+
+    Notes
+    -----
+    GitHub  : https://github.com/xuechunxu/DiTing
+    Paper   : https://doi.org/10.3389/fmicb.2021.698286
+
+    Parameters
+    ----------
+    self : Commands class instance
+    """
+    if self.config.tools[self.soft.prev] != 'assembling':
+        sys.exit('[tiara] can only be run on assembly output')
+    all_reads = get_reads(self)
+    for (tech, group), contigs in self.inputs[self.sam_pool].items():
+        reads = get_group_reads(self, tech, group, all_reads)
+
+        out_dir = '/'.join([self.dir, tech, self.sam_pool, group])
+        self.outputs['dirs'].append(out_dir)
+        self.outputs['outs'][group] = out_dir
+
+        contig = contigs[0]
+        to_dos = status_update(self, tech, [contig], group=group)
+
+        png = '%s/carbon_cycle_sketch.png' % out_dir
+        if self.config.force or to_do(png):
+            cmd = diting_cmd(self, tech, contig, reads, out_dir)
+            key = (tech, group)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
+            io_update(self, i_f=contig, o_d=out_dir, key=key)
+            self.soft.add_status(tech, self.sam_pool, 1, group=group)
+        else:
+            self.soft.add_status(tech, self.sam_pool, 0, group=group)
+
+
 def metaclade2(self):
     """Novel profile-based domain annotation pipeline based on the multi-source
     domain annotation strategy. It provides a domain annotation realised
@@ -1937,26 +2058,6 @@ def ioncom(self):
     -----
     Paper   : https://doi.org/10.1093/bioinformatics/btw396
     Docs    : http://zhanglab.ccmb.med.umich.edu/IonCom
-
-    Parameters
-    ----------
-    self : Commands class instance
-    """
-    pass
-
-
-def gmove(self):
-    """Gene modelling using various evidence.
-
-    References
-    ----------
-
-
-    Notes
-    -----
-    GitHub  : https://github.com/institut-de-genomique/Gmove
-    Paper   :
-    Docs    :
 
     Parameters
     ----------

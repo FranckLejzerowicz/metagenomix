@@ -3883,28 +3883,28 @@ def check_oritfinder(self, params, soft):
     return defaults
 
 
-# def check_ToolName(self, params, soft):
-#     defaults = {
-#     }
-#     ints = []
-#     check_nums(self, params, defaults, ints, int, soft.name)
-#     floats = []
-#     check_nums(self, params, defaults, floats, float, soft.name)
-#     check_default(self, params, defaults, soft.name, (ints + floats))
-#     defaults[''] = '<>'
-#     return defaults
+def check_diting(self, params, soft):
+    defaults = {'noclean': [False, True]}
+    check_default(self, params, defaults, soft.name)
+    return defaults
 
 
-# def check_ToolName(self, params, soft):
-#     defaults = {
-#     }
-#     ints = []
-#     check_nums(self, params, defaults, ints, int, soft.name)
-#     floats = []
-#     check_nums(self, params, defaults, floats, float, soft.name)
-#     check_default(self, params, defaults, soft.name, (ints + floats))
-#     defaults[''] = '<>'
-#     return defaults
+def check_abritamr(self, params, soft):
+    defaults = {
+        'identity': 0.9,
+        'sop': ['general', 'plus'],
+        'species': [None, 'Burkholderia_cepacia', 'Acinetobacter_baumannii',
+                    'Streptococcus_pyogenes','Streptococcus_agalactiae',
+                    'Streptococcus_pneumoniae', 'Enterococcus_faecium',
+                    'Pseudomonas_aeruginosa', 'Staphylococcus_pseudintermedius',
+                    'Clostridioides_difficile', 'Klebsiella', 'Neisseria',
+                    'Campylobacter', 'Salmonella', 'Escherichia',
+                    'Staphylococcus_aureus', 'Burkholderia_pseudomallei',
+                    'Enterococcus_faecalis']
+    }
+    check_nums(self, params, defaults, ['identity'], float, soft.name, 0, 1)
+    check_default(self, params, defaults, soft.name, ['identity'])
+    return defaults
 
 
 # def check_ToolName(self, params, soft):
