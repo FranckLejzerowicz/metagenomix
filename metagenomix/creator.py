@@ -20,6 +20,7 @@ def creator(**kwargs):
     """
     print('\n>>> `metagenomix create` started >>>\n')
     # Collect all command and init the script creating instance
+    kwargs['command'] = 'create'
     creating = Created(*metagenomix(**kwargs))
     # print('* Writing database formatting commands')
     # scripting.database_cmds()  # build the databases
