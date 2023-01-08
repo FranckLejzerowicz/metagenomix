@@ -47,6 +47,8 @@ wol: /Users/franck/databases/wol
 tara_prok: /Users/franck/databases/tara_prok
 tara_euk: /Users/franck/databases/tara_euk
 gtdb: /Users/franck/databases/gtdb
+gtdbtk: /path/to/gtdb/latest/auxillary_files/gtdbtk_r207_v2_data
 rep82: /Users/franck/databases/rep82
 kraken2: /cluster/shared/databases/Kraken2/latest
 midas2: /cluster/shared/databases/midas2/latest
+checkm: /cluster/projects/nn8075k/03_databases/checkm
