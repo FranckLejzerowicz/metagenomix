@@ -52,7 +52,7 @@ def manage(
     manager(
         dir=folder,
         disk=storage,
-        pipeline=pipeline,
+        pipeline_tsv=pipeline,
         softwares=software,
         chunks=chunks,
         jobs=jobs,
