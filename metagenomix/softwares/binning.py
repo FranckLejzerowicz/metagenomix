@@ -5,7 +5,6 @@
 #
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
-import os
 import sys
 import glob
 import pkg_resources
@@ -15,6 +14,40 @@ from metagenomix._io_utils import (
 from metagenomix.core.parameters import tech_params
 
 SCRIPTS = pkg_resources.resource_filename("metagenomix", "resources/scripts")
+
+
+def process_outputs(
+        self,
+        key: tuple,
+        group: str,
+        out: list,
+) -> bool:
+    """
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .soft.params
+            Parameters
+    key : tuple
+        (tech, group)
+    group : str
+        Current pool group
+    out : list
+        Path(s) to metaWRAP output folder(s)
+
+    Returns
+    -------
+    process : bool
+        Whether to process the sample command or not
+    """
+    if group in self.soft.params['skip_samples']:
+        self.outputs['outs'][key] = []
+        process = True
+    else:
+        self.outputs['outs'][key] = out
+        process = False
+    return process
 
 
 def get_sams_fastqs(
@@ -690,6 +723,7 @@ def reassembly_cmd(
     out : str
         Path to the metaWRAP bin reassembly output folder
     key : tuple
+        (tech, group)
 
     Returns
     -------
@@ -702,7 +736,7 @@ def reassembly_cmd(
         self.outputs['dirs'].append(mode_dir)
         self.outputs['outs'].setdefault(key, []).append(mode_dir)
         io_update(self, i_d=mode_dir, key=key)
-        if not self.config.force and not to_do(folder=mode_dir):
+        if not self.config.force and not to_do(mode_dir):
             continue
         cmd += 'mkdir %s\n' % mode_dir
         cmd += 'mv %s/reassembled_bins/*%s.fa %s/.\n' % (out, mode, mode_dir)
@@ -832,6 +866,7 @@ def refine(self):
             Configurations
     """
     for (tech, group), bin_dirs in self.inputs[self.sam_pool].items():
+
         key = (tech, group)
 
         out_dir = '/'.join([self.dir, tech, self.sam_pool, group])
@@ -839,10 +874,9 @@ def refine(self):
         to_dos = status_update(self, tech, bin_dirs, group=group, folder=True)
 
         cmd, bins = refine_cmd(self, out_dir, bin_dirs)
-        self.outputs['outs'][key] = [bins]
+        if process_outputs(self, key, group, [bins]):
+            continue
 
-        # globs = glob.glob('%s/*.fa' % bins.replace('${SCRATCH_FOLDER}', ''))
-        # if self.config.force or not globs:
         if self.config.force or to_do(bins):
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
