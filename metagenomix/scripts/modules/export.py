@@ -55,7 +55,7 @@ def export(
     exporter(
         dir=folder,
         output=output,
-        pipeline=pipeline,
+        pipeline_tsv=pipeline,
         softwares=software,
         exts=extension,
         regex=regex,
