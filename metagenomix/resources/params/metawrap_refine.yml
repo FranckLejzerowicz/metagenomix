@@ -14,7 +14,7 @@ metawrap_refine:
   max_contamination_reassembly: 5
   mem: 10
   mem_dim: gb
-  min_completion: 25
+  min_completion: 85
   min_completion_reassembly: 25
   min_contig_length: 1000
   nodes: 1
@@ -24,4 +24,6 @@ metawrap_refine:
   - strict
   - permissive
   scratch: scratch
+  skip_samples:
+  - null
   time: 24

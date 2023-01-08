@@ -24,4 +24,6 @@ metawrap_blobology:
   - strict
   - permissive
   scratch: scratch
+  skip_samples:
+  - null
   time: 24

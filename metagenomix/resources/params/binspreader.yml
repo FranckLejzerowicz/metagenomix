@@ -6,6 +6,7 @@ binspreader:
   cami: false
   chunks: 4
   cpus: 1
+  dataset: null
   distance_bound: null
   e: 1.0e-05
   env: null
@@ -21,7 +22,7 @@ binspreader:
   no_unbinned_bin: false
   nodes: 1
   partition: null
-  path: /dummy
+  path: /path
   reads: false
   scratch: scratch
   sparse_propagation: false

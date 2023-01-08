@@ -1,16 +1,35 @@
 quast:
+  ambiguity_score: 0.99
   ambiguity_usage: one
+  bam: null
+  blast_db: null
   chunks: 4
-  circos: false
-  conserved_genes_finding: false
+  circos: true
+  conserved_genes_finding: true
+  contig_thresholds: 0,1000,5000,10000,25000,50000
   cpus: 1
   env: null
+  est_insert_size: null
+  eukaryote: false
+  extensive_mis_size: 1000
   fast: false
+  fragmented: false
+  fragmented_max_indent: 200
+  fungus: false
+  g: null
+  gene_finding: true
+  gene_thresholds: 0,300,1500,3000
   glimmer: false
+  k_mer_size: 101
+  k_mer_stats: false
   label: light
+  large: false
+  local_mis_size: 200
   machine: null
+  max_ref_number: 50
   mem: 10
   mem_dim: gb
+  memory_efficient: false
   min_alignment: 65
   min_contig: 500
   min_identity: 95.0
@@ -23,8 +42,30 @@ quast:
   no_snps: false
   no_sv: false
   nodes: 1
+  operons: null
   partition: null
-  rna_finding: false
+  path: /path
+  plots_format: pdf
+  r: null
+  ref_bam: null
+  ref_sam: null
+  references_list: null
+  report_all_metrics: false
+  reuse_combined_alignments: false
+  rna_finding: true
+  sam: null
+  scaffold_gap_max_size: 10000
   scratch: scratch
+  skip_unaligned_mis_contigs: false
   space_efficient: false
+  split_scaffolds: false
+  strict_NA: false
+  sv_bedpe: null
   time: 24
+  unaligned_part_size: 500
+  unique_mapping: false
+  upper_bound_assembly: false
+  upper_bound_min_con: null
+  use_all_alignments: false
+  use_input_ref_order: false
+  x_for_Nx: 90

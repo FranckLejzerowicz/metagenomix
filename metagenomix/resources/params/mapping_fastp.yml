@@ -1,6 +1,6 @@
 mapping_fastp:
   aligners:
-  - minimap2
+  - bowtie2
   bowtie2:
     D: 15
     L: 22
@@ -51,7 +51,7 @@ mapping_fastp:
     norc: false
     np: 1
     omit_sec_seq: false
-    paired: false
+    paired: true
     partition: normal
     phred33: true
     phred64: false
@@ -90,6 +90,6 @@ mapping_fastp:
   mem_dim: gb
   nodes: 1
   partition: null
-  per_tech: false
-  scratch: scratch
+  per_tech: true
+  scratch: null
   time: 24

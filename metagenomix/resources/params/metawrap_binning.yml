@@ -24,4 +24,6 @@ metawrap_binning:
   - strict
   - permissive
   scratch: scratch
+  skip_samples:
+  - null
   time: 24
