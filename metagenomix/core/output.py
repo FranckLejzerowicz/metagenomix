@@ -34,9 +34,7 @@ class Output(object):
             self.after = tuple(folder.split('after_')[-1].rsplit('_', 1))
             self.after_dir = folder
             self.outputs[self.after] = {
-                'sample_pool': 'sample', 'provenance': {},
-                # 'results': {},
-                'sizes': {}}
+                'sample_pool': 'sample', 'provenance': {}, 'sizes': {}}
             self.get_results()
             self.parse_provenance()
             self.parse_run_sh()
@@ -50,20 +48,16 @@ class Output(object):
             cur_dir = self.after_dir + '/' + data_dir
             if not isdir(cur_dir) or data_dir == 'jobs':
                 continue
-            # self.outputs[self.after]['results'][data_dir] = {}
             self.outputs[self.after]['sizes'][data_dir] = 0
             for root_, dirs, fs in os.walk(cur_dir):
                 if root_ == cur_dir:
                     continue
-                root = root_.split('%s/' % cur_dir)[-1]
                 sizes = sum([getsize('%s/%s' % (root_, x)) for x in fs])
                 self.outputs[self.after]['sizes'][data_dir] += sizes
-                # self.outputs[self.after]['results'][data_dir].update({root: fs})
 
     def parse_provenance(self):
         """Collect the provenance as step (key) - software (value) dict and set
         'sample_pool' to 'pool' for post-pooling steps (or set to 'sample')."""
-        # self.sample_pool[self.after] = 'sample'
         provenance = '%s/provenance.txt' % self.after_dir
         if isfile(provenance):
             with open(provenance) as provenance_handle:
@@ -85,7 +79,7 @@ class Output(object):
                 for ldx, line in enumerate(run_handle):
                     if ldx < 2:
                         continue
-                    self.script = line.strip().split()[-1]  # latest job script
+                    self.script = line.strip().split()[-1]
                     if self.script.endswith('.slm') and isfile(self.script):
                         self.parse_scripts()
                     self.get_inputs()
