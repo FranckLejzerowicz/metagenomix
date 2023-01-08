@@ -48,8 +48,9 @@ class Commands(object):
         self.soft = None
         self.sam_pool = None
         self.dir = ''
-        self.out = []
-        self.struc = list
+        # self.out = []
+        self.status = {}
+        # self.struc = list
         self.links = {}
         self.links_stats = {}
         self.holistics = [
@@ -88,7 +89,7 @@ class Commands(object):
 
     def get_hash(self):
         avoid = {'time', 'nodes', 'mem', 'mem_dim', 'env', 'chunks',
-                 'scratch', 'machine', 'partition', 'cpus'}
+                 'scratch', 'machine', 'partition', 'cpus', 'skip_samples'}
         if self.soft.name not in ['filtering', 'databases']:
             avoid.add('databases')
         if 'search_' in self.soft.name:
@@ -113,7 +114,7 @@ class Commands(object):
 
     def generic_command(self):
         self.sam_pool = ''
-        self.is_pool()
+        # self.is_pool()
         self.soft.io = {}
         if self.soft.name in self.holistics:
             self.prep_job()
@@ -152,14 +153,19 @@ class Commands(object):
         for tech, cmds in self.outputs['cmds'].items():
             self.cmds[(self.sam_pool, tech)] = cmds
 
+    def unpack_outputs(self):
+        if self.soft.name in self.holistics:
+            self.soft.outputs = self.outputs['outs']
+        else:
+            outputs = dict(x for x in self.outputs['outs'].items() if x[1])
+            self.soft.outputs[self.sam_pool] = outputs
+            # self.soft.outputs[self.sam_pool] = self.outputs['outs']
+
     def extract_data(self):
         if self.outputs.get('cmds'):
             self.unpack_cmds()
             self.fill_soft_io()
-        if self.soft.name in self.holistics:
-            self.soft.outputs = self.outputs['outs']
-        else:
-            self.soft.outputs[self.sam_pool] = self.outputs['outs']
+        self.unpack_outputs()
         self.soft.bash = self.outputs['bash']
 
     def prep_job(self):
