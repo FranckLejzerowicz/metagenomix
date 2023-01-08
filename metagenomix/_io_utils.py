@@ -334,10 +334,11 @@ def get_to_dos(
     """
     to_dos = []
     for inp in inputs:
-        if folder:
-            to_do_inp = to_do(folder=inp)
-        else:
-            to_do_inp = to_do(inp)
+        to_do_inp = to_do(inp)
+        # if folder:
+        #     to_do_inp = to_do(folder=inp)
+        # else:
+        #     to_do_inp = to_do(inp)
         if to_do_inp:
             to_dos.append(inp)
         if isinstance(inp, list):
@@ -488,17 +489,13 @@ def io_update(
 
 
 def to_do(
-        file: str = None,
-        folder: str = None
+        path: str,
 ) -> bool:
-    if file:
-        file = file.replace('${SCRATCH_FOLDER}', '')
-        if isfile(file) or islink(file):
-            return False
-    if folder:
-        folder = folder.replace('${SCRATCH_FOLDER}', '')
-        if (isdir(folder) or islink(folder)) and glob.glob('%s/*' % folder):
-            return False
+    path = path.replace('${SCRATCH_FOLDER}', '')
+    if isfile(path) or islink(path):
+        return False
+    if (isdir(path) or islink(path)) and glob.glob('%s/*' % path):
+        return False
     return True
 
 
