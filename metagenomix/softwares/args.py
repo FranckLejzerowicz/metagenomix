@@ -1350,6 +1350,111 @@ def metacompare(self) -> None:
             get_metacompare(self, tech, proteins, contigs, group)
 
 
+def abritamr_cmd(
+        self,
+        contigs: list,
+        group: str,
+        out_dir: str
+) -> str:
+    """Collect the command line for abriTAMR.
+
+    Parameters
+    ----------
+    self
+    contigs : list
+    group : str
+    out_dir : str
+
+    Returns
+    -------
+    cmd : str
+        abriTAMR command
+    """
+    cmd, cmd_rm = '', ''
+    contig_paths = []
+    for contig in contigs:
+        if contig.endswith('.fa.gz') or contig.endswith('.fasta.gz'):
+            cmd += 'gunzip -c %s > %s\n' % (contig, contig.rstrip('.gz'))
+            contig = contig.rstrip('.gz')
+            contig_paths.append(contig)
+            cmd_rm += 'rm %s\n' % contig
+
+    txt = '%s/contigs.txt' % out_dir
+    for cdx, contig_path in enumerate(contig_paths):
+        if cdx:
+            cmd += 'echo -e "%s\t%s" >> %s\n' % (group, contig_path, txt)
+        else:
+            cmd += 'echo -e "%s\t%s" > %s\n' % (group, contig_path, txt)
+        if cmd:
+            cmd += 'envsubst < %s > %s.tmp\n' % (txt, txt)
+            cmd += 'mv %s.tmp %s\n' % (txt, txt)
+
+    cmd += 'abritamr run'
+    cmd += ' --contigs %s' % txt
+    cmd += ' --identity %s' % self.soft.params['identify']
+    if self.soft.params['species']:
+        cmd += ' --species %s' % self.soft.params['species']
+    cmd += ' --jobs %s\n' % self.soft.params['cpus']
+
+    # cmd += 'abritamr report'
+    # cmd += ' --qc %s'
+    # cmd += ' --runid %s'
+    # cmd += ' --matches summary_matches.txt'
+    # cmd += ' --partials summary_partials.txt'
+    # cmd += ' --sop %s' % self.soft.params['sop']
+    # cmd += ' --sop_name %s\n'
+
+    cmd += cmd_rm
+    return cmd
+
+
+def abritamr(self) -> None:
+    """abriTAMR is an AMR gene detection pipeline that runs AMRFinderPlus on
+    a single (or list ) of given isolates and collates the results into a
+    table, separating genes identified into functionally relevant groups.
+
+    References
+    ----------
+    Sherry, N.L., Horan, K.A., Ballard, S.A., Gonҫalves da Silva, A., Gorrie,
+    C.L., Schultz, M.B., Stevens, K., Valcanis, M., Sait, M.L., Stinear,
+    T.P. and Howden, B.P., 2023. An ISO-certified genomics workflow for
+    identification and surveillance of antimicrobial resistance. Nature
+    Communications, 14(1), pp.1-12.
+
+    Notes
+    -----
+    GitHub  : https://github.com/MDU-PHL/abritamr
+    Paper   : https://doi.org/10.1038/s41467-022-35713-4
+    Docs
+
+    Parameters
+    ----------
+    self : Commands class instance
+    """
+    if self.config.tools[self.soft.prev] != 'assembling':
+        sys.exit('[tiara] can only be run on assembly output')
+    for (tech, group), inputs in self.inputs[self.sam_pool].items():
+        out_dir = '/'.join([self.dir, tech, self.sam_pool, group])
+        self.outputs['dirs'].append(out_dir)
+        self.outputs['outs'][group] = out_dir
+
+        contigs = [inputs[0]]
+        to_dos = status_update(self, tech, contigs, group=group)
+
+        png = '%s/carbon_cycle_sketch.png' % out_dir
+        if self.config.force or to_do(png):
+            cmd = abritamr_cmd(self, contigs, group, out_dir)
+            key = (tech, group)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
+            io_update(self, i_f=contigs, o_d=out_dir, key=key)
+            self.soft.add_status(tech, self.sam_pool, 1, group=group)
+        else:
+            self.soft.add_status(tech, self.sam_pool, 0, group=group)
+
+
 def ariba(self) -> None:
     """
 
