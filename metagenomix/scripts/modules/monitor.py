@@ -25,7 +25,9 @@ from metagenomix import __version__
 @click.option(
     "-o", "--out-dir", required=True, help="Path to pipeline output folder")
 @click.option(
-    "-s", "--summary", help="Path to summary output file")
+    "-r", "--result", help="Path to current results output file")
+@click.option(
+    "-s", "--software", multiple=True, help="Software(s) to manage (or 'all')")
 @click.option(
     "-m", "--metadata", required=True, help="Path to the metadata file")
 @click.option(
@@ -44,11 +46,8 @@ from metagenomix import __version__
     "--show-params/--no-show-params", default=False, show_default=False,
     help="Show all possible parameters for all softwares of your pipeline")
 @click.option(
-    "--force/--no-force", default=False, show_default=True,
-    help="Check as if the re-writing of scripts for all commands was planned")
-@click.option(
-    "--verbose/--no-verbose", default=False, show_default=True,
-    help="Whether to show input/outputs and other details")
+    "--jobs/--no-jobs", default=False, show_default=True,
+    help="Monitor the mem/cpu usage of previous jobs")
 @click.option(
     "--dev/--no-dev", default=False, show_default=True,
     help="For development...")
@@ -59,15 +58,15 @@ def monitor(
         fastq_pacbio,
         fastq_nanopore,
         out_dir,
-        summary,
+        result,
+        software,
         co_assembly,
         databases,
         pipeline,
         user_params,
         strains,
         show_params,
-        force,
-        verbose,
+        jobs,
         dev
 ):
     """Check IO/job status of your pipeline configuration."""
@@ -77,14 +76,14 @@ def monitor(
         pacbio_dirs=fastq_pacbio,
         nanopore_dirs=fastq_nanopore,
         output_dir=out_dir,
-        summary_fp=summary,
+        result_fp=result,
+        softwares=software,
         coassembly_yml=co_assembly,
         databases_yml=databases,
         pipeline_tsv=pipeline,
         user_params_yml=user_params,
         strains_yml=strains,
         show_params=show_params,
-        force=force,
-        verbose=verbose,
+        jobs=jobs,
         dev=dev
     )
