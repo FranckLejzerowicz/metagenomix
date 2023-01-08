@@ -2,9 +2,42 @@
 # ALL PARAMS MUST NOT CONTAIN HYPHENS
 # """""""""""""""""""""""""""""""""""
 
+# --------------- filtering -----------------
+filtering:
+  databases:
+    db_name_1: <absolute path to folder containing bowtie2 index for db_name_1>
+    db_name_2: <absolute path to folder containing bowtie2 index for db_name_2>
+    db_name_n: <absolute path to folder containing bowtie2 index for db_name_n>
+
+# --------------- fastp -----------------
+fastp:
+  cut_window_size:
+    illumina: 10
+    nanopore: 100
+
+# --------------- atropos -----------------
+#atropos:
+#  env: shogun
+#  machine: normal
+
+# --------------- hifiadapterfilt --------------
+hifiadapterfilt:
+  path: <absolute path to the folder containing "pbadapterfilt.sh">
+
+# --------------- kneaddata -----------------
+kneaddata:
+  trimmomatic: <absolute path to trimmomatic executable>
+  databases:
+  - <absolute path to folder containing bowtie2 index for db_name_1>
+  - <absolute path to folder containing bowtie2 index for db_name_2>
+  - <absolute path to folder containing bowtie2 index for db_name_n>
+#    - /databases/bowtie/Homo_sapiens_Bowtie2_v0.1/Homo_sapiens
+#    - /databases/bowtie/phiX/phix
+#    - /home/flejzerowicz/databases/SILVA_128/SILVA_128_LSUParc_SSUParc_ribosomal_RNA
+
 # --------------- simka -----------------
 simka:
-  path: /Users/franck/programs/simka
+  path: <absolute path to the simka installation folder>
   kmer:
     start: 10
     end: 100
@@ -18,34 +51,32 @@ simka:
   simkaMin: yes
   scratch: 9
 
-# --------------- fastp -----------------
-fastp:
-  cut_window_size:
-    illumina: 10
-    nanopore: 100
-
-# --------------- humann -----------------
-humann:
-  evalue: 0.1
-  identity:
-    illumina: 90
-    nanopore: 98
-  uniref: uniref90
-  query_cov: 80
-  subject_cov: 80
-  prescreen_threshold: 0.01
-  skip_translated: no
-  nucleotide_db: /path/to/full_chocophlan.v0.1.1/chocophlan
-  protein_db: /path/to/uniref90/uniref
-  profiles:
-    somename: somename_taxa_to_profile.txt
-
 # --------------- flash ------------------
 flash:
   min_overlap: 50
   max_overlap: 90
   mismatch: 0
-  scratch: scratch
+#  scratch: scratch
+
+# -------------- ngmerge ---------------
+ngmerge:
+  path: <absolute path to the folder containing "NGmerge">
+
+# --------------- humann -----------------
+humann:
+  evalue: 0.1
+  identity: 90
+  uniref: uniref90
+  query_cov: 80
+  subject_cov: 80
+  prescreen_threshold: 0.01
+  skip_translated: no
+  nucleotide_db: <absolute path to the chocophlan database folder>
+  protein_db: <absolute path to the uniref database folder>
+#  nucleotide_db: /path/to/full_chocophlan.v0.1.1/chocophlan
+#  protein_db: /path/to/uniref90/uniref
+  profiles:
+    <name>: <absolute path to a profiles file>
 
 # --------------- search -----------------
 search:
@@ -67,8 +98,15 @@ search:
     domE: 1
     max: yes
     nobias: yes
-    terms:
-      - metal
+    accessions:
+      - PF05635
+      - PF11591.11
+      - PF01257.22
+    interpro:
+      - /Users/franck/Downloads/entry-matching-O32201.tsv
+      - /Users/franck/Downloads/entry-matching-O32201_2.tsv
+    descriptions:
+      - qnr
       - antibiotic
   cpus: 4
 
@@ -92,7 +130,7 @@ metawrap:
     - concoct
   min_contig_length: 1000
   min_completion: 25
-  min_contamination: 5
+  max_contamination: 5
   reassembly:
     - strict
     - permissive
@@ -110,6 +148,13 @@ metawrap_blobology:
   chunks: 5
   scratch: scratch
 
+metawrap_refine:
+  min_completion: 85
+  skip_samples:
+    - ERR5948198
+    - ERR5948211
+    - "10_20"
+
 # --------------- kraken2 -----------------
 kraken2:
   confidence: 0.8
@@ -117,17 +162,9 @@ kraken2:
     - default
     - wol
 
-# --------------- kraken2 -----------------
+# --------------- bracken -----------------
 bracken:
   path: /dummy
-
-# --------------- kneaddata -----------------
-kneaddata:
-  trimmomatic: '/some/path/to/trimmomatic'
-  databases:
-    - /databases/bowtie/Homo_sapiens_Bowtie2_v0.1/Homo_sapiens
-    - /databases/bowtie/phiX/phix
-    - /home/flejzerowicz/databases/SILVA_128/SILVA_128_LSUParc_SSUParc_ribosomal_RNA
 
 # --------------- shogun -----------------
 shogun:
@@ -240,6 +277,7 @@ midas:
   focus:
     prokaryotes: /path/to/prokaryotes_species_list.txt
     chemosynths: /path/to/chemosynths_species_list.txt
+  path: /dummy
 
 # --------------- midas2 -----------------
 midas2:
@@ -253,25 +291,17 @@ midas2:
 strainphlan:
   env: phlans
 
-# --------------- atropos -----------------
-atropos:
-  env: shogun
-
 # --------------- integron_finder -----------------
 integron_finder:
   pdf: false
   union_integrases: true
 
-# --------------- filtering -----------------
-filtering:
-  databases:
-    Homo_sapiens: /databases/bowtie/Homo_sapiens_Bowtie2_v0.1/Homo_sapiens
-    Pan_troglodites: /databases/bowtie/Pan_troglodites_Bowtie2_v0.1/Pan_troglodites
 
 
 # --------------- quast -----------------
 quast:
   label: light
+  path: /path
 
 # --------------- prokka -----------------
 prokka:
@@ -288,13 +318,6 @@ cazy:
   taxa:
     name_of_a_taxon: /path/to/my/dbcan/taxa/groups/a.txt
     name_of_another_taxon: /path/to/my/dbcan/taxa/groups/b.txt
-
-# -------------- metaxa2 -----------------
-metaxa2:
-  databases:
-    - default
-    - silva138
-  T: 0,50,60,70,80,95,98
 
 # -------------- drep -----------------
 drep:
@@ -330,9 +353,6 @@ canu:
 necat:
   path: /path/to/necat/dir
 
-# -------------- ngmerge ---------------
-ngmerge:
-  path: /path/to/ngmerge/dir
 
 # -------------- deeparg ---------------
 deeparg:
@@ -353,10 +373,6 @@ karga:
 kargva:
   path: /some/path/to/folder
 
-# --------------- hifiadapterfilt --------------
-hifiadapterfilt:
-  path: /some/path/to/bin
-
 # --------------- amrplusplus2 --------------
 amrplusplus2:
   path: /some/path/to/bin
@@ -368,11 +384,11 @@ amrfinderplus:
 
 # --------------- mappings --------------
 mapping:
-#  per_tech: yes
-  per_tech: no
-  mappers:
+  per_tech: yes
+#  per_tech: no
+  aligners:
     - bowtie2
-    - minimap2
+#    - minimap2
   #  - bbmap
   mem: 100
   chunks: 1
@@ -381,7 +397,7 @@ mapping:
       presets: very-fast
     illumina:
       presets: fast
-    paired: false
+    paired: true
     ma: 2
     mp: 4
     mem: 40
@@ -395,3 +411,44 @@ mapping:
     skip: 1000000
     upto: 25000
     no_unal: true
+
+# ------------------- metaclade2 ----------------------
+metaclade2:
+  path: /dummy
+
+# ------------------- metaxa2 -----------------------
+metaxa2:
+  databases:
+    - default
+    - silva138
+    - greengenes
+    - wol_ssu
+    - wol_ssu_g
+  T: 0,50,60,70,80,95,98
+
+# ------------------- deepvirfinder -----------------------
+deepvirfinder:
+  model_dir: <absolute path to folder containing deepvirfinder models>
+
+# ------------------ metacompare -------------------
+metacompare:
+  cpus: 12
+  path: /path
+
+# ------------------ oritfinder -------------------
+oritfinder:
+  cpus: 12
+  path: /path
+
+# --------------- yamb ----------------
+yamb:
+  path: /path
+
+# ----------------- binspreader -------------------
+binspreader:
+  path: /path
+
+# ----------------- ccfind ------------------
+ccfind:
+  binary: /path/ccfind
+  path: /path
