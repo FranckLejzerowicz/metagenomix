@@ -1,0 +1,12 @@
+diting:
+  chunks: 4
+  cpus: 12
+  env: diting-env
+  machine: saga
+  mem: 5
+  mem_dim: gb
+  noclean: false
+  nodes: 1
+  partition: null
+  scratch: scratch
+  time: 48

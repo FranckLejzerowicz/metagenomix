@@ -1,0 +1,14 @@
+abritamr:
+  chunks: 4
+  cpus: 12
+  env: abritamr
+  identity: 0.9
+  machine: saga
+  mem: 5
+  mem_dim: gb
+  nodes: 1
+  partition: null
+  scratch: scratch
+  sop: general
+  species: null
+  time: 72
