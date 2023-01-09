@@ -1382,9 +1382,9 @@ def abritamr_cmd(
     txt = '%s/contigs.txt' % out_dir
     for cdx, contig_path in enumerate(contig_paths):
         if cdx:
-            cmd += 'echo -e "%s\t%s" >> %s\n' % (group, contig_path, txt)
+            cmd += 'echo -e "%s\\t%s" >> %s\n' % (group, contig_path, txt)
         else:
-            cmd += 'echo -e "%s\t%s" > %s\n' % (group, contig_path, txt)
+            cmd += 'echo -e "%s\\t%s" > %s\n' % (group, contig_path, txt)
         if cmd:
             cmd += 'envsubst < %s > %s.tmp\n' % (txt, txt)
             cmd += 'mv %s.tmp %s\n' % (txt, txt)
