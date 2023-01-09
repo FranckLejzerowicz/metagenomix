@@ -582,7 +582,7 @@ def get_contigs(
     for group, assembly_outputs in sorted(self.inputs[pool].items()):
         if group[0] != tech:
             continue
-        contigs[group] = assembly_outputs[0]
+        contigs[group[1]] = assembly_outputs[0]
     return contigs
 
 
