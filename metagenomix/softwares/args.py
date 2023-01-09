@@ -1429,7 +1429,7 @@ def abritamr_all(self):
             self.outputs['outs'][pool] = out_dir
 
             contigs = get_contigs(self, tech, pool)
-            contigs_list = [y for x in contigs.values() for y in x]
+            contigs_list = list(contigs.values())
             to_dos = status_update(self, tech, contigs_list)
 
             out = '%s/summary_matches.txt.gz' % out_dir
