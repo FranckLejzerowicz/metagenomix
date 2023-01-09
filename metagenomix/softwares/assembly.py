@@ -47,6 +47,8 @@ def quast_data(
     """
     contigs, labels = [], []
     for group, assembly_outputs in sorted(self.inputs[pool].items()):
+        if group[1] in self.soft.params['skip_samples']:
+            continue
         if group[0] != tech:
             continue
         contigs.append(assembly_outputs[0])
@@ -487,7 +489,7 @@ def megahit_cmd(
         if self.soft.params[boolean]:
             m_cmd += ' --%s' % boolean.replace('_', '-')
     m_cmd += ' --out-dir %s' % out
-    if self.soft.params['continue'] and not to_do(folder=inter_dir):
+    if self.soft.params['continue'] and not to_do(inter_dir):
         m_cmd += ' --continue\n'
     else:
         if len(inputs) == 3:
