@@ -576,6 +576,10 @@ def check_quast(self, params, soft):
         'references_list': [None],
         'g': [None]
     }
+    if 'skip_samples' not in params:
+        params['skip_samples'] = [None]
+    elif not isinstance(params['skip_samples'], list):
+        sys.exit('[%s] Param "skip_samples" not a (samples) list' % soft.name)
     for param in ['contig_thresholds', 'gene_thresholds']:
         if param in params:
             if [x for x in str(params[param]).split(',') if not x.isdigit()]:
@@ -601,6 +605,7 @@ def check_quast(self, params, soft):
     defaults['label'] = '<an existing metadata column>'
     check_binary(self, soft.name, params, defaults, 'path')
     defaults['path'] = '<path to the quast installation folder>'
+    defaults['skip_samples'] = '<list of samples / co-assembly groups to skip>'
     return defaults
 
 
@@ -3885,7 +3890,14 @@ def check_oritfinder(self, params, soft):
 
 def check_diting(self, params, soft):
     defaults = {'noclean': [False, True]}
+    if 'samples' not in params:
+        params['samples'] = 'all'
+    else:
+        if not isinstance(params['samples'], list):
+            if params['samples'] not in ['all', ]:
+                sys.exit('[diting] Param "samples" not a list or "all"')
     check_default(self, params, defaults, soft.name)
+    defaults['samples'] = '<list of samples/co-assembly groups or "all">'
     return defaults
 
 
