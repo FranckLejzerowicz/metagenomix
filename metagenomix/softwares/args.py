@@ -9,7 +9,7 @@
 import sys
 from os.path import basename, dirname, splitext
 from metagenomix._inputs import (
-    sample_inputs, group_inputs, genome_key, genome_out_dir)
+    sample_inputs, group_inputs, genome_key, genome_out_dir, get_contigs)
 from metagenomix._io_utils import (
     caller, io_update, to_do, tech_specificity, not_paired,
     status_update, get_assembly)
@@ -1354,7 +1354,7 @@ def metacompare(self) -> None:
 
 def abritamr_cmd(
         self,
-        contigs: list,
+        contigs: dict,
         out_dir: str,
 ) -> str:
     """Collect the command line for abriTAMR.
@@ -1362,7 +1362,7 @@ def abritamr_cmd(
     Parameters
     ----------
     self
-    contigs : list
+    contigs : dict
     out_dir : str
 
     Returns
@@ -1372,21 +1372,20 @@ def abritamr_cmd(
     """
     cmd, cmd_rm = '', ''
     contig_paths = {}
-    for contig in contigs:
+    for group, contig in contigs.items():
         if contig.endswith('.fa.gz') or contig.endswith('.fasta.gz'):
             cmd += 'gunzip -c %s > %s\n' % (contig, contig.rstrip('.gz'))
-            base = basename(contig).rsplit('.f')[0]
             contig = contig.rstrip('.gz')
-            contig_paths[base] = contig
+            contig_paths[group] = contig
             cmd_rm += 'rm %s\n' % contig
 
     if self.soft.params['samples'] == 'all':
         txt = '%s/contigs.txt' % out_dir
-        for cdx, (base, contig_path) in enumerate(contig_paths.items()):
+        for cdx, (group, contig_path) in enumerate(contig_paths.items()):
             if cdx:
-                cmd += 'echo -e "%s\\t%s" >> %s\n' % (base, contig_path, txt)
+                cmd += 'echo -e "%s\\t%s" >> %s\n' % (group, contig_path, txt)
             else:
-                cmd += 'echo -e "%s\\t%s" > %s\n' % (base, contig_path, txt)
+                cmd += 'echo -e "%s\\t%s" > %s\n' % (group, contig_path, txt)
                 cmd_rm += 'rm %s\n' % txt
         if cmd:
             cmd += 'envsubst < %s > %s.tmp\n' % (txt, txt)
@@ -1397,7 +1396,7 @@ def abritamr_cmd(
     if self.soft.params['samples'] == 'all':
         cmd += ' --contigs %s' % txt
     else:
-        cmd += ' --contigs %s' % contigs[0]
+        cmd += ' --contigs %s' % contig
     cmd += ' --identity %s' % self.soft.params['identity']
     if self.soft.params['species']:
         cmd += ' --species %s' % self.soft.params['species']
@@ -1416,44 +1415,6 @@ def abritamr_cmd(
     return cmd
 
 
-def abritarm_contigs(
-        self,
-        tech: str,
-        pool: str
-) -> tuple:
-    """Collect the paths to the contigs for all the co-assembly groups of the
-    current co-assembly pool name, and those that are not yet generated.
-
-    Parameters
-    ----------
-    self : Commands class instance
-        .inputs : dict
-            Input files
-        .soft.params
-            Parameters
-        .config
-            Configurations
-    tech : str
-        Technology: 'illumina', 'pacbio', or 'nanopore'
-    pool : str
-        Name of the co-assembly pool
-
-    Returns
-    -------
-    contigs : list
-        Paths to the contigs assembly files
-    to_dos : list
-        Samples contigs that must first be generated
-    """
-    contigs = []
-    for group, assembly_outputs in sorted(self.inputs[pool].items()):
-        if group[0] != tech:
-            continue
-        contigs.append(assembly_outputs[0])
-    to_dos = status_update(self, tech, contigs)
-    return contigs, to_dos
-
-
 def abritamr_all(self):
     """Run abritamr on all samples contigs.
 
@@ -1467,16 +1428,19 @@ def abritamr_all(self):
             self.outputs['dirs'].append(out_dir)
             self.outputs['outs'][pool] = out_dir
 
+            contigs = get_contigs(self, tech, pool)
+            contigs_list = [y for x in contigs.values() for y in x]
+            to_dos = status_update(self, tech, contigs_list)
+
             out = '%s/summary_matches.txt.gz' % out_dir
             if self.config.force or to_do(out):
-                contigs, to_dos = abritarm_contigs(self, tech, pool)
                 cmd = abritamr_cmd(self, contigs, out_dir)
                 key = (tech, pool)
                 if to_dos:
                     self.outputs['cmds'].setdefault(key, []).append(False)
                 else:
                     self.outputs['cmds'].setdefault(key, []).append(cmd)
-                io_update(self, i_f=contigs, o_d=out_dir, key=key)
+                io_update(self, i_f=contigs_list, o_d=out_dir, key=key)
                 self.soft.add_status(tech, pool, 1)
             else:
                 self.soft.add_status(tech, pool, 0)
@@ -1494,8 +1458,8 @@ def abritamr_sample(self):
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'][group] = out_dir
 
-        contigs = [inputs[0]]
-        to_dos = status_update(self, tech, contigs, group=group)
+        contigs = {group: inputs[0]}
+        to_dos = status_update(self, tech, [inputs[0]], group=group)
 
         out = '%s/summary_matches.txt.gz' % out_dir
         if self.config.force or to_do(out):
@@ -1505,7 +1469,7 @@ def abritamr_sample(self):
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
-            io_update(self, i_f=contigs, o_d=out_dir, key=key)
+            io_update(self, i_f=inputs[0], o_d=out_dir, key=key)
             self.soft.add_status(tech, self.sam_pool, 1, group=group)
         else:
             self.soft.add_status(tech, self.sam_pool, 0, group=group)
