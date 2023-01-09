@@ -8,5 +8,6 @@ diting:
   noclean: false
   nodes: 1
   partition: null
+  samples: all
   scratch: scratch
   time: 48
