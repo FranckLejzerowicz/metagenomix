@@ -111,7 +111,7 @@ class Commands(object):
             self.struc = dict
 
     def make_holistic(self):
-        if self.soft.name in ['abritamr']:
+        if self.soft.name in ['abritamr', 'diting']:
             if self.soft.params['samples'] == 'all':
                 self.holistics.add(self.soft.name)
 
