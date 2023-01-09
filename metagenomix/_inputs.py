@@ -586,7 +586,7 @@ def get_contigs(
     return contigs
 
 
-def get_sams(self, group: str) -> list:
+def get_sams(self, group: str, pool: str = None) -> list:
     """Get the sample name(s).
 
     Parameters
@@ -594,13 +594,18 @@ def get_sams(self, group: str) -> list:
     self
     group : str
         Name of a co-assembly pool's group
+    pool : str
+        Name of the co-assembly
 
     Returns
     -------
     sams : list
         Sample name(s)
     """
-    pools = self.pools[self.sam_pool]
+    if pool:
+        pools = self.pools[pool]
+    else:
+        pools = self.pools[self.sam_pool]
     if group in pools:
         sams = pools[group]
     else:
@@ -612,7 +617,8 @@ def get_group_reads(
         self,
         tech: str,
         group: str,
-        reads: dict
+        reads: dict,
+        pool: str = None
 ) -> dict:
     """Subset to the path(s) of input fastq file(s) per sample and
     tech/sample for the samples in the current co-assembly group(s).
@@ -626,13 +632,15 @@ def get_group_reads(
         Name of a co-assembly pool's group
     reads : dict
         Path(s) to the input fastq file(s) per sample and tech/sample
+    pool : str
+        Name of the co-assembly
 
     Returns
     -------
     group_reads : dict
         Path(s) to the input fastq file(s) per sample and tech/sample
     """
-    sams = get_sams(self, group)
+    sams = get_sams(self, group, pool)
     per_tech = self.soft.params.get('per_tech', False)
     group_reads = {}
     for sam in sams:
