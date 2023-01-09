@@ -551,6 +551,41 @@ def get_reads(self, step: str = 'preprocessing', soft: str = None) -> dict:
     return reads
 
 
+def get_contigs(
+        self,
+        tech: str,
+        pool: str
+) -> dict:
+    """Collect the paths to the contigs for all the co-assembly groups of the
+    current co-assembly pool name, and those that are not yet generated.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .inputs : dict
+            Input files
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    pool : str
+        Name of the co-assembly pool
+
+    Returns
+    -------
+    contigs : dict
+        Paths to the contigs assembly files per co-assembly group
+    """
+    contigs = {}
+    for group, assembly_outputs in sorted(self.inputs[pool].items()):
+        if group[0] != tech:
+            continue
+        contigs[group] = assembly_outputs[0]
+    return contigs
+
+
 def get_sams(self, group: str) -> list:
     """Get the sample name(s).
 
