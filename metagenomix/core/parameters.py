@@ -3902,8 +3902,15 @@ def check_abritamr(self, params, soft):
                     'Staphylococcus_aureus', 'Burkholderia_pseudomallei',
                     'Enterococcus_faecalis']
     }
+    if 'samples' not in params:
+        params['samples'] = 'all'
+    else:
+        if not isinstance(params['samples'], list):
+            if params['samples'] != 'all':
+                sys.exit('[abritamr] Param "samples" not a list or "all"')
     check_nums(self, params, defaults, ['identity'], float, soft.name, 0, 1)
     check_default(self, params, defaults, soft.name, ['identity'])
+    defaults['samples'] = '<list of samples/co-assembly groups or "all">'
     return defaults
 
 
