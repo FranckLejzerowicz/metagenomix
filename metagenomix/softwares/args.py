@@ -1244,6 +1244,8 @@ def metacompare_cmd(
         cmd_rm += 'rm %s\n' % genes.rstrip('.gz')
         genes = genes.rstrip('.gz')
 
+    cmd += 'mkdir -p %s\n' % dirname(out)
+
     cmd += '%s/metacmp.py' % self.soft.params['path']
     cmd += ' -c %s' % contigs
     cmd += ' -g %s' % genes
