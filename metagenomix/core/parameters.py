@@ -3891,13 +3891,13 @@ def check_oritfinder(self, params, soft):
 def check_diting(self, params, soft):
     defaults = {'noclean': [False, True]}
     if 'samples' not in params:
-        params['samples'] = 'all'
+        params['samples'] = None
     else:
         if not isinstance(params['samples'], list):
-            if params['samples'] not in ['all', ]:
-                sys.exit('[diting] Param "samples" not a list or "all"')
+            if params['samples'] not in ['all', None]:
+                sys.exit('[diting] Param "samples" not list, "all" or "null"')
     check_default(self, params, defaults, soft.name)
-    defaults['samples'] = '<list of samples/co-assembly groups or "all">'
+    defaults['samples'] = '<list of samples/co-assembly groups, "all" or null>'
     return defaults
 
 
@@ -3915,14 +3915,14 @@ def check_abritamr(self, params, soft):
                     'Enterococcus_faecalis']
     }
     if 'samples' not in params:
-        params['samples'] = 'all'
+        params['samples'] = None
     else:
         if not isinstance(params['samples'], list):
-            if params['samples'] != 'all':
-                sys.exit('[abritamr] Param "samples" not a list or "all"')
+            if params['samples'] not in ['all', None]:
+                sys.exit('[abritamr] Param "samples" not list, "all" or "null"')
     check_nums(self, params, defaults, ['identity'], float, soft.name, 0, 1)
     check_default(self, params, defaults, soft.name, ['identity'])
-    defaults['samples'] = '<list of samples/co-assembly groups or "all">'
+    defaults['samples'] = '<list of samples/co-assembly groups, "all" or null>'
     return defaults
 
 
