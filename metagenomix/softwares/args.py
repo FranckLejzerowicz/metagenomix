@@ -1389,6 +1389,7 @@ def abritamr_cmd(
             cmd += 'envsubst < %s > %s.tmp\n' % (txt, txt)
             cmd += 'mv %s.tmp %s\n' % (txt, txt)
 
+    cmd += 'cd %s\n' % out_dir
     cmd += 'abritamr run'
     cmd += ' --contigs %s' % txt
     cmd += ' --identity %s' % self.soft.params['identity']
@@ -1404,6 +1405,7 @@ def abritamr_cmd(
     # cmd += ' --sop %s' % self.soft.params['sop']
     # cmd += ' --sop_name %s\n'
 
+    cmd += 'gzip -q *\n'
     cmd += cmd_rm
     return cmd
 
@@ -1441,8 +1443,8 @@ def abritamr(self) -> None:
         contigs = [inputs[0]]
         to_dos = status_update(self, tech, contigs, group=group)
 
-        png = '%s/carbon_cycle_sketch.png' % out_dir
-        if self.config.force or to_do(png):
+        out = '%s/summary_matches.txt.gz' % out_dir
+        if self.config.force or to_do(out):
             cmd = abritamr_cmd(self, contigs, group, out_dir)
             key = (tech, group)
             if to_dos:
