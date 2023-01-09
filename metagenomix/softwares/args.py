@@ -1353,8 +1353,7 @@ def metacompare(self) -> None:
 def abritamr_cmd(
         self,
         contigs: list,
-        group: str,
-        out_dir: str
+        out_dir: str,
 ) -> str:
     """Collect the command line for abriTAMR.
 
@@ -1362,7 +1361,6 @@ def abritamr_cmd(
     ----------
     self
     contigs : list
-    group : str
     out_dir : str
 
     Returns
@@ -1379,20 +1377,25 @@ def abritamr_cmd(
             contig_paths.append(contig)
             cmd_rm += 'rm %s\n' % contig
 
-    txt = '%s/contigs.txt' % out_dir
-    for cdx, contig_path in enumerate(contig_paths):
-        if cdx:
-            cmd += 'echo -e "%s\\t%s" >> %s\n' % (group, contig_path, txt)
-        else:
-            cmd += 'echo -e "%s\\t%s" > %s\n' % (group, contig_path, txt)
+    if self.soft.params['samples'] == 'all':
+        txt = '%s/contigs.txt' % out_dir
+        for cdx, contig_path in enumerate(contig_paths):
+            base = basename(contig_path).rsplit('.f')[0]
+            if cdx:
+                cmd += 'echo -e "%s\\t%s" >> %s\n' % (base, contig_path, txt)
+            else:
+                cmd += 'echo -e "%s\\t%s" > %s\n' % (base, contig_path, txt)
+                cmd_rm += 'rm %s\n' % txt
         if cmd:
             cmd += 'envsubst < %s > %s.tmp\n' % (txt, txt)
             cmd += 'mv %s.tmp %s\n' % (txt, txt)
-            cmd_rm += 'rm %s\n' % txt
 
     cmd += 'cd %s\n' % out_dir
     cmd += 'abritamr run'
-    cmd += ' --contigs %s' % txt
+    if self.soft.params['samples'] == 'all':
+        cmd += ' --contigs %s' % txt
+    else:
+        cmd += ' --contigs %s' % contigs[0]
     cmd += ' --identity %s' % self.soft.params['identity']
     if self.soft.params['species']:
         cmd += ' --species %s' % self.soft.params['species']
@@ -1409,6 +1412,101 @@ def abritamr_cmd(
     cmd += 'gzip -q *\n'
     cmd += cmd_rm
     return cmd
+
+
+def abritarm_contigs(
+        self,
+        tech: str,
+        pool: str
+) -> tuple:
+    """Collect the paths to the contigs for all the co-assembly groups of the
+    current co-assembly pool name, and those that are not yet generated.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .inputs : dict
+            Input files
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    pool : str
+        Name of the co-assembly pool
+
+    Returns
+    -------
+    contigs : list
+        Paths to the contigs assembly files
+    to_dos : list
+        Samples contigs that must first be generated
+    """
+    contigs = []
+    for group, assembly_outputs in sorted(self.inputs[pool].items()):
+        if group[0] != tech:
+            continue
+        contigs.append(assembly_outputs[0])
+    to_dos = status_update(self, tech, contigs)
+    return contigs, to_dos
+
+
+def abritamr_all(self):
+    """Run abritamr on all samples contigs.
+
+    Parameters
+    ----------
+    self : Commands class instance
+    """
+    for pool, group_sams in self.pools.items():
+        for tech in set([x[0] for x in self.inputs[pool]]):
+            out_dir = '%s/%s/%s' % (self.dir, tech, pool)
+            self.outputs['dirs'].append(out_dir)
+            self.outputs['outs'][pool] = out_dir
+
+            out = '%s/summary_matches.txt.gz' % out_dir
+            if self.config.force or to_do(out):
+                contigs, to_dos = abritarm_contigs(self, tech, pool)
+                cmd = abritamr_cmd(self, contigs, out_dir)
+                key = (tech, pool)
+                if to_dos:
+                    self.outputs['cmds'].setdefault(key, []).append(False)
+                else:
+                    self.outputs['cmds'].setdefault(key, []).append(cmd)
+                io_update(self, i_f=contigs, o_d=out_dir, key=key)
+                self.soft.add_status(tech, pool, 1)
+            else:
+                self.soft.add_status(tech, pool, 0)
+
+
+def abritamr_sample(self):
+    """Run abritamr on a single sample.
+
+    Parameters
+    ----------
+    self : Commands class instance
+    """
+    for (tech, group), inputs in self.inputs[self.sam_pool].items():
+        out_dir = '/'.join([self.dir, tech, self.sam_pool, group])
+        self.outputs['dirs'].append(out_dir)
+        self.outputs['outs'][group] = out_dir
+
+        contigs = [inputs[0]]
+        to_dos = status_update(self, tech, contigs, group=group)
+
+        out = '%s/summary_matches.txt.gz' % out_dir
+        if self.config.force or to_do(out):
+            cmd = abritamr_cmd(self, contigs, out_dir)
+            key = (tech, group)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
+            io_update(self, i_f=contigs, o_d=out_dir, key=key)
+            self.soft.add_status(tech, self.sam_pool, 1, group=group)
+        else:
+            self.soft.add_status(tech, self.sam_pool, 0, group=group)
 
 
 def abritamr(self) -> None:
@@ -1436,26 +1534,11 @@ def abritamr(self) -> None:
     """
     if self.config.tools[self.soft.prev] != 'assembling':
         sys.exit('[tiara] can only be run on assembly output')
-    for (tech, group), inputs in self.inputs[self.sam_pool].items():
-        out_dir = '/'.join([self.dir, tech, self.sam_pool, group])
-        self.outputs['dirs'].append(out_dir)
-        self.outputs['outs'][group] = out_dir
 
-        contigs = [inputs[0]]
-        to_dos = status_update(self, tech, contigs, group=group)
-
-        out = '%s/summary_matches.txt.gz' % out_dir
-        if self.config.force or to_do(out):
-            cmd = abritamr_cmd(self, contigs, group, out_dir)
-            key = (tech, group)
-            if to_dos:
-                self.outputs['cmds'].setdefault(key, []).append(False)
-            else:
-                self.outputs['cmds'].setdefault(key, []).append(cmd)
-            io_update(self, i_f=contigs, o_d=out_dir, key=key)
-            self.soft.add_status(tech, self.sam_pool, 1, group=group)
-        else:
-            self.soft.add_status(tech, self.sam_pool, 0, group=group)
+    if self.soft.params['samples'] == 'all':
+        abritamr_all(self)
+    else:
+        abritamr_sample(self)
 
 
 def ariba(self) -> None:
