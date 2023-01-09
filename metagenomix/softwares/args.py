@@ -1369,18 +1369,18 @@ def abritamr_cmd(
         abriTAMR command
     """
     cmd, cmd_rm = '', ''
-    contig_paths = []
+    contig_paths = {}
     for contig in contigs:
         if contig.endswith('.fa.gz') or contig.endswith('.fasta.gz'):
             cmd += 'gunzip -c %s > %s\n' % (contig, contig.rstrip('.gz'))
+            base = basename(contig).rsplit('.f')[0]
             contig = contig.rstrip('.gz')
-            contig_paths.append(contig)
+            contig_paths[base] = contig
             cmd_rm += 'rm %s\n' % contig
 
     if self.soft.params['samples'] == 'all':
         txt = '%s/contigs.txt' % out_dir
-        for cdx, contig_path in enumerate(contig_paths):
-            base = basename(contig_path).rsplit('.f')[0]
+        for cdx, (base, contig_path) in enumerate(contig_paths.items()):
             if cdx:
                 cmd += 'echo -e "%s\\t%s" >> %s\n' % (base, contig_path, txt)
             else:
