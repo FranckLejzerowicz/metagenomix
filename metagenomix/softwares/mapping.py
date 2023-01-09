@@ -6,10 +6,10 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 import sys
-import glob
-from os.path import basename, dirname, splitext
+from os.path import basename, splitext
 from metagenomix._io_utils import io_update, status_update
 from metagenomix.core.parameters import tech_params
+from metagenomix._io_utils import to_do
 from metagenomix._inputs import (
     group_inputs, genome_key, genome_out_dir, get_reads, get_group_reads)
 from metagenomix.softwares.alignment import (
@@ -195,8 +195,7 @@ def raw(
                 out = '/'.join([out_dir, sam, reads_tech, ali])
                 self.outputs['dirs'].append(out)
                 self.outputs['outs'].setdefault(cur_key, []).append(out)
-                if self.config.force or not glob.glob(
-                        '%s/*.bam' % out.replace('${SCRATCH_FOLDER}', '')):
+                if self.config.force or to_do(out):
                     cmd, bams = get_cmds(sam, out, fastqs, fastas, ali, params)
                     if to_dos or reads_to_dos:
                         self.outputs['cmds'].setdefault(key, []).append(False)
