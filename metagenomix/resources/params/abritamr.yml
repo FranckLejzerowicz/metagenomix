@@ -8,6 +8,7 @@ abritamr:
   mem_dim: gb
   nodes: 1
   partition: null
+  samples: all
   scratch: scratch
   sop: general
   species: null
