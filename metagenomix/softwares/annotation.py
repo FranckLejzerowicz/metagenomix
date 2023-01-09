@@ -12,8 +12,9 @@ import sys
 import pkg_resources
 from os.path import basename, isdir, splitext
 
-from metagenomix._inputs import (sample_inputs, group_inputs, genome_key,
-                                 genome_out_dir, get_reads, get_group_reads)
+from metagenomix._inputs import (
+    sample_inputs, group_inputs, genome_key, genome_out_dir, get_reads,
+    get_group_reads, get_contigs)
 from metagenomix._io_utils import caller, io_update, to_do, status_update
 from metagenomix.core.parameters import tech_params
 
@@ -1783,7 +1784,8 @@ def diting_cmd(
         tech: str,
         contigs: dict,
         all_reads: dict,
-        out: str
+        out: str,
+        pool: str = None
 ) -> str:
     """Get command line for DiTing.
 
@@ -1794,6 +1796,8 @@ def diting_cmd(
     contigs : dict
     all_reads : dict
     out : str
+    pool : str
+        Name of the co-assembly
 
     Returns
     -------
@@ -1806,12 +1810,13 @@ def diting_cmd(
     cmd += 'mkdir tmp\n'
     cmd += 'mkdir reads\n'
     cmd += 'mkdir contigs\n'
-
     for group, contig in contigs.items():
-        reads = get_group_reads(self, tech, group, all_reads)
+        reads = get_group_reads(self, tech, group, all_reads, pool)
         cmd += concat_group_reads(group, reads)
         if contig.endswith('.fa.gz') or contig.endswith('.fasta.gz'):
             cmd += 'gunzip -c %s > contigs/%s.fa\n' % (contig, group)
+        else:
+            cmd += 'cp %s contigs/%s.fa\n' % (contig, group)
 
     cmd += 'diting.py'
     cmd += ' --reads reads'
@@ -1856,6 +1861,38 @@ def diting_sample(self, all_reads: dict):
             self.soft.add_status(tech, self.sam_pool, 1, group=group)
         else:
             self.soft.add_status(tech, self.sam_pool, 0, group=group)
+
+
+def diting_all(self, all_reads: dict):
+    """Run diting on a single sample.
+
+    Parameters
+    ----------
+    self : Commands class instance
+    all_reads : dict
+    """
+    for pool, group_sams in self.pools.items():
+        for tech in set([x[0] for x in self.inputs[pool]]):
+            out_dir = '%s/%s/%s' % (self.dir, tech, pool)
+            self.outputs['dirs'].append(out_dir)
+            self.outputs['outs'][pool] = out_dir
+
+            contigs = get_contigs(self, tech, pool)
+            contigs_list = list(contigs.values())
+            to_dos = status_update(self, tech, contigs_list)
+
+            png = '%s/carbon_cycle_sketch.png' % out_dir
+            if self.config.force or to_do(png):
+                cmd = diting_cmd(self, tech, contigs, all_reads, out_dir, pool)
+                key = (tech, pool)
+                if to_dos:
+                    self.outputs['cmds'].setdefault(key, []).append(False)
+                else:
+                    self.outputs['cmds'].setdefault(key, []).append(cmd)
+                io_update(self, i_f=contigs_list, o_d=out_dir, key=key)
+                self.soft.add_status(tech, pool, 1)
+            else:
+                self.soft.add_status(tech, pool, 0)
 
 
 def diting(self):
