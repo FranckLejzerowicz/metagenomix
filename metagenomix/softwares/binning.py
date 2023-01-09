@@ -1206,33 +1206,6 @@ def summarize_yamb(self):
     pass
 
 
-def mycc(self):
-    """
-    Automated binning tool that combines genomic signatures, marker genes and
-    optional contig coverages within one or multiple samples, in order to
-    visualize the metagenomes and to identify the reconstructed genomic
-    fragments.
-
-    References
-    ----------
-    Lin, H.H. and Liao, Y.C., 2016. Accurate binning of metagenomic
-    contigs via automated clustering sequences using information of genomic
-    signatures and marker genes. Scientific reports, 6(1), pp.1-8.
-
-    Notes
-    -----
-    Code    : https://sourceforge.net/projects/sb2nhri/files/MyCC/
-    Docs    : http://sourceforge.net/projects/sb2nhri/files/MyCC/.
-    Paper   : https://doi.org/10.1038/srep24175
-
-    Parameters
-    ----------
-    self : Commands class instance
-        Contains all the attributes needed for binning on the current sample
-    """
-    pass
-
-
 def binspreader_cmd(
         self,
         tech: str,
@@ -1346,6 +1319,33 @@ def binspreader(self):
                 self.soft.add_status(tech, self.sam_pool, 1, group=group)
             else:
                 self.soft.add_status(tech, self.sam_pool, 0, group=group)
+
+
+def mycc(self):
+    """
+    Automated binning tool that combines genomic signatures, marker genes and
+    optional contig coverages within one or multiple samples, in order to
+    visualize the metagenomes and to identify the reconstructed genomic
+    fragments.
+
+    References
+    ----------
+    Lin, H.H. and Liao, Y.C., 2016. Accurate binning of metagenomic
+    contigs via automated clustering sequences using information of genomic
+    signatures and marker genes. Scientific reports, 6(1), pp.1-8.
+
+    Notes
+    -----
+    Code    : https://sourceforge.net/projects/sb2nhri/files/MyCC/
+    Docs    : http://sourceforge.net/projects/sb2nhri/files/MyCC/.
+    Paper   : https://doi.org/10.1038/srep24175
+
+    Parameters
+    ----------
+    self : Commands class instance
+        Contains all the attributes needed for binning on the current sample
+    """
+    pass
 
 
 def metabinner(self):
