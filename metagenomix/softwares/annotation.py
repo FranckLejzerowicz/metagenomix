@@ -1740,11 +1740,49 @@ def tiara(self) -> None:
             self.soft.add_status(tech, self.sam_pool, 0, group=group)
 
 
+def concat_group_reads(
+        group: str,
+        reads: dict
+) -> str:
+    """
+
+    Parameters
+    ----------
+    group : str
+        Name of the current co-assembly group
+    reads : dict
+        Path(s) to reads per sample(s) of the current co-assembly group
+
+    Returns
+    -------
+    cmd : str
+        gzip and concat of reads fastq file(s)
+    """
+    cmd = ''
+    fqs = {0: [], 1: []}
+    for sam, tech_files in reads.items():
+        for (tech, _), fastqs in tech_files.items():
+            if len(fastqs) < 2:
+                continue
+            for r in [0, 1]:
+                fastq = fastqs[r].replace('${SCRATCH_FOLDER}', '')
+                if fastq.endswith('.gz'):
+                    fqs[r].append(fastq)
+                else:
+                    fastq_gz = 'tmp/%s.gz' % basename(fastq)
+                    cmd += 'gzip -c %s > %s\n' % (fastq, fastq_gz)
+                    fqs[r].append(fastq_gz)
+
+    cmd += 'cat %s > reads/%s_1.fastq.gz\n' % (' '.join(fqs[0]), group)
+    cmd += 'cat %s > reads/%s_2.fastq.gz\n' % (' '.join(fqs[1]), group)
+    return cmd
+
+
 def diting_cmd(
         self,
         tech: str,
-        contig: str,
-        reads: dict,
+        contigs: dict,
+        all_reads: dict,
         out: str
 ) -> str:
     """Get command line for DiTing.
@@ -1753,8 +1791,8 @@ def diting_cmd(
     ----------
     self
     tech : str
-    contig : str
-    reads : dict
+    contigs : dict
+    all_reads : dict
     out : str
 
     Returns
@@ -1764,36 +1802,16 @@ def diting_cmd(
     """
     params = tech_params(self, tech)
 
-    fqs = {0: ([], []), 1: ([], [])}
-    for sam, tech_files in reads.items():
-        for (tech, _), fs in tech_files.items():
-            if len(fs) < 2:
-                continue
-            for r in [0, 1]:
-                if fs[r].endswith('.gz'):
-                    fqs[r][0].append(fs[r].replace('${SCRATCH_FOLDER}', ''))
-                else:
-                    fqs[r][0].append('tmp/%s.gz' % basename(fs[r]))
-                    fqs[r][1].append(fs[r].replace('${SCRATCH_FOLDER}', ''))
-
-    cmd_rm = ''
     cmd = 'cd %s\n' % out
     cmd += 'mkdir tmp\n'
     cmd += 'mkdir reads\n'
     cmd += 'mkdir contigs\n'
-    if contig.endswith('.fa.gz') or contig.endswith('.fasta.gz'):
-        cmd += 'gunzip -c %s > %s\n' % (contig, contig.rstrip('.gz'))
-        contig = contig.rstrip('.gz')
-        cmd_rm += 'rm %s\n' % contig
 
-    for r, fq in fqs.items():
-        for f in fq[1]:
-            cmd += 'gzip -c %s > tmp/%s.gz\n' % (f[1], basename(f[1]))
-    base = basename(contig).rsplit('.f', 1)[0]
-    cmd += 'cat %s > reads/%s_1.fastq.gz\n' % (' '.join(fqs[0][0]), base)
-    cmd += 'cat %s > reads/%s_2.fastq.gz\n' % (' '.join(fqs[1][0]), base)
-
-    cmd += 'cp %s contigs/.\n' % contig
+    for group, contig in contigs.items():
+        reads = get_group_reads(self, tech, group, all_reads)
+        cmd += concat_group_reads(group, reads)
+        if contig.endswith('.fa.gz') or contig.endswith('.fasta.gz'):
+            cmd += 'gunzip -c %s > contigs/%s.fa\n' % (contig, group)
 
     cmd += 'diting.py'
     cmd += ' --reads reads'
@@ -1802,10 +1820,42 @@ def diting_cmd(
     if params['noclean']:
         cmd += ' --noclean'
     cmd += ' --threads %s\n' % params['cpus']
+    # make the figures
     cmd += 'diting.py --visualization pathways_relative_abundance.tab\n'
+    # remove the temporary, used files for gzip and concat reads, and contigs
     cmd += 'rm -rf tmp reads contigs\n'
-    cmd += cmd_rm
     return cmd
+
+
+def diting_sample(self, all_reads: dict):
+    """Run diting on a single sample.
+
+    Parameters
+    ----------
+    self : Commands class instance
+    all_reads : dict
+    """
+    for (tech, group), inputs in self.inputs[self.sam_pool].items():
+
+        out_dir = '/'.join([self.dir, tech, self.sam_pool, group])
+        self.outputs['dirs'].append(out_dir)
+        self.outputs['outs'][group] = out_dir
+
+        contigs = {group: inputs[0]}
+        to_dos = status_update(self, tech, [inputs[0]], group=group)
+
+        png = '%s/carbon_cycle_sketch.png' % out_dir
+        if self.config.force or to_do(png):
+            cmd = diting_cmd(self, tech, contigs, all_reads, out_dir)
+            key = (tech, group)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
+            io_update(self, i_f=contigs, o_d=out_dir, key=key)
+            self.soft.add_status(tech, self.sam_pool, 1, group=group)
+        else:
+            self.soft.add_status(tech, self.sam_pool, 0, group=group)
 
 
 def diting(self):
@@ -1837,28 +1887,11 @@ def diting(self):
     if self.config.tools[self.soft.prev] != 'assembling':
         sys.exit('[tiara] can only be run on assembly output')
     all_reads = get_reads(self)
-    for (tech, group), contigs in self.inputs[self.sam_pool].items():
-        reads = get_group_reads(self, tech, group, all_reads)
 
-        out_dir = '/'.join([self.dir, tech, self.sam_pool, group])
-        self.outputs['dirs'].append(out_dir)
-        self.outputs['outs'][group] = out_dir
-
-        contig = contigs[0]
-        to_dos = status_update(self, tech, [contig], group=group)
-
-        png = '%s/carbon_cycle_sketch.png' % out_dir
-        if self.config.force or to_do(png):
-            cmd = diting_cmd(self, tech, contig, reads, out_dir)
-            key = (tech, group)
-            if to_dos:
-                self.outputs['cmds'].setdefault(key, []).append(False)
-            else:
-                self.outputs['cmds'].setdefault(key, []).append(cmd)
-            io_update(self, i_f=contig, o_d=out_dir, key=key)
-            self.soft.add_status(tech, self.sam_pool, 1, group=group)
-        else:
-            self.soft.add_status(tech, self.sam_pool, 0, group=group)
+    if self.soft.params['samples'] == 'all':
+        diting_all(self, all_reads)
+    else:
+        diting_sample(self, all_reads)
 
 
 def metaclade2(self):
