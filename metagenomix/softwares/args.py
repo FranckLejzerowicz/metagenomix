@@ -1388,6 +1388,7 @@ def abritamr_cmd(
         if cmd:
             cmd += 'envsubst < %s > %s.tmp\n' % (txt, txt)
             cmd += 'mv %s.tmp %s\n' % (txt, txt)
+            cmd_rm += 'rm %s\n' % txt
 
     cmd += 'cd %s\n' % out_dir
     cmd += 'abritamr run'
