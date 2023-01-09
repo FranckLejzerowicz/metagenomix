@@ -48,12 +48,10 @@ class Commands(object):
         self.soft = None
         self.sam_pool = None
         self.dir = ''
-        # self.out = []
         self.status = {}
-        # self.struc = list
         self.links = {}
         self.links_stats = {}
-        self.holistics = [
+        self.holistics = {
             'simka',
             'quast',
             'qiita_wol',
@@ -63,7 +61,7 @@ class Commands(object):
             'drep',
             'strainphlan',
             'midas2_merge',
-        ]
+        }
 
     def collect(self):
         for sdx, softs in enumerate(self.config.pipeline):
@@ -73,6 +71,7 @@ class Commands(object):
             self.get_inputs()
             self.get_hash()
             self.get_dir()
+            self.make_holistic()
             self.generic_command()
             self.show_messages()
 
@@ -111,9 +110,13 @@ class Commands(object):
         if set(self.inputs) == set(self.pools) or self.soft.name == 'pooling':
             self.struc = dict
 
+    def make_holistic(self):
+        if self.soft.name in ['abritamr']:
+            if self.soft.params['samples'] == 'all':
+                self.holistics.add(self.soft.name)
+
     def generic_command(self):
         self.sam_pool = ''
-        # self.is_pool()
         self.soft.io = {}
         if self.soft.name in self.holistics:
             self.prep_job()
