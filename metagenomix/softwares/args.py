@@ -338,14 +338,18 @@ def mmarc_cmd(
     cmd : str
         mmarc (meta-marc) command
     """
-    cmd = '\n./mmarc'
+    cmd, cmd_rm = '', ''
     if genome:
-        cmd += ' --input %s' % inputs[0]
+        if inputs[0].endswith('.fa.gz') or inputs[0].endswith('.fasta.gz'):
+            cmd += 'gunzip -c %s > %s\n' % (out, out.rstrip('.gz'))
+            cmd_rm += 'rm %s\n' % out.rstrip('.gz')
+            inp = inputs[0].rstrip('.gz')
+        cmd += '\n./mmarc --input %s' % inp
     else:
         if len(inputs) == 1:
-            cmd += ' --input %s' % inputs[0]
-        if len(inputs) == 2:
-            cmd += ' --i1 %s --i2 %s' % tuple(inputs)
+            cmd += '\n./mmarc --input %s' % inputs[0]
+        elif len(inputs) == 2:
+            cmd += '\n./mmarc --i1 %s --i2 %s' % tuple(inputs)
         if tech == 'illumina':
             cmd += ' --dedup'
         cmd += ' --multicorrect'
@@ -362,6 +366,7 @@ def mmarc_cmd(
     cmd += ' --output %s\n' % out
     cmd += 'for i in %s/*; do gzip -q $i; done\n' % out
     cmd += 'gzip -q %s/duplicate_tables/output_dupcounts.txt\n' % out
+    cmd += cmd_rm
     return cmd
 
 
