@@ -61,7 +61,7 @@ def lorikeet_cmd(
 
     cmd += 'lorikeet %s' % step
     cmd += ' --output-directory %s' % out_dir
-    cmd += ' --graph-output %s/assembly_graph_debug.txt' % out_dir
+    # cmd += ' --graph-output %s/assembly_graph_debug.txt' % out_dir
     cmd += ' --bam-file-cache-directory %s' % tmp_dir
     if is_folder:
         cmd += ' --genome-fasta-directory %s' % fasta_folder
