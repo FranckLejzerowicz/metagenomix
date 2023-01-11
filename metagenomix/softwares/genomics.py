@@ -1444,7 +1444,8 @@ def classify_cmd(
     """
     params = tech_params(self, tech)
     scratch_cmd = ''
-    cmd = 'TMPDIR="$(dirname $TMPDIR)/dnv"\n'
+    cmd = "export GTDBTK_DATA_PATH=%s\n" % self.databases.paths['gtdbtk']
+    cmd += 'TMPDIR="$(dirname $TMPDIR)/dnv"\n'
     cmd += 'mkdir -p $TMPDIR\n'
     cmd += '\ngtdbtk classify_wf'
     if params['batchfile']:
