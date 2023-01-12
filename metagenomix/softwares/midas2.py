@@ -246,6 +246,9 @@ def merge(self):
                     c = cmd_sam + '\n' + cmd
                     self.outputs['cmds'].setdefault((tech, step), []).append(c)
                     io_update(self, i_d=i_d, o_d=out_dir, key=(tech, step))
+                self.soft.add_status(tech, step, 1)
+            else:
+                self.soft.add_status(tech, step, 0)
 
 
 def get_midas2_cmd(
@@ -478,6 +481,9 @@ def get_midas2(
                     if isfile(spc_list):
                         i_f += [spc_list]
                     io_update(self, i_f=i_f, o_d=focus_dir, key=(tech,))
+                self.soft.add_status(tech, self.sam_pool, 1)
+            else:
+                self.soft.add_status(tech, self.sam_pool, 0)
 
 
 def snps(
