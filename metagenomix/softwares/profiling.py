@@ -1752,7 +1752,8 @@ def woltka_kegg(
                     else:
                         io_update(self, i_f=tsv, key=key)
         else:
-            if to_do('%s/kegg_info.txt' % kegg_maps_local):
+            kinfo = '%s/kegg_info.txt' % kegg_maps_local
+            if to_do(kinfo) or len(glob.glob('%s/*' % kegg_maps_local)) < 2:
                 cmd = 'mkdir -p %s\n' % kegg_maps_local
                 cmd += 'cd %s\n' % kegg_maps_local
                 cmd += 'cp %s %s/%s\n' % (tsv_.replace('${SCRATCH_FOLDER}', ''),
