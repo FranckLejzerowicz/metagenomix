@@ -1177,7 +1177,6 @@ def get_prokka(
         cmd = prokka_configs(self, tech, group, fas, configs, cols, out_dir)
         print()
         print()
-        print()
         print("to_dos")
         print(to_dos)
         print()
