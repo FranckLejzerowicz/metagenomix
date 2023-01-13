@@ -458,7 +458,8 @@ def genomes_fastas(
     if self.config.dev:
         genome_paths = ['%s/a%s' % (path, ext), '%s/b%s' % (path, ext)]
     else:
-        genome_paths = glob.glob('%s/*%s' % (path, ext))
+        genome_paths = glob.glob(
+            '%s/*%s' % (path.replace('${SCRATCH_FOLDER}', ''), ext))
     return genome_paths
 
 
