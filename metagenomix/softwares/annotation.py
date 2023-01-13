@@ -1175,6 +1175,14 @@ def get_prokka(
 
         to_dos = status_update(self, tech, fas[:1], group=group, genome=genome)
         cmd = prokka_configs(self, tech, group, fas, configs, cols, out_dir)
+        print()
+        print()
+        print()
+        print("to_dos")
+        print(to_dos)
+        print()
+        print("cmd")
+        print(cmd)
         if cmd:
             key = (tech, group)
             if to_dos:
