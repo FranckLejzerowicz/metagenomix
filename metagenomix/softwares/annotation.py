@@ -1232,9 +1232,6 @@ def prokka(self) -> None:
     if self.sam_pool in self.pools:
         configs, cols = get_prokka_configs(self)
         for (tech, group), inputs in self.inputs[self.sam_pool].items():
-            print()
-            print("inputs")
-            print(inputs)
             fastas = group_inputs(self, inputs)
             get_prokka(self, tech, group, fastas, configs, cols)
 
