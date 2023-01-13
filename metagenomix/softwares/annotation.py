@@ -1167,15 +1167,19 @@ def get_prokka(
     cols : list
         Taxonomic levels
     """
+    print("fastas")
+    print(fastas)
     for genome, fas in fastas.items():
-
+        print()
+        print()
+        print("genome, fas")
+        print(genome, fas)
         out_dir = genome_out_dir(self, tech, group, genome)
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
 
         to_dos = status_update(self, tech, fas[:1], group=group, genome=genome)
         cmd = prokka_configs(self, tech, group, fas, configs, cols, out_dir)
-        print()
         print()
         print("to_dos")
         print(to_dos)
