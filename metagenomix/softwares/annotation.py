@@ -1030,8 +1030,7 @@ def prokka_cmd(
 
 
 def prokka_config(
-        self,
-        cols: list
+        self, configs: list
 ) -> list:
     """Parse the user-defined taxonomic config file to collect the taxonomic
     levels to annotate more precisely using Prokka.
@@ -1041,24 +1040,22 @@ def prokka_config(
     self : Commands class instance
         .soft.params : dict
             Parameters
-    cols : list
-        Columns of the taxonomic config: 'genus', 'species', 'strain', 'plasmid'
+    configs : list
+        List of field#:taxon dicts obtained by parsing the user-defined config
 
     Returns
     -------
-    configs : list
-        List of field#:taxon dicts obtained by parsing the user-defined config
+    cols : list
+        Columns of the taxonomic config: 'genus', 'species', 'strain', 'plasmid'
     """
-    configs = []
-    cols += ['proteins']
-    if 'taxa' in self.soft.params:
-        with open(self.soft.params['taxa']) as f:
-            for ldx, line in enumerate(f):
-                ls = line.strip('\n').split('\t')
-                if not ldx:
-                    continue
-                configs.append({cols[idx]: val for idx, val in enumerate(ls)})
-    return configs
+    cols = ['genus', 'species', 'strain', 'plasmid', 'proteins']
+    with open(self.soft.params['config']) as f:
+        for ldx, line in enumerate(f):
+            ls = line.strip('\n').split('\t')
+            if not ldx:
+                continue
+            configs.append({cols[idx]: val for idx, val in enumerate(ls)})
+    return cols
 
 
 def get_prokka_configs(self) -> tuple:
@@ -1078,10 +1075,10 @@ def get_prokka_configs(self) -> tuple:
     cols : list
         Taxonomic levels
     """
+    configs = []
     if self.soft.params['config']:
-        cols = ['genus', 'species', 'strain', 'plasmid']
-        configs = prokka_config(self, cols)
-    else:
+        cols = prokka_config(self, configs)
+    if not configs:
         cols = ['']
         configs = [{'': 'no_config'}]
     return configs, cols
@@ -1095,7 +1092,7 @@ def prokka_configs(
         configs: list,
         cols: list,
         out_dir: str
-) -> tuple:
+) -> str:
     """Get the Prokka commands for the different configs
     (at each taxonomic level).
 
@@ -1121,29 +1118,24 @@ def prokka_configs(
 
     Returns
     -------
-    to_dos : list
     cmd : str
         Prokka command
     """
     cmd = ''
-    to_dos = []
     for config in configs:
-
-        to_dos.extend(status_update(
-            self, tech, fasta[:1], group=group, genome=list(config)[0]))
 
         prefix = '_'.join([config[x] for x in cols if config[x]])
         if config.get('proteins'):
             prefix += '_%s' % splitext(basename(config['proteins']))[0]
-        file_out = '%s/%s.out.gz' % (out_dir, prefix)
-        if self.config.force or to_do(file_out):
+        out = '%s/%s.out.gz' % (out_dir, prefix)
+        if self.config.force or to_do(out):
             cmd += prokka_cmd(self, fasta[0], out_dir, prefix, config, cols)
             self.soft.add_status(
                 tech, self.sam_pool, 1, group=group, genome=list(config)[0])
         else:
             self.soft.add_status(
                 tech, self.sam_pool, 0, group=group, genome=list(config)[0])
-    return to_dos, cmd
+    return cmd
 
 
 def get_prokka(
@@ -1175,20 +1167,21 @@ def get_prokka(
     cols : list
         Taxonomic levels
     """
-    for genome, fasta in fastas.items():
+    for genome, fas in fastas.items():
+
         out_dir = genome_out_dir(self, tech, group, genome)
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
 
-        to_dos, cmd = prokka_configs(
-            self, tech, group, fasta, configs, cols, out_dir)
+        to_dos = status_update(self, tech, fas[:1], group=group, genome=genome)
+        cmd = prokka_configs(self, tech, group, fas, configs, cols, out_dir)
         if cmd:
             key = (tech, group)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
-            io_update(self, i_f=fasta[0], o_d=out_dir, key=key)
+            io_update(self, i_f=fas[0], o_d=out_dir, key=key)
 
 
 def prokka(self) -> None:
