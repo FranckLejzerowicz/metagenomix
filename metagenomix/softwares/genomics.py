@@ -1367,7 +1367,7 @@ def denovo_cmd(
         gtdbtk de_novo_wf command
     """
     params = tech_params(self, tech)
-    scratch_cmd = ''
+
     cmd = "export GTDBTK_DATA_PATH=%s\n" % self.databases.paths['gtdbtk']
     cmd += 'TMPDIR="$(dirname $TMPDIR)/dnv"\n'
     cmd += 'mkdir -p $TMPDIR\n'
@@ -1388,32 +1388,35 @@ def denovo_cmd(
             classified, in_dir, batch)
         cmd += 'envsubst < %s > %s.tmp\n' % (batch, batch)
         cmd += 'mv %s.tmp %s\n' % (batch, batch)
-        cmd += 'gtdbtk de_novo_wf'
-        cmd += ' --batchfile %s' % batch
+
+        cmd_denovo = 'gtdbtk de_novo_wf'
+        cmd_denovo += ' --batchfile %s' % batch
         # if params['batchfile']:
         #     cmd += ' --batchfile %s' % params['batchfile']
         # else:
         #     cmd += ' --genome_dir %s' % in_dir
-        cmd += ' --out_dir %s' % out_dir
-        cmd += ' --tmpdir $TMPDIR'
-        cmd += ' --extension %s' % get_extension(self)
-        cmd += ' --cpus %s' % self.soft.params['cpus']
-        cmd += ' --%s' % taxon
+        cmd_denovo += ' --out_dir %s' % out_dir
+        cmd_denovo += ' --tmpdir $TMPDIR'
+        cmd_denovo += ' --extension %s' % get_extension(self)
+        cmd_denovo += ' --cpus %s' % self.soft.params['cpus']
+        cmd_denovo += ' --%s' % taxon
         for param in [
             'cols_per_gene', 'min_consensus', 'max_consensus', 'min_perc_taxa',
             'min_perc_aa', 'rnd_seed', 'prot_model', 'genes', 'taxa_filter',
             'custom_taxonomy_file'
         ]:
             if params[param]:
-                cmd += ' --%s %s' % (param, params[param])
+                cmd_denovo += ' --%s %s' % (param, params[param])
         for boolean in [
             'force', 'write_single_copy_genes', 'keep_intermediates',
             'skip_gtdb_refs', 'custom_msa_filters', 'no_support', 'gamma'
         ]:
             if params[boolean]:
-                cmd += ' --%s' % boolean
-        cmd += ' --outgroup_taxon %s' % params['outgroup_taxon'][taxon]
-        cmd = scratch_cmd + cmd + '\n'
+                cmd_denovo += ' --%s' % boolean
+        cmd_denovo += ' --outgroup_taxon %s' % params['outgroup_taxon'][taxon]
+
+        cmd += 'if [ -s %s ]; then %s; fi\n' % (batch, cmd_denovo)
+
     return cmd
 
 
@@ -1443,7 +1446,7 @@ def classify_cmd(
         gtdbtk classify_wf command
     """
     params = tech_params(self, tech)
-    scratch_cmd = ''
+
     cmd = "export GTDBTK_DATA_PATH=%s\n" % self.databases.paths['gtdbtk']
     cmd += 'TMPDIR="$(dirname $TMPDIR)/dnv"\n'
     cmd += 'mkdir -p $TMPDIR\n'
@@ -1452,7 +1455,6 @@ def classify_cmd(
         cmd += ' --batchfile %s' % params['batchfile']
     else:
         cmd += ' --genome_dir %s' % in_dir
-    cmd += ' --out_dir %s' % out_dir
     cmd += ' --tmpdir $TMPDIR'
     cmd += ' --extension %s' % get_extension(self)
     cmd += ' --cpus %s' % self.soft.params['cpus']
@@ -1464,7 +1466,7 @@ def classify_cmd(
                     'keep_intermediates', 'full_tree']:
         if params[boolean]:
             cmd += ' --%s' % boolean
-    cmd = scratch_cmd + cmd + '\n'
+    cmd += ' --out_dir %s\n' % out_dir
     return cmd
 
 
