@@ -427,6 +427,29 @@ def group_inputs(
     return fastas
 
 
+def glob_scratched(
+        path: str,
+        ext: str
+) -> list:
+    """
+
+    Parameters
+    ----------
+    path : str
+    ext : str
+
+    Returns
+    -------
+    globbed : list
+    """
+    globbed = []
+    path_ = path.replace('${SCRATCH_FOLDER}', '')
+    for fp in glob.glob('%s/*%s' % (path_, ext)):
+        fpo = '%s/%s' % (path, basename(fp))
+        globbed.append(fpo)
+    return globbed
+
+
 def genomes_fastas(
         self,
         path: str,
@@ -458,8 +481,7 @@ def genomes_fastas(
     if self.config.dev:
         genome_paths = ['%s/a%s' % (path, ext), '%s/b%s' % (path, ext)]
     else:
-        genome_paths = glob.glob(
-            '%s/*%s' % (path.replace('${SCRATCH_FOLDER}', ''), ext))
+        genome_paths = glob_scratched(path, ext)
     return genome_paths
 
 
