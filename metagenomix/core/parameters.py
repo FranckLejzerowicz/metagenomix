@@ -1059,7 +1059,7 @@ def check_minimap2(self, params, soft, no_database=False):
         'k': 15,
         'w': 10,
         'H': [False, True],
-        'I': '4G',
+        'I': '10G',
         'idx_no_seq': [False, True],
         'd': [''],
         'f': 0.0002,
