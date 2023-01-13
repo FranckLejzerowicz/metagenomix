@@ -1627,7 +1627,7 @@ def get_antismash(
         to_dos = status_update(
             self, tech, [fasta], group=sam_group, genome=genome)
 
-        if self.config.force or not glob.glob('%s/*' % out_dir):
+        if self.config.force or to_do(out_dir):
             cmd = antismash_cmd(self, fasta, out_dir)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
