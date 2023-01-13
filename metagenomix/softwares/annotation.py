@@ -1061,7 +1061,7 @@ def prokka_config(
     return configs
 
 
-def prokka_configs(self) -> tuple:
+def get_prokka_configs(self) -> tuple:
     """Get the config files for the different run of Prokka at
     different taxonomic levels.
 
@@ -1087,11 +1087,13 @@ def prokka_configs(self) -> tuple:
     return configs, cols
 
 
-def get_prokka(
+def prokka_configs(
         self,
         tech: str,
         group: str,
-        inputs: list,
+        fasta: list,
+        configs: list,
+        cols: list,
         out_dir: str
 ) -> tuple:
     """Get the Prokka commands for the different configs
@@ -1108,8 +1110,12 @@ def get_prokka(
         Technology: 'illumina', 'pacbio', or 'nanopore'
     group : str
         Name of the current co-assembly
-    inputs : list
-        Paths to the input files
+    fasta : list
+        Path to one input genome/MAG fasta file
+    configs : list
+        Dicts of config files per taxonomic level
+    cols : list
+        Taxonomic levels
     out_dir : str
         Path to the output folder
 
@@ -1120,25 +1126,69 @@ def get_prokka(
         Prokka command
     """
     cmd = ''
-    configs, cols = prokka_configs(self)
     to_dos = []
     for config in configs:
 
         to_dos.extend(status_update(
-            self, tech, [inputs[0]], group=group, genome=list(config)[0]))
+            self, tech, fasta[:1], group=group, genome=list(config)[0]))
 
         prefix = '_'.join([config[x] for x in cols if config[x]])
         if config.get('proteins'):
             prefix += '_%s' % splitext(basename(config['proteins']))[0]
         file_out = '%s/%s.out.gz' % (out_dir, prefix)
         if self.config.force or to_do(file_out):
-            cmd += prokka_cmd(self, inputs[0], out_dir, prefix, config, cols)
+            cmd += prokka_cmd(self, fasta[0], out_dir, prefix, config, cols)
             self.soft.add_status(
                 tech, self.sam_pool, 1, group=group, genome=list(config)[0])
         else:
             self.soft.add_status(
                 tech, self.sam_pool, 0, group=group, genome=list(config)[0])
     return to_dos, cmd
+
+
+def get_prokka(
+        self,
+        tech: str,
+        group: str,
+        fastas: list,
+        configs: list,
+        cols: list
+) -> None:
+    """Get the Prokka commands for the different configs
+    (at each taxonomic level).
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .soft.params : dict
+            Parameters
+        .config
+            Configurations
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    group : str
+        Name of the current co-assembly
+    fastas : dict
+        Paths to the input files
+    configs : list
+        Dicts of config files per taxonomic level
+    cols : list
+        Taxonomic levels
+    """
+    for genome, fasta in fastas.items():
+        out_dir = genome_out_dir(self, tech, group, genome)
+        self.outputs['dirs'].append(out_dir)
+        self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
+
+        to_dos, cmd = prokka_configs(
+            self, tech, group, fasta, configs, cols, out_dir)
+        if cmd:
+            key = (tech, group)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
+            io_update(self, i_f=fasta[0], o_d=out_dir, key=key)
 
 
 def prokka(self) -> None:
@@ -1176,19 +1226,10 @@ def prokka(self) -> None:
             Configurations
     """
     if self.sam_pool in self.pools:
+        configs, cols = get_prokka_configs(self)
         for (tech, group), inputs in self.inputs[self.sam_pool].items():
-            out_dir = '/'.join([self.dir, tech, self.sam_pool, group])
-            self.outputs['dirs'].append(out_dir)
-            self.outputs['outs'].setdefault(group, []).append(out_dir)
-
-            to_dos, cmd = get_prokka(self, tech, group, inputs, out_dir)
-            if cmd:
-                key = (tech, group)
-                if to_dos:
-                    self.outputs['cmds'].setdefault(key, []).append(False)
-                else:
-                    self.outputs['cmds'].setdefault(key, []).append(cmd)
-                io_update(self, i_f=inputs[0], o_d=out_dir, key=key)
+            fastas = group_inputs(self, inputs)
+            get_prokka(self, tech, group, fastas, configs, cols)
 
 
 def barrnap_cmd(
