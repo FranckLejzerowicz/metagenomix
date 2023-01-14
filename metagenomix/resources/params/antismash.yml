@@ -1,26 +1,26 @@
 antismash:
-  asf: true
-  cassis: true
-  cb_general: true
-  cb_knownclusters: true
-  cb_subclusters: true
-  cc_mibig: true
+  asf: false
+  cassis: false
+  cb_general: false
+  cb_knownclusters: false
+  cb_subclusters: false
+  cc_mibig: false
   chunks: 4
-  clusterhmmer: true
+  clusterhmmer: false
   cpus: 1
   env: null
-  fullhmmer: true
+  fullhmmer: false
   genefinding_tool: prodigal-m
   machine: null
   mem: 10
   mem_dim: gb
   nodes: 1
   partition: null
-  pfam2go: true
-  rre: true
+  pfam2go: false
+  rre: false
   scratch: scratch
-  smcog_trees: true
+  smcog_trees: false
   taxon: bacteria
-  tigrfam: true
+  tigrfam: false
   time: 24
   tta_threshold: 0.65
