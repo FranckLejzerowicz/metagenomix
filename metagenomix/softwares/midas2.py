@@ -472,7 +472,6 @@ def get_midas2(
             focus_dir = out_dir + '/' + db + '/' + focus
             self.outputs['dirs'].append(focus_dir)
             if sam in self.soft.params['skip_samples']:
-                self.outputs['outs'][step][(tech, db, focus, spc_list)] = []
                 continue
             self.outputs['outs'][step][(tech, db, focus, spc_list)] = focus_dir
             out_fp = focus_dir + '/' + out
