@@ -561,7 +561,12 @@ def blobology_cmd(
         metaWRAP blobology command
     """
     gz, fqs, fqs_cmd = get_fqs(fastq_fps)
+    cmd_rm = ''
     cmd = 'export PATH=$PATH:%s/bin\n' % self.soft.params['path']
+    if contigs.endswith('.gz'):
+        cmd += 'gunzip -c %s > %s\n' % (contigs, contigs.rstrip('.gz'))
+        contigs = contigs.rstrip('.gz')
+        cmd_rm += 'rm %s\n' % contigs
     cmd += 'metawrap blobology'
     cmd += ' -o %s' % out
     cmd += ' -a %s' % contigs
@@ -572,6 +577,7 @@ def blobology_cmd(
         cmd = fqs_cmd + cmd
     if gz:
         cmd += 'rm %s\n' % ' '.join(fqs)
+    cmd += cmd_rm
     return cmd
 
 
