@@ -1389,7 +1389,7 @@ def denovo_cmd(
         cmd += 'envsubst < %s > %s.tmp;\n' % (batch, batch)
         cmd += 'mv %s.tmp %s;\n' % (batch, batch)
 
-        cmd = 'gtdbtk de_novo_wf'
+        cmd += 'gtdbtk de_novo_wf'
         cmd += ' --batchfile %s' % batch
         # if params['batchfile']:
         #     cmd += ' --batchfile %s' % params['batchfile']
