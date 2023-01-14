@@ -1127,7 +1127,7 @@ def prokka_configs(
         prefix = '_'.join([config[x] for x in cols if config[x]])
         if config.get('proteins'):
             prefix += '_%s' % splitext(basename(config['proteins']))[0]
-        out = '%s/%s.out.gz' % (out_dir, prefix)
+        out = '%s/%s.txt.gz' % (out_dir, prefix)
         if self.config.force or to_do(out):
             cmd += prokka_cmd(self, fasta[0], out_dir, prefix, config, cols)
             self.soft.add_status(
@@ -1167,25 +1167,13 @@ def get_prokka(
     cols : list
         Taxonomic levels
     """
-    print("fastas")
-    print(fastas)
     for genome, fas in fastas.items():
-        print()
-        print()
-        print("genome, fas")
-        print(genome, fas)
         out_dir = genome_out_dir(self, tech, group, genome)
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
 
         to_dos = status_update(self, tech, fas[:1], group=group, genome=genome)
         cmd = prokka_configs(self, tech, group, fas, configs, cols, out_dir)
-        print()
-        print("to_dos")
-        print(to_dos)
-        print()
-        print("cmd")
-        print(cmd)
         if cmd:
             key = (tech, group)
             if to_dos:
