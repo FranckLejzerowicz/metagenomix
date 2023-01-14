@@ -1372,6 +1372,7 @@ def denovo_cmd(
     cmd_init += 'TMPDIR="$(dirname $TMPDIR)/dnv"\n'
     cmd_init += 'mkdir -p $TMPDIR\n'
 
+    cmd_taxon = ''
     for taxon in ['bacteria', 'archaea']:
         if not params[taxon]:
             continue
@@ -1415,9 +1416,9 @@ def denovo_cmd(
                 cmd += ' --%s' % boolean
         cmd += ' --outgroup_taxon %s' % params['outgroup_taxon'][taxon]
 
-        cmd = 'if [ -s %s ]; then\n%s;\nfi\n' % (classified, cmd)
+        cmd_taxon += 'if [ -s %s ]; then\n%s;\nfi\n' % (classified, cmd)
 
-    cmd = cmd_init + cmd
+    cmd = cmd_init + cmd_taxon
     return cmd
 
 
