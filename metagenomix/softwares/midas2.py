@@ -418,6 +418,7 @@ def get_species_lists(
 def get_midas2(
         self,
         tech: str,
+        sam: str,
         fastqs: list,
         out_dir: str,
         params: dict,
@@ -445,6 +446,8 @@ def get_midas2(
             Configurations
     tech : str
         Technology
+    sam : str
+        Sample name
     fastqs : list
         Path(s) to the input files
     out_dir : str
@@ -468,6 +471,9 @@ def get_midas2(
         for focus, spc_list in species_lists.items():
             focus_dir = out_dir + '/' + db + '/' + focus
             self.outputs['dirs'].append(focus_dir)
+            if sam in self.soft.params['skip_samples']:
+                self.outputs['outs'][step][(tech, db, focus, spc_list)] = []
+                continue
             self.outputs['outs'][step][(tech, db, focus, spc_list)] = focus_dir
             out_fp = focus_dir + '/' + out
             if self.config.force or to_do(out_fp):
@@ -489,6 +495,7 @@ def get_midas2(
 def snps(
         self,
         tech: str,
+        sam: str,
         fastqs: list,
         out_dir: str,
         params: dict
@@ -514,6 +521,8 @@ def snps(
             Configurations
     tech : str
         Technology
+    sam : str
+        Sample name
     fastqs : list
         Path(s) to the input files
     out_dir : str
@@ -521,12 +530,13 @@ def snps(
     params : dict
         Run parameters
     """
-    get_midas2(self, tech, fastqs, out_dir, params, 'midas2_snps')
+    get_midas2(self, tech, sam, fastqs, out_dir, params, 'midas2_snps')
 
 
 def genes(
         self,
         tech: str,
+        sam: str,
         fastqs: list,
         out_dir: str,
         params: dict
@@ -552,6 +562,8 @@ def genes(
             Configurations
     tech : str
         Technology
+    sam : str
+        Sample name
     fastqs : list
         Path(s) to the input files
     out_dir : str
@@ -559,12 +571,13 @@ def genes(
     params : dict
         Run parameters
     """
-    get_midas2(self, tech, fastqs, out_dir, params, 'midas2_genes')
+    get_midas2(self, tech, sam, fastqs, out_dir, params, 'midas2_genes')
 
 
 def species(
         self,
         tech: str,
+        sam: str,
         fastqs: list,
         out_dir: str,
         params: dict
@@ -590,6 +603,8 @@ def species(
             Configurations
     tech : str
         Technology
+    sam : str
+        Sample name
     fastqs : list
         Path(s) to the input files
     out_dir : str
@@ -597,12 +612,13 @@ def species(
     params : dict
         Run parameters
     """
-    get_midas2(self, tech, fastqs, out_dir, params, 'midas2_species')
+    get_midas2(self, tech, sam, fastqs, out_dir, params, 'midas2_species')
 
 
 def midas2_(
         self,
         tech: str,
+        sam: str,
         fastqs: list,
         out_dir: str,
         params: dict
@@ -633,6 +649,8 @@ def midas2_(
             Configurations
     tech : str
         Technology
+    sam : str
+        Sample name
     fastqs : list
         Path(s) to the input files
     out_dir : str
@@ -641,7 +659,7 @@ def midas2_(
         Run parameters
     """
     for step in ['midas2_species', 'midas2_genes', 'midas2_snps']:
-        get_midas2(self, tech, fastqs, out_dir, params, step)
+        get_midas2(self, tech, sam, fastqs, out_dir, params, step)
 
 
 def midas2(self) -> None:
@@ -693,4 +711,4 @@ def midas2(self) -> None:
             out_dir = self.dir + '/' + tech
             module_call = caller(self, __name__)
             params = tech_params(self, tech)
-            module_call(self, tech, fastqs, out_dir, params)
+            module_call(self, tech, sam, fastqs, out_dir, params)
