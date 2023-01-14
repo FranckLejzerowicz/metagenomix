@@ -1368,9 +1368,9 @@ def denovo_cmd(
     """
     params = tech_params(self, tech)
 
-    cmd = "export GTDBTK_DATA_PATH=%s\n" % self.databases.paths['gtdbtk']
-    cmd += 'TMPDIR="$(dirname $TMPDIR)/dnv"\n'
-    cmd += 'mkdir -p $TMPDIR\n'
+    cmd_init = "export GTDBTK_DATA_PATH=%s\n" % self.databases.paths['gtdbtk']
+    cmd_init += 'TMPDIR="$(dirname $TMPDIR)/dnv"\n'
+    cmd_init += 'mkdir -p $TMPDIR\n'
 
     for taxon in ['bacteria', 'archaea']:
         if not params[taxon]:
@@ -1384,39 +1384,40 @@ def denovo_cmd(
             io_update(self, i_f=classified, key=key)
 
         batch = "%s/batch_file.tsv" % out_dir
-        cmd += "tail -n +2 %s | awk '{print \"%s/\"$1\".fa\\t\"$1}' > %s\n" % (
+        cmd = "tail -n +2 %s | awk '{print \"%s/\"$1\".fa\\t\"$1}' > %s;\n" % (
             classified, in_dir, batch)
-        cmd += 'envsubst < %s > %s.tmp\n' % (batch, batch)
-        cmd += 'mv %s.tmp %s\n' % (batch, batch)
+        cmd += 'envsubst < %s > %s.tmp;\n' % (batch, batch)
+        cmd += 'mv %s.tmp %s;\n' % (batch, batch)
 
-        cmd_denovo = 'gtdbtk de_novo_wf'
-        cmd_denovo += ' --batchfile %s' % batch
+        cmd = 'gtdbtk de_novo_wf'
+        cmd += ' --batchfile %s' % batch
         # if params['batchfile']:
         #     cmd += ' --batchfile %s' % params['batchfile']
         # else:
         #     cmd += ' --genome_dir %s' % in_dir
-        cmd_denovo += ' --out_dir %s' % out_dir
-        cmd_denovo += ' --tmpdir $TMPDIR'
-        cmd_denovo += ' --extension %s' % get_extension(self)
-        cmd_denovo += ' --cpus %s' % self.soft.params['cpus']
-        cmd_denovo += ' --%s' % taxon
+        cmd += ' --out_dir %s' % out_dir
+        cmd += ' --tmpdir $TMPDIR'
+        cmd += ' --extension %s' % get_extension(self)
+        cmd += ' --cpus %s' % self.soft.params['cpus']
+        cmd += ' --%s' % taxon
         for param in [
             'cols_per_gene', 'min_consensus', 'max_consensus', 'min_perc_taxa',
             'min_perc_aa', 'rnd_seed', 'prot_model', 'genes', 'taxa_filter',
             'custom_taxonomy_file'
         ]:
             if params[param]:
-                cmd_denovo += ' --%s %s' % (param, params[param])
+                cmd += ' --%s %s' % (param, params[param])
         for boolean in [
             'force', 'write_single_copy_genes', 'keep_intermediates',
             'skip_gtdb_refs', 'custom_msa_filters', 'no_support', 'gamma'
         ]:
             if params[boolean]:
-                cmd_denovo += ' --%s' % boolean
-        cmd_denovo += ' --outgroup_taxon %s' % params['outgroup_taxon'][taxon]
+                cmd += ' --%s' % boolean
+        cmd += ' --outgroup_taxon %s' % params['outgroup_taxon'][taxon]
 
-        cmd += 'if [ -s %s ]; then %s; fi\n' % (batch, cmd_denovo)
+        cmd = 'if [ -s %s ]; then\n%s;\nfi\n' % (classified, cmd)
 
+    cmd = cmd_init + cmd
     return cmd
 
 
