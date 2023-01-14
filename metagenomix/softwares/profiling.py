@@ -812,19 +812,19 @@ def woltka_write_map(
     map_fp : str
         Path to the output woltka samples file
     map_cmds : list
-        Command to created the samples.map file
+        Commands to [create the samples.map file, remove the .sam files]
     """
     out_dir = '/'.join([self.dir, tech, aligner, pairing])
     self.outputs['dirs'].append(out_dir)
 
-    sam_cmds = ''
+    sam_cmds, rm_cmds = '', ''
     for idx, sample in enumerate(alis.keys()):
         bam = alis[sample]
         sam_cmds += 'samtools view %s > %s.sam\n' % (bam, bam.rstrip('.bam'))
+        rm_cmds += 'rm %s.sam\n' % bam.rstrip('.bam')
 
     map_cmds = ''
     map_fp = '%s/samples.map' % out_dir
-
     for idx, sample in enumerate(alis.keys()):
         echo = 'echo -e "%s\\t%s.sam"' % (sample, alis[sample].rstrip('.bam'))
         if idx:
@@ -832,9 +832,10 @@ def woltka_write_map(
         else:
             map_cmds += '%s > %s\n' % (echo, map_fp)
     if map_cmds:
+        map_cmds += sam_cmds
         map_cmds += 'envsubst < %s > %s.tmp\n' % (map_fp, map_fp)
         map_cmds += 'mv %s.tmp %s\n' % (map_fp, map_fp)
-    return map_fp, [map_cmds]
+    return map_fp, [map_cmds, rm_cmds]
 
 
 def woltka_tax_cmd(
@@ -1838,7 +1839,7 @@ def woltka(self) -> None:
             key = (tech, aligner)
             to_dos = status_update(
                 self, tech, list(alis.values()), group=aligner)
-            map, map_cmds = woltka_write_map(self, tech, pairing, aligner, alis)
+            map, cmds = woltka_write_map(self, tech, pairing, aligner, alis)
             taxmap, tdo = woltka_tax_cmd(self, tech, pairing, aligner, map,
                                          db, params)
             if 'go' in classifs:
@@ -1852,11 +1853,11 @@ def woltka(self) -> None:
             if tdo or gdo or edo:
                 io_update(self, i_f=list(alis.values()), key=key)
                 if key in self.outputs['cmds']:
-                    prev_cmds = self.outputs['cmds'][key]
+                    cmd = self.outputs['cmds'][key]
                     if to_dos:
                         self.outputs['cmds'][key] = [False]
                     else:
-                        self.outputs['cmds'][key] = map_cmds + prev_cmds
+                        self.outputs['cmds'][key] = [cmds[0]] + cmd + [cmds[1]]
             if not to_dos:
                 if set(classifs) & {'eggnog', 'metacyc', 'kegg'}:
                     uniref_tax = woltka_uniref(self, tech, pairing, aligner,
