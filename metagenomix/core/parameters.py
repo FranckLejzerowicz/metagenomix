@@ -178,6 +178,18 @@ def check_type_sys_exit(tool, param, no_dict, tech=None):
     sys.exit(m)
 
 
+def add_skip_samples(
+        params: dict,
+        defaults: dict,
+        tool: str
+) -> None:
+    if 'skip_samples' not in params:
+        params['skip_samples'] = [None]
+    elif not isinstance(params['skip_samples'], list):
+        sys.exit('[%s] Param "skip_samples" not a (samples) list' % tool)
+    defaults['skip_samples'] = '<list of samples / co-assembly groups to skip>'
+
+
 def check_default(
         self,
         params,
@@ -211,6 +223,7 @@ def check_default(
             else:
                 check_default_generic(param, vals, values, tool)
         check_default_type(self, params, param, multi, tool)
+    add_skip_samples(params, defaults, tool)
 
 
 def check_binary(self, t, params, defaults, opt):
@@ -576,10 +589,6 @@ def check_quast(self, params, soft):
         'references_list': [None],
         'g': [None]
     }
-    if 'skip_samples' not in params:
-        params['skip_samples'] = [None]
-    elif not isinstance(params['skip_samples'], list):
-        sys.exit('[%s] Param "skip_samples" not a (samples) list' % soft.name)
     for param in ['contig_thresholds', 'gene_thresholds']:
         if param in params:
             if [x for x in str(params[param]).split(',') if not x.isdigit()]:
@@ -605,7 +614,6 @@ def check_quast(self, params, soft):
     defaults['label'] = '<an existing metadata column>'
     check_binary(self, soft.name, params, defaults, 'path')
     defaults['path'] = '<path to the quast installation folder>'
-    defaults['skip_samples'] = '<list of samples / co-assembly groups to skip>'
     return defaults
 
 
@@ -1319,10 +1327,6 @@ def check_metawrap(self, params, soft):
         'reassembly': ['permissive', 'strict'],
         'blobology': ['coassembly', 'sample']
     }
-    if 'skip_samples' not in params:
-        params['skip_samples'] = [None]
-    elif not isinstance(params['skip_samples'], list):
-        sys.exit('[%s] Param "skip_samples" not a (samples) list' % soft.name)
     if 'binners' not in params:
         params['binners'] = defaults['binners']
     mins = ['min_completion', 'min_completion_reassembly',
@@ -1332,10 +1336,9 @@ def check_metawrap(self, params, soft):
         self, params, defaults, ['min_contig_length'], int, 'metawrap:binning')
     mins.append('min_contig_length')
     check_default(self, params, defaults, soft.name, mins,
-                  ['binners', 'reassembly', 'blobology', 'skip_samples'])
+                  ['binners', 'reassembly', 'blobology'])
     check_binary(self, soft.name, params, defaults, 'path')
     defaults['path'] = '<path to the metaWRAP installation folder>'
-    defaults['skip_samples'] = '<list of samples / co-assembly groups to skip>'
     return defaults
 
 
