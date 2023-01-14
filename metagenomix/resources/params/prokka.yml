@@ -1,12 +1,12 @@
 prokka:
   chunks: 4
-  config: /Users/franck/programs/metagenomix/metagenomix/tests/example/prokka.tsv
+  config: null
   coverage: 80
   cpus: 1
   env: null
   evalue: 1.0e-09
   gcode: 11
-  kingdom: Archaea
+  kingdom: Bacteria
   machine: null
   mem: 10
   mem_dim: gb
