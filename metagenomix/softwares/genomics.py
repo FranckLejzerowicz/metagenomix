@@ -1392,10 +1392,6 @@ def denovo_cmd(
 
         cmd += 'gtdbtk de_novo_wf'
         cmd += ' --batchfile %s' % batch
-        # if params['batchfile']:
-        #     cmd += ' --batchfile %s' % params['batchfile']
-        # else:
-        #     cmd += ' --genome_dir %s' % in_dir
         cmd += ' --out_dir %s' % out_dir
         cmd += ' --tmpdir $TMPDIR'
         cmd += ' --extension %s' % get_extension(self)
