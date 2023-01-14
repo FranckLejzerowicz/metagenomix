@@ -782,12 +782,12 @@ def woltka_aligments(
     return alignments
 
 
-def woltka_write_map(
+def woltka_map(
         self,
         tech: str,
         pairing: str,
         aligner: str,
-        alis: dict,
+        alis: dict
 ) -> tuple:
     """Write the mapping file that servers as input to Woltka.
 
@@ -811,34 +811,38 @@ def woltka_write_map(
     -------
     map_fp : str
         Path to the output woltka samples file
-    map_cmds : list
-        Commands to [create the samples.map file, remove the .sam files]
+    cmds : list
+        Commands to create the samples.map file
+    rms : list
+        Commands to remove the .sam files
     """
     out_dir = '/'.join([self.dir, tech, aligner, pairing])
     self.outputs['dirs'].append(out_dir)
 
-    sam_cmds, rm_cmds = '', ''
+    sam_cmds, rms = '', ''
     for idx, sample in enumerate(alis.keys()):
         bam = alis[sample]
         sam_cmds += 'samtools view %s > %s.sam\n' % (bam, bam.rstrip('.bam'))
-        rm_cmds += 'rm %s.sam\n' % bam.rstrip('.bam')
+        rms += 'rm %s.sam\n' % bam.rstrip('.bam')
 
-    map_cmds = ''
+    cmds = ''
     map_fp = '%s/samples.map' % out_dir
     for idx, sample in enumerate(alis.keys()):
         echo = 'echo -e "%s\\t%s.sam"' % (sample, alis[sample].rstrip('.bam'))
         if idx:
-            map_cmds += '%s >> %s\n' % (echo, map_fp)
+            cmds += '%s >> %s\n' % (echo, map_fp)
         else:
-            map_cmds += '%s > %s\n' % (echo, map_fp)
-    if map_cmds:
-        map_cmds += sam_cmds
-        map_cmds += 'envsubst < %s > %s.tmp\n' % (map_fp, map_fp)
-        map_cmds += 'mv %s.tmp %s\n' % (map_fp, map_fp)
-    return map_fp, [map_cmds, rm_cmds]
+            cmds += '%s > %s\n' % (echo, map_fp)
+
+    if cmds:
+        cmds += sam_cmds
+        cmds += 'envsubst < %s > %s.tmp\n' % (map_fp, map_fp)
+        cmds += 'mv %s.tmp %s\n' % (map_fp, map_fp)
+
+    return map_fp, cmds, rms
 
 
-def woltka_tax_cmd(
+def woltka_tax(
         self,
         tech: str,
         pairing: str,
@@ -1839,17 +1843,17 @@ def woltka(self) -> None:
             key = (tech, aligner)
             to_dos = status_update(
                 self, tech, list(alis.values()), group=aligner)
-            map, cmds = woltka_write_map(self, tech, pairing, aligner, alis)
-            taxmap, tdo = woltka_tax_cmd(self, tech, pairing, aligner, map,
-                                         db, params)
+            map_fp, cmds, rms = woltka_map(self, tech, pairing, aligner, alis)
+            taxmap, tdo = woltka_tax(self, tech, pairing, aligner, map_fp,
+                                     db, params)
             if 'go' in classifs:
-                gdo = woltka_go(self, tech, pairing, aligner, map, taxmap,
-                                db, params)
+                gdo = woltka_go(
+                    self, tech, pairing, aligner, map_fp, taxmap, db, params)
             else:
                 gdo = []
             if set(classifs) & {'eggnog', 'metacyc', 'kegg'}:
                 genes_tax, edo = woltka_genes(self, tech, pairing, aligner,
-                                              map, taxmap, db, params)
+                                              map_fp, taxmap, db, params)
             if tdo or gdo or edo:
                 io_update(self, i_f=list(alis.values()), key=key)
                 if key in self.outputs['cmds']:
@@ -1857,7 +1861,7 @@ def woltka(self) -> None:
                     if to_dos:
                         self.outputs['cmds'][key] = [False]
                     else:
-                        self.outputs['cmds'][key] = [cmds[0]] + cmd + [cmds[1]]
+                        self.outputs['cmds'][key] = [cmds] + cmd + [rms]
             if not to_dos:
                 if set(classifs) & {'eggnog', 'metacyc', 'kegg'}:
                     uniref_tax = woltka_uniref(self, tech, pairing, aligner,
