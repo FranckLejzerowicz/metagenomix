@@ -492,7 +492,7 @@ def check_prokka(self, params, soft):
     check_nums(self, params, defaults, ['mincontiglen'], int, soft.name)
     check_default(self, params, defaults, soft.name,
                   ['evalue', 'coverage', 'mincontiglen'])
-    if 'config' in params:
+    if 'config' in params and params['config'] is not None:
         if not isfile(params['config']):
             sys.exit('[prokka] Param "config" must be an existing file')
         check_prokka_config(params)
