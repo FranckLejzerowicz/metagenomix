@@ -7,7 +7,7 @@
 # ----------------------------------------------------------------------------
 
 import sys
-from os.path import basename, splitext
+from os.path import basename
 from metagenomix._io_utils import io_update, to_do, status_update
 
 
