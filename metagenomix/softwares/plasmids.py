@@ -147,11 +147,10 @@ def plasmidfinder_cmd(
         cmd_rm += 'rm %s\n' % infile
     else:
         infile = fasta[0]
-
+    cmd += 'export PATH=$PATH:%s\n' % dirname(self.soft.params['methodPath'])
     cmd += '%s' % self.soft.params['binary']
     cmd += ' --infile %s' % infile
     cmd += ' --tmp_dir %s' % tmp_dir
-    cmd += ' --methodPath %s' % self.soft.params['methodPath']
     cmd += ' --databasePath %s' % self.soft.params['databasePath']
     if 'databases' in self.soft.params:
         cmd += ' --databases %s' % self.soft.params['databases']
