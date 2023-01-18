@@ -7,5 +7,5 @@ default:
   env:
   chunks:
   scratch:
-  machine:
+  machine: saga
   partition:
