@@ -205,7 +205,7 @@ def raw(
                 self.outputs['dirs'].append(out)
                 cmd, bams = get_cmds(sam, out, fastqs, fastas, ali, params)
                 self.outputs['outs'].setdefault(cur_key, []).append(out)
-                if self.config.force or to_do(out):
+                if self.config.force or to_do(bams[-1]):
                     if to_dos or reads_to_dos:
                         self.outputs['cmds'].setdefault(key, []).append(False)
                     else:
