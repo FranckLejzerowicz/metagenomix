@@ -163,7 +163,9 @@ def get_cmds(
     cmd, cmd_rm, dbs = globals()['get_%s_db_cmd' % aligner](out, fastas, params)
     for db_, (bam, bam_sorted) in dbs.items():
         db = '%s/dbs/%s' % (out, db_)
-        cmd += globals()['%s_cmd' % aligner](sam, fastqs, db, out, bam, params)
+        if to_do(bam):
+            cmd += globals()['%s_cmd' % aligner](sam, fastqs, db,
+                                                 out, bam, params)
         if to_do(bam_sorted):
             cmd += 'samtools sort %s > %s\n' % (bam, bam_sorted)
             cmd += 'samtools index %s\n' % bam_sorted
