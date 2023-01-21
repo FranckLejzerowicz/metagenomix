@@ -157,8 +157,9 @@ def get_cmds(
     -------
     cmd : str
     bams : list
+    bams_sorted : list
     """
-    bams = []
+    bams, bams_sorted = [], []
     cmd, cmd_rm, dbs = globals()['get_%s_db_cmd' % aligner](out, fastas, params)
     for db_, (bam, bam_sorted) in dbs.items():
         db = '%s/dbs/%s' % (out, db_)
@@ -166,10 +167,11 @@ def get_cmds(
         if to_do(bam_sorted):
             cmd += 'samtools sort %s > %s\n' % (bam, bam_sorted)
             cmd += 'samtools index %s\n' % bam_sorted
-        bams.append(bam_sorted)
+        bams.append(bam)
+        bams_sorted.append(bam_sorted)
     if cmd:
         cmd += cmd_rm
-    return cmd, bams
+    return cmd, bams, bams_sorted
 
 
 def raw(
@@ -203,14 +205,18 @@ def raw(
                 cur_key = tuple(list(key) + [sam, reads_tech])
                 out = '/'.join([out_dir, sam, reads_tech, ali])
                 self.outputs['dirs'].append(out)
-                cmd, bams = get_cmds(sam, out, fastqs, fastas, ali, params)
+                cmd, bams, bams_sorted = get_cmds(
+                    sam, out, fastqs, fastas, ali, params)
                 self.outputs['outs'].setdefault(cur_key, []).append(out)
-                if self.config.force or to_do(bams[-1]):
+                if self.config.force or to_do(bams_sorted[-1]):
                     if to_dos or reads_to_dos:
                         self.outputs['cmds'].setdefault(key, []).append(False)
                     else:
                         self.outputs['cmds'].setdefault(key, []).append(cmd)
-                    io_update(self, i_f=(fastqs + fastas), o_d=out, key=key)
+                    if bams:
+                        io_update(self, i_f=bams, o_d=out, key=key)
+                    else:
+                        io_update(self, i_f=(fastqs + fastas), o_d=out, key=key)
                     self.soft.add_status(tech, self.sam_pool, 1, group=group)
                 else:
                     self.soft.add_status(tech, self.sam_pool, 0, group=group)
