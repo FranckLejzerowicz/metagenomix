@@ -105,25 +105,33 @@ def get_bowtie2_db_cmd(
     -------
     cmd : str
         bowtie2-build command
-    dbs : list
+    dbs : dict
         Databases indices
     """
-    dbs = []
-    cmd, cmd_rm = '', ''
+    dbs = {}
+    cmd, cmd_gz, cmd_rm = '', '', ''
     for fasta_ in fastas:
         fasta = fasta_
         if fasta.endswith('.gz'):
-            cmd += 'gunzip -c %s > %s\n' % (fasta, fasta.rstrip('.gz'))
+            cmd_gz += 'gunzip -c %s > %s\n' % (fasta, fasta.rstrip('.gz'))
             fasta = fasta.rstrip('.gz')
             cmd_rm += 'rm %s\n' % fasta
         db = splitext(basename(fasta))[0]
-        dbs.append(db)
-        cmd += 'mkdir -p %s/dbs/%s\n' % (out, db)
-        cmd += 'bowtie2-build'
-        cmd += ' --threads %s' % params['cpus']
-        cmd += ' %s %s/dbs/%s\n' % (fasta, out, db)
-    cmd += cmd_rm
-    return cmd, dbs
+        bam_dir = out + '/' + db
+        bam = '%s/alignment.bowtie2.bam' % bam_dir
+        bam_sorted = '%s.sorted.bam' % splitext(bam)[0]
+        if to_do(bam_sorted):
+            dbs[db] = (bam, bam_sorted)
+            if to_do(bam):
+                cmd += 'mkdir -p %s\n' % bam_dir
+                cmd += 'mkdir -p %s/dbs/%s\n' % (out, db)
+                cmd += 'bowtie2-build'
+                cmd += ' --threads %s' % params['cpus']
+                cmd += ' %s %s/dbs/%s\n' % (fasta, out, db)
+    if cmd:
+        cmd = cmd_gz + cmd
+        cmd_rm += '\nrm -rf %s/dbs\n' % out
+    return cmd, cmd_rm, dbs
 
 
 def get_cmds(
@@ -151,15 +159,16 @@ def get_cmds(
     bams : list
     """
     bams = []
-    cmd, dbs = globals()['get_%s_db_cmd' % aligner](out, fastas, params)
-    for db_ in dbs:
-        bam_dir = out + '/' + db_
-        bam = '%s/alignment.bowtie2.bam' % bam_dir
-        cmd += 'mkdir -p %s\n' % bam_dir
+    cmd, cmd_rm, dbs = globals()['get_%s_db_cmd' % aligner](out, fastas, params)
+    for db_, (bam, bam_sorted) in dbs.items():
         db = '%s/dbs/%s' % (out, db_)
         cmd += globals()['%s_cmd' % aligner](sam, fastqs, db, out, bam, params)
-        bams.append(bam)
-    cmd += '\nrm -rf %s/dbs\n' % out
+        if to_do(bam_sorted):
+            cmd += 'samtools sort %s > %s\n' % (bam, bam_sorted)
+            cmd += 'samtools index %s\n' % bam_sorted
+        bams.append(bam_sorted)
+    if cmd:
+        cmd += cmd_rm
     return cmd, bams
 
 
@@ -194,9 +203,9 @@ def raw(
                 cur_key = tuple(list(key) + [sam, reads_tech])
                 out = '/'.join([out_dir, sam, reads_tech, ali])
                 self.outputs['dirs'].append(out)
+                cmd, bams = get_cmds(sam, out, fastqs, fastas, ali, params)
                 self.outputs['outs'].setdefault(cur_key, []).append(out)
                 if self.config.force or to_do(out):
-                    cmd, bams = get_cmds(sam, out, fastqs, fastas, ali, params)
                     if to_dos or reads_to_dos:
                         self.outputs['cmds'].setdefault(key, []).append(False)
                     else:
