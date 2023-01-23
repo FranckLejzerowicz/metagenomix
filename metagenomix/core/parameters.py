@@ -1050,7 +1050,7 @@ def check_bowtie2(self, params, soft, no_database=False):
     check_nums(self, params, defaults, ['N'], int, soft.name, 0, 1)
     check_nums(self, params, defaults, ['L'], int, soft.name, 4, 31)
 
-    let_go = ints + ['N', 'L', 'i', 'n_ceil', 'score_min', 'rdg', 'rfg']
+    let_go = ints + ['N', 'L', 'i', 'n_ceil', 'score_min', 'rdg', 'rfg', 'mp']
     check_default(self, params, defaults, soft.name, let_go)
 
     if not no_database:
