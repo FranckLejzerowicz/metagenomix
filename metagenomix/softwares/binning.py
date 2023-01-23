@@ -812,7 +812,8 @@ def reassemble(self):
 def refine_cmd(
         self,
         out_dir: str,
-        bin_folders: list
+        bin_folders: list,
+        group: str
 ) -> tuple:
     """Collect metaWRAP bin refinement command
 
@@ -827,6 +828,8 @@ def refine_cmd(
         Path to the output folder
     bin_folders : list
         Path to the input bin folder
+    group : str
+        Name of the group
 
     Returns
     -------
@@ -834,22 +837,37 @@ def refine_cmd(
         metaWRAP bin refinement command
     bins : str
         Path to the output folder
+    names : str
+        Path to the output names file
     """
-    cmd = 'export PATH=$PATH:%s/bin\n' % self.soft.params['path']
-    cmd += 'rm -rf %s\n' % out_dir
-    cmd += 'metawrap bin_refinement'
-    cmd += ' -o %s' % out_dir
-    for fdx, folder in enumerate(bin_folders):
-        cmd += ' -%s %s' % (['A', 'B', 'C'][fdx], folder)
-    cmd += ' -t %s' % self.soft.params['cpus']
-    cmd += ' -c %s' % self.soft.params['min_completion']
-    cmd += ' -x %s\n' % self.soft.params['max_contamination']
-    cmd += 'rm -rf %s/work_files\n' % out_dir
-
     out = '%s/metawrap_%s_%s' % (out_dir, self.soft.params['min_completion'],
                                  self.soft.params['max_contamination'])
     bins = '%s_bins' % out
-    return cmd, bins
+    names = '%s.names' % bins
+    cmd = ''
+    if to_do(bins):
+        cmd += 'export PATH=$PATH:%s/bin\n' % self.soft.params['path']
+        cmd += 'rm -rf %s\n' % out_dir
+        cmd += 'metawrap bin_refinement'
+        cmd += ' -o %s' % out_dir
+        for fdx, folder in enumerate(bin_folders):
+            cmd += ' -%s %s' % (['A', 'B', 'C'][fdx], folder)
+        cmd += ' -t %s' % self.soft.params['cpus']
+        cmd += ' -c %s' % self.soft.params['min_completion']
+        cmd += ' -x %s\n' % self.soft.params['max_contamination']
+        cmd += 'rm -rf %s/work_files\n' % out_dir
+    if to_do(names):
+        cmd += 'for i in %s/*.fa; do\n' % bins
+        cmd += 'b="$(basename $i)";\n'
+        cmd += 'grep ">" $i > $i.tmp;\n'
+        cmd += 'awk -v SAMPLE="%s" -v BIN="$b"' % group
+        cmd += " '{printf "
+        cmd += '"%s\t%s\t%s\r\n",'
+        cmd += " $0,BIN,SAMPLE}' $i.tmp"
+        cmd += ' | cut -d ">" -f 2 >> %s\n' % names
+        cmd += 'rm $i.tmp; done\n'
+
+    return cmd, bins, names
 
 
 def refine(self):
@@ -879,11 +897,11 @@ def refine(self):
         self.outputs['dirs'].append(dirname(out_dir))
         to_dos = status_update(self, tech, bin_dirs, group=group, folder=True)
 
-        cmd, bins = refine_cmd(self, out_dir, bin_dirs)
+        cmd, bins, names = refine_cmd(self, out_dir, bin_dirs, group)
         if process_outputs(self, key, group, [bins]):
             continue
 
-        if self.config.force or to_do(bins):
+        if self.config.force or to_do(bins) or to_do(names):
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
