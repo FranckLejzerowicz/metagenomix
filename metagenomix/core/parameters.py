@@ -1015,8 +1015,11 @@ def check_bowtie2(self, params, soft, no_database=False):
     }
 
     if 'mp' in params:
-        if len([x.isdigit() for x in str(params['mp']).split(',')]):
-            sys.exit('[bowtie2] "mp" option invalid')
+        if ',' in str(params['mp']):
+            if len([x.isdigit() for x in str(params['mp']).split(',')]) != 2:
+                sys.exit('[bowtie2] Dual-value "mp" option must be two INTs')
+        elif not str(params['mp']).isdigit():
+            sys.exit('[bowtie2] Single-value "mp" option must be an int')
     else:
         params['mp'] = defaults['mp']
 
