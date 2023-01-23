@@ -497,7 +497,7 @@ def karga_kargva_cmd(
         self,
         tech: str,
         merged: str,
-        out: str,
+        out_dir: str,
         genes: str,
         reads: str,
         db: str,
@@ -516,7 +516,7 @@ def karga_kargva_cmd(
         Technology
     merged : str
         Path to the input file
-    out : str
+    out_dir : str
         Path to the output folder
     genes : str
         Path to the output mappedGenes.csv
@@ -545,7 +545,7 @@ def karga_kargva_cmd(
     cmd += 'grep -v ",?,?" %s > %s.tmp\n' % (reads, reads)
     cmd += 'mv %s.tmp %s\n' % (reads, reads)
     cmd += 'gzip %s %s\n' % (reads, genes)
-    cmd += 'mv %s/*_mapped*.csv.gz %s/db_%s\n' % (out, out, db)
+    cmd += 'mv %s/*_mapped*.csv.gz %s/db_%s\n' % (out_dir, out_dir, db)
     return cmd
 
 
@@ -598,15 +598,15 @@ def get_karga_kargva(
         outs, cmd = [], ''
         bas = splitext(basename(fastx))[0]
         for db, db_path in self.soft.params['databases'].items():
-            out = '%s/db_%s' % (out_dir, db)
             self.outputs['dirs'].append(out_dir)
-            outs.append(out)
-            r = '%s/db_%s/%s_%s_mapped' % (out, db, bas, self.soft.name.upper())
-            genes, reads = '%sGenes.csv' % r, '%sReads.csv' % r
+            out_db = '%s/db_%s' % (out_dir, db)
+            outs.append(out_db)
+            rad = '%s/%s_%s_mapped' % (out_db, bas, self.soft.name.upper())
+            genes, reads = '%sGenes.csv' % rad, '%sReads.csv' % rad
             if self.config.force or to_do(genes+'.gz') or to_do(reads+'.gz'):
                 # collect the command line
                 cmd += karga_kargva_cmd(
-                    self, tech, merged, out, genes, reads, db, db_path)
+                    self, tech, merged, out_dir, genes, reads, db, db_path)
         if cmd:
             if self.soft.name == 'karga':
                 ps = ['openjdk-8', 'AMRGene.class']
