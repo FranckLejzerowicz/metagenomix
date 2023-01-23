@@ -1014,6 +1014,12 @@ def check_bowtie2(self, params, soft, no_database=False):
         'non_deterministic': [False, True]
     }
 
+    if 'mp' in params:
+        if len([x.isdigit() for x in str(params['mp']).split(',')]):
+            sys.exit('[bowtie2] "mp" option invalid')
+    else:
+        params['mp'] = defaults['mp']
+
     for param in ['rdg', 'rfg']:
         if param in params:
             if len([x.isdigit() for x in str(params[param]).split(',')]) != 2:
@@ -1036,7 +1042,7 @@ def check_bowtie2(self, params, soft, no_database=False):
             params[param] = defaults[param]
 
     ints = ['skip', 'upto', 'trim5', 'trim3', 'trim_to', 'dpad', 'gbar', 'ma',
-            'k', 'np', 'mp', 'D', 'R', 'minins', 'maxins', 'met', 'seed']
+            'k', 'np', 'D', 'R', 'minins', 'maxins', 'met', 'seed']
     check_nums(self, params, defaults, ints, int, soft.name)
     check_nums(self, params, defaults, ['N'], int, soft.name, 0, 1)
     check_nums(self, params, defaults, ['L'], int, soft.name, 4, 31)
@@ -3723,11 +3729,20 @@ def check_eggnogmapper(self, params, soft):
         'f': [False, True],
         's': [False, True],
         'q': [False, True],
-        'd': [None],
-        'taxa': [None],
-        'dbname': [None],
-        'taxids': [None],
-        'data_dir': [None],
+        'resume': [False, True],
+        'override': [False, True],
+        'translate': [False, True],
+        'outfmt_short': [False, True],
+        'dmnd_ignore_warnings': [False, True],
+        'usemem': [False, True],
+        'report_no_hits': [False, True],
+        'cut_ga': [False, True],
+        'no_annot': [False, True],
+        'dbmem': [False, True],
+        'report_orthologs': [False, True],
+        'md5': [False, True],
+        'no_file_comments': [False, True],
+        'excel': [False, True],
         'overlap_tol': 0.0,
         'evalue': 0.001,
         'start_sens': 3,
@@ -3742,49 +3757,18 @@ def check_eggnogmapper(self, params, soft):
         'Z': 40000000,
         'seed_ortholog_evalue': 0.001,
         'mp_start_method': ['spawn', 'spawn', 'forkserver'],
-        'resume': [False, True],
-        'override': [False, True],
         'itype': ['proteins', 'CDS', 'genome', 'metagenome'],
-        'translate': [False, True],
-        'annotate_hits_table': [None],
-        'cache': [None],
         'genepred': ['search', 'prodigal'],
-        'trans_table': [None],
-        'training_genome': [None],
-        'training_file': [None],
         'allow_overlaps': ['none', 'strand', 'diff_frame', 'all'],
         'm': ['diamond', 'mmseqs', 'hmmer', 'no_search', 'cache', 'novel_fams'],
-        'pident': [None],
-        'query_cover': [None],
-        'subject_cover': [None],
-        'score': [None],
-        'dmnd_algo': ['auto', '0', '1', 'ctg'],
-        'dmnd_db': [None],
         'sensmode': [
             'sensitive', 'default', 'fast', 'mid-sensitive', 'more-sensitive'],
+        'dmnd_algo': ['auto', '0', '1', 'ctg'],
         'dmnd_iterate': ['yes', 'no'],
-        'matrix': [None],
-        'dmnd_frameshift': [None],
-        'gapopen': [None],
-        'gapextend': [None],
-        'block_size': [None],
-        'index_chunks': [None],
-        'outfmt_short': [False, True],
-        'dmnd_ignore_warnings': [False, True],
-        'mmseqs_db': [None],
-        'mmseqs_sub_mat': [None],
-        'database': [None],
-        'servers_list': [None],
         'qtype': ['seq', 'hmm'],
         'dbtype': ['hmmdb', 'seqdb'],
-        'usemem': [False, True],
-        'report_no_hits': [False, True],
-        'cut_ga': [False, True],
         'clean_overlaps': [
             'none', 'all', 'clans', 'hmmsearch_all', 'hmmsearch_clans'],
-        'no_annot': [False, True],
-        'dbmem': [False, True],
-        'seed_ortholog_score': [None],
         'tax_scope': [
             'auto', 'auto_broad', 'all_narrow', 'archaea', 'bacteria',
             'bacteria_broad', 'eukaryota', 'eukaryota_broad',
@@ -3793,16 +3777,38 @@ def check_eggnogmapper(self, params, soft):
             'inner_narrowest', 'broadest', 'inner_broadest', 'narrowest'],
         'target_orthologs': [
             'all', 'one2one', 'many2one', 'one2many', 'many2many'],
-        'target_taxa': [None],
-        'excluded_taxa': [None],
-        'report_orthologs': [False, True],
         'go_evidence': ['non-electronic', 'experimental', 'all'],
         'pfam_realign': ['none', 'realign', 'denovo'],
-        'md5': [False, True],
-        'no_file_comments': [False, True],
         'decorate_gff': ['no', 'yes'],
         'decorate_gff_ID_field': ['ID'],
-        'excel': [False, True]
+        'd': [None],
+        'taxa': [None],
+        'dbname': [None],
+        'taxids': [None],
+        'data_dir': [None],
+        'annotate_hits_table': [None],
+        'cache': [None],
+        'trans_table': [None],
+        'training_genome': [None],
+        'training_file': [None],
+        'pident': [None],
+        'query_cover': [None],
+        'subject_cover': [None],
+        'score': [None],
+        'dmnd_db': [None],
+        'matrix': [None],
+        'dmnd_frameshift': [None],
+        'gapopen': [None],
+        'gapextend': [None],
+        'block_size': [None],
+        'index_chunks': [None],
+        'mmseqs_db': [None],
+        'mmseqs_sub_mat': [None],
+        'database': [None],
+        'servers_list': [None],
+        'seed_ortholog_score': [None],
+        'target_taxa': [None],
+        'excluded_taxa': [None],
     }
     ints = ['start_sens', 'sens_steps', 'final_sens', 'port', 'end_port',
             'num_servers', 'num_workers', 'hmm_maxhits', 'hmm_maxseqlen', 'Z']
