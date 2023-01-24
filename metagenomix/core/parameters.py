@@ -3787,7 +3787,6 @@ def check_eggnogmapper(self, params, soft):
         'taxa': [None],
         'dbname': [None],
         'taxids': [None],
-        'data_dir': [None],
         'annotate_hits_table': [None],
         'cache': [None],
         'trans_table': [None],
@@ -3813,12 +3812,18 @@ def check_eggnogmapper(self, params, soft):
         'target_taxa': [None],
         'excluded_taxa': [None],
     }
+    if 'data_dir' not in params:
+        sys.exit('[eggnogmapper] Params "data_dir" must exist')
+    elif not isdir(params['data_dir']) and not self.config.dev:
+        sys.exit('[eggnogmapper] Params "data_dir" must be the database folder')
+
     ints = ['start_sens', 'sens_steps', 'final_sens', 'port', 'end_port',
             'num_servers', 'num_workers', 'hmm_maxhits', 'hmm_maxseqlen', 'Z']
     check_nums(self, params, defaults, ints, int, soft.name)
     floats = ['overlap_tol', 'evalue', 'seed_ortholog_evalue']
     check_nums(self, params, defaults, floats, float, soft.name)
-    check_default(self, params, defaults, soft.name, (ints + floats))
+    check_default(self, params, defaults, soft.name,
+                  (ints + floats + ['data_dir']))
     return defaults
 
 
