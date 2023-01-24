@@ -1992,7 +1992,7 @@ def eggnogmapper_cmd(
     """
     params = tech_params(self, tech)
 
-    cmd = 'export EGGNOG_DATA_DIR=%s\n' % self.soft.params['data_dir']
+    cmd = 'export EGGNOG_DATA_DIR=%s\n' % params['data_dir']
 
     cmd += 'emapper.py'
     cmd += ' -i %s' % proteins
