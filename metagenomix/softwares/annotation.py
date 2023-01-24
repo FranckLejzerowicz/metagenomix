@@ -1964,6 +1964,246 @@ def diting(self):
         diting_sample(self, all_reads)
 
 
+def eggnogmapper_cmd(
+        self,
+        tech: str,
+        prefix: str,
+        proteins: str,
+        out_dir: str
+) -> str:
+    """Get EggNOG-mapper command line
+
+    Parameters
+    ----------
+    self
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    prefix : str
+        Prefix name for the output files
+    proteins : str
+        Path to the input proteins fasta file
+    out_dir : str
+        Path to the output folder
+
+    Returns
+    -------
+    cmd : str
+        EggNOG-mapper command line
+    """
+    params = tech_params(self, tech)
+
+    cmd = ''
+    cmd += 'export PATH=$PATH;%s\n' % self.soft.params['path']
+    cmd += 'export EGGNOG_DATA_DIR=%s\n' % self.soft.params['data_dir']
+
+    cmd += 'emapper.py'
+    cmd += ' -i %s' % proteins
+    cmd += ' --output %s' % prefix
+    cmd += ' --output_dir %s' % out_dir
+    cmd += ' --temp_dir $TMPDIR'
+    booleans = [
+        'resume',
+        'override',
+        'translate',
+        'outfmt_short',
+        'dmnd_ignore_warnings',
+        'report_no_hits',
+        'cut_ga',
+        'no_annot',
+        'dbmem',
+        'report_orthologs',
+        'md5',
+        'no_file_comments',
+        'excel'
+    ]
+    for boolean in booleans:
+        if params[boolean]:
+            cmd += ' --%s' % boolean
+
+    parameters = [
+        'evalue',
+        'start_sens',
+        'sens_steps',
+        'final_sens',
+        'port',
+        'end_port',
+        'num_servers',
+        'num_workers',
+        'hmm_maxhits',
+        'hmm_maxseqlen',
+        'Z',
+        'seed_ortholog_evalue',
+        'mp_start_method',
+        'itype',
+        'qtype',
+        'dbtype',
+        'clean_overlaps',
+        'tax_scope',
+        'tax_scope_mode',
+        'target_orthologs',
+        'go_evidence',
+        'pfam_realign',
+        'decorate_gff',
+        'decorate_gff_ID_field'
+    ]
+    for param in parameters:
+        cmd += ' --%s %s' % (param, params[param])
+        if param == 'itype' and params[param] in ['genome', 'metagenome']:
+            cmd += ' --genepred %s' % params['genepred']
+            if params['genepred'] == 'prodigal':
+                if params['training_genome']:
+                    cmd += ' --training_genome %s' % params['training_genome']
+                if params['training_file']:
+                    cmd += ' --training_file %s' % params['training_file']
+            if params['genepred'] == 'search':
+                if params['allow_overlaps']:
+                    cmd += ' --allow_overlaps %s' % params['allow_overlaps']
+                    cmd += ' --overlap_tol %s' % params['overlap_tol']
+        if param == 'qtype':
+            if params['usemem'] and not params['dbmem']:
+                cmd += ' --usemem'
+
+    parameters = [
+        'annotate_hits_table',
+        'cache',
+        'data_dir',
+        'trans_table',
+        'pident',
+        'query_cover',
+        'subject_cover',
+        'score',
+    ]
+    no_m = True
+    for param in parameters:
+        if params[param]:
+            if param in ['pident', 'query_cover', 'subject_cover']:
+                if params['m'] == 'hmmer':
+                    continue
+            cmd += ' --%s %s' % (param, params[param])
+            if param == 'annotate_hits_table':
+                cmd += ' -m no_search'
+                no_m = False
+            if param == 'cache':
+                cmd += ' -m cache'
+                no_m = False
+
+    parameters = [
+        'dmnd_algo',
+        'dmnd_db',
+        'dmnd_iterate',
+        'sensmode',
+        'matrix',
+        'dmnd_frameshift',
+        'gapopen',
+        'gapextend',
+        'block_size',
+        'index_chunks',
+        'mmseqs_db',
+        'mmseqs_sub_mat',
+        'database',
+        'servers_list',
+        'seed_ortholog_score',
+        'target_taxa',
+        'excluded_taxa',
+    ]
+    for param in parameters:
+        if params[param]:
+            cmd += ' --%s %s' % (param, params[param])
+
+    if no_m:
+        cmd += ' -m %s' % params['m']
+
+    cmd += ' --cpu %s\n' % params['cpus']
+
+    return cmd
+
+
+def get_eggnogmapper(
+        self,
+        tech: str,
+        fastas: dict,
+        sam_group: str,
+) -> None:
+    """Get the EggNOG-mapper command and fill the pipeline data structures.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .databases : dict
+            Databases
+        .outputs : dict
+            All outputs
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    fastas : dict
+        Paths to the input fasta files per genome/MAG
+    sam_group : str
+        Sample name or group for the current co-assembly
+    """
+    for genome, fasta in fastas.items():
+
+        key = genome_key(tech, sam_group, genome)
+        out_dir = genome_out_dir(self, tech, sam_group, genome)
+        self.outputs['dirs'].append(out_dir)
+
+        proteins = fasta[0]
+        if self.soft.prev == 'prodigal':
+            proteins = '%s/protein.translations.fasta.gz' % fasta[0]
+
+        to_dos = status_update(
+            self, tech, [proteins], group=sam_group, genome=genome)
+
+        prefix = '-'.join([x for x in [sam_group, genome] if x])
+        out = '%s/%s.emapper.hits' % (out_dir, prefix)
+        self.outputs['outs'].setdefault((tech, sam_group), []).append(out_dir)
+
+        if self.config.force or to_do(out):
+            cmd = eggnogmapper_cmd(self, tech, prefix, proteins, out_dir)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
+            io_update(self, i_f=proteins, o_d=out_dir, key=key)
+
+
+def eggnogmapper(self):
+    """EggNOG-mapper is a tool for fast functional annotation of novel
+    sequences. It uses precomputed orthologous groups and phylogenies from
+    the eggNOG database (http://eggnog5.embl.de) to transfer functional
+    information from fine-grained orthologs only.
+
+    References
+    ----------
+    Cantalapiedra, C.P., Hernández-Plaza, A., Letunic, I., Bork, P. and
+    Huerta-Cepas, J., 2021. eggNOG-mapper v2: functional annotation,
+    orthology assignments, and domain prediction at the metagenomic scale.
+    Molecular biology and evolution, 38(12), pp.5825-5829.
+
+    Notes
+    -----
+    GitHub  : https://github.com/eggnogdb/eggnog-mapper
+    Docs    : http://eggnog-mapper.embl.de/
+    Paper   : https://doi.org/10.1093/molbev/msab293
+
+    Parameters
+    ----------
+    self
+    """
+    if self.sam_pool in self.pools:
+        if self.soft.prev != 'prodigal':
+            sys.exit('[eggnogmapper] Runs on protein data (prodigal only)')
+        for (tech, group), inputs in self.inputs[self.sam_pool].items():
+            fastas = group_inputs(self, inputs)
+            get_eggnogmapper(self, tech, fastas, group)
+    else:
+        prev = self.soft.prev
+        if prev not in ['plass', 'prodigal']:
+            sys.exit('[eggnogmapper] Runs on protein data (plass or prodigal)')
+        tech_fastas = sample_inputs(self)
+        for tech, fastas in tech_fastas.items():
+            get_eggnogmapper(self, tech, fastas, self.sam_pool)
+
+
 def metaclade2(self):
     """Novel profile-based domain annotation pipeline based on the multi-source
     domain annotation strategy. It provides a domain annotation realised
