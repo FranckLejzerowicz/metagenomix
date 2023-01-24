@@ -50,7 +50,7 @@ def viralverify_cmd(
     cmd += ' -t %s' % self.soft.params['cpus']
     cmd += ' --thr %s' % self.soft.params['thr']
     cmd += ' --hmm %s\n' % '%s/Pfam-A.hmm' % self.databases.paths.get('pfam')
-    cmd += 'for i in %s/*; do if [ -d $i ]; then gzip -q $i; fi; done\n' % out
+    cmd += 'for i in %s/*; do if [ ! -d $i ]; then gzip -q $i; fi; done\n' % out
     cmd += 'gzip %s/Prediction_results_fasta/*fasta\n' % out
     cmd += cmd_rm
     return cmd
