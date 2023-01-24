@@ -1076,145 +1076,6 @@ def amrplusplus2(self) -> None:
             get_amrplusplus2(self, tech, fastqs[''])
 
 
-def amrfinderplus(self) -> None:
-    """This software and the accompanying database are designed to find
-    acquired antimicrobial resistance genes and some point mutations in
-    protein or assembled nucleotide sequences. We have also added "plus"
-    stress, head, and biocide resistance as well as some virulence factors
-    and E. coli antigens.
-
-    References
-    ----------
-    Feldgarden, M., Brover, V., Gonzalez-Escalona, N., Frye, J.G., Haendiges,
-    J., Haft, D.H., Hoffmann, M., Pettengill, J.B., Prasad, A.B., Tillman,
-    G.E. and Tyson, G.H., 2021. AMRFinderPlus and the Reference Gene Catalog
-    facilitate examination of the genomic links among antimicrobial
-    resistance, stress response, and virulence. Scientific reports, 11(1),
-    pp.1-9.
-
-    Notes
-    -----
-    GitHub  : https://github.com/ncbi/amr
-    Docs    : https://www.ncbi.nlm.nih.gov/pathogens/antimicrobial-resistance/AMRFinder/
-    Wiki    : https://github.com/ncbi/amr/wiki
-    Paper   : https://doi.org/10.1038/s41598-021-91456-0
-
-    Parameters
-    ----------
-    self : Commands class instance
-        .dir : str
-            Path to pipeline output folder for AMRFinderPlus
-        .sam_pool : str
-            Sample of co-assembly group name
-        .pools : dict
-            Co-assembly pools and sample per group
-        .inputs : dict
-            Input files
-        .outputs : dict
-            All outputs
-        .soft.name : str
-            Name of the current software in the pipeline
-        .soft.prev : str
-            Name of the previous software in the pipeline
-        .soft.status
-            Current status of the pipeline in terms of available outputs
-        .soft.params
-            Parameters
-        .config
-            Configurations
-    """
-    pass
-
-
-def argsoap(self) -> None:
-    """Fast annotation and classification of antibiotic resistance gene-like
-    sequences from metagenomic data.
-
-    References
-    ----------
-    Yin, X., Jiang, X.T., Chai, B., Li, L., Yang, Y., Cole, J.R., Tiedje,
-    J.M. and Zhang, T., 2018. ARGs-OAP v2. 0 with an expanded SARG database
-    and Hidden Markov Models for enhancement characterization and
-    quantification of antibiotic resistance genes in environmental
-    metagenomes. Bioinformatics, 34(13), pp.2263-2270.
-
-    Notes
-    -----
-    GitHub  : https://github.com/biofuture/Ublastx_stageone
-    Docs    : https://galaxyproject.org/use/args-oap/
-    Paper   : https://doi.org/10.1093/bioinformatics/bty053
-
-    Parameters
-    ----------
-    self : Commands class instance
-        .dir : str
-            Path to pipeline output folder for ARGs-OAP
-        .sam_pool : str
-            Sample of co-assembly group name
-        .pools : dict
-            Co-assembly pools and sample per group
-        .inputs : dict
-            Input files
-        .outputs : dict
-            All outputs
-        .soft.name : str
-            Name of the current software in the pipeline
-        .soft.prev : str
-            Name of the previous software in the pipeline
-        .soft.status
-            Current status of the pipeline in terms of available outputs
-        .soft.params
-            Parameters
-        .config
-            Configurations
-    """
-    pass
-
-
-def resfinder(self) -> None:
-    """ResFinder identifies acquired antimicrobial resistance genes in total
-    or partial sequenced isolates of bacteria.
-
-    References
-    ----------
-    Bortolaia, V., Kaas, R.S., Ruppe, E., Roberts, M.C., Schwarz, S.,
-    Cattoir, V., Philippon, A., Allesoe, R.L., Rebelo, A.R., Florensa,
-    A.F. and Fagelhauer, L., 2020. ResFinder 4.0 for predictions of
-    phenotypes from genotypes. Journal of Antimicrobial Chemotherapy, 75(12),
-    pp.3491-3500.
-
-    Notes
-    -----
-    BitBucket : https://bitbucket.org/genomicepidemiology/resfinder/src/master/
-    Paper     : https://doi.org/10.1093/jac/dkaa345
-
-    Parameters
-    ----------
-    self : Commands class instance
-        .dir : str
-            Path to pipeline output folder for ResFinder
-        .sam_pool : str
-            Sample of co-assembly group name
-        .pools : dict
-            Co-assembly pools and sample per group
-        .inputs : dict
-            Input files
-        .outputs : dict
-            All outputs
-        .soft.name : str
-            Name of the current software in the pipeline
-        .soft.prev : str
-            Name of the previous software in the pipeline
-        .soft.status
-            Current status of the pipeline in terms of available outputs
-        .soft.params
-            Parameters
-        .config
-            Configurations
-    """
-    pass
-
-
 def metacompare_cmd(
         self,
         contigs: str,
@@ -1552,5 +1413,144 @@ def staramr(self) -> None:
     Parameters
     ----------
     self : Commands class instance
+    """
+    pass
+
+
+def amrfinderplus(self) -> None:
+    """This software and the accompanying database are designed to find
+    acquired antimicrobial resistance genes and some point mutations in
+    protein or assembled nucleotide sequences. We have also added "plus"
+    stress, head, and biocide resistance as well as some virulence factors
+    and E. coli antigens.
+
+    References
+    ----------
+    Feldgarden, M., Brover, V., Gonzalez-Escalona, N., Frye, J.G., Haendiges,
+    J., Haft, D.H., Hoffmann, M., Pettengill, J.B., Prasad, A.B., Tillman,
+    G.E. and Tyson, G.H., 2021. AMRFinderPlus and the Reference Gene Catalog
+    facilitate examination of the genomic links among antimicrobial
+    resistance, stress response, and virulence. Scientific reports, 11(1),
+    pp.1-9.
+
+    Notes
+    -----
+    GitHub  : https://github.com/ncbi/amr
+    Docs    : https://www.ncbi.nlm.nih.gov/pathogens/antimicrobial-resistance/AMRFinder/
+    Wiki    : https://github.com/ncbi/amr/wiki
+    Paper   : https://doi.org/10.1038/s41598-021-91456-0
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for AMRFinderPlus
+        .sam_pool : str
+            Sample of co-assembly group name
+        .pools : dict
+            Co-assembly pools and sample per group
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.name : str
+            Name of the current software in the pipeline
+        .soft.prev : str
+            Name of the previous software in the pipeline
+        .soft.status
+            Current status of the pipeline in terms of available outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    """
+    pass
+
+
+def argsoap(self) -> None:
+    """Fast annotation and classification of antibiotic resistance gene-like
+    sequences from metagenomic data.
+
+    References
+    ----------
+    Yin, X., Jiang, X.T., Chai, B., Li, L., Yang, Y., Cole, J.R., Tiedje,
+    J.M. and Zhang, T., 2018. ARGs-OAP v2. 0 with an expanded SARG database
+    and Hidden Markov Models for enhancement characterization and
+    quantification of antibiotic resistance genes in environmental
+    metagenomes. Bioinformatics, 34(13), pp.2263-2270.
+
+    Notes
+    -----
+    GitHub  : https://github.com/biofuture/Ublastx_stageone
+    Docs    : https://galaxyproject.org/use/args-oap/
+    Paper   : https://doi.org/10.1093/bioinformatics/bty053
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for ARGs-OAP
+        .sam_pool : str
+            Sample of co-assembly group name
+        .pools : dict
+            Co-assembly pools and sample per group
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.name : str
+            Name of the current software in the pipeline
+        .soft.prev : str
+            Name of the previous software in the pipeline
+        .soft.status
+            Current status of the pipeline in terms of available outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    """
+    pass
+
+
+def resfinder(self) -> None:
+    """ResFinder identifies acquired antimicrobial resistance genes in total
+    or partial sequenced isolates of bacteria.
+
+    References
+    ----------
+    Bortolaia, V., Kaas, R.S., Ruppe, E., Roberts, M.C., Schwarz, S.,
+    Cattoir, V., Philippon, A., Allesoe, R.L., Rebelo, A.R., Florensa,
+    A.F. and Fagelhauer, L., 2020. ResFinder 4.0 for predictions of
+    phenotypes from genotypes. Journal of Antimicrobial Chemotherapy, 75(12),
+    pp.3491-3500.
+
+    Notes
+    -----
+    BitBucket : https://bitbucket.org/genomicepidemiology/resfinder/src/master/
+    Paper     : https://doi.org/10.1093/jac/dkaa345
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for ResFinder
+        .sam_pool : str
+            Sample of co-assembly group name
+        .pools : dict
+            Co-assembly pools and sample per group
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.name : str
+            Name of the current software in the pipeline
+        .soft.prev : str
+            Name of the previous software in the pipeline
+        .soft.status
+            Current status of the pipeline in terms of available outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
     """
     pass
