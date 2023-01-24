@@ -1991,7 +1991,14 @@ def eggnogmapper_cmd(
         EggNOG-mapper command line
     """
     params = tech_params(self, tech)
-    cmd = 'export EGGNOG_DATA_DIR=%s\n' % params['data_dir']
+
+    cmd, cmd_rm = '', ''
+    if proteins.endswith('.fa.gz') or proteins.endswith('.fasta.gz'):
+        cmd += 'gunzip -c %s > %s\n' % (proteins, proteins.rstrip('.gz'))
+        cmd_rm += 'rm %s\n' % proteins.rstrip('.gz')
+        proteins = proteins.rstrip('.gz')
+
+    cmd += 'export EGGNOG_DATA_DIR=%s\n' % params['data_dir']
     cmd += 'emapper.py'
     cmd += ' -i %s' % proteins
     cmd += ' --output %s' % prefix
@@ -2110,7 +2117,7 @@ def eggnogmapper_cmd(
         cmd += ' -m %s' % params['m']
 
     cmd += ' --cpu %s\n' % params['cpus']
-
+    cmd += cmd_rm
     return cmd
 
 
