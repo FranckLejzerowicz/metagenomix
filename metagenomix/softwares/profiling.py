@@ -2719,32 +2719,6 @@ def closedref(self):
     pass
 
 
-def eggnogmapper(self):
-    """EggNOG-mapper is a tool for fast functional annotation of novel
-    sequences. It uses precomputed orthologous groups and phylogenies from
-    the eggNOG database (http://eggnog5.embl.de) to transfer functional
-    information from fine-grained orthologs only.
-
-    References
-    ----------
-    Cantalapiedra, C.P., Hernández-Plaza, A., Letunic, I., Bork, P. and
-    Huerta-Cepas, J., 2021. eggNOG-mapper v2: functional annotation,
-    orthology assignments, and domain prediction at the metagenomic scale.
-    Molecular biology and evolution, 38(12), pp.5825-5829.
-
-    Notes
-    -----
-    GitHub  : https://github.com/eggnogdb/eggnog-mapper
-    Docs    : http://eggnog-mapper.embl.de/
-    Paper   : https://doi.org/10.1093/molbev/msab293
-
-    Parameters
-    ----------
-    self
-    """
-    pass
-
-
 def ngless(self):
     """Ngless is a domain-specific language for NGS (
     next-generation sequencing data) processing.
