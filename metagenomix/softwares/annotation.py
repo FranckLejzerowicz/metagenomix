@@ -1991,6 +1991,7 @@ def eggnogmapper_cmd(
         EggNOG-mapper command line
     """
     params = tech_params(self, tech)
+    print(params)
 
     cmd = 'export EGGNOG_DATA_DIR=%s\n' % params['data_dir']
 
