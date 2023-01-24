@@ -2164,6 +2164,9 @@ def get_eggnogmapper(
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, i_f=proteins, o_d=out_dir, key=key)
+            self.soft.add_status(tech, self.sam_pool, 1)
+        else:
+            self.soft.add_status(tech, self.sam_pool, 0)
 
 
 def eggnogmapper(self):
