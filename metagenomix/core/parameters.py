@@ -3824,6 +3824,7 @@ def check_eggnogmapper(self, params, soft):
     check_nums(self, params, defaults, floats, float, soft.name)
     check_default(self, params, defaults, soft.name,
                   (ints + floats + ['data_dir']))
+    defaults['data_dir'] = '<Path to the "eggnog-mapper-data" database folder>'
     return defaults
 
 
