@@ -120,8 +120,8 @@ def get_bowtie2_db_cmd(
         bam_dir = out + '/' + db
         bam = '%s/alignment.bowtie2.bam' % bam_dir
         bam_sorted = '%s.sorted.bam' % splitext(bam)[0]
+        dbs[db] = (bam, bam_sorted)
         if to_do(bam_sorted):
-            dbs[db] = (bam, bam_sorted)
             if to_do(bam):
                 cmd += 'mkdir -p %s\n' % bam_dir
                 cmd += 'mkdir -p %s/dbs/%s\n' % (out, db)
