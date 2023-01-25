@@ -862,7 +862,7 @@ def refine_cmd(
         cmd += 'grep ">" $i > $i.tmp;\n'
         cmd += 'awk -v SAMPLE="%s" -v BIN="$b"' % group
         cmd += " '{printf "
-        cmd += '"%s\t%s\t%s\r\n",'
+        cmd += '"%s\\t%s\\t%s\\r\\n",'
         cmd += " $0,BIN,SAMPLE}' $i.tmp"
         cmd += ' | cut -d ">" -f 2 >> %s\n' % names
         cmd += 'rm $i.tmp; done\n'
