@@ -173,10 +173,10 @@ def get_cmds(
             cmd += globals()['%s_cmd' % ali](sam, fastqs, db, out, bam, params)
         else:
             cmd_rm = ''
+            bams.append(bam)
         if to_do(bam_sorted):
             cmd += 'samtools sort %s > %s\n' % (bam, bam_sorted)
             cmd += 'samtools index %s\n' % bam_sorted
-        bams.append(bam)
         fastas_bams[bam_sorted] = [reads_tech, sam, ali, fasta]
     if cmd:
         cmd += cmd_rm
