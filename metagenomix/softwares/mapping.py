@@ -459,7 +459,7 @@ def get_pysam_inputs(
     cmd = 'echo -e "%s" > %s/inputs.txt\n' % (echo, out_dir)
     for fa, bams in fastas.items():
         for bs in bams:
-            echo = '%s\\n' % '\\t'.join(([fa] + bs + [target, prev, mode]))
+            echo = '%s' % '\\t'.join(([fa] + bs + [target, prev, mode]))
             cmd += 'echo -e "%s" >> %s/inputs.txt\n' % (echo, out_dir)
     cmd += 'envsubst < %s/inputs.txt > %s/inputs.tmp\n' % (out_dir, out_dir)
     cmd += 'mv %s/inputs.tmp %s/inputs.txt\n' % (out_dir, out_dir)
