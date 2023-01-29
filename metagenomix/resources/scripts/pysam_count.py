@@ -23,7 +23,9 @@ def get_args():
 
 def assembling_counts(tab, filou):
     dat = []
-    for vals in tab:
+    for vdx, vals in enumerate(tab):
+        if not vdx:
+            continue
         alignment = pysam.AlignmentFile(vals[1], "rb")
         with open(vals[0]) as f:
             for line in f:
