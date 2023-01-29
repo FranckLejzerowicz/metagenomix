@@ -32,8 +32,8 @@ def assembling_counts(tab):
                     contig = line[1:].split()[0]
                     reads = alignment.count(contig)
                     dat.append((vals[2:] + [contig, reads]))
-    dat = pd.DataFrame(dat, columns=['tech', 'sample', 'ali', 'target',
-                                     'prev', 'mode', 'contig', 'reads'])
+    dat = pd.DataFrame(dat, columns=[
+        'tech', 'sample', 'ali', 'target', 'prev', 'mode', 'contig', 'reads'])
     return dat
 
 
