@@ -127,6 +127,7 @@ def get_bowtie2_db_cmd(
         dbs[base] = (fasta, bam, bam_sorted, bam_dir)
         if to_do(bam_sorted):
             if to_do(bam):
+                cmd += 'mkdir -p %s/%s\n' % (out, base)
                 cmd += 'mkdir -p %s/dbs/%s\n' % (out, base)
                 cmd += 'bowtie2-build'
                 cmd += ' --threads %s' % params['cpus']
