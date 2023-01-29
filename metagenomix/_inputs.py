@@ -367,7 +367,8 @@ def group_inputs(
         self,
         inputs: list,
         folder: bool = False,
-        index: int = 0
+        index: int = 0,
+        target: str = None
 ) -> dict:
     """Get the input fasta files for a step that takes as input
     either the contigs of an assembly, the genomes of a binning or after
@@ -388,6 +389,8 @@ def group_inputs(
         Whether the returned paths should be the folders (not the files)
     index : int
         The index of the fasta file for the current input
+    target : str
+        Previous tool that is the actual data target
 
     Returns
     -------
@@ -395,12 +398,17 @@ def group_inputs(
         Path(s) to the fasta file(s) for an assembly or a series of MAGs
     """
     fastas = {}
-    if self.soft.prev in self.config.tools['assembling']:
+    if target is None:
+        prev = self.soft.prev
+    else:
+        prev = target
+
+    if prev in self.config.tools['assembling']:
         fastas[''] = [inputs[index]]
-    elif self.soft.prev in ['metawrap_refine', 'drep']:
+    elif prev in ['metawrap_refine', 'drep']:
         for fa in genomes_fastas(self, inputs[index], folder):
             fastas[splitext(basename(fa))[0]] = [fa]
-    elif self.soft.prev == 'metawrap_reassemble':
+    elif prev == 'metawrap_reassemble':
         for inp in inputs:
             sam, stringency = inp.rsplit('/')[-2:]
             for fa in genomes_fastas(self, inp, folder):
@@ -408,7 +416,7 @@ def group_inputs(
                 if folder:
                     key = '%s/%s' % (sam, stringency)
                 fastas[key] = [fa]
-    elif self.soft.prev == 'prodigal':
+    elif prev == 'prodigal':
         if len(inputs) == 1:
             fastas[''] = [inputs[index]]
         else:
@@ -418,10 +426,9 @@ def group_inputs(
                 else:
                     fastas[basename(inp)] = [inp]
     elif self.soft.name.startswith('checkm_'):
-        # fastas[''] = inputs
         fastas = inputs
     else:
-        print(self.soft.prev)
+        print(prev)
         print(inputs)
         sys.exit('[check group_inputs()]')
     return fastas
