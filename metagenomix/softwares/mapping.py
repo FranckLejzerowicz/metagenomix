@@ -421,7 +421,7 @@ def assembling(
             fa = fa.rstrip('.gz')
             cmd_rm += 'rm %s\n' % fa
             bams = [[x] + y[:-1] for x, y in maps.items() if y[-1] == fa]
-            sam_bams.extend([y[0] for x in bams for y in x])
+            sam_bams.extend([x[0] for x in bams])
             fastas[fa] = bams
 
     cmd = get_pysam_inputs(target, prev, fastas, out_dir, 'assembling')
@@ -520,8 +520,6 @@ def get_pysam(
         self.outputs['outs'].setdefault(key, []).append(out)
 
         cmd, sam_bams = func(target, prev, maps, fs, out_dir)
-        print(sam_bams)
-        print(fs)
         to_dos = status_update(self, tech, sam_bams, group=group, genome=genome)
         to_dos.extend(status_update(self, tech, fs, group=group, genome=genome))
         pysam_cmd(self, tech, group, fs, sam_bams, key, to_dos, out, cmd)
