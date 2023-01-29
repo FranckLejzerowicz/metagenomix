@@ -455,7 +455,7 @@ def get_pysam_inputs(
     cmd : str
         Commands to make the inputs file
     """
-    echo = 'fasta\\tbam\\ttech\\tsample\\tali\\ttarget\\tprev\\tmode\\n'
+    echo = 'fasta\\tbam\\ttech\\tsample\\tali\\ttarget\\tprev\\tmode'
     cmd = 'echo -e "%s" > %s/inputs.txt\n' % (echo, out_dir)
     for fa, bams in fastas.items():
         for bs in bams:
