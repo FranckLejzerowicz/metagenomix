@@ -17,7 +17,7 @@ from metagenomix.softwares.alignment import (
     bowtie2_cmd,
     minimap2_cmd,
     # bbmap_cmd,
-    # bwa_cmd,
+    # bwa_cmd
 )
 
 RESOURCES = pkg_resources.resource_filename("metagenomix", "resources/scripts")
@@ -426,7 +426,7 @@ def assembling(
 
     cmd = get_pysam_inputs(target, prev, fastas, out_dir, 'assembling')
     cmd += cmd_gz
-    cmd += '%s/pysam_count.py' % RESOURCES
+    cmd += 'python3 %s/pysam_count.py' % RESOURCES
     cmd += ' -i %s/inputs.txt' % out_dir
     cmd += ' -o %s/reads.txt\n' % out_dir
     cmd += cmd_rm
