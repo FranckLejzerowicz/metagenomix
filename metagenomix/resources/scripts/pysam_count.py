@@ -62,6 +62,8 @@ def count_reads(filin, filou):
         assembling_counts(tab, filou)
     elif tab[-1][-1] == 'binning':
         binning_counts(tab, filou)
+    else:
+        print(skdfkjb)
 
 
 if __name__ == '__main__':
