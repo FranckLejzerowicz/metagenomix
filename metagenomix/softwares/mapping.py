@@ -478,7 +478,7 @@ def pysam_cmd(
         cmd: str
 ) -> None:
     if self.config.force or to_do(out):
-        if to_dos and not self.confg.dev:
+        if to_dos and not self.config.dev:
             self.outputs['cmds'].setdefault(key, []).append(False)
         else:
             self.outputs['cmds'].setdefault(key, []).append(cmd)
