@@ -421,8 +421,8 @@ def assembling(
             fa = fa.rstrip('.gz')
             cmd_rm += 'rm %s\n' % fa
             bams = [[x] + y[:-1] for x, y in maps.items() if y[-1] == fa]
+            sam_bams.extend([y for x in bams for y in x])
             fastas[fa] = bams
-            sam_bams.extend(bams)
 
     cmd = get_pysam_inputs(target, prev, fastas, out_dir, 'assembling')
     cmd += cmd_gz
