@@ -474,6 +474,7 @@ def pysam_cmd(
         sam_bams: list,
         key: tuple,
         to_dos: list,
+        out_dir: str,
         out: str,
         cmd: str
 ) -> None:
@@ -482,7 +483,7 @@ def pysam_cmd(
             self.outputs['cmds'].setdefault(key, []).append(False)
         else:
             self.outputs['cmds'].setdefault(key, []).append(cmd)
-        io_update(self, i_f=(fas + sam_bams), o_f=out, key=key)
+        io_update(self, i_f=(fas + sam_bams), o_d=out_dir, key=key)
         self.soft.add_status(tech, self.sam_pool, 1, group=group)
     else:
         self.soft.add_status(tech, self.sam_pool, 0, group=group)
@@ -519,10 +520,10 @@ def get_pysam(
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'].setdefault(key, []).append(out)
 
-        cmd, sam_bams = func(target, prev, maps, fs, out_dir)
-        to_dos = status_update(self, tech, sam_bams, group=group, genome=genome)
+        cmd, bams = func(target, prev, maps, fs, out_dir)
+        to_dos = status_update(self, tech, bams, group=group, genome=genome)
         to_dos.extend(status_update(self, tech, fs, group=group, genome=genome))
-        pysam_cmd(self, tech, group, fs, sam_bams, key, to_dos, out, cmd)
+        pysam_cmd(self, tech, group, fs, bams, key, to_dos, out_dir, out, cmd)
 
 
 def pysam(self):
@@ -531,7 +532,7 @@ def pysam(self):
     sequences are from a single file (typically, the contigs of an assembly),
     or from multiple files (typically, contigs binned in different MAGs), is
     detected automatically and all counts are consigned into a table including
-    the file infornation.
+    the file information.
 
     Parameters
     ----------
