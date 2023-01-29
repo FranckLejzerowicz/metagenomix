@@ -8,7 +8,6 @@
 
 import pysam
 import argparse
-import pandas as pd
 
 
 def get_args():
@@ -22,26 +21,27 @@ def get_args():
     return args
 
 
-def assembling_counts(tab):
+def assembling_counts(tab, filou):
     dat = []
-    for vals in tab.values:
+    for vals in tab:
         alignment = pysam.AlignmentFile(vals[1], "rb")
         with open(vals[0]) as f:
             for line in f:
                 if line[0] == '>':
                     contig = line[1:].split()[0]
                     reads = alignment.count(contig)
-                    dat.append((vals[2:] + [contig, reads]))
-    dat = pd.DataFrame(dat, columns=[
-        'tech', 'sample', 'ali', 'target', 'prev', 'mode', 'contig', 'reads'])
+                    dat.append((vals[2:] + [contig, str(reads)]))
+    with open(filou, 'w') as o:
+        o.write('tech\tsample\tali\ttarget\tprev\tmode\tcontig\treads\n')
+        for row in dat:
+            o.write('%s\n' % '\t'.join(row))
     return dat
 
 
 def count_reads(filin, filou):
-    tab = pd.read_table(filin)
-    mode = tab['mode'].unique().tolist()[0]
-    if mode == 'assembling':
-        assembling_counts(tab).write(filou, index=False, sep='\t')
+    tab = [x.strip() for x in open(filin).readlines()]
+    if tab[-1][-1] == 'assembling':
+        assembling_counts(tab, filou)
 
 
 if __name__ == '__main__':
