@@ -17,6 +17,7 @@ minimap2	alignment
 salmon	alignment
 kallisto	alignment
 mapping	alignment
+pysam	alignment
 prodigal	annotation (protein prediction)
 macsyfinder	annotation (macromolecular systems, pathways)
 integronfinder	annotation (integrons)
