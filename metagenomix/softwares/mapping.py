@@ -520,6 +520,8 @@ def get_pysam(
         self.outputs['outs'].setdefault(key, []).append(out)
 
         cmd, sam_bams = func(target, prev, maps, fs, out_dir)
+        print(sam_bams)
+        print(fs)
         to_dos = status_update(self, tech, sam_bams, group=group, genome=genome)
         to_dos.extend(status_update(self, tech, fs, group=group, genome=genome))
         pysam_cmd(self, tech, group, fs, sam_bams, key, to_dos, out, cmd)
