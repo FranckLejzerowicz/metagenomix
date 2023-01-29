@@ -120,18 +120,17 @@ def get_bowtie2_db_cmd(
             fasta = fasta.rstrip('.gz')
             cmd_rm += 'rm %s\n' % fasta
 
-        db = splitext(basename(fasta))[0]
-        bam_dir = out + '/' + db
+        base = splitext(basename(fasta))[0]
+        bam_dir = out + '/' + base
         bam = '%s/alignment.bowtie2.bam' % bam_dir
         bam_sorted = '%s.sorted.bam' % splitext(bam)[0]
-        dbs[db] = (fasta, bam, bam_sorted)
+        dbs[base] = (fasta, bam, bam_sorted, bam_dir)
         if to_do(bam_sorted):
             if to_do(bam):
-                cmd += 'mkdir -p %s\n' % bam_dir
-                cmd += 'mkdir -p %s/dbs/%s\n' % (out, db)
+                cmd += 'mkdir -p %s/dbs/%s\n' % (out, base)
                 cmd += 'bowtie2-build'
                 cmd += ' --threads %s' % params['cpus']
-                cmd += ' %s %s/dbs/%s\n' % (fasta, out, db)
+                cmd += ' %s %s/dbs/%s\n' % (fasta, out, base)
     if cmd:
         cmd = cmd_gz + cmd
         cmd_rm += '\nrm -rf %s/dbs\n' % out
@@ -163,11 +162,12 @@ def get_cmds(
     -------
     cmd : str
     bams : list
+    bam_dirs : list
     fastas_bams : dict
     """
-    bams, fastas_bams = [], {}
+    bams, bam_dirs, fastas_bams = [], [], {}
     cmd, cmd_rm, dbs = globals()['get_%s_db_cmd' % ali](out, fastas, params)
-    for db_, (fasta, bam, bam_sorted) in dbs.items():
+    for db_, (fasta, bam, bam_sorted, bam_dir) in dbs.items():
         db = '%s/dbs/%s' % (out, db_)
         if to_do(bam):
             cmd += globals()['%s_cmd' % ali](sam, fastqs, db, out, bam, params)
@@ -180,7 +180,7 @@ def get_cmds(
         fastas_bams[bam_sorted] = [reads_tech, sam, ali, fasta]
     if cmd:
         cmd += cmd_rm
-    return cmd, bams, fastas_bams
+    return cmd, bams, bam_dirs, fastas_bams
 
 
 def raw(
@@ -214,9 +214,9 @@ def raw(
             for ali in self.soft.params['aligners']:
                 params = tech_params(self, reads_tech, ali)
                 out = '/'.join([out_dir, sam, reads_tech, ali])
-                self.outputs['dirs'].append(out)
-                cmd, bams, fastas_bams = get_cmds(
+                cmd, bams, bam_dirs, fastas_bams = get_cmds(
                     reads_tech, sam, out, fastqs, fastas, ali, params)
+                self.outputs['dirs'].extend(bam_dirs)
                 self.outputs['outs'].update(fastas_bams)
                 to_do_list = [to_do(x) for x in fastas_bams.keys()]
                 if self.config.force or sum(to_do_list):
