@@ -422,6 +422,7 @@ def assembling(
             cmd_rm += 'rm %s\n' % fa
             bams = [[x] + y[:-1] for x, y in maps.items() if y[-1] == fa]
             sam_bams.extend([x[0] for x in bams])
+            sam_bams.extend(['%s.bai' % x[0] for x in bams])
             fastas[fa] = bams
 
     cmd = get_pysam_inputs(target, prev, fastas, out_dir, 'assembling')
