@@ -6,6 +6,7 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 import sys
+import pkg_resources
 from os.path import basename, splitext
 from metagenomix._io_utils import io_update, status_update
 from metagenomix.core.parameters import tech_params
@@ -18,6 +19,8 @@ from metagenomix.softwares.alignment import (
     # bbmap_cmd,
     # bwa_cmd,
 )
+
+RESOURCES = pkg_resources.resource_filename("metagenomix", "resources/scripts")
 
 
 def get_mapping_target(self) -> tuple:
@@ -40,12 +43,12 @@ def get_mapping_target(self) -> tuple:
     return func, source, step
 
 
-def bwa():
-    cmd = 'bwa index -p %s/index %s\n' % (out_dir, contigs)
-    cmd += 'bwa mem -p %s/index %s' % (out_dir, fastqs)
-    cmd += ' | samtools view -bh'
-    cmd += ' | samtools sort -o %s/%s\n' % (out_dir, bam)
-    cmd += 'samtools index %s %s\n' % (bam, bai)
+# def bwa():
+#     cmd = 'bwa index -p %s/index %s\n' % (out_dir, contigs)
+#     cmd += 'bwa mem -p %s/index %s' % (out_dir, fastqs)
+#     cmd += ' | samtools view -bh'
+#     cmd += ' | samtools sort -o %s/%s\n' % (out_dir, bam)
+#     cmd += 'samtools index %s %s\n' % (bam, bai)
 
 
 def assembly(self, func, fastas, tech, group):
@@ -116,11 +119,12 @@ def get_bowtie2_db_cmd(
             cmd_gz += 'gunzip -c %s > %s\n' % (fasta, fasta.rstrip('.gz'))
             fasta = fasta.rstrip('.gz')
             cmd_rm += 'rm %s\n' % fasta
+
         db = splitext(basename(fasta))[0]
         bam_dir = out + '/' + db
         bam = '%s/alignment.bowtie2.bam' % bam_dir
         bam_sorted = '%s.sorted.bam' % splitext(bam)[0]
-        dbs[db] = (bam, bam_sorted)
+        dbs[db] = (fasta, bam, bam_sorted)
         if to_do(bam_sorted):
             if to_do(bam):
                 cmd += 'mkdir -p %s\n' % bam_dir
@@ -135,53 +139,55 @@ def get_bowtie2_db_cmd(
 
 
 def get_cmds(
+        reads_tech: str,
         sam: str,
         out: str,
         fastqs: list,
         fastas: list,
-        aligner: str,
+        ali: str,
         params: dict
 ) -> tuple:
     """
 
     Parameters
     ----------
+    reads_tech : str
     sam : str
     out : str
     fastqs : list
     fastas : list
-    aligner : str
+    ali : str
     params : dict
 
     Returns
     -------
     cmd : str
     bams : list
-    bams_sorted : list
+    fastas_bams : dict
     """
-    bams, bams_sorted = [], []
-    cmd, cmd_rm, dbs = globals()['get_%s_db_cmd' % aligner](out, fastas, params)
-    for db_, (bam, bam_sorted) in dbs.items():
+    bams, fastas_bams = [], {}
+    cmd, cmd_rm, dbs = globals()['get_%s_db_cmd' % ali](out, fastas, params)
+    for db_, (fasta, bam, bam_sorted) in dbs.items():
         db = '%s/dbs/%s' % (out, db_)
         if to_do(bam):
-            cmd += globals()['%s_cmd' % aligner](sam, fastqs, db,
-                                                 out, bam, params)
+            cmd += globals()['%s_cmd' % ali](sam, fastqs, db, out, bam, params)
         else:
             cmd_rm = ''
         if to_do(bam_sorted):
             cmd += 'samtools sort %s > %s\n' % (bam, bam_sorted)
             cmd += 'samtools index %s\n' % bam_sorted
         bams.append(bam)
-        bams_sorted.append(bam_sorted)
+        fastas_bams[bam_sorted] = [reads_tech, sam, ali, fasta]
     if cmd:
         cmd += cmd_rm
-    return cmd, bams, bams_sorted
+    return cmd, bams, fastas_bams
 
 
 def raw(
         self,
-        tech: str,
-        group: str,
+        source: str,
+        ref_tech: str,
+        ref_group: str,
         reads: dict,
         fastas: list,
         key: list,
@@ -193,8 +199,9 @@ def raw(
     Parameters
     ----------
     self
-    tech : str
-    group : str
+    source : str
+    ref_tech : str
+    ref_group : str
     reads : dict
     fastas : list
     key : list
@@ -206,13 +213,13 @@ def raw(
             reads_to_dos = status_update(self, reads_tech, fastqs)
             for ali in self.soft.params['aligners']:
                 params = tech_params(self, reads_tech, ali)
-                cur_key = tuple(list(key) + [sam, reads_tech])
                 out = '/'.join([out_dir, sam, reads_tech, ali])
                 self.outputs['dirs'].append(out)
-                cmd, bams, bams_sorted = get_cmds(
-                    sam, out, fastqs, fastas, ali, params)
-                self.outputs['outs'].setdefault(cur_key, []).append(out)
-                if self.config.force or to_do(bams_sorted[-1]):
+                cmd, bams, fastas_bams = get_cmds(
+                    reads_tech, sam, out, fastqs, fastas, ali, params)
+                self.outputs['outs'].update(fastas_bams)
+                to_do_list = [to_do(x) for x in fastas_bams.keys()]
+                if self.config.force or sum(to_do_list):
                     if to_dos or reads_to_dos:
                         self.outputs['cmds'].setdefault(key, []).append(False)
                     else:
@@ -221,16 +228,19 @@ def raw(
                         io_update(self, i_f=bams, o_d=out, key=key)
                     else:
                         io_update(self, i_f=(fastqs + fastas), o_d=out, key=key)
-                    self.soft.add_status(tech, self.sam_pool, 1, group=group)
+                    self.soft.add_status(
+                        ref_tech, self.sam_pool, 1, group=ref_group)
                 else:
-                    self.soft.add_status(tech, self.sam_pool, 0, group=group)
+                    self.soft.add_status(
+                        ref_tech, self.sam_pool, 0, group=ref_group)
 
 
 def get_mapping(
         self,
         func,
-        tech: str,
-        group: str,
+        source: str,
+        ref_tech: str,
+        ref_group: str,
         reads: dict,
         references: dict,
 ) -> None:
@@ -240,16 +250,19 @@ def get_mapping(
     ----------
     self
     func
-    tech : str
-    group : str
+    source : str
+    ref_tech : str
+    ref_group : str
     reads : dict
     references : dict
     """
     for genome, fastas in references.items():
-        key = genome_key(tech, group, genome)
-        out_dir = genome_out_dir(self, tech, group, genome)
-        to_dos = status_update(self, tech, fastas, group=group, genome=genome)
-        func(self, tech, group, reads, fastas, key, out_dir, to_dos)
+        key = genome_key(ref_tech, ref_group, genome)
+        out_dir = genome_out_dir(self, ref_tech, ref_group, genome)
+        to_dos = status_update(
+            self, ref_tech, fastas, group=ref_group, genome=genome)
+        func(self, source, ref_tech, ref_group,
+             reads, fastas, key, out_dir, to_dos)
 
 
 def mapping(self):
@@ -270,10 +283,276 @@ def mapping(self):
     func, source, step = get_mapping_target(self)
     all_reads = get_reads(self, soft=source)
     if self.sam_pool in self.pools:
-        for (ref_tech, group), inputs in self.inputs[self.sam_pool].items():
-            references = group_inputs(self, inputs)
-            reads = get_group_reads(self, ref_tech, group, all_reads)
-            get_mapping(self, func, ref_tech, group, reads, references)
+        for (ref_tech, ref_group), inputs in self.inputs[self.sam_pool].items():
+            refs = group_inputs(self, inputs)
+            reads = get_group_reads(self, ref_tech, ref_group, all_reads)
+            get_mapping(self, func, source, ref_tech, ref_group, reads, refs)
+
+
+def get_pysam_target(self) -> tuple:
+
+    if self.soft.name.startswith('pysam_'):
+        target = self.soft.name.split('_', 1)[1]
+        if target not in self.softs:
+            sys.exit("[%s] %s has not been run" % (self.soft.name, target))
+    else:
+        target = self.softs[self.soft.prev].prev
+
+    classif = self.config.tools[target].split()[0]
+    if classif == 'assembling':
+        func = assembling
+    elif classif == 'binning':
+        func = binning
+    elif classif == 'MAG':
+        func = mag
+    elif classif == 'annotation':
+        func = annotation
+    else:
+        sys.exit("[%s] Counting '%s' not possible" % (self.soft.name, target))
+
+    return target, func
+
+
+def binning(
+        self,
+        target: str,
+        prev: str,
+        maps: dict,
+        fas: list,
+        out_dir: str,
+) -> tuple:
+    """
+
+    Parameters
+    ----------
+    self
+    target
+    prev
+    maps
+    fas
+    out_dir
+
+    Returns
+    -------
+    cmd : str
+        pysam commands for bins sequence quantification
+    """
+    pass
+
+
+def mag(
+        self,
+        target: str,
+        prev: str,
+        maps: dict,
+        fas: list,
+        out_dir: str,
+) -> str:
+    """
+
+    Parameters
+    ----------
+    self
+    target
+    prev
+    maps
+    fas
+    out_dir
+
+    Returns
+    -------
+    cmd : str
+        pysam commands for MAGs quantification
+    """
+    pass
+
+
+def annotation(
+        self,
+        target: str,
+        prev: str,
+        maps: dict,
+        fas: list,
+        out_dir: str,
+) -> tuple:
+    """
+
+    Parameters
+    ----------
+    self
+    target
+    prev
+    maps
+    fas
+    out_dir
+
+    Returns
+    -------
+    cmd : str
+        pysam commands for annotated sequence quantification
+    """
+    pass
+
+
+def assembling(
+        self,
+        target: str,
+        prev: str,
+        maps: dict,
+        fas: list,
+        out_dir: str,
+) -> str:
+    """
+
+    Parameters
+    ----------
+    self
+    target : str
+    prev : str
+    maps : str
+    fas : list
+    out_dir : str
+
+    Returns
+    -------
+    cmd : str
+        pysam commands for the assembly sequence quantification
+    """
+    fastas = {}
+    cmd_gz, cmd_rm = '', ''
+    for fa in fas:
+        if fa.endswith('.gz'):
+            cmd_gz += 'gunzip -c %s > %s\n' % (fa, fa.rstrip('.gz'))
+            fa = fa.rstrip('.gz')
+            cmd_rm += 'rm %s\n' % fa
+            bams = [[x] + y[:-1] for x, y in maps.items() if y[-1] == fa]
+            fastas[fa] = bams
+
+    cmd = get_pysam_inputs(target, prev, fastas, out_dir, 'assembling')
+    cmd += cmd_gz
+    cmd += '%s/pysam_count.py' % RESOURCES
+    cmd += ' -i %s/inputs.txt' % out_dir
+    cmd += ' -o %s/reads.txt\n' % out_dir
+    cmd += cmd_rm
+    return cmd
+
+
+def get_pysam_inputs(
+        target: str,
+        prev: str,
+        fastas: dict,
+        out_dir: str,
+        mode: str
+) -> str:
+    """
+
+    Parameters
+    ----------
+    target : str
+    prev : str
+    fastas : dict
+    out_dir : str
+    mode : str
+
+    Returns
+    -------
+    cmd : str
+        Commands to make the inputs file
+    """
+    echo = 'fasta\\tbam\\ttech\\tsample\\tali\\ttarget\\tprev\\tmode\\n'
+    cmd = 'echo -e "%s" > %s/inputs.txt\n' % (echo, out_dir)
+    for fa, bams in fastas.items():
+        for bs in bams:
+            echo = '%s\\n' % '\\t'.join(([fa] + bs + [target, prev, mode]))
+            cmd += 'echo -e "%s" >> %s/inputs.txt\n' % (echo, out_dir)
+    cmd += 'envsubst < %s/inputs.txt > %s/inputs.tmp\n' % (out_dir, out_dir)
+    cmd += 'mv %s/inputs.tmp %s/inputs.txt\n' % (out_dir, out_dir)
+    return cmd
+
+
+def pysam_cmd(
+        self,
+        tech: str,
+        group: str,
+        fas: list,
+        maps: dict,
+        key: tuple,
+        to_dos: list,
+        out: str,
+        cmd: str
+) -> None:
+    if self.config.force or to_do(out):
+        if to_dos and not self.confg.dev:
+            self.outputs['cmds'].setdefault(key, []).append(False)
+        else:
+            self.outputs['cmds'].setdefault(key, []).append(cmd)
+        io_update(self, i_f=(fas + list(maps)), o_f=out, key=key)
+        self.soft.add_status(tech, self.sam_pool, 1, group=group)
+    else:
+        self.soft.add_status(tech, self.sam_pool, 0, group=group)
+
+
+def get_pysam(
+        self,
+        func,
+        mappings,
+        tech: str,
+        group: str,
+        target: str,
+        references: dict
+) -> None:
+    """
+
+    Parameters
+    ----------
+    self
+    func
+    mappings
+    tech : str
+    group : str
+    target : str
+    references : dict
+    """
+    prev = mappings.prev
+    maps = mappings.outputs[self.sam_pool]
+    for genome, fas in references.items():
+        key = genome_key(tech, group, genome)
+        out_dir = '/'.join([genome_out_dir(self, tech, group, genome),
+                            'map_%s' % prev, 'count_%s' % target])
+        out = '%s/reads.txt' % out_dir
+        self.outputs['dirs'].append(out_dir)
+        self.outputs['outs'].setdefault(key, []).append(out)
+
+        to_dos = status_update(
+            self, tech, fas, group=group, genome=genome)
+        to_dos.extend(status_update(
+            self, tech, list(maps), group=group, genome=genome))
+        cmd = func(self, target, prev, maps, fas, out_dir)
+        pysam_cmd(self, tech, group, fas, maps, key, to_dos, out, cmd)
+
+
+def pysam(self):
+    """Uses a pysam python script to count the reads aligned using a mapping_
+    command for each of the mapped-onto sequences. Whether these mapped-onto
+    sequences are from a single file (typically, the contigs of an assembly),
+    or from multiple files (typically, contigs binned in different MAGs), is
+    detected automatically and all counts are consigned into a table including
+    the file infornation.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        Contains all the attributes needed for binning on the current sample
+    """
+    if not self.soft.prev.startswith('mapping'):
+        sys.exit("[%s] Only run after a mapping_* command" % self.soft.name)
+    mappings = self.softs[self.soft.prev]
+    target, func = get_pysam_target(self)
+    if self.sam_pool in self.pools:
+        pool_inputs = self.softs[target].outputs[self.sam_pool]
+        for (tech, group), inputs in pool_inputs.items():
+            references = group_inputs(self, inputs, target=target)
+            get_pysam(self, func, mappings, tech, group, target, references)
 
 
 # def prep_map__spades_prodigal(self):
