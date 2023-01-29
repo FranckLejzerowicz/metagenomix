@@ -314,7 +314,6 @@ def get_pysam_target(self) -> tuple:
 
 
 def binning(
-        self,
         target: str,
         prev: str,
         maps: dict,
@@ -325,7 +324,6 @@ def binning(
 
     Parameters
     ----------
-    self
     target
     prev
     maps
@@ -341,7 +339,6 @@ def binning(
 
 
 def mag(
-        self,
         target: str,
         prev: str,
         maps: dict,
@@ -352,7 +349,6 @@ def mag(
 
     Parameters
     ----------
-    self
     target
     prev
     maps
@@ -368,7 +364,6 @@ def mag(
 
 
 def annotation(
-        self,
         target: str,
         prev: str,
         maps: dict,
@@ -379,7 +374,6 @@ def annotation(
 
     Parameters
     ----------
-    self
     target
     prev
     maps
@@ -395,18 +389,16 @@ def annotation(
 
 
 def assembling(
-        self,
         target: str,
         prev: str,
         maps: dict,
         fas: list,
         out_dir: str,
-) -> str:
+) -> tuple:
     """
 
     Parameters
     ----------
-    self
     target : str
     prev : str
     maps : str
@@ -417,8 +409,11 @@ def assembling(
     -------
     cmd : str
         pysam commands for the assembly sequence quantification
+    sam_bams : list
+        per sample bam files for the current contigs counting
     """
     fastas = {}
+    sam_bams = []
     cmd_gz, cmd_rm = '', ''
     for fa in fas:
         if fa.endswith('.gz'):
@@ -427,6 +422,7 @@ def assembling(
             cmd_rm += 'rm %s\n' % fa
             bams = [[x] + y[:-1] for x, y in maps.items() if y[-1] == fa]
             fastas[fa] = bams
+            sam_bams.extend(bams)
 
     cmd = get_pysam_inputs(target, prev, fastas, out_dir, 'assembling')
     cmd += cmd_gz
@@ -434,7 +430,7 @@ def assembling(
     cmd += ' -i %s/inputs.txt' % out_dir
     cmd += ' -o %s/reads.txt\n' % out_dir
     cmd += cmd_rm
-    return cmd
+    return cmd, sam_bams
 
 
 def get_pysam_inputs(
@@ -475,7 +471,7 @@ def pysam_cmd(
         tech: str,
         group: str,
         fas: list,
-        maps: dict,
+        sam_bams: list,
         key: tuple,
         to_dos: list,
         out: str,
@@ -486,7 +482,7 @@ def pysam_cmd(
             self.outputs['cmds'].setdefault(key, []).append(False)
         else:
             self.outputs['cmds'].setdefault(key, []).append(cmd)
-        io_update(self, i_f=(fas + list(maps)), o_f=out, key=key)
+        io_update(self, i_f=(fas + sam_bams), o_f=out, key=key)
         self.soft.add_status(tech, self.sam_pool, 1, group=group)
     else:
         self.soft.add_status(tech, self.sam_pool, 0, group=group)
@@ -515,7 +511,7 @@ def get_pysam(
     """
     prev = mappings.prev
     maps = mappings.outputs[self.sam_pool]
-    for genome, fas in references.items():
+    for genome, fs in references.items():
         key = genome_key(tech, group, genome)
         out_dir = '/'.join([genome_out_dir(self, tech, group, genome),
                             'map_%s' % prev, 'count_%s' % target])
@@ -523,12 +519,10 @@ def get_pysam(
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'].setdefault(key, []).append(out)
 
-        to_dos = status_update(
-            self, tech, fas, group=group, genome=genome)
-        to_dos.extend(status_update(
-            self, tech, list(maps), group=group, genome=genome))
-        cmd = func(self, target, prev, maps, fas, out_dir)
-        pysam_cmd(self, tech, group, fas, maps, key, to_dos, out, cmd)
+        cmd, sam_bams = func(target, prev, maps, fs, out_dir)
+        to_dos = status_update(self, tech, sam_bams, group=group, genome=genome)
+        to_dos.extend(status_update(self, tech, fs, group=group, genome=genome))
+        pysam_cmd(self, tech, group, fs, sam_bams, key, to_dos, out, cmd)
 
 
 def pysam(self):
