@@ -1281,7 +1281,8 @@ def abritamr_cmd(
     # cmd += ' --sop %s' % self.soft.params['sop']
     # cmd += ' --sop_name %s\n'
 
-    cmd += 'gzip -q *\n'
+    cmd += 'gzip -q *.txt\n'
+    cmd += 'gzip -q */amrfinder.out\n'
     cmd += cmd_rm
     return cmd
 
