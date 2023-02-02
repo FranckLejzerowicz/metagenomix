@@ -813,7 +813,8 @@ def refine_cmd(
         self,
         out_dir: str,
         bin_folders: list,
-        group: str
+        group: str,
+        key: tuple
 ) -> tuple:
     """Collect metaWRAP bin refinement command
 
@@ -830,6 +831,8 @@ def refine_cmd(
         Path to the input bin folder
     group : str
         Name of the group
+    key : tuple
+        (tech, group)
 
     Returns
     -------
@@ -857,6 +860,8 @@ def refine_cmd(
         cmd += ' -x %s\n' % self.soft.params['max_contamination']
         cmd += 'rm -rf %s/work_files\n' % out_dir
     if to_do(names):
+        if not to_do(bins):
+            io_update(self, i_d=out_dir, key=key)
         cmd += 'for i in %s/*.fa; do\n' % bins
         cmd += 'b="$(basename $i)";\n'
         cmd += 'grep ">" $i > $i.tmp;\n'
@@ -897,7 +902,7 @@ def refine(self):
         self.outputs['dirs'].append(dirname(out_dir))
         to_dos = status_update(self, tech, bin_dirs, group=group, folder=True)
 
-        cmd, bins, names = refine_cmd(self, out_dir, bin_dirs, group)
+        cmd, bins, names = refine_cmd(self, out_dir, bin_dirs, group, key)
         if process_outputs(self, key, group, [bins]):
             continue
 
