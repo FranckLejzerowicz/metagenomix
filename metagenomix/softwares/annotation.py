@@ -2210,6 +2210,143 @@ def eggnogmapper(self):
             get_eggnogmapper(self, tech, fastas, self.sam_pool)
 
 
+def keggcharter_cmd(
+        self,
+        tech: str,
+        table: str,
+        out_dir: str
+) -> str:
+    """Get the KEGGCharter command.
+
+    Parameters
+    ----------
+    self
+    tech : str
+        Technology
+    table : str
+        Woltka's ko.tsv data table
+    out_dir : str
+        Path to the output folder
+
+    Returns
+    -------
+    cmd : str
+
+    """
+    params = tech_params(self, tech)
+    cmd = 'keggcharter.py'
+    cmd += ' --output %s' % out_dir
+    # cmd += ' --resources-directory %s' % out_dir
+
+    for param in ['taxa_list']:
+        if not params[param]:
+            continue
+        cmd += ' --%s %s' % (param.replace('_', '-'), ','.join(params[param]))
+
+    # for p in ['kegg_column', 'ko_column', 'ec_column', 'taxa_column', 'step']:
+    #     cmd += ' --%s %s' % (p.replace('_', '-'), params[p])
+
+    if params['input_taxonomy']:
+        cmd += ' --input-taxonomy mock_taxonomy'
+    else:
+        cmd += ' --taxa-column %s' % ','.join(params['taxa_column'])
+
+    if params['input_quantification']:
+        cmd += ' --input-quantification'
+    else:
+        if self.soft.prev == 'woltka':
+            ko, cols = '', []
+            with open(table.replace('${SCRATCH_FOLDER}', '')) as f:
+                for line in f:
+                    ko, cols = line.strip().split('\t', 1)
+                    break
+            cmd += ' --ko-column %s' % ko
+            cmd += ' --genomic-columns %s' % ','.join(cols)
+        else:
+            cmd += ' --genomic-columns %s' % ','.join(params['genomic_columns'])
+
+    if params['resume']:
+        cmd += ' --resume'
+
+    return cmd
+
+
+def get_keggcharter(
+        self,
+        tech: str,
+        ali_group: str,
+        tables: list
+) -> None:
+    """
+
+    Parameters
+    ----------
+    self
+    tech : str
+    ali_group
+    tables
+    """
+    for table in tables:
+
+        key = genome_key(tech, ali_group)
+        out_dir = genome_out_dir(self, tech, ali_group)
+        self.outputs['dirs'].append(out_dir)
+
+        to_dos = status_update(self, tech, [table], group=ali_group)
+
+        out = '%s/out' % out_dir
+        self.outputs['outs'].setdefault((tech, ali_group), []).append(out_dir)
+
+        if self.config.force or to_do(out):
+            cmd = keggcharter_cmd(self, tech, table, out_dir)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
+            io_update(self, i_f=table, o_d=out_dir, key=key)
+            self.soft.add_status(tech, self.sam_pool, 1)
+        else:
+            self.soft.add_status(tech, self.sam_pool, 0)
+
+
+
+def keggcharter(self):
+    """
+
+    References
+    ----------
+    Sequeira, J.C., Rocha, M., Alves, M.M. and Salvador, A.F., 2022. UPIMAPI,
+    reCOGnizer and KEGGCharter: Bioinformatics tools for functional
+    annotation and visualization of (meta)-omics datasets. Computational and
+    Structural Biotechnology Journal, 20, pp.1798-1810.
+
+    Notes
+    -----
+    GitHub  : https://github.com/iquasere/KEGGCharter
+    Paper   : https://doi.org/10.1016/j.csbj.2022.03.042
+
+    Parameters
+    ----------
+    self : Commands class instance
+    """
+    prevs = ['woltka', 'eggnogmapper']
+    if self.soft.prev not in prevs:
+        sys.exit('[keggcharter] Only possible after "%s"' % '", "'.join(prevs))
+    elif self.soft.prev == 'woltka':
+        for (tech, aligner), tsvs in self.inputs.items():
+            ko_tsv = [x for x in tsvs if x.endswith('kegg/ko.tsv')]
+            get_keggcharter(self, tech, aligner, ko_tsv)
+
+    elif self.sam_pool in self.pools:
+        for (tech, group), inputs in self.inputs[self.sam_pool].items():
+            print(tech)
+            print(group)
+            print(inputs)
+            print(inputscsa)
+            fastas = group_inputs(self, inputs)
+            get_keggcharter(self, tech, fastas, group)
+
+
 def metaclade2(self):
     """Novel profile-based domain annotation pipeline based on the multi-source
     domain annotation strategy. It provides a domain annotation realised
