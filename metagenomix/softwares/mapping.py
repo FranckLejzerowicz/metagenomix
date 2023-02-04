@@ -393,12 +393,15 @@ def annotation(
         pysam commands for annotated sequence quantification
     sam_bams : list
         per sample bam files for the current contigs counting
+    aas : list
+        Input files
     """
     fastas = {}
-    sam_bams = []
+    aas, sam_bams = [], []
     cmd_gz, cmd_rm = '', ''
     for fa in fas:
         aa = '%s/protein.translations.fasta.gz' % fa
+        aas.append(aa)
         if aa.endswith('.gz'):
             cmd_gz += 'gunzip -c %s > %s\n' % (aa, aa.rstrip('.gz'))
             aa = aa.rstrip('.gz')
@@ -415,7 +418,7 @@ def annotation(
     cmd += ' -i %s/inputs.txt' % out_dir
     cmd += ' -o %s/reads.txt\n' % out_dir
     cmd += cmd_rm
-    return cmd, sam_bams
+    return cmd, sam_bams, aas
 
 
 def assembling(
@@ -441,6 +444,8 @@ def assembling(
         pysam commands for the assembly sequence quantification
     sam_bams : list
         per sample bam files for the current contigs counting
+    fas : list
+        Input files
     """
     fastas = {}
     sam_bams = []
@@ -461,7 +466,7 @@ def assembling(
     cmd += ' -i %s/inputs.txt' % out_dir
     cmd += ' -o %s/reads.txt\n' % out_dir
     cmd += cmd_rm
-    return cmd, sam_bams
+    return cmd, sam_bams, fas
 
 
 def get_pysam_inputs(
@@ -542,7 +547,7 @@ def get_pysam(
     """
     prev = mappings.prev
     maps = mappings.outputs[self.sam_pool]
-    for genome, fs in references.items():
+    for genome, fas in references.items():
         key = genome_key(tech, group, genome)
         out_dir = '/'.join([genome_out_dir(self, tech, group, genome),
                             'map_%s' % prev, 'count_%s' % target])
@@ -550,7 +555,7 @@ def get_pysam(
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'].setdefault(key, []).append(out)
 
-        cmd, bams = func(target, prev, maps, fs, out_dir)
+        cmd, bams, fs = func(target, prev, maps, fas, out_dir)
         to_dos = status_update(self, tech, bams, group=group, genome=genome)
         to_dos.extend(status_update(self, tech, fs, group=group, genome=genome))
         pysam_cmd(self, tech, group, fs, bams, key, to_dos, out_dir, out, cmd)
