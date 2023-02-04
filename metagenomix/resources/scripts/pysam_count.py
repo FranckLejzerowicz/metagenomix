@@ -30,7 +30,7 @@ def assembling(alignment, line, vals, dat):
 def prodigal(alignment, line, vals, dat):
     contig_split = line[1:].split()
     gene = contig_split[0]
-    contig = gene.rsplit('_')[0]
+    contig = gene.rsplit('_', 1)[0]
     start = contig_split[2]
     end = contig_split[4]
     reads = alignment.count(contig, int(start), int(end))
