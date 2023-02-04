@@ -2275,7 +2275,7 @@ def get_keggcharter(
         self,
         tech: str,
         ali_group: str,
-        tables: list
+        inputs: list
 ) -> None:
     """
 
@@ -2284,13 +2284,17 @@ def get_keggcharter(
     self
     tech : str
     ali_group
-    tables
+    inputs
     """
-    for table in tables:
+    for inp in inputs:
 
         key = genome_key(tech, ali_group)
         out_dir = '/'.join([self.dir, tech, ali_group])
         self.outputs['dirs'].append(out_dir)
+
+        table = ''
+        if self.soft.prev == 'woltka':
+            table = '%s/kegg/ko.tsv' % inp
 
         to_dos = status_update(self, tech, [table], group=ali_group)
 
@@ -2332,9 +2336,8 @@ def keggcharter(self):
     if self.soft.prev not in prevs:
         sys.exit('[keggcharter] Only possible after "%s"' % '", "'.join(prevs))
     elif self.soft.prev == 'woltka':
-        for (tech, aligner), out_dir in self.inputs.items():
-            ko_tsvs = ['%s/kegg/ko.tsv' % out_dir]
-            get_keggcharter(self, tech, aligner, ko_tsvs)
+        for (tech, aligner), inputs in self.inputs.items():
+            get_keggcharter(self, tech, aligner, inputs)
 
     elif self.sam_pool in self.pools:
         for (tech, group), inputs in self.inputs[self.sam_pool].items():
