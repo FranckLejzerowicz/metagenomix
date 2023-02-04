@@ -2261,7 +2261,7 @@ def keggcharter_cmd(
                     ko, cols = line.strip().split('\t', 1)
                     break
             cmd += ' --ko-column %s' % ko
-            cmd += ' --genomic-columns %s' % ','.join(cols)
+            cmd += ' --genomic-columns %s' % ','.join(cols.split())
         else:
             cmd += ' --genomic-columns %s' % ','.join(params['genomic_columns'])
 
