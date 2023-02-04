@@ -2332,13 +2332,9 @@ def keggcharter(self):
     if self.soft.prev not in prevs:
         sys.exit('[keggcharter] Only possible after "%s"' % '", "'.join(prevs))
     elif self.soft.prev == 'woltka':
-        for (tech, aligner), tsvs in self.inputs.items():
-            print(tsvs)
-            ko_tsv = [x for x in tsvs if x.endswith('kegg/ko.tsv')]
-            print(ko_tsv)
-            print(ko_tsvds)
-
-            get_keggcharter(self, tech, aligner, ko_tsv)
+        for (tech, aligner), out_dir in self.inputs.items():
+            ko_tsvs = ['%s/kegg/ko.tsv' % out_dir]
+            get_keggcharter(self, tech, aligner, ko_tsvs)
 
     elif self.sam_pool in self.pools:
         for (tech, group), inputs in self.inputs[self.sam_pool].items():
