@@ -2260,10 +2260,13 @@ def keggcharter_cmd(
                 for line in f:
                     ko, cols = line.strip().split('\t', 1)
                     break
-            cmd += ' --ko-column %s' % ko
+            cmd += ' --ko-column "%s"' % ko
             cmd += ' --genomic-columns %s' % ','.join(cols.split())
         else:
             cmd += ' --genomic-columns %s' % ','.join(params['genomic_columns'])
+
+    if self.soft.prev == 'woltka':
+        cmd += ' --file %s' % table
 
     if params['resume']:
         cmd += ' --resume'
