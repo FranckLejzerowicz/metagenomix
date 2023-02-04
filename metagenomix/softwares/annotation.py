@@ -2289,7 +2289,7 @@ def get_keggcharter(
     for table in tables:
 
         key = genome_key(tech, ali_group)
-        out_dir = genome_out_dir(self, tech, ali_group)
+        out_dir = '/'.join([self.dir, tech, ali_group])
         self.outputs['dirs'].append(out_dir)
 
         to_dos = status_update(self, tech, [table], group=ali_group)
