@@ -21,39 +21,23 @@ def get_args():
     return args
 
 
-def assembling_counts(tab):
-    dat = []
-    for vdx, vals in enumerate(tab):
-        if not vdx:
-            continue
-        alignment = pysam.AlignmentFile(vals[1], "rb")
-        with open(vals[0]) as f:
-            for line in f:
-                if line[0] == '>':
-                    contig = line[1:].split()[0]
-                    reads = alignment.count(contig)
-                    dat.append((vals[2:] + [contig, str(reads)]))
-    return dat
+def assembling(alignment, line, vals, dat):
+    contig = line[1:].split()[0]
+    reads = alignment.count(contig)
+    dat.append((vals + [contig, str(reads)]))
 
 
-def prodigal_counts(tab):
-    dat = []
-    for vals in tab:
-        alignment = pysam.AlignmentFile(vals[1], "rb")
-        with open(vals[0]) as f:
-            for line in f:
-                if line[0] == '>':
-                    contig_split = line[1:].split()
-                    gene = contig_split[0]
-                    contig = gene.rsplit('_')[0]
-                    start = contig_split[2]
-                    end = contig_split[4]
-                    reads = alignment.count(contig, int(start), int(end))
-                    dat.append((vals[2:] + [gene, str(reads)]))
-    return dat
+def prodigal(alignment, line, vals, dat):
+    contig_split = line[1:].split()
+    gene = contig_split[0]
+    contig = gene.rsplit('_')[0]
+    start = contig_split[2]
+    end = contig_split[4]
+    reads = alignment.count(contig, int(start), int(end))
+    dat.append((vals + [gene, str(reads)]))
 
 
-def binning_counts(tab):
+def binning(tab):
     pass
     # dat = []
     # for vals in tab:
@@ -71,6 +55,20 @@ def binning_counts(tab):
     # return dat
 
 
+def parse_tab(tab, func):
+    dat = []
+    for vdx, vals in enumerate(tab):
+        if not vdx:
+            continue
+        seq_fp, bam_fp = vals[:2]
+        alignment = pysam.AlignmentFile(bam_fp, "rb")
+        with open(seq_fp) as f:
+            for line in f:
+                if line[0] == '>':
+                    func(alignment, line, vals[2:], dat)
+    return dat
+
+
 def write_output(dat, unit, filou):
     head = 'tech\tsample\tali\tcoassembly\tgroup\t'
     head += 'target\tprev\tmode\t%s\treads\n' % unit
@@ -82,17 +80,17 @@ def write_output(dat, unit, filou):
 
 def count_reads(filin, filou):
     tab = [x.strip().split('\t') for x in open(filin).readlines()]
+
     if tab[-1][-1] == 'assembling':
-        unit = 'contig'
-        dat = assembling_counts(tab)
+        unit, func = 'contig', assembling
     elif tab[-1][-1] == 'prodigal':
-        unit = 'gene'
-        dat = prodigal_counts(tab)
+        unit, func = 'gene', prodigal
     elif tab[-1][-1] == 'binning':
-        unit = 'bin'
-        dat = binning_counts(tab)
+        unit, func = 'bin', binning
     else:
         print(skdfkjb)
+
+    dat = parse_tab(tab, func)
     write_output(dat, unit, filou)
 
 
