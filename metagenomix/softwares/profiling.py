@@ -890,7 +890,7 @@ def woltka_tax(
     taxa = params['taxa']
     for tdx, taxon in enumerate(taxa):
         out_dir = '%s/%s.tsv' % (tax_out, taxon)
-        self.outputs['outs'].setdefault(key, []).append(out_dir)
+        # self.outputs['outs'].setdefault(key, []).append(out_dir)
         if to_do(out_dir):
             tax_to_do.append(taxon)
             io_update(self, o_f=out_dir, key=key)
@@ -1021,8 +1021,7 @@ def woltka_go(
         else:
             self.soft.add_status(tech, 'all samples', 0, group='go',
                                  genome=go)
-
-        self.outputs['outs'].setdefault(key, []).append(cur_out)
+        # self.outputs['outs'].setdefault(key, []).append(cur_out)
 
     for stratif in taxa:
         for go in gos:
@@ -1048,7 +1047,7 @@ def woltka_go(
             else:
                 self.soft.add_status(tech, 'all samples', 0,
                                      group='go (%s)' % stratif, genome=go)
-            self.outputs['outs'].setdefault(key, []).append(go_out)
+            # self.outputs['outs'].setdefault(key, []).append(go_out)
     return go_to_do
 
 
@@ -1114,7 +1113,7 @@ def woltka_genes(
     else:
         io_update(self, i_f=genes, key=key)
         self.soft.add_status(tech, 'all samples', 0, group='genes')
-    self.outputs['outs'].setdefault(key, []).append(genes)
+    # self.outputs['outs'].setdefault(key, []).append(genes)
 
     taxa = params['taxa']
     for stratif in taxa:
@@ -1137,7 +1136,7 @@ def woltka_genes(
             self.soft.add_status(
                 tech, 'all samples', 0, group='genes (%s)' % stratif)
 
-        self.outputs['outs'].setdefault(key, []).append(genes)
+        # self.outputs['outs'].setdefault(key, []).append(genes)
     return genes_tax, genes_to_do
 
 
@@ -1199,7 +1198,7 @@ def woltka_uniref(
     else:
         io_update(self, i_f=uniref, key=key)
         self.soft.add_status(tech, 'all samples', 1, group='uniref')
-    self.outputs['outs'].setdefault(key, []).append(uniref)
+    # self.outputs['outs'].setdefault(key, []).append(uniref)
 
     taxa = params['taxa']
     for stratif in taxa:
@@ -1223,7 +1222,7 @@ def woltka_uniref(
             io_update(self, i_f=uniref, key=key)
             self.soft.add_status(
                 tech, 'all samples', 1, group='uniref (%s)' % stratif)
-        self.outputs['outs'].setdefault(key, []).append(uniref)
+        # self.outputs['outs'].setdefault(key, []).append(uniref)
 
     return uniref_tax
 
@@ -1285,7 +1284,7 @@ def woltka_eggnog(
         cmd += 'rm %s.tmp\n' % tsv
         self.outputs['cmds'].setdefault(key, []).append(cmd)
         io_update(self, o_f=tsv, key=key)
-    self.outputs['outs'].setdefault(key, []).extend([tsv, biom])
+    # self.outputs['outs'].setdefault(key, []).extend([tsv, biom])
 
     taxa = params['taxa']
     for stratif in taxa:
@@ -1315,7 +1314,7 @@ def woltka_eggnog(
             cmd += 'rm %s.tmp\n' % tsv
             self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, o_f=tsv, key=key)
-        self.outputs['outs'].setdefault(key, []).extend([tsv, biom])
+        # self.outputs['outs'].setdefault(key, []).extend([tsv, biom])
 
 
 def woltka_cazy(
@@ -1380,7 +1379,7 @@ def woltka_cazy(
         cmd += 'rm %s.tmp\n' % tsv
         self.outputs['cmds'].setdefault(key, []).append(cmd)
         io_update(self, o_f=tsv, key=key)
-    self.outputs['outs'].setdefault(key, []).extend([biom, tsv])
+    # self.outputs['outs'].setdefault(key, []).extend([biom, tsv])
 
     taxa = params['taxa']
     for stratif in taxa:
@@ -1410,7 +1409,7 @@ def woltka_cazy(
             cmd += 'rm %s.tmp\n' % tsv
             self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, o_f=tsv, key=key)
-        self.outputs['outs'].setdefault(key, []).extend([biom, tsv])
+        # self.outputs['outs'].setdefault(key, []).extend([biom, tsv])
 
 
 def woltka_metacyc(
@@ -1541,7 +1540,7 @@ def woltka_metacyc(
 
     if cmd:
         self.outputs['cmds'].setdefault(key, []).append(cmd)
-    self.outputs['outs'].setdefault(key, []).extend(files)
+    # self.outputs['outs'].setdefault(key, []).extend(files)
 
 
 def woltka_kegg(
@@ -1768,7 +1767,7 @@ def woltka_kegg(
                     RESOURCES, kegg_maps_local, basename(tsv_))
                 cmd += 'rm %s/%s\n' % (kegg_maps_local, basename(tsv_))
                 self.outputs['bash'].append(cmd)
-    self.outputs['outs'].setdefault((tech, aligner), []).extend(files)
+    # self.outputs['outs'].setdefault((tech, aligner), []).extend(files)
 
 
 def woltka_pairing(
@@ -1844,6 +1843,10 @@ def woltka(self) -> None:
             to_dos = status_update(
                 self, tech, list(alis.values()), group=aligner)
             map_fp, cmds, rms = woltka_map(self, tech, pairing, aligner, alis)
+
+            out = '/'.join([self.dir, tech, aligner, pairing])
+            self.outputs['outs'].setdefault(key, []).append(out)
+
             taxmap, tdo = woltka_tax(self, tech, pairing, aligner, map_fp,
                                      db, params)
             if 'go' in classifs:

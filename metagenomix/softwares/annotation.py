@@ -2309,7 +2309,6 @@ def get_keggcharter(
             self.soft.add_status(tech, self.sam_pool, 0)
 
 
-
 def keggcharter(self):
     """
 
@@ -2334,7 +2333,11 @@ def keggcharter(self):
         sys.exit('[keggcharter] Only possible after "%s"' % '", "'.join(prevs))
     elif self.soft.prev == 'woltka':
         for (tech, aligner), tsvs in self.inputs.items():
+            print(tsvs)
             ko_tsv = [x for x in tsvs if x.endswith('kegg/ko.tsv')]
+            print(ko_tsv)
+            print(ko_tsvds)
+
             get_keggcharter(self, tech, aligner, ko_tsv)
 
     elif self.sam_pool in self.pools:
