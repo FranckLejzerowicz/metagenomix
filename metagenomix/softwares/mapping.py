@@ -139,6 +139,8 @@ def get_bowtie2_db_cmd(
 
 
 def get_cmds(
+        self,
+        ref_group: str,
         reads_tech: str,
         sam: str,
         out: str,
@@ -151,6 +153,8 @@ def get_cmds(
 
     Parameters
     ----------
+    self
+    ref_group : str
     reads_tech : str
     sam : str
     out : str
@@ -178,7 +182,8 @@ def get_cmds(
         if to_do(bam_sorted):
             cmd += 'samtools sort %s > %s\n' % (bam, bam_sorted)
             cmd += 'samtools index %s\n' % bam_sorted
-        fastas_bams[bam_sorted] = [reads_tech, sam, ali, fasta]
+        fastas_bams[bam_sorted] = [
+            reads_tech, sam, ali, self.sam_pool, ref_group, fasta]
     if cmd:
         cmd += cmd_rm
     return cmd, bams, bam_dirs, fastas_bams
@@ -216,7 +221,8 @@ def raw(
                 params = tech_params(self, reads_tech, ali)
                 out = '/'.join([out_dir, sam, reads_tech, ali])
                 cmd, bams, bam_dirs, fastas_bams = get_cmds(
-                    reads_tech, sam, out, fastqs, fastas, ali, params)
+                    self, ref_group, reads_tech, sam, out, fastqs, fastas,
+                    ali, params)
                 self.outputs['dirs'].extend(bam_dirs)
                 self.outputs['outs'].update(fastas_bams)
                 to_do_list = [to_do(x) for x in fastas_bams.keys()]
@@ -385,8 +391,31 @@ def annotation(
     -------
     cmd : str
         pysam commands for annotated sequence quantification
+    sam_bams : list
+        per sample bam files for the current contigs counting
     """
-    pass
+    fastas = {}
+    sam_bams = []
+    cmd_gz, cmd_rm = '', ''
+    for fa in fas:
+        aa = '%s/protein.translations.fasta.gz' % fa
+        if aa.endswith('.gz'):
+            cmd_gz += 'gunzip -c %s > %s\n' % (aa, aa.rstrip('.gz'))
+            aa = aa.rstrip('.gz')
+            coassembly, group = fa.rstrip('/').rsplit('/', 2)[-2:]
+            bams = [[x] + y[:-1] for x, y in maps.items()
+                    if y[-3] == coassembly and y[-2] == group]
+            sam_bams.extend([x[0] for x in bams])
+            sam_bams.extend(['%s.bai' % x[0] for x in bams])
+            fastas[aa] = bams
+
+    cmd = get_pysam_inputs(prev, target, fastas, out_dir)
+    cmd += cmd_gz
+    cmd += 'python3 %s/pysam_count.py' % RESOURCES
+    cmd += ' -i %s/inputs.txt' % out_dir
+    cmd += ' -o %s/reads.txt\n' % out_dir
+    cmd += cmd_rm
+    return cmd, sam_bams
 
 
 def assembling(
@@ -426,7 +455,7 @@ def assembling(
             sam_bams.extend(['%s.bai' % x[0] for x in bams])
             fastas[fa] = bams
 
-    cmd = get_pysam_inputs(target, prev, fastas, out_dir, 'assembling')
+    cmd = get_pysam_inputs(prev, target, fastas, out_dir)
     cmd += cmd_gz
     cmd += 'python3 %s/pysam_count.py' % RESOURCES
     cmd += ' -i %s/inputs.txt' % out_dir
@@ -436,32 +465,31 @@ def assembling(
 
 
 def get_pysam_inputs(
-        target: str,
         prev: str,
+        target: str,
         fastas: dict,
         out_dir: str,
-        mode: str
 ) -> str:
     """
 
     Parameters
     ----------
-    target : str
     prev : str
+    target : str
     fastas : dict
     out_dir : str
-    mode : str
 
     Returns
     -------
     cmd : str
         Commands to make the inputs file
     """
-    echo = 'fasta\\tbam\\ttech\\tsample\\tali\\ttarget\\tprev\\tmode'
+    echo = 'fasta\\tbam\\ttech\\tsample\\tali'
+    echo += '\\tcoassembly\\tgroup\\tprev\\ttarget'
     cmd = 'echo -e "%s" > %s/inputs.txt\n' % (echo, out_dir)
     for fa, bams in fastas.items():
         for bs in bams:
-            echo = '%s' % '\\t'.join(([fa] + bs + [target, prev, mode]))
+            echo = '%s' % '\\t'.join(([fa] + bs + [prev, target]))
             cmd += 'echo -e "%s" >> %s/inputs.txt\n' % (echo, out_dir)
     cmd += 'envsubst < %s/inputs.txt > %s/inputs.tmp\n' % (out_dir, out_dir)
     cmd += 'mv %s/inputs.tmp %s/inputs.txt\n' % (out_dir, out_dir)
