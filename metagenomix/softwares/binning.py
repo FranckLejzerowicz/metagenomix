@@ -622,6 +622,8 @@ def blobology(self):
             out_ = '/'.join([self.dir, tech, self.sam_pool, group, mode])
             sams_fastqs = get_sams_fastqs(mode, fastqs)
             for sam, fastq_fps in sams_fastqs.items():
+                if mode == 'coassembly' and len(fastq_fps) <= 2:
+                    continue
                 to_dos = status_update(
                     self, tech, fastq_fps, group=group, genome=sam)
                 to_dos.extend(status_update(
