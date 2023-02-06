@@ -543,12 +543,13 @@ def karga_kargva_cmd(
             cmd += ' %s:%s' % (param, params[param])
     cmd += ' -Xmx%s%s\n' % (params['mem'], params['mem_dim'])
 
-    reads_ = '%s_KARGVA_mappedReads.csv' % merged.rstrip('.gz').rstrip('.fastq')
-    genes_ = '%s_KARGVA_mappedGenes.csv' % merged.rstrip('.gz').rstrip('.fastq')
+    rad = merged.rstrip('.gz').rstrip('.fastq')
+    reads_ = '%s_%s_mappedReads.csv' % (rad, self.soft.name.upper())
+    genes_ = '%s_%s_mappedGenes.csv' % (rad, self.soft.name.upper())
     cmd += 'mkdir -p %s/db_%s\n' % (out_dir, db)
     cmd += 'mv %s %s\n' % (reads_, reads)
     cmd += 'mv %s %s\n' % (genes_, genes)
-    cmd += 'grep -v ",?,?" %s > %s.tmp\n' % (reads, reads)
+    cmd += 'grep -v ",?" %s > %s.tmp\n' % (reads, reads)
     cmd += 'mv %s.tmp %s\n' % (reads, reads)
     cmd += 'gzip %s %s\n' % (reads, genes)
     return cmd
