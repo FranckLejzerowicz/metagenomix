@@ -579,6 +579,9 @@ def pysam(self):
     mappings = self.softs[self.soft.prev]
     target, func = get_pysam_target(self)
     if self.sam_pool in self.pools:
+        print(self.sam_pool)
+        print(self.pools)
+        print(self.softs[target].outputs)
         pool_inputs = self.softs[target].outputs[self.sam_pool]
         for (tech, group), inputs in pool_inputs.items():
             references = group_inputs(self, inputs, target=target)
