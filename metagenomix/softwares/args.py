@@ -1122,10 +1122,10 @@ def metacompare_cmd(
     cmd += ' -c %s' % contigs
     cmd += ' -g %s' % genes
     cmd += ' -t %s' % self.soft.params['cpus']
-    cmd += ' -v 1 > %s\n' % out
+    cmd += ' -v 1 > %s\n' % out.rstrip('.gz')
 
     cmd += cmd_rm
-    cmd += 'gzip %s\n' % out
+    cmd += 'gzip %s\n' % out.rstrip('.gz')
     return cmd
 
 
@@ -1157,8 +1157,8 @@ def get_metacompare(
         to_dos.extend(status_update(self, tech, [contigs]))
 
         # check if tool already run (or if --force) to allow getting command
-        out = '%s/output.txt' % out_dir
-        if self.config.force or to_do('%s.gz' % out):
+        out = '%s/output.txt.gz' % out_dir
+        if self.config.force or to_do(out):
             cmd = metacompare_cmd(self, contigs, genes, out)
             key = genome_key(tech, group)
             if to_dos:
