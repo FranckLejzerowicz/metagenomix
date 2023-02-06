@@ -91,7 +91,11 @@ class Exported(object):
                     if re.search(regex, fil):
                         self.to_exports.append('%s/%s' % (root, fil))
                         continue
+
                 ext = splitext(fil)[1]
+                if fil.endswith('gz'):
+                    ext = '%s.gz' % splitext(splitext(fil)[0])[1]
+
                 if self.exts:
                     if ext in self.exts or ext[1:] in self.exts:
                         m = '(with extensions "%s" )' % '", "'.join(self.exts)
