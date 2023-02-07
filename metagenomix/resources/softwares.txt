@@ -18,6 +18,16 @@ salmon	alignment
 kallisto	alignment
 mapping	alignment
 pysam	alignment
+pysam_megahit	alignment
+pysam_spades	alignment
+pysam_flye	alignment
+pysam_canu	alignment
+pysam_unicycler	alignment
+pysam_miniasm	alignment
+pysam_spades_plasmid	alignment
+pysam_spades_metaviral	alignment
+pysam_spades_bio	alignment
+pysam_prodigal	alignment
 prodigal	annotation (protein prediction)
 macsyfinder	annotation (macromolecular systems, pathways)
 integronfinder	annotation (integrons)
