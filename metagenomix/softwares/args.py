@@ -1252,21 +1252,20 @@ def abritamr_cmd(
             cmd_rm += 'rm %s\n' % contig
 
     if self.soft.params['samples'] == 'all':
-        tsv = '%s/contigs.tsv' % out_dir
+        txt = '%s/contigs.txt' % out_dir
         for cdx, (group, contig_path) in enumerate(contig_paths.items()):
             if cdx:
-                cmd += 'echo -e "%s\\t%s" >> %s\n' % (group, contig_path, tsv)
+                cmd += 'echo -e "%s\\t%s" >> %s\n' % (group, contig_path, txt)
             else:
-                cmd += 'echo -e "%s\\t%s" > %s\n' % (group, contig_path, tsv)
-                cmd_rm += 'rm %s\n' % tsv
+                cmd += 'echo -e "%s\\t%s" > %s\n' % (group, contig_path, txt)
         if cmd:
-            cmd += 'envsubst < %s > %s.tmp\n' % (tsv, tsv)
-            cmd += 'mv %s.tmp %s\n' % (tsv, tsv)
+            cmd += 'envsubst < %s > %s.tmp\n' % (txt, txt)
+            cmd += 'mv %s.tmp %s\n' % (txt, txt)
 
     cmd += 'cd %s\n' % out_dir
     cmd += 'abritamr run'
     if self.soft.params['samples'] == 'all':
-        cmd += ' --contigs %s' % tsv
+        cmd += ' --contigs %s' % txt
     else:
         cmd += ' --contigs %s' % contig
     cmd += ' --identity %s' % self.soft.params['identity']
