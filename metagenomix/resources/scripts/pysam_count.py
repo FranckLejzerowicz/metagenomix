@@ -71,7 +71,7 @@ def parse_tab(tab, func):
 
 def write_output(dat, unit, filou):
     head = 'tech\tsample\tali\tcoassembly\tgroup\t'
-    head += 'prev\ttarget\tmode\t%s\treads\n' % unit
+    head += 'prev\ttarget\t%s\treads\n' % unit
     with open(filou, 'w') as o:
         o.write(head)
         for row in dat:
