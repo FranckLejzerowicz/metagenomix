@@ -256,9 +256,7 @@ def drep(self):
     genomes = get_drep_bins(self)
     for (tech, pool), pool_paths in genomes.items():
         self.outputs['outs'][pool] = {}
-        print(tech, pool)
         for binning, paths in pool_paths.items():
-            print(binning, paths)
             for algo in self.soft.params['S_algorithm']:
                 bin_algo = '_'.join([binning, algo])
                 drep_out = '/'.join([self.dir, tech, pool, bin_algo])
