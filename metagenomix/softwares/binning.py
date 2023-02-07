@@ -908,7 +908,8 @@ def refine(self):
         if process_outputs(self, key, group, [bins]):
             continue
 
-        if self.config.force or to_do(bins):# or to_do(names):
+        stats = '%s.stats' % bins
+        if self.config.force or to_do(bins) or to_do(stats):
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
