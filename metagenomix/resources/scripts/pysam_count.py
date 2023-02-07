@@ -65,7 +65,7 @@ def parse_tab(tab, func):
         with open(seq_fp) as f:
             for line in f:
                 if line[0] == '>':
-                    func(alignment, line, vals[2:], dat)
+                    func(alignment, line, vals[2:-1], dat)
     return dat
 
 
@@ -83,7 +83,7 @@ def count_reads(filin, filou):
 
     if tab[-1][-1] == 'assembling':
         unit, func = 'contig', assembling
-    elif tab[-1][-1] == 'prodigal':
+    elif tab[-1][-2] == 'prodigal':
         unit, func = 'gene', prodigal
     elif tab[-1][-1] == 'binning':
         unit, func = 'bin', binning

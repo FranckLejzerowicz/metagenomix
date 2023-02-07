@@ -412,7 +412,7 @@ def annotation(
             sam_bams.extend(['%s.bai' % x[0] for x in bams])
             fastas[aa] = bams
 
-    cmd = get_pysam_inputs(prev, target, fastas, out_dir)
+    cmd = get_pysam_inputs(prev, target, fastas, out_dir, 'annotation')
     cmd += cmd_gz
     cmd += 'python3 %s/pysam_count.py' % RESOURCES
     cmd += ' -i %s/inputs.txt' % out_dir
@@ -460,7 +460,7 @@ def assembling(
             sam_bams.extend(['%s.bai' % x[0] for x in bams])
             fastas[fa] = bams
 
-    cmd = get_pysam_inputs(prev, target, fastas, out_dir)
+    cmd = get_pysam_inputs(prev, target, fastas, out_dir, 'assembling')
     cmd += cmd_gz
     cmd += 'python3 %s/pysam_count.py' % RESOURCES
     cmd += ' -i %s/inputs.txt' % out_dir
@@ -474,6 +474,7 @@ def get_pysam_inputs(
         target: str,
         fastas: dict,
         out_dir: str,
+        classif: str
 ) -> str:
     """
 
@@ -483,6 +484,7 @@ def get_pysam_inputs(
     target : str
     fastas : dict
     out_dir : str
+    classif : str
 
     Returns
     -------
@@ -490,11 +492,11 @@ def get_pysam_inputs(
         Commands to make the inputs file
     """
     echo = 'fasta\\tbam\\ttech\\tsample\\tali'
-    echo += '\\tcoassembly\\tgroup\\tprev\\ttarget'
+    echo += '\\tcoassembly\\tgroup\\tprev\\ttarget\\tclassif'
     cmd = 'echo -e "%s" > %s/inputs.txt\n' % (echo, out_dir)
     for fa, bams in fastas.items():
         for bs in bams:
-            echo = '%s' % '\\t'.join(([fa] + bs + [prev, target]))
+            echo = '%s' % '\\t'.join(([fa] + bs + [prev, target, classif]))
             cmd += 'echo -e "%s" >> %s/inputs.txt\n' % (echo, out_dir)
     cmd += 'envsubst < %s/inputs.txt > %s/inputs.tmp\n' % (out_dir, out_dir)
     cmd += 'mv %s/inputs.tmp %s/inputs.txt\n' % (out_dir, out_dir)
@@ -579,9 +581,6 @@ def pysam(self):
     mappings = self.softs[self.soft.prev]
     target, func = get_pysam_target(self)
     if self.sam_pool in self.pools:
-        print(self.sam_pool)
-        print(self.pools)
-        print(self.softs[target].outputs)
         pool_inputs = self.softs[target].outputs[self.sam_pool]
         for (tech, group), inputs in pool_inputs.items():
             references = group_inputs(self, inputs, target=target)
