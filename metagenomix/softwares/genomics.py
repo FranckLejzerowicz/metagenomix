@@ -256,7 +256,9 @@ def drep(self):
     genomes = get_drep_bins(self)
     for (tech, pool), pool_paths in genomes.items():
         self.outputs['outs'][pool] = {}
+        print(tech, pool)
         for binning, paths in pool_paths.items():
+            print(binning, paths)
             for algo in self.soft.params['S_algorithm']:
                 bin_algo = '_'.join([binning, algo])
                 drep_out = '/'.join([self.dir, tech, pool, bin_algo])
@@ -283,7 +285,7 @@ def drep(self):
                     self.outputs['cmds'].setdefault(key, []).append(False)
                 else:
                     self.outputs['cmds'].setdefault(key, []).append(cmd)
-                io_update(self, i_d=paths, o_d=drep_out, key=key)
+                    io_update(self, i_d=paths, o_d=drep_out, key=key)
                 self.soft.add_status(tech, pool, 1, group=bin_algo)
 
 
