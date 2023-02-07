@@ -1824,3 +1824,40 @@ def checkm2(self) -> None:
         for (tech, group), inputs in self.inputs[self.sam_pool].items():
             folders = group_inputs(self, inputs, True)
             get_checkm2(self, tech, folders, group)
+
+
+def skani(self):
+    """skani is a program for calculating average nucleotide identity (ANI)
+    from microbial DNA sequences (contigs/MAGs/genomes) for ANI > ~80%.
+
+    skani uses an approximate mapping method without base-level alignment to
+    get orthology in order to estimate ANI. It is magnitudes faster than
+    BLAST based methods and almost as accurate. skani offers:
+    1. Accurate ANI calculations for MAGs. skani is accurate for incomplete and
+    medium-quality metagenome-assembled genomes (MAGs). Sketching methods (
+    e.g. Mash), which may underestimate ANI for incomplete MAGs.
+    2. Aligned fraction results. skani outputs the fraction of genome aligned,
+    whereas sketching methods do not.
+    3. Fast computations. Indexing/sketching is ~ 3x faster than Mash,
+    and querying is about 25x faster than FastANI (but slower than Mash).
+    4. Efficient database search. Querying a genome against a preprocessed
+    database of >65000 prokaryotic genomes takes a few seconds with a single
+    processor and ~5 GB of RAM. Constructing a database from genome sequences
+    takes a few minutes to an hour.
+
+    References
+    ----------
+    Shaw, J. and Yu, Y.W., 2023. Fast and robust metagenomic sequence
+    comparison through sparse chaining with skani. bioRxiv, pp.2023-01.
+
+    Notes
+    -----
+    GitHub  : https://github.com/bluenote-1577/skani
+    Docs    : https://github.com/bluenote-1577/skani/wiki/skani-advanced-usage-guide
+    Paper   : https://doi.org/10.1101/2023.01.18.524587
+
+    Parameters
+    ----------
+    self
+    """
+    pass
