@@ -17,6 +17,15 @@ minimap2	alignment
 salmon	alignment
 kallisto	alignment
 mapping	alignment
+mapping_filtering	alignment
+mapping_fastp	alignment
+mapping_cutadapt	alignment
+mapping_atropos	alignment
+mapping_kneaddata	alignment
+mapping_flash	alignment
+mapping_ngmerge	alignment
+mapping_pear	alignment
+mapping_bbmerge	alignment
 pysam	alignment
 pysam_megahit	alignment
 pysam_spades	alignment
