@@ -849,8 +849,9 @@ def refine_cmd(
                                  self.soft.params['max_contamination'])
     bins = '%s_bins' % out
     names = '%s.names' % bins
+    stats = '%s.stats' % bins
     cmd = ''
-    if to_do(bins):
+    if to_do(bins) or to_do(stats):
         cmd += 'export PATH=$PATH:%s/bin\n' % self.soft.params['path']
         cmd += 'rm -rf %s\n' % out_dir
         cmd += 'metawrap bin_refinement'
