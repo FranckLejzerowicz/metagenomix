@@ -2234,9 +2234,10 @@ def keggcharter_cmd(
 
     """
     params = tech_params(self, tech)
+
     cmd = 'keggcharter.py'
     cmd += ' --output %s' % out_dir
-    # cmd += ' --resources-directory %s' % out_dir
+    cmd += ' --metabolic-maps %s' % ','.join(params['metabolic_maps'])
 
     for param in ['taxa_list']:
         if not params[param]:
@@ -2246,27 +2247,25 @@ def keggcharter_cmd(
     # for p in ['kegg_column', 'ko_column', 'ec_column', 'taxa_column', 'step']:
     #     cmd += ' --%s %s' % (p.replace('_', '-'), params[p])
 
-    if params['input_taxonomy']:
+    if params['input_taxonomy'] or not params['taxa_column']:
         cmd += ' --input-taxonomy mock_taxonomy'
     else:
         cmd += ' --taxa-column %s' % ','.join(params['taxa_column'])
 
-    if params['input_quantification']:
+    if self.soft.prev == 'woltka':
+        ko, cols = '', []
+        with open(table.replace('${SCRATCH_FOLDER}', '')) as f:
+            for line in f:
+                ko, cols = line.strip().split('\t', 1)
+                break
+        cmd += ' --ko-column "%s"' % ko
+        cmd += ' --genomic-columns %s' % ','.join(cols.split())
+    elif params['input_quantification'] or not params['genomic_columns']:
         cmd += ' --input-quantification'
     else:
-        if self.soft.prev == 'woltka':
-            ko, cols = '', []
-            with open(table.replace('${SCRATCH_FOLDER}', '')) as f:
-                for line in f:
-                    ko, cols = line.strip().split('\t', 1)
-                    break
-            cmd += ' --ko-column "%s"' % ko
-            cmd += ' --genomic-columns %s' % ','.join(cols.split())
-        else:
-            cmd += ' --genomic-columns %s' % ','.join(params['genomic_columns'])
+        cmd += ' --genomic-columns %s' % ','.join(params['genomic_columns'])
 
-    if self.soft.prev == 'woltka':
-        cmd += ' --file %s' % table
+    cmd += ' --file %s' % table
 
     if params['resume']:
         cmd += ' --resume'
