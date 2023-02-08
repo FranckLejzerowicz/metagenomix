@@ -468,7 +468,6 @@ def get_midas2(
         if not self.config.dev and not isdir(db_path):
             sys.exit('[midas2] Path to database "%s not found' % db_path)
 
-        out_fps = []
         for focus, spc_list in species_lists.items():
             focus_dir = out_dir + '/' + db + '/' + focus
             self.outputs['dirs'].append(focus_dir)
@@ -476,7 +475,7 @@ def get_midas2(
                 continue
             self.outputs['outs'][step][(tech, db, focus, spc_list)] = focus_dir
             out_fp = focus_dir + '/' + out
-            out_fps.append(out_fp)
+            spc_dir = focus_dir + '/%s/species' % self.sam_pool
             if self.config.force or to_do(out_fp):
                 cmd = get_midas2_cmd(self, fastqs, focus_dir, db, db_path,
                                      spc_list, params, step)
@@ -484,12 +483,12 @@ def get_midas2(
                     self.outputs['cmds'].setdefault((tech,), []).append(False)
                 else:
                     self.outputs['cmds'].setdefault((tech,), []).append(cmd)
-                    i_f = fastqs
+                    i_f, i_d = fastqs, []
                     if not to_do(spc_list):
                         i_f += [spc_list]
-                    i_d = [dirname(o) for o in out_fps if not to_do(o)]
-                    io_update(
-                        self, i_f=i_f, i_d=i_d, o_d=focus_dir, key=(tech,))
+                    if not to_do(spc_dir + '/species_profile.tsv'):
+                        i_d.append(spc_dir)
+                    io_update(self, i_f=i_f, i_d=i_d, o_d=focus_dir, key=(tech,))
                 self.soft.add_status(tech, self.sam_pool, 1)
             else:
                 self.soft.add_status(tech, self.sam_pool, 0)
