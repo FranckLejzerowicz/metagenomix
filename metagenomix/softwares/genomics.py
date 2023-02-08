@@ -159,9 +159,6 @@ def drep_cmd(
         drep_in: str,
         drep_out: str,
         bin_paths: list,
-        cmd_paths: str,
-        cmd_input: str,
-        cmd_rms: str
 ) -> str:
     """Collect dRep dereplicate command.
 
@@ -178,19 +175,13 @@ def drep_cmd(
         Path to the output folder
     bin_paths : int
         Genome files to use for dereplication
-    cmd_paths : str
-        Command to rename the input paths
-    cmd_input : str
-        Command to create the input
-    cmd_rms : str
-        Command to remove renamed inputs
 
     Returns
     -------
     cmd : str
         dRep dereplicate command
     """
-    cmd = '%s\n%s\ndRep dereplicate' % (cmd_paths, cmd_input)
+    cmd = 'dRep dereplicate'
     cmd += ' %s' % drep_out
     cmd += ' --S_algorithm %s' % algorithm
     cmd += ' --ignoreGenomeQuality'
@@ -216,7 +207,6 @@ def drep_cmd(
     ]:
         cmd += ' --%s %s' % (param, self.soft.params[param])
     cmd += ' --genomes %s' % drep_in
-    cmd += '\n%s' % cmd_rms
     return cmd
 
 
@@ -277,11 +267,11 @@ def drep(self):
                     self.soft.add_status(tech, pool, 0, group=bin_algo)
                     continue
                 key = (tech, bin_algo)
-                cmd = drep_cmd(self, algo, drep_in, drep_out,
-                               bin_paths, cmd_paths, cmd_input, cmd_rms)
-                if to_dos:
-                    self.outputs['cmds'].setdefault(key, []).append(False)
-                else:
+                cmd = drep_cmd(self, algo, drep_in, drep_out, bin_paths)
+                if not to_dos:
+                    # self.outputs['cmds'].setdefault(key, []).append(False)
+                # else:
+                    cmd = '\n'.join([cmd_paths, cmd_input, cmd, cmd_rms])
                     self.outputs['cmds'].setdefault(key, []).append(cmd)
                     io_update(self, i_d=paths, o_d=drep_out, key=key)
                 self.soft.add_status(tech, pool, 1, group=bin_algo)
