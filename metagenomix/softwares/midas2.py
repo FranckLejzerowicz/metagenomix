@@ -484,7 +484,7 @@ def get_midas2(
                     self.outputs['cmds'].setdefault((tech,), []).append(False)
                 else:
                     self.outputs['cmds'].setdefault((tech,), []).append(cmd)
-                    i_f, i_d = fastqs, []
+                    i_f = fastqs
                     if not to_do(spc_list):
                         i_f += [spc_list]
                     i_d = [dirname(o) for o in out_fps if not to_do(o)]
