@@ -4045,12 +4045,12 @@ def check_keggcharter(self, params, soft):
     if 'metabolic_maps' not in params:
         params['metabolic_maps'] = defaults['metabolic_maps'][:1]
     else:
+        if not isinstance(params['metabolic_maps'], list):
+            sys.exit('[keggcharter] Params "metabolic_maps" not a list')
         maps = map(str, params['metabolic_maps'])
         defs = defaults['metabolic_maps']
         diffs = list(set(maps).difference(set(defs)))
-        if not isinstance(maps, list):
-            sys.exit('[keggcharter] Params "metabolic_maps" not a list')
-        elif diffs:
+        if diffs:
             sys.exit('[keggcharter] maps not allowed: %s' % '", "'.join(diffs))
 
     ints = ['number_of_taxa', 'step']
