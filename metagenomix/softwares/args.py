@@ -536,8 +536,8 @@ def karga_kargva_cmd(
     cmd = 'java %s' % self.soft.name.upper()
     cmd += ' f:%s' % merged
     cmd += ' d:%s' % db_path
-    for param in ['k', 'i', 's']:
-        if param == 's' and self.soft.name != 'karga':
+    for param in ['k', 'i', 's', 'm', 'r']:
+        if param in ['s', 'r'] and self.soft.name != 'karga':
             continue
         if self.soft.params[param]:
             cmd += ' %s:%s' % (param, params[param])

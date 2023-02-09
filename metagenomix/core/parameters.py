@@ -2604,10 +2604,10 @@ def check_hifiadapterfilt(self, params, soft):
 
 def check_karga(self, params, soft):
     defaults = {
-        'k': 0,
+        'k': 17,
         'r': ['y', 'n', 'yes', 'no'],
         'm': ['y', 'n', 'yes', 'no'],
-        'i': 125000,
+        'i': 25000,
         's': 12345
     }
     if 'databases' not in params:
