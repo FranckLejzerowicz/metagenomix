@@ -2269,6 +2269,7 @@ def keggcharter_cmd(
         if params['resume']:
             cmd += ' --resume'
         cmd += ' --file %s\n' % o
+        cmd += 'rm %s\n' % o
 
     return cmd
 
