@@ -2254,6 +2254,7 @@ def keggcharter_cmd(
         cmd += 'keggcharter.py'
         cmd += ' --output %s/%s' % (out_dir, tx)
         cmd += ' --taxa-column %s' % tx
+        cmd += ' --number-of-taxa 10'
         cmd += ' --metabolic-maps %s' % ','.join(params['metabolic_maps'])
         for t in ['taxa_list']:
             if not params[t]:
