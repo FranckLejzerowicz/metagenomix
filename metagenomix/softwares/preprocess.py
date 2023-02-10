@@ -892,6 +892,7 @@ def filtering_cmd(
         tech: str,
         db_path: str,
         inputs: list,
+        out_dir: str,
         out1: str,
         out2: str
 ) -> tuple:
@@ -908,6 +909,8 @@ def filtering_cmd(
         Path to the reference bowtie2 database
     inputs : list
         Path to the input fastq files
+    out_dir : str
+        Path to the output folder
     out1 : str
         Path to the output fastq.gz files
     out2 : str
@@ -930,16 +933,34 @@ def filtering_cmd(
     else:
         cmd += ' -1 %s' % inputs[0]
         cmd += ' -2 %s' % inputs[1]
-    cmd += ' | samtools view -f 12 -F 256'
-    cmd += ' | samtools sort -@ %s -n' % params['cpus']
-    cmd += ' | samtools view -bS'
-    cmd += ' | bedtools bamtofastq -i -'
+
+    # alternative
+    cmd += ' > %s/tmp.sam\n' % out_dir
+    cmd += 'samtools view -f 12 -F 256 %s/tmp.sam > %s/tmp.filt.sam\n' % (
+        out_dir, out_dir)
+    cmd += 'samtools sort -@ %s -n %s/tmp.filt.sam > %s/tmp.filt.sort.sam\n' % (
+        params['cpus'], out_dir, out_dir)
+    cmd += 'samtools view -bS %s/tmp.filt.sort.sam > %s/tmp.filt.sort.bam\n' % (
+        out_dir, out_dir)
+    cmd += 'bedtools bamtofastq -i %s/tmp.filt.sort.bam' % out_dir
     cmd += ' -fq %s' % out1.replace('fastq.gz', 'fastq')
     fastqs = [out1.replace('fastq.gz', 'fastq')]
     if len(inputs) > 1:
         cmd += ' -fq2 %s' % out2.replace('fastq.gz', 'fastq')
         fastqs.append(out2.replace('fastq.gz', 'fastq'))
+    cmd += 'rm %s/tmp.*\n' % out_dir
     cmd += '\n'
+
+    # cmd += ' | samtools view -f 12 -F 256'
+    # cmd += ' | samtools sort -@ %s -n' % params['cpus']
+    # cmd += ' | samtools view -bS'
+    # cmd += ' | bedtools bamtofastq -i -'
+    # cmd += ' -fq %s' % out1.replace('fastq.gz', 'fastq')
+    # fastqs = [out1.replace('fastq.gz', 'fastq')]
+    # if len(inputs) > 1:
+    #     cmd += ' -fq2 %s' % out2.replace('fastq.gz', 'fastq')
+    #     fastqs.append(out2.replace('fastq.gz', 'fastq'))
+    # cmd += '\n'
     return cmd, fastqs
 
 
@@ -985,7 +1006,8 @@ def filtering(self):
             if inputs[0].endswith('.gz'):
                 out1 += '.gz'
                 out2 += '.gz'
-            cmd, fastqs = filtering_cmd(self, tech, db_path, inputs, out1, out2)
+            cmd, fastqs = filtering_cmd(self, tech, db_path, inputs, out_dir,
+                                        out1, out2)
             if self.config.force or to_do(out1):
                 cmds += cmd
                 if dx:
