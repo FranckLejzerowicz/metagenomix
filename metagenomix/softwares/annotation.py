@@ -2213,7 +2213,7 @@ def eggnogmapper(self):
 def keggcharter_cmd(
         self,
         tech: str,
-        table: str,
+        tables: list,
         out_dir: str
 ) -> str:
     """Get the KEGGCharter command.
@@ -2223,8 +2223,8 @@ def keggcharter_cmd(
     self
     tech : str
         Technology
-    table : str
-        Woltka's ko.tsv data table
+    tables : list
+        Woltka's ko.tsv data tables
     out_dir : str
         Path to the output folder
 
@@ -2235,40 +2235,40 @@ def keggcharter_cmd(
     """
     params = tech_params(self, tech)
 
-    cmd = 'keggcharter.py'
-    cmd += ' --output %s' % out_dir
-    cmd += ' --metabolic-maps %s' % ','.join(params['metabolic_maps'])
+    cmd = ''
+    for tb in tables:
 
-    for param in ['taxa_list']:
-        if not params[param]:
-            continue
-        cmd += ' --%s %s' % (param.replace('_', '-'), ','.join(params[param]))
-
-    # for p in ['kegg_column', 'ko_column', 'ec_column', 'taxa_column', 'step']:
-    #     cmd += ' --%s %s' % (p.replace('_', '-'), params[p])
-
-    if params['input_taxonomy'] or not params['taxa_column']:
-        cmd += ' --input-taxonomy mock_taxonomy'
-    else:
-        cmd += ' --taxa-column %s' % ','.join(params['taxa_column'])
-
-    if self.soft.prev == 'woltka':
-        ko, cols = '', []
-        with open(table.replace('${SCRATCH_FOLDER}', '')) as f:
+        cols = []
+        with open(tb.replace('${SCRATCH_FOLDER}', '')) as f:
             for line in f:
-                ko, cols = line.strip().split('\t', 1)
+                cols = line.strip().split('\t')[1:]
                 break
-        cmd += ' --ko-column "%s"' % ko
-        cmd += ' --genomic-columns %s' % ','.join(cols.split())
-    elif params['input_quantification'] or not params['genomic_columns']:
-        cmd += ' --input-quantification'
-    else:
-        cmd += ' --genomic-columns %s' % ','.join(params['genomic_columns'])
 
-    cmd += ' --file %s' % table
+        tx = tb.rstrip('.tsv').split('/ko_')[-1]
+        o = None
+        if self.soft.prev == 'woltka':
+            o = tb.replace('.tsv', '_charter.tsv')
+            cmd += 'head -1 %s | sed "s/#OTU ID/%s\\tko/" > %s\n' % (tb, tx, o)
+            cmd += 'tail -n +2 %s | sed "s/|/\\t/" >> %s\n' % (tb, o)
 
-    if params['resume']:
-        cmd += ' --resume'
+        cmd += 'keggcharter.py'
+        cmd += ' --output %s' % out_dir
+        cmd += ' --taxa-column %s' % tx
+        cmd += ' --metabolic-maps %s' % ','.join(params['metabolic_maps'])
+        for t in ['taxa_list']:
+            if not params[t]:
+                continue
+            cmd += ' --%s %s' % (t.replace('_', '-'), ','.join(params[t]))
+        if self.soft.prev == 'woltka':
+            cmd += ' --ko-column ko'
+            cmd += ' --genomic-columns %s' % ','.join(cols)
+        elif params['input_quantification'] or not params['genomic_columns']:
+            cmd += ' --input-quantification'
+        else:
+            cmd += ' --genomic-columns %s' % ','.join(params['genomic_columns'])
+        if params['resume']:
+            cmd += ' --resume'
+        cmd += ' --file %s\n' % o
 
     return cmd
 
@@ -2294,22 +2294,23 @@ def get_keggcharter(
         out_dir = '/'.join([self.dir, tech, ali_group])
         self.outputs['dirs'].append(out_dir)
 
-        table = ''
+        tabs = []
         if self.soft.prev == 'woltka':
-            table = '%s/kegg/ko.tsv' % inp
+            tax = ['none', 'species', 'genus', 'family', 'order', 'class']
+            tabs = ['%s/kegg/ko_%s.tsv' % (inp, t) for t in tax if not to_do(t)]
 
-        to_dos = status_update(self, tech, [table], group=ali_group)
+        to_dos = status_update(self, tech, tabs, group=ali_group)
 
         out = '%s/out' % out_dir
         self.outputs['outs'].setdefault((tech, ali_group), []).append(out_dir)
 
         if self.config.force or to_do(out):
-            cmd = keggcharter_cmd(self, tech, table, out_dir)
+            cmd = keggcharter_cmd(self, tech, tabs, out_dir)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
-            io_update(self, i_f=table, o_d=out_dir, key=key)
+            io_update(self, i_f=tabs, o_d=out_dir, key=key)
             self.soft.add_status(tech, self.sam_pool, 1)
         else:
             self.soft.add_status(tech, self.sam_pool, 0)
