@@ -2244,7 +2244,7 @@ def keggcharter_cmd(
                 cols = line.strip().split('\t')[1:]
                 break
 
-        tx = tb.rstrip('.tsv').split('/ko_')[-1]
+        tx = splitext(tb)[0].split('/ko_')[-1]
         o = None
         if self.soft.prev == 'woltka':
             o = tb.replace('.tsv', '_charter.tsv')
@@ -2252,7 +2252,7 @@ def keggcharter_cmd(
             cmd += 'tail -n +2 %s | sed "s/|/\\t/" >> %s\n' % (tb, o)
 
         cmd += 'keggcharter.py'
-        cmd += ' --output %s' % out_dir
+        cmd += ' --output %s/%s' % (out_dir, tx)
         cmd += ' --taxa-column %s' % tx
         cmd += ' --metabolic-maps %s' % ','.join(params['metabolic_maps'])
         for t in ['taxa_list']:
