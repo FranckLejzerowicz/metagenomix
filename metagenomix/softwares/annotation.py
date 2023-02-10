@@ -2296,8 +2296,10 @@ def get_keggcharter(
 
         tabs = []
         if self.soft.prev == 'woltka':
-            tax = ['none', 'species', 'genus', 'family', 'order', 'class']
-            tabs = ['%s/kegg/ko_%s.tsv' % (inp, t) for t in tax if not to_do(t)]
+            tax = ['none', 'species', 'genus', 'family', 'order', 'class',
+                   'phylum']
+            tabs = ['%s/kegg/ko_%s.tsv' % (inp, t) for t in tax]
+            tabs = [tab for tab in tabs if not to_do(tab)]
 
         to_dos = status_update(self, tech, tabs, group=ali_group)
 
