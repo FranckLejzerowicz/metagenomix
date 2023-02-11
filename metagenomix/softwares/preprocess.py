@@ -948,8 +948,7 @@ def filtering_cmd(
     if len(inputs) > 1:
         cmd += ' -fq2 %s' % out2.replace('fastq.gz', 'fastq')
         fastqs.append(out2.replace('fastq.gz', 'fastq'))
-    cmd += 'rm %s/tmp.*\n' % out_dir
-    cmd += '\n'
+    cmd += '\nrm %s/tmp.*\n' % out_dir
 
     # cmd += ' | samtools view -f 12 -F 256'
     # cmd += ' | samtools sort -@ %s -n' % params['cpus']
