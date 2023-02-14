@@ -83,13 +83,13 @@ class Exported(object):
             if root == self.dir:
                 continue
             soft = root.split('%s/' % self.dir)[-1].split('/')[0]
+            if self.softs.names and soft not in self.softs.names:
+                continue
             print('-----------------')
             print()
             print(root)
             print(dirs)
             print(files)
-            if self.softs.names and soft not in self.softs.names:
-                continue
             print()
             for fil in files:
                 print(fil)
