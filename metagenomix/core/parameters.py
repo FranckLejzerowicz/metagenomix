@@ -613,7 +613,16 @@ def check_quast(self, params, soft):
     check_default(self, params, defaults, soft.name, let_go)
     defaults['label'] = '<an existing metadata column>'
     check_binary(self, soft.name, params, defaults, 'path')
+
+    if 'circos_path' not in params:
+        params['circos_path'] = None
+    else:
+        db_dir = params['circos_path']
+        if not self.config.dev and db_dir and isdir(db_dir):
+            sys.exit('[quast] Params "circos_path": path do not exist')
+
     defaults['path'] = '<path to the quast installation folder>'
+    defaults['circos_path'] = '<path to the circos installation folder>'
     return defaults
 
 
