@@ -83,10 +83,16 @@ class Exported(object):
             if root == self.dir:
                 continue
             soft = root.split('%s/' % self.dir)[-1].split('/')[0]
+            print('-----------------')
+            print()
+            print(root)
+            print(dirs)
+            print(files)
             if self.softs.names and soft not in self.softs.names:
                 continue
-
+            print()
             for fil in files:
+                print(fil)
                 if self.regex:
                     if re.search(regex, fil):
                         self.to_exports.append('%s/%s' % (root, fil))
@@ -102,6 +108,7 @@ class Exported(object):
                         self.to_exports.append('%s/%s' % (root, fil))
                 else:
                     self.to_exports.append('%s/%s' % (root, fil))
+            print('-----------------')
 
         print('\t%s files %swill be exported' % (len(self.to_exports), m))
 
