@@ -71,6 +71,7 @@ class Exported(object):
         if self.exts:
             print('* Getting extensions to target specific files')
             self.exts = ['.%s' % x if x[0] != '.' else x for x in self.exts]
+            self.exts.extend(['%s.gz' % x for x in self.exts])
 
     def get_inputs(self):
         print('\n* Getting files to export:')
@@ -103,7 +104,7 @@ class Exported(object):
                     ext = '%s.gz' % splitext(splitext(fil)[0])[1]
 
                 if self.exts:
-                    if ext in self.exts or ext[1:] in self.exts:
+                    if ext in self.exts:
                         m = '(with extensions "%s" )' % '", "'.join(self.exts)
                         self.to_exports.append('%s/%s' % (root, fil))
                 else:
