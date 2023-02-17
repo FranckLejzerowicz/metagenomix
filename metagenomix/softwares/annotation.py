@@ -2245,7 +2245,7 @@ def keggcharter_cmd(
                 break
 
         tx = splitext(tb)[0].split('/ko_')[-1]
-        if tx not in params['taxonomic_level']:
+        if tx not in params['taxonomic_levels']:
             continue
         o = None
         if self.soft.prev == 'woltka':
