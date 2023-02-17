@@ -2245,6 +2245,8 @@ def keggcharter_cmd(
                 break
 
         tx = splitext(tb)[0].split('/ko_')[-1]
+        if tx not in params['taxonomic_level']:
+            continue
         o = None
         if self.soft.prev == 'woltka':
             o = tb.replace('.tsv', '_charter.tsv')

@@ -4049,8 +4049,14 @@ def check_keggcharter(self, params, soft):
         'input_taxonomy': [None],
         'taxa_column': ['genus', None],
         'resume': [False, True],
-        'step': 150
+        'step': 150,
+        'taxonomic_level': [
+            'phylum', 'order', 'class', 'family', 'genus', 'species', 'none'],
     }
+    if 'taxonomic_level' not in params:
+        params['taxonomic_level'] = [
+            'phylum', 'order', 'class', 'family', 'genus']
+
     if 'metabolic_maps' not in params:
         params['metabolic_maps'] = defaults['metabolic_maps'][:1]
     else:
@@ -4064,8 +4070,8 @@ def check_keggcharter(self, params, soft):
 
     ints = ['number_of_taxa', 'step']
     check_nums(self, params, defaults, ints, int, soft.name)
-    check_default(self, params, defaults, soft.name,
-                  (ints + ['metabolic_maps']))
+    check_default(self, params, defaults, soft.name, ints,
+                  ['metabolic_maps', 'taxonomic_level'])
     return defaults
 
 
