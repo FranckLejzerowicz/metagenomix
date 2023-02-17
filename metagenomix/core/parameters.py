@@ -2791,7 +2791,7 @@ def check_mapdamage2(self, params, soft):
         'seq_length': 12,
         'stats_only': [False, True],
         'no_stats': [True, False],
-        'check_R_packages': [True, False],
+        'check_R_packages': [False, True],
         'rescale': [False, True],
         'rescale_only': [False, True],
         'rescale_length_5p': 12,
