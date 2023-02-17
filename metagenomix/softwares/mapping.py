@@ -760,6 +760,138 @@ def get_salmon_indexing_cmd(
     return cmd
 
 
+def mapdamage2_cmd(
+        self,
+        tech: str,
+        bam: str,
+        contigs: str,
+        out_dir: str
+) -> str:
+    """Collect the command line for filtering.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .soft.params
+            Parameters
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    bam : str
+        Path to the input mapping alignment
+    contigs : str
+        Path to the input contigs fasta.(gz) file
+    out_dir : str
+        Path to the output folder
+
+    Returns
+    -------
+    cmd : str
+        filtering commands
+    """
+    params = tech_params(self, tech)
+
+    cmd, cmd_rm = '', ''
+    if contigs.endswith('.fa.gz') or contigs.endswith('.fasta.gz'):
+        cmd += 'gunzip -c %s > %s\n' % (contigs, contigs.rstrip('.gz'))
+        cmd_rm += 'rm %s\n' % contigs.rstrip('.gz')
+        contigs = contigs.rstrip('.gz')
+
+    cmd += '\nmapDamage'
+    cmd += ' --input=%s' % bam
+    cmd += ' --reference=%s' % contigs
+    cmd += ' --folder=%s' % out_dir
+    for param in [
+        'downsample_seed', 'length', 'around', 'min_basequal', 'ymax',
+        'readplot', 'refplot', 'rand', 'burn', 'adjust', 'iter', 'seq_length',
+        'rescale_length_5p', 'rescale_length_3p'
+    ]:
+        cmd += ' --%s=%s' % (param.replace('_', '-'), params[param])
+
+    for boolean in [
+        'merge_reference_sequences', 'fasta', 'plot_only', 'quiet', 'verbose',
+        'mapdamage_modules', 'forward', 'reverse', 'var_disp', 'jukes_cantor',
+        'diff_hangs', 'fix_nicks', 'use_raw_nick_freq', 'single_stranded',
+        'theme_bw', 'stats_only', 'no_stats', 'check_R_packages', 'rescale',
+        'rescale_only'
+    ]:
+        if params[boolean]:
+            cmd += ' --%s' % boolean.replace('_', '-')
+
+    if params['downsample']:
+        cmd += ' --downsample %s' % params['downsample']
+    cmd += '\n%s\n' % cmd_rm
+    return cmd
+
+
+def get_mapdamage2(
+        self,
+        bam: str,
+        bam_infos: list
+) -> None:
+    """Get the info and collect the commasnd for mapDamage2.
+
+    Parameters
+    ----------
+    self
+    bam : str
+        Path to the input BAM file
+    bam_infos : list
+        [tech, sample, aligner, coassembly, coassembly group, contig path]
+    """
+    tech, sample, aligner, _, group, contigs = bam_infos
+    out_dir = genome_out_dir(self, tech, group) + '/' + aligner
+    self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
+    self.outputs['dirs'].append(out_dir)
+
+    contigs_gz = contigs + '.gz'
+    to_dos = status_update(
+        self, tech, [bam, contigs_gz], self.sam_pool, group=group)
+
+    key = genome_key(tech, group, aligner)
+    out_fp = '%s/output' % out_dir
+    if self.config.force or to_do(out_fp):
+        if to_dos:
+            self.outputs['cmds'].setdefault(key, []).append(False)
+        else:
+            cmd = mapdamage2_cmd(self, tech, bam, contigs_gz, out_dir)
+            self.outputs['cmds'].setdefault(key, []).append(cmd)
+        io_update(self, i_f=[bam, contigs_gz], o_d=out_dir, key=key)
+        self.soft.add_status(tech, self.sam_pool, 1, group=group)
+    else:
+        self.soft.add_status(tech, self.sam_pool, 0, group=group)
+
+
+def mapdamage2(self) -> None:
+    """.
+
+    Notes
+    -----
+    GitHub  : https://ginolhac.github.io/mapDamage
+    paper   : https://doi.org/10.1093/bioinformatics/btt193
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for MapDamage2
+        .sam : str
+            Sample name
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    """
+    if not self.soft.prev.startswith('mapping'):
+        sys.exit("[%s] Only run after a mapping_* command" % self.soft.name)
+    if self.sam_pool in self.pools:
+        for bam, bam_infos in self.inputs[self.sam_pool].items():
+            get_mapdamage2(self, bam, bam_infos)
+
+
 # def salmon(self) -> None:
 #     """Salmon is a tool for wicked-fast transcript quantification from
 #     RNA-seq data. It requires a set of target transcripts (either from a
