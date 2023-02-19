@@ -2392,8 +2392,10 @@ def trf_cmd(
                   'indel_probability', 'min_score', 'max_period']:
         cmd += ' %s' % params[param]
     for boolean in ['m', 'f', 'd', 'h', 'r']:
-        cmd += ' -%s' % boolean
+        if params[boolean]:
+            cmd += ' -%s' % boolean
     cmd += ' -l %s\n' % params['l']
+    cmd += cmd_rm
     return cmd
 
 
@@ -2436,7 +2438,7 @@ def get_trf(
             nums = '.'.join([str(params[x]) for x in [
                 'match', 'mismatch', 'delta', 'match_probability',
                 'indel_probability', 'min_score', 'max_period']])
-            out = '%s.%s.summary.html' % (base, nums)
+            out = '%s/%s.%s.summary.html' % (out_dir, base, nums)
             if self.config.force or to_do(out):
                 cmd = trf_cmd(fasta, params, out_dir)
                 key = genome_key(tech, group, genome)
@@ -2479,6 +2481,127 @@ def trf(self):
             folders = group_inputs(self, inputs)
             get_trf(self, tech, folders, group)
 
+
+def kmerssr_cmd(
+        fasta: str,
+        params: dict,
+        out_dir: str
+) -> str:
+    """Collect kmerssr command.
+
+    Parameters
+    ----------
+    fasta : str
+        Path to the input fasta file
+    params : dict
+        Parameters
+    out_dir : str
+        Paths to the output folder
+
+    Returns
+    -------
+    cmd : str
+        kmerssr command
+    """
+    cmd_rm = ''
+    cmd = 'export PATH=$PATH:%s\n' % params['path']
+    if fasta.endswith('.fa.gz') or fasta.endswith('.fasta.gz'):
+        cmd += 'gunzip -c %s > %s\n' % (fasta, fasta.rstrip('.gz'))
+        cmd_rm += 'rm %s\n' % fasta.rstrip('.gz')
+        fasta = fasta.rstrip('.gz')
+
+    cmd += 'kmer-ssr'
+    cmd += ' -i %s' % fasta
+    cmd += ' -o %s' % out_dir
+    for param in ['a', 'p', 'l', 'L', 'n', 'N', 'r', 'R', 'Q']:
+        cmd += ' %s' % params[param]
+    if params['s']:
+        cmd += ' -s %s' % params['s']
+    for boolean in ['A', 'e', 'd']:
+        if params[boolean]:
+            cmd += ' -%s' % boolean
+    cmd += ' -t %s\n' % params['cpus']
+    cmd += cmd_rm
+    return cmd
+
+
+def get_kmerssr(
+        self,
+        tech: str,
+        folders: dict,
+        group: str
+) -> None:
+    """
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .soft.status
+            Current status of the pipeline in terms of available outputs
+        .config
+            Configurations
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    folders : dict
+        Paths to the input fasta files per genome/MAG
+    group : str
+        Name of the current co-assembly group
+    """
+    for genome, inputs in folders.items():
+
+        out_dir = genome_out_dir(self, tech, group, genome)
+        self.outputs['dirs'].append(out_dir)
+        self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
+        to_dos = status_update(self, tech, inputs, group=group, genome=genome)
+
+        params = tech_params(self, tech)
+        for fasta in inputs:
+            out = '%s/summary.html' % out_dir
+            if self.config.force or to_do(out):
+                cmd = kmerssr_cmd(fasta, params, out_dir)
+                key = genome_key(tech, group, genome)
+                if to_dos:
+                    self.outputs['cmds'].setdefault(key, []).append(False)
+                else:
+                    self.outputs['cmds'].setdefault(key, []).append(cmd)
+                io_update(self, i_f=fasta, o_d=out_dir, key=key)
+                self.soft.add_status(
+                    tech, self.sam_pool, 1, group=group, genome=genome)
+            else:
+                self.soft.add_status(
+                    tech, self.sam_pool, 0, group=group, genome=genome)
+
+
+def kmerssr(self):
+    """Kmer-SSR is a software tool developed to find Simple Sequence Repeats
+    (SSRs) in a sequence (presumably of DNA or RNA). SSRs are sometimes
+    referred to as Short Tandem Repeats (STRs) or microsatellites. SSRs are
+    genetic markers with several interesting and meaningful biological
+    implications. For example, SSRs can play significant roles in genome
+    alignment against a reference and species identification.
+
+    References
+    ----------
+    Pickett, B.D., Miller, J.B. and Ridge, P.G., 2017. Kmer-SSR: a fast and
+    exhaustive SSR search algorithm. Bioinformatics, 33(24), pp.3922-3928.
+
+    Notes
+    -----
+    GitLab  : https://github.com/ridgelab/Kmer-SSR
+    Paper   : https://doi.org/10.1093/bioinformatics/btx538
+
+    Parameters
+    ----------
+    self : Commands class instance
+    """
+    if self.sam_pool in self.pools:
+        for (tech, group), inputs in self.inputs[self.sam_pool].items():
+            folders = group_inputs(self, inputs)
+            get_kmerssr(self, tech, folders, group)
 
 
 def metaclade2(self):

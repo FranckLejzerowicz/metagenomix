@@ -4118,16 +4118,46 @@ def check_trf(self, params, soft):
     return defaults
 
 
-# def check_ToolName(self, params, soft):
-#     defaults = {
-#     }
-#     ints = []
-#     check_nums(self, params, defaults, ints, int, soft.name)
-#     floats = []
-#     check_nums(self, params, defaults, floats, float, soft.name)
-#     check_default(self, params, defaults, soft.name, (ints + floats))
-#     defaults[''] = '<>'
-#     return defaults
+def check_kmerssr(self, params, soft):
+    defaults = {
+        'a': 'A,C,G,T',
+        'p': '4,5,6,7,8',
+        'l': 100,
+        'L': 500000000,
+        'n': 16,
+        'N': 10000,
+        'r': 2,
+        'R': 10000,
+        'Q': 1000,
+        'A': [False, True],
+        'e': [False, True],
+        'd': [False, True],
+        's': [None]
+    }
+    if 'a' not in params:
+        params['a'] = defaults['a']
+    else:
+        if not isinstance(params['a'], str) or ',' not in params['a']:
+            sys.exit('[kmerssr] Param "a" not a string or has no comma')
+        not_acgt = [x for x in params['a'].split(',') if x not in 'ACGT']
+        if not_acgt:
+            sys.exit('[kmerssr] Param "a" must be of "A", "C", "G", or "T"')
+
+    if 'p' not in params:
+        params['p'] = defaults['p']
+    else:
+        if not isinstance(params['p'], str) or ',' not in params['p']:
+            sys.exit('[kmerssr] Param "p" not a string or has no comma')
+        not_digits = [x for x in params['p'].split(',') if not x.isdigit()]
+        if not_digits:
+            sys.exit('[kmerssr] Param "p" must be digits')
+
+    ints = ['l', 'L', 'n', 'N', 'r', 'R', 'Q']
+    check_nums(self, params, defaults, ints, int, soft.name)
+    check_default(self, params, defaults, soft.name, (ints + ['a', 'p']))
+    check_binary(self, soft.name, params, defaults, 'path')
+    defaults['path'] = '<Path to the Kmer-SSR binary folder>'
+    return defaults
 
 
 # def check_ToolName(self, params, soft):
