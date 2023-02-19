@@ -848,8 +848,8 @@ def get_mapdamage2(
         self, tech, [bam, contigs_gz], self.sam_pool, group=group)
 
     key = genome_key(tech, group, aligner)
-    out_fp = '%s/output' % out_dir
-    if self.config.force or to_do(out_fp):
+    pdf = '%s/Fragmisincorporation_plot.pdf' % out_dir
+    if self.config.force or to_do(pdf):
         if to_dos:
             self.outputs['cmds'].setdefault(key, []).append(False)
         else:
