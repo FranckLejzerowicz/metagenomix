@@ -1447,7 +1447,7 @@ def metamic(self) -> None:
     if not self.soft.prev.startswith('mapping'):
         sys.exit("[%s] Only run after a mapping_* command" % self.soft.name)
 
-    assembler = self.config.tools[self.softs[self.soft.prev].prev]
+    assembler = self.softs[self.soft.prev].prev
     assemblers = ['megahit', 'idba_ud', 'spades']
     if assembler not in assemblers:
         sys.exit("[%s] mapping_* not done after %s" % (
