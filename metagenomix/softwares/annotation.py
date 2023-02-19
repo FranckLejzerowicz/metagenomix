@@ -2514,7 +2514,7 @@ def kmerssr_cmd(
     cmd += ' -i %s' % fasta
     cmd += ' -o %s' % out_dir
     for param in ['a', 'p', 'l', 'L', 'n', 'N', 'r', 'R', 'Q']:
-        cmd += ' %s' % params[param]
+        cmd += ' -%s %s' % (param, params[param])
     if params['s']:
         cmd += ' -s %s' % params['s']
     for boolean in ['A', 'e', 'd']:
