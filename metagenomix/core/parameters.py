@@ -4092,6 +4092,32 @@ def check_metamic(self, params, soft):
     return defaults
 
 
+def check_trf(self, params, soft):
+    defaults = {
+        'match': 2,
+        'mismatch': 7,
+        'delta': 7,
+        'match_probability': 80,
+        'indel_probability': 10,
+        'min_score': 50,
+        'max_period': 500,
+        'm': [True, False],
+        'f': [True, False],
+        'd': [True, False],
+        'h': [False, True],
+        'r': [False, True],
+        'l': 10
+    }
+    ints = ['match', 'mismatch', 'delta', 'min_score', 'max_period', 'l']
+    check_nums(self, params, defaults, ints, int, soft.name)
+    probas = ['match_probability', 'indel_probability']
+    check_nums(self, params, defaults, probas, int, soft.name, 0, 100)
+    check_default(self, params, defaults, soft.name, (ints + probas))
+    check_binary(self, soft.name, params, defaults, 'path')
+    defaults['path'] = '<Path to the trf binary folder>'
+    return defaults
+
+
 # def check_ToolName(self, params, soft):
 #     defaults = {
 #     }

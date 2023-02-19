@@ -2358,6 +2358,129 @@ def keggcharter(self):
             get_keggcharter(self, tech, fastas, group)
 
 
+def trf_cmd(
+        fasta: str,
+        params: dict,
+        out_dir: str
+) -> str:
+    """Collect trf command.
+
+    Parameters
+    ----------
+    fasta : str
+        Path to the input fasta file
+    params : dict
+        Parameters
+    out_dir : str
+        Paths to the output folder
+
+    Returns
+    -------
+    cmd : str
+        trf command
+    """
+    cmd_rm = ''
+    cmd = 'export PATH=$PATH:%s\n' % params['path']
+    if fasta.endswith('.fa.gz') or fasta.endswith('.fasta.gz'):
+        cmd += 'gunzip -c %s > %s\n' % (fasta, fasta.rstrip('.gz'))
+        cmd_rm += 'rm %s\n' % fasta.rstrip('.gz')
+        fasta = fasta.rstrip('.gz')
+
+    cmd += '\nmkdir -p %s\ncd %s\ntrf' % (out_dir, out_dir)
+    cmd += ' %s' % fasta
+    for param in ['match', 'mismatch', 'delta', 'match_probability',
+                  'indel_probability', 'min_score', 'max_period']:
+        cmd += ' %s' % params[param]
+    for boolean in ['m', 'f', 'd', 'h', 'r']:
+        cmd += ' -%s' % boolean
+    cmd += ' -l %s\n' % params['l']
+    return cmd
+
+
+def get_trf(
+        self,
+        tech: str,
+        folders: dict,
+        group: str
+) -> None:
+    """
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .soft.status
+            Current status of the pipeline in terms of available outputs
+        .config
+            Configurations
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    folders : dict
+        Paths to the input fasta files per genome/MAG
+    group : str
+        Name of the current co-assembly group
+    """
+    for genome, inputs in folders.items():
+
+        out_dir = genome_out_dir(self, tech, group, genome)
+        self.outputs['dirs'].append(out_dir)
+        self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
+        to_dos = status_update(self, tech, inputs, group=group, genome=genome)
+
+        params = tech_params(self, tech)
+        for fasta in inputs:
+            base = basename(fasta).rstrip('.gz')
+            nums = '.'.join([str(params[x]) for x in [
+                'match', 'mismatch', 'delta', 'match_probability',
+                'indel_probability', 'min_score', 'max_period']])
+            out = '%s.%s.summary.html' % (base, nums)
+            if self.config.force or to_do(out):
+                cmd = trf_cmd(fasta, params, out_dir)
+                key = genome_key(tech, group, genome)
+                if to_dos:
+                    self.outputs['cmds'].setdefault(key, []).append(False)
+                else:
+                    self.outputs['cmds'].setdefault(key, []).append(cmd)
+                io_update(self, i_f=fasta, o_d=out_dir, key=key)
+                self.soft.add_status(
+                    tech, self.sam_pool, 1, group=group, genome=genome)
+            else:
+                self.soft.add_status(
+                    tech, self.sam_pool, 0, group=group, genome=genome)
+
+
+def trf(self):
+    """A tandem repeat in DNA is two or more adjacent, approximate copies of
+    a pattern of nucleotides. Tandem Repeats Finder is a program to locate
+    and display tandem repeats in DNA sequences. In order to use the program,
+    the user submits a sequence in FASTA format. There is no need to specify
+    the pattern, the size of the pattern or any other parameter.
+
+    References
+    ----------
+    Benson G. Tandem repeats finder: a program to analyze DNA sequences.
+    Nucleic Acids Res. 1999; 27(2):573–580.
+
+    Notes
+    -----
+    GitHub  : https://github.com/Benson-Genomics-Lab/TRF
+    Paper   : https://doi.org/10.1093/nar/27.2.573
+    Docs    : https://tandem.bu.edu/trf/trf.html
+
+    Parameters
+    ----------
+    self : Commands class instance
+    """
+    if self.sam_pool in self.pools:
+        for (tech, group), inputs in self.inputs[self.sam_pool].items():
+            folders = group_inputs(self, inputs)
+            get_trf(self, tech, folders, group)
+
+
+
 def metaclade2(self):
     """Novel profile-based domain annotation pipeline based on the multi-source
     domain annotation strategy. It provides a domain annotation realised
