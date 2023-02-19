@@ -4075,6 +4075,23 @@ def check_keggcharter(self, params, soft):
     return defaults
 
 
+def check_metamic(self, params, soft):
+    defaults = {
+        'mlen': 5000,
+        'st': 0.8,
+        'slen': 1000,
+        'nb': [None],
+        'rb': [None],
+        'at': [None]
+    }
+    ints = ['mlen', 'slen']
+    check_nums(self, params, defaults, ints, int, soft.name)
+    floats = ['st']
+    check_nums(self, params, defaults, floats, float, soft.name)
+    check_default(self, params, defaults, soft.name, (ints + floats))
+    return defaults
+
+
 # def check_ToolName(self, params, soft):
 #     defaults = {
 #     }
@@ -4085,7 +4102,6 @@ def check_keggcharter(self, params, soft):
 #     check_default(self, params, defaults, soft.name, (ints + floats))
 #     defaults[''] = '<>'
 #     return defaults
-
 
 
 # def check_ToolName(self, params, soft):

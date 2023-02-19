@@ -7,7 +7,8 @@
 # ----------------------------------------------------------------------------
 
 import sys
-from os.path import basename
+from os.path import basename, splitext
+from metagenomix._inputs import genome_out_dir, genome_key
 from metagenomix._io_utils import io_update, to_do, status_update
 from metagenomix.core.parameters import tech_params
 
@@ -1314,6 +1315,146 @@ def necat(self) -> None:
             self.soft.add_status(tech, self.sam_pool, 1, group=group)
         else:
             self.soft.add_status(tech, self.sam_pool, 0, group=group)
+
+
+def metamic_cmd(
+        self,
+        tech: str,
+        bam: str,
+        contigs: str,
+        assembler: str,
+        out_dir: str
+) -> str:
+    """Collect the command line for metaMIC.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .soft.params
+            Parameters
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    bam : str
+        Path to the input mapping alignment
+    contigs : str
+        Path to the input contigs fasta.(gz) file
+    assembler : str
+        Name of the assembler
+    out_dir : str
+        Path to the output folder
+
+    Returns
+    -------
+    cmd : str
+        metaMIC commands
+    """
+    params = tech_params(self, tech)
+
+    cmd, cmd_rm = '', ''
+    if contigs.endswith('.fa.gz') or contigs.endswith('.fasta.gz'):
+        cmd += 'gunzip -c %s > %s\n' % (contigs, contigs.rstrip('.gz'))
+        cmd_rm += 'rm %s\n' % contigs.rstrip('.gz')
+        contigs = contigs.rstrip('.gz')
+
+    pileup = '%s.pileup' % splitext(bam)[0]
+    cmd += '\nsamtools mpileup'
+    cmd += ' -C 50 -A -f %s %s' % (contigs, bam)
+    cmd += " | awk '$3 != \"N\"' > %s\n" % pileup
+
+    cmd += '\nmetaMIC extract_feature'
+    cmd += ' --bam %s' % bam
+    cmd += ' --contig %s' % contigs
+    cmd += ' --pileup %s' % pileup
+    cmd += ' --output %s' % out_dir
+    cmd += ' --mlen %s\n' % params['mlen']
+
+    cmd += '\nmetaMIC predict'
+    cmd += ' --bam %s' % bam
+    cmd += ' --contig %s' % contigs
+    cmd += ' --output %s' % out_dir
+    if assembler == 'megahit':
+        cmd += ' --assembler MEGAHIT'
+    elif assembler == 'idba_ud':
+        cmd += ' --assembler IDBA_UD'
+    elif assembler == 'spades':
+        cmd += ' --assembler metaSPAdes'
+    for param in ['mlen', 'slen', 'nb', 'rb', 'at', 'st']:
+        if params[param] is not None:
+            cmd += ' --%s %s' % (param, params[param])
+    cmd += ' --mode meta\n'
+    cmd += cmd_rm
+
+    return cmd
+
+
+def get_metamic(
+        self,
+        bam: str,
+        bam_infos: list,
+        assembler: str
+) -> None:
+    """Get the info and collect the command for metaMIC.
+
+    Parameters
+    ----------
+    self
+    bam : str
+        Path to the input BAM file
+    bam_infos : list
+        [tech, sample, aligner, coassembly, coassembly group, contig path]
+    assembler : str
+        Name of the assembler
+    """
+    tech, sample, aligner, _, group, contigs = bam_infos
+    out_dir = genome_out_dir(self, tech, group) + '/' + aligner
+    self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
+    self.outputs['dirs'].append(out_dir)
+
+    contigs_gz = contigs + '.gz'
+    to_dos = status_update(
+        self, tech, [bam, contigs_gz], self.sam_pool, group=group)
+
+    key = genome_key(tech, group, aligner)
+    out_fp = '%s/output' % out_dir
+    if self.config.force or to_do(out_fp):
+        if to_dos:
+            self.outputs['cmds'].setdefault(key, []).append(False)
+        else:
+            cmd = metamic_cmd(self, tech, bam, contigs_gz, assembler, out_dir)
+            self.outputs['cmds'].setdefault(key, []).append(cmd)
+        io_update(self, i_f=[bam, contigs_gz], o_d=out_dir, key=key)
+        self.soft.add_status(tech, self.sam_pool, 1, group=group)
+    else:
+        self.soft.add_status(tech, self.sam_pool, 0, group=group)
+
+
+def metamic(self) -> None:
+    """
+
+    References
+    ----------
+
+    Notes
+    -----
+    GitHub  : https://github.com/ZhaoXM-Lab/metaMIC
+    Paper   : https://doi.org/10.1186/s13059-022-02810-y
+
+    Parameters
+    ----------
+    self : Commands class instance
+    """
+    if not self.soft.prev.startswith('mapping'):
+        sys.exit("[%s] Only run after a mapping_* command" % self.soft.name)
+
+    assembler = self.config.tools[self.softs[self.soft.prev].prev]
+    assemblers = ['megahit', 'idba_ud', 'spades']
+    if assembler not in assemblers:
+        sys.exit("[%s] mapping_* not done after %s" % (
+            self.soft.name, ', or '.join(assemblers)))
+
+    if self.sam_pool in self.pools:
+        for bam, bam_infos in self.inputs[self.sam_pool].items():
+            get_metamic(self, bam, bam_infos, assembler)
 
 
 def trycycler(self) -> None:
