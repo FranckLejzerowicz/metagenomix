@@ -1366,6 +1366,7 @@ def metamic_cmd(
     cmd += ' --contig %s' % contigs
     cmd += ' --pileup %s' % pileup
     cmd += ' --output %s' % out_dir
+    cmd += ' --threads %s' % params['cpus']
     cmd += ' --mlen %s\n' % params['mlen']
 
     cmd += '\nmetaMIC predict'
