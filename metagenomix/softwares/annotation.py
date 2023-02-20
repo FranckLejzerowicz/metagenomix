@@ -2348,7 +2348,8 @@ def keggcharter(self):
 def trf_cmd(
         fasta: str,
         params: dict,
-        out_dir: str
+        out_dir: str,
+        out: str
 ) -> str:
     """Collect trf command.
 
@@ -2360,6 +2361,8 @@ def trf_cmd(
         Parameters
     out_dir : str
         Paths to the output folder
+    out : str
+        Path to the output file
 
     Returns
     -------
@@ -2382,6 +2385,8 @@ def trf_cmd(
         if params[boolean]:
             cmd += ' -%s' % boolean
     cmd += ' -l %s\n' % params['l']
+    cmd += 'tar cpfz %s *\n' % out
+    cmd += 'rm *.dat *.mask *.html\n'
     cmd += cmd_rm
     return cmd
 
@@ -2425,15 +2430,15 @@ def get_trf(
             nums = '.'.join([str(params[x]) for x in [
                 'match', 'mismatch', 'delta', 'match_probability',
                 'indel_probability', 'min_score', 'max_period']])
-            out = '%s/%s.%s.summary.html' % (out_dir, base, nums)
+            out = '%s/%s.%s.tar.gz' % (out_dir, base, nums)
             if self.config.force or to_do(out):
-                cmd = trf_cmd(fasta, params, out_dir)
+                cmd = trf_cmd(fasta, params, out_dir, out)
                 key = genome_key(tech, group, genome)
                 if to_dos:
                     self.outputs['cmds'].setdefault(key, []).append(False)
                 else:
                     self.outputs['cmds'].setdefault(key, []).append(cmd)
-                io_update(self, i_f=fasta, o_d=out_dir, key=key)
+                io_update(self, i_f=fasta, o_f=out, key=key)
                 self.soft.add_status(
                     tech, self.sam_pool, 1, group=group, genome=genome)
             else:
