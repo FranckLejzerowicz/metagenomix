@@ -1448,7 +1448,7 @@ def check_checkm2(self, params, soft):
 
 def check_prodigal(self, params, soft):
     defaults = {
-        'f': ['gbk', 'gff', 'sco'],
+        'f': ['gff', 'gbk', 'sco'],
         'p': ['meta', 'single'],
         'c': [False, True],
         'm': [False, True],
@@ -4160,16 +4160,27 @@ def check_kmerssr(self, params, soft):
     return defaults
 
 
-# def check_ToolName(self, params, soft):
-#     defaults = {
-#     }
-#     ints = []
-#     check_nums(self, params, defaults, ints, int, soft.name)
-#     floats = []
-#     check_nums(self, params, defaults, floats, float, soft.name)
-#     check_default(self, params, defaults, soft.name, (ints + floats))
-#     defaults[''] = '<>'
-#     return defaults
+def check_divissr(self, params, soft):
+    defaults = {
+        'min_motif_size': 1,
+        'max_motif_size': 6,
+        'min_length': 12,
+        'filter_reads': [False, True],
+        'analyse': [True, False],
+        'compound': [True, False],
+        'annotate': [None],
+        'comp_dist': 0,
+        'anno_format': ['GFF', 'GTF'],
+        'gene_key': 'gene',
+        'up_promoter': 1000,
+        'down_promoter': 1000
+    }
+    ints = ['min_motif_size', 'max_motif_size', 'min_length',
+            'comp_dist', 'up_promoter', 'down_promoter']
+    check_nums(self, params, defaults, ints, int, soft.name)
+    check_default(self, params, defaults, soft.name, ints)
+    defaults[''] = '<>'
+    return defaults
 
 
 

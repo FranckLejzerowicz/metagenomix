@@ -2485,7 +2485,7 @@ def trf(self):
 def kmerssr_cmd(
         fasta: str,
         params: dict,
-        out_dir: str
+        out: str
 ) -> str:
     """Collect kmerssr command.
 
@@ -2495,8 +2495,8 @@ def kmerssr_cmd(
         Path to the input fasta file
     params : dict
         Parameters
-    out_dir : str
-        Paths to the output folder
+    out : str
+        Paths to the output file
 
     Returns
     -------
@@ -2512,7 +2512,7 @@ def kmerssr_cmd(
 
     cmd += 'kmer-ssr'
     cmd += ' -i %s' % fasta
-    cmd += ' -o %s' % out_dir
+    cmd += ' -o %s' % out
     for param in ['a', 'p', 'l', 'L', 'n', 'N', 'r', 'R', 'Q']:
         cmd += ' -%s %s' % (param, params[param])
     if params['s']:
@@ -2560,9 +2560,9 @@ def get_kmerssr(
 
         params = tech_params(self, tech)
         for fasta in inputs:
-            out = '%s/summary.html' % out_dir
+            out = '%s/output.tsv' % out_dir
             if self.config.force or to_do(out):
-                cmd = kmerssr_cmd(fasta, params, out_dir)
+                cmd = kmerssr_cmd(fasta, params, out)
                 key = genome_key(tech, group, genome)
                 if to_dos:
                     self.outputs['cmds'].setdefault(key, []).append(False)
@@ -2602,6 +2602,132 @@ def kmerssr(self):
         for (tech, group), inputs in self.inputs[self.sam_pool].items():
             folders = group_inputs(self, inputs)
             get_kmerssr(self, tech, folders, group)
+
+
+def divissr_cmd(
+        fasta: str,
+        params: dict,
+        gff: str,
+        out: str
+) -> str:
+    """Collect divissr command.
+
+    Parameters
+    ----------
+    fasta : str
+        Path to the input fasta file
+    params : dict
+        Parameters
+    gff : str
+        Path to the prodigal GFF file
+    out : str
+        Path to the output file
+
+    Returns
+    -------
+    cmd : str
+        divissr command
+    """
+    cmd, cmd_rm = '', ''
+    if fasta.endswith('.fa.gz') or fasta.endswith('.fasta.gz'):
+        cmd += 'gunzip -c %s > %s\n' % (fasta, fasta.rstrip('.gz'))
+        cmd_rm += 'rm %s\n' % fasta.rstrip('.gz')
+        fasta = fasta.rstrip('.gz')
+
+    cmd += 'divissr'
+    cmd += ' --input %s' % fasta
+    cmd += ' --output %s' % out
+    for param in ['min_motif_size', 'max_motif_size', 'min_length', 'gene_key',
+                  'comp_dist', 'up_promoter', 'down_promoter', 'anno_format']:
+        cmd += ' --%s %s' % (param.replace('_', '-'), params[param])
+    for boolean in ['filter_reads', 'analyse', 'compound']:
+        if params[boolean]:
+            cmd += ' -%s' % boolean
+    if gff:
+        cmd += ' --annotate %s' % gff
+    cmd += ' --format fasta\n'
+    cmd += cmd_rm
+    return cmd
+
+
+def get_divissr(
+        self,
+        tech: str,
+        folders: dict,
+        group: str
+) -> None:
+    """
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .soft.status
+            Current status of the pipeline in terms of available outputs
+        .config
+            Configurations
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    folders : dict
+        Paths to the input fasta files per genome/MAG
+    group : str
+        Name of the current co-assembly group
+    """
+    for genome, inputs in folders.items():
+
+        gff = None
+
+        out_dir = genome_out_dir(self, tech, group, genome)
+        self.outputs['dirs'].append(out_dir)
+        self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
+        to_dos = status_update(self, tech, inputs, group=group, genome=genome)
+
+        params = tech_params(self, tech)
+        for fasta in inputs:
+            out = '%s/output.tsv' % out_dir
+            if self.config.force or to_do(out):
+                cmd = divissr_cmd(fasta, params, gff, out)
+                key = genome_key(tech, group, genome)
+                if to_dos:
+                    self.outputs['cmds'].setdefault(key, []).append(False)
+                else:
+                    self.outputs['cmds'].setdefault(key, []).append(cmd)
+                io_update(self, i_f=fasta, o_d=out_dir, key=key)
+                self.soft.add_status(
+                    tech, self.sam_pool, 1, group=group, genome=genome)
+            else:
+                self.soft.add_status(
+                    tech, self.sam_pool, 0, group=group, genome=genome)
+
+
+def divissr(self):
+    """DiviSSR is a DNA tandem repeat identification tool. Tandem repeats
+    are important genomic sequences which have functional and evolutionary
+    significance.
+
+    References
+    ----------
+    Avvaru, A.K., Mishra, R.K. and Sowpati, D.T., 2021. DiviSSR: Simple
+    arithmetic for efficient identification of tandem repeats. bioRxiv,
+    pp.2021-10.
+
+    Notes
+    -----
+    GitLab  : https://github.com/avvaruakshay/divissr
+    Paper   : https://doi.org/10.1101/2021.10.05.462997
+
+    Parameters
+    ----------
+    self : Commands class instance
+    """
+    if self.sam_pool in self.pools:
+        # if 'prodigal' in self.softs and self.softs['prodigal'].prev == :
+        for (tech, group), inputs in self.inputs[self.sam_pool].items():
+            folders = group_inputs(self, inputs)
+            get_divissr(self, tech, folders, group)
 
 
 def metaclade2(self):
