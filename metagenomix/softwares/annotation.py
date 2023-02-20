@@ -22,41 +22,26 @@ RESOURCES = pkg_resources.resource_filename("metagenomix", "resources/scripts")
 
 
 def prodigal_cmd(
-        self,
-        tech: str,
         fasta_fp: str,
-        out: str
+        out: str,
+        params: dict
 ) -> str:
     """Create command lines for Prodigal.
 
     Parameters
     ----------
-    self : Commands class instance
-        .dir : str
-            Path to pipeline output folder for prodigal
-        .sam : str
-            Sample name
-        .inputs : dict
-            Input files
-        .outputs : dict
-            All outputs
-        .soft.params : dict
-            Parameters
-        .config
-            Configurations
-    tech : str
-        Technology: 'illumina', 'pacbio', or 'nanopore'
     fasta_fp : str
         Path to the input fasta file
     out : str
         Path to the output folder
+    params : dict
+        Paramters
 
     Returns
     --------
     cmd : str
         Prodigal command
     """
-    params = tech_params(self, tech)
     cmd, cmd_rm = '', ''
 
     contig_fa = fasta_fp
@@ -109,6 +94,7 @@ def get_prodigal(
     sam_group : str
         Sample name or group for the current co-assembly
     """
+    params = tech_params(self, tech)
     for genome, fasta in fastas.items():
 
         to_dos = status_update(
@@ -123,9 +109,10 @@ def get_prodigal(
         self.outputs['dirs'].append(out)
         self.outputs['outs'].setdefault((tech, sam_group), []).append(out)
 
+        coords = '%s/gene.coords.%s.gz' % (out, params['f'])
         proteins = '%s/protein.translations.fasta.gz' % out
-        if self.config.force or to_do(proteins):
-            cmd = prodigal_cmd(self, tech, fasta[0], out)
+        if self.config.force or to_do(proteins) or to_do(coords):
+            cmd = prodigal_cmd(self, tech, fasta[0], out, params)
             self.soft.add_status(
                 tech, self.sam_pool, 1, group=sam_group, genome=genome)
             if to_dos:
