@@ -45,6 +45,7 @@ class Exported(object):
     def __init__(self, **kwargs) -> None:
         self.__dict__.update(kwargs)
         self.softs = Softwares(**kwargs)
+        print(self.softs.names)
         self.time = dt.datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
         self.dir = abspath(self.dir)
         self.export_dir = abspath('%s/_exports' % self.dir)
@@ -76,8 +77,8 @@ class Exported(object):
     def get_inputs(self):
         print('\n* Getting files to export:')
         if self.regex:
-            regex = re.compile(
-                r'%s' % '|'.join(list(self.regex)), flags=re.IGNORECASE)
+            regex = re.compile(r'%s' % '|'.join(list(self.regex)),
+                               flags=re.IGNORECASE)
 
         m = ''
         for root, dirs, files in os.walk(self.dir):
