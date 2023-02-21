@@ -191,12 +191,15 @@ class Softwares(object):
 
     def _intersection(self) -> set:
         softs = self.inputs['dir'] & set(self.inputs['res'])
+        print("softs")
         print(softs)
         if self.inputs['pip'] | self.inputs['usr']:
             if self.command == 'monitor':
                 softs = softs & self.inputs['pip'] & self.inputs['usr']
             else:
                 softs = softs & (self.inputs['pip'] | self.inputs['usr'])
+        print("softs")
+        print(softs)
         return softs
 
     def _to_manage(self) -> dict:
@@ -206,7 +209,6 @@ class Softwares(object):
             if cur_softs:
                 self.softs[role] = {t: self.inputs['res'][t] for t in cur_softs}
                 self.names.update(cur_softs)
-        print(self.names)
 
     def show(self):
         print('Tools to %s per role:' % self.command)
