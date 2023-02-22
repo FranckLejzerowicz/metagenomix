@@ -191,6 +191,8 @@ class Softwares(object):
 
     def _intersection(self) -> set:
         softs = self.inputs['dir'] & set(self.inputs['res'])
+        print("softs")
+        print(softs)
         if self.inputs['pip'] | self.inputs['usr']:
             if self.command == 'monitor':
                 softs = softs & self.inputs['pip'] & self.inputs['usr']
@@ -198,8 +200,6 @@ class Softwares(object):
                 print("self.inputs['pip'] | self.inputs['usr']")
                 print(self.inputs['pip'] | self.inputs['usr'])
                 softs = softs & (self.inputs['pip'] | self.inputs['usr'])
-                print("softs")
-                print(softs)
         print("softs")
         print(softs)
         return softs
