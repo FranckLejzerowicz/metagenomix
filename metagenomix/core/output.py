@@ -191,17 +191,11 @@ class Softwares(object):
 
     def _intersection(self) -> set:
         softs = self.inputs['dir'] & set(self.inputs['res'])
-        print("softs")
-        print(softs)
         if self.inputs['pip'] | self.inputs['usr']:
             if self.command == 'monitor':
                 softs = softs & self.inputs['pip'] & self.inputs['usr']
             else:
-                print("self.inputs['pip'] | self.inputs['usr']")
-                print(self.inputs['pip'] | self.inputs['usr'])
                 softs = softs & (self.inputs['pip'] | self.inputs['usr'])
-        print("softs")
-        print(softs)
         return softs
 
     def _to_manage(self) -> dict:
@@ -228,11 +222,7 @@ class Softwares(object):
     def get_softs(self):
         print('* Getting softwares to %s' % self.command)
         self._from_dir()
-        print("self.inputs['dir']")
-        print(self.inputs['dir'])
         self._from_usr()
-        print("self.inputs['usr']")
-        print(self.inputs['usr'])
         self._from_res()
         self._from_pipeline()
         self._to_manage()
