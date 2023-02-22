@@ -61,6 +61,7 @@ deeparg_short	annotation (ARGs)
 metamarc	annotation (ARGs)
 karga	annotation (ARGs)
 kargva	annotation (ARGs)
+abritamr	annotation (ARGs)
 abricate	annotation (ARGs)
 amrplusplus2	annotation (ARGs)
 amrfinderplus	annotation (ARGs)
@@ -78,6 +79,7 @@ canu	assembling
 unicycler	assembling
 miniasm	assembling
 necat	assembling
+metamic	assembling
 metawrap_quantify	binning
 metawrap_classify	binning
 metawrap_annotate	binning
@@ -89,7 +91,11 @@ metawrap	binning
 yamb	binning
 mycc	binning
 binspreader	binning
+groopm	binning
+vamb	binning
+mycc	binning
 drep	MAG (dereplication)
+skani	MAG (dereplication)
 gtdbtk	MAG (quality check)
 checkm_tree	MAG (quality check)
 checkm_treeqa	MAG (quality check)
@@ -120,6 +126,9 @@ phyloflash	profiling
 closedref	profiling
 squeezemeta	pipeline
 anvio	pipeline
+trf	repeats
+kmerssr	repeats
+divissr	repeats
 eggnogmapper	annotation
 plasmidfinder	annotation (plasmid)
 plasforest	annotation (plasmid)
@@ -130,8 +139,12 @@ lorikeet_consensus	strain-level analysis
 lorikeet_genotype	strain-level analysis
 lorikeet	strain-level analysis
 instrain	strain-level analysis
+strainpro	strain-level analysis
+panphlan	strain-level analysis
+strainsifter	strain-level analysis
 viralverify	annotation (virus)
 threecac	annotation (virus)
 coconet	annotation (virus)
 deepvirfinder	annotation (virus)
 wish	annotation (virus)
+graphlan	visualization
