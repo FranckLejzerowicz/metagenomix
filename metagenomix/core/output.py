@@ -198,6 +198,8 @@ class Softwares(object):
                 print("self.inputs['pip'] | self.inputs['usr']")
                 print(self.inputs['pip'] | self.inputs['usr'])
                 softs = softs & (self.inputs['pip'] | self.inputs['usr'])
+                print("softs")
+                print(softs)
         print("softs")
         print(softs)
         return softs
