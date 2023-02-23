@@ -2809,7 +2809,7 @@ def check_mapdamage2(self, params, soft):
 
 def check_amrfinderplus(self, params, soft):
     defaults = {
-        'database': '$AMRFINDER_DB',
+        'database': [None],
         'annotation_format': [None, 'bakta', 'genbank', 'microscope', 'patric',
                               'pgap', 'prokka', 'pseudomonasdb', 'rast'],
         'pgap': [False, True],
@@ -2826,23 +2826,27 @@ def check_amrfinderplus(self, params, soft):
         'translation_table': 11,
         'plus': [False, True],
         'report_common': [False, True],
-        'blast_bin': '$BLAST_BIN',
+        'blast_bin': [None],
         'report_all_equal': [False, True],
         'nucleotide_flank5_size': 0,
         'quiet': [False, True],
         'gpipe_org': [False, True],
         'parm': [None, 'nosame', 'noblast', 'skip_hmm_check', 'bed'],
     }
+    if 'database' not in params:
+        params['database'] = '$AMRFINDER_DB'
+    if 'blast_bin' not in params:
+        params['blast_bin'] = '$BLAST_BIN'
     if 'parm' not in params:
         params['parm'] = [None]
-    ints1 = ['translation_table']
-    check_nums(self, params, defaults, ints1, int, soft.name, 1, 33)
-    ints2 = ['nucleotide_flank5_size']
-    check_nums(self, params, defaults, ints2, int, soft.name)
+    int1 = ['translation_table']
+    check_nums(self, params, defaults, int1, int, soft.name, 1, 33)
+    int2 = ['nucleotide_flank5_size']
+    check_nums(self, params, defaults, int2, int, soft.name)
     floats = ['ident_min', 'coverage_min']
     check_nums(self, params, defaults, floats, float, soft.name, -1, 1)
     check_default(self, params, defaults, soft.name,
-                  (ints1 + ints2 + floats), ['database', 'parm'])
+                  (int1 + int2 + floats + ['database', 'blast_bin']), ['parm'])
     return defaults
 
 
