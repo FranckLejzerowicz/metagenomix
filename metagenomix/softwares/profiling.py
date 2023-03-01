@@ -2454,7 +2454,7 @@ def bracken_cmd(
         cmd += ' -w %s/report.tsv' % out_dir
         cmd += ' -r %s' % params['read_len']
         cmd += ' -l %s' % params['level']
-        cmd += ' -t %s' % params['threshold']
+        cmd += ' -t %s\n' % params['threshold']
 
     cmd += 'gzip %s\n' % result
     cmd += 'gzip %s/report.tsv\n' % out_dir
