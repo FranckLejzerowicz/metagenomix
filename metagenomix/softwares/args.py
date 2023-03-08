@@ -1425,15 +1425,15 @@ def staramr_cmd(
             cmd += ' --%s' % boolean.replace('_', '-')
 
     for param in ['genome_size_lower_bound', 'genome_size_upper_bound',
-                 'minimum_N50_value', 'minimum_contig_length',
-                 'unacceptable_number_contigs', 'pid_threshold',
-                 'percent_length_overlap_resfinder',
-                 'percent_length_overlap_pointfinder',
-                 'percent_length_overlap_plasmidfinder']:
+                  'minimum_N50_value', 'minimum_contig_length',
+                  'unacceptable_number_contigs', 'pid_threshold',
+                  'percent_length_overlap_resfinder',
+                  'percent_length_overlap_pointfinder',
+                  'percent_length_overlap_plasmidfinder']:
         cmd += ' --%s %s' % (param.replace('_', '-'), params[param])
     cmd += ' --nprocs %s' % params['cpus']
     cmd += ' --output-dir %s' % out_dir
-    cmd += ' %s' % contigs
+    cmd += ' %s\n' % contigs
 
     cmd += cmd_rm
 
@@ -1479,11 +1479,9 @@ def get_staramr(self, tech, folders, group):
                 cmd = staramr_cmd(self, tech, contigs[0], out_dir)
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, i_f=contigs, o_d=out_dir, key=key)
-            self.soft.add_status(
-                tech, self.sam_pool, 1, group=group)
+            self.soft.add_status(tech, self.sam_pool, 1, group=group)
         else:
-            self.soft.add_status(
-                tech, self.sam_pool, 0, group=group)
+            self.soft.add_status(tech, self.sam_pool, 0, group=group)
 
 
 def staramr(self) -> None:
