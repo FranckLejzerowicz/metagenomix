@@ -1235,7 +1235,9 @@ def abritamr_cmd(
     ----------
     self
     contigs : dict
+        Path(s) to input fasta(s) per co-assembly group
     out_dir : str
+        Path to the output folder
 
     Returns
     -------
@@ -1379,21 +1381,109 @@ def abritamr(self) -> None:
         abritamr_sample(self)
 
 
-def ariba(self) -> None:
-    """
+def staramr_cmd(
+        self,
+        tech,
+        contigs,
+        out_dir,
+) -> str:
+    """Get the staramr command line
 
-    References
+    Parameters
     ----------
+    self
+    tech : str
+        Tachnology
+    contigs : str
+        Path to the input contigs file
+    out_dir : str
+        Path to the output folder
 
-    Notes
-    -----
-    GitHub  : https://github.com/sanger-pathogens/ariba
+    Returns
+    -------
+    cmd : str
+        staramr command line
+    """
+    params = tech_params(self, tech)
+
+    cmd, cmd_rm = '', ''
+    if contigs.endswith('.fa.gz') or contigs.endswith('.fasta.gz'):
+        cmd += 'gunzip -c %s > %s\n' % (contigs, contigs.rstrip('.gz'))
+        contigs = contigs.rstrip('.gz')
+        cmd_rm += 'rm %s\n' % contigs
+
+    cmd += 'staramr search'
+    for param in [ 'pointfinder_organism', 'plasmidfinder_database_type',
+                   'mlst_scheme', 'exclude_genes_file']:
+        if params[param]:
+            cmd += ' --%s %s' % (param.replace('_', '-'), params[param])
+
+    for boolean in ['ignore_invalid_files', 'no_exclude_gene',
+                    'exclude_negatives', 'exclude_resistance_phenotypes',
+                    'report_all_blast']:
+        if params[boolean]:
+            cmd += ' --%s' % boolean.replace('_', '-')
+
+    for param in ['genome_size_lower_bound', 'genome_size_upper_bound',
+                 'minimum_N50_value', 'minimum_contig_length',
+                 'unacceptable_number_contigs', 'pid_threshold',
+                 'percent_length_overlap_resfinder',
+                 'percent_length_overlap_pointfinder',
+                 'percent_length_overlap_plasmidfinder']:
+        cmd += ' --%s %s' % (param.replace('_', '-'), params[param])
+    cmd += ' --nprocs %s' % params['cpus']
+    cmd += ' --output-dir %s' % out_dir
+    cmd += ' %s' % contigs
+
+    cmd += cmd_rm
+
+    return cmd
+
+
+def get_staramr(self, tech, folders, group):
+    """
 
     Parameters
     ----------
     self : Commands class instance
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .soft.status
+            Current status of the pipeline in terms of available outputs
+        .config
+            Configurations
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    folders : dict
+        Paths to the input fasta files per genome/MAG
+    group : str
+        Name of the current sample or co-assembly group
     """
-    pass
+    for genome, inputs in folders.items():
+        out_dir = genome_out_dir(self, tech, group)
+        self.outputs['dirs'].append(out_dir)
+        self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
+        contigs = [inputs[0]]
+        to_dos = status_update(
+            self, tech, [contigs], self.sam_pool, group=group)
+
+        key = genome_key(tech, group)
+
+        out_fp = '%s/output_dedup.fasta.gz' % out_dir
+        if self.config.force or to_do(out_fp):
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                cmd = staramr_cmd(self, tech, contigs[0], out_dir)
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
+            io_update(self, i_f=contigs, o_d=out_dir, key=key)
+            self.soft.add_status(
+                tech, self.sam_pool, 1, group=group)
+        else:
+            self.soft.add_status(
+                tech, self.sam_pool, 0, group=group)
 
 
 def staramr(self) -> None:
@@ -1415,12 +1505,18 @@ def staramr(self) -> None:
     Notes
     -----
     GitHub  : https://github.com/phac-nml/staramr
+    Paper   : https://doi.org/10.3390/microorganisms10020292
 
     Parameters
     ----------
     self : Commands class instance
     """
-    pass
+    if self.sam_pool in self.pools:
+        for (tech, group), inputs in self.inputs[self.sam_pool].items():
+            folders = group_inputs(self, inputs)
+            get_staramr(self, tech, folders, group)
+    else:
+        sys.exit('[staramr] Only work after assembly')
 
 
 def amrfinderplus(self) -> None:
@@ -1469,6 +1565,23 @@ def amrfinderplus(self) -> None:
             Parameters
         .config
             Configurations
+    """
+    pass
+
+
+def ariba(self) -> None:
+    """
+
+    References
+    ----------
+
+    Notes
+    -----
+    GitHub  : https://github.com/sanger-pathogens/ariba
+
+    Parameters
+    ----------
+    self : Commands class instance
     """
     pass
 

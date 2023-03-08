@@ -4187,6 +4187,48 @@ def check_divissr(self, params, soft):
     return defaults
 
 
+def check_staramr(self, params, soft):
+    defaults = {
+        'pointfinder_organism': [
+            None, 'helicobacter_pylori', 'campylobacter', 'salmonella',
+            'enterococcus_faecium', 'escherichia_coli', 'enterococcus_faecalis'
+        ],
+        'plasmidfinder_database_type': [
+            None, 'gram_positive', 'enterobacteriaceae', 'enterobacteriales'],
+        'mlst_scheme': [None],
+        'exclude_genes_file': [None],
+        'genome_size_lower_bound': 4000000,
+        'genome_size_upper_bound': 6000000,
+        'minimum_N50_value': 10000,
+        'minimum_contig_length': 300,
+        'unacceptable_number_contigs': 1000,
+        'pid_threshold': 98.0,
+        'percent_length_overlap_resfinder': 60.0,
+        'percent_length_overlap_pointfinder': 95.0,
+        'percent_length_overlap_plasmidfinder': 60.0,
+        'ignore_invalid_files': [False, True],
+        'no_exclude_gene': [False, True],
+        'exclude_negatives': [False, True],
+        'exclude_resistance_phenotypes': [False, True],
+        'report_all_blast': [False, True]
+    }
+    if 'exclude_genes_file' in params:
+        if not isfile(params['exclude_genes_file']):
+            sys.exit('[staramr] Param "exclude_genes_file" is not a file')
+    else:
+        params['exclude_genes_file'] = None
+    ints = ['genome_size_lower_bound', 'genome_size_upper_bound',
+            'minimum_N50_value', 'minimum_contig_length',
+            'unacceptable_number_contigs']
+    check_nums(self, params, defaults, ints, int, soft.name)
+    floats = ['pid_threshold', 'percent_length_overlap_resfinder',
+              'percent_length_overlap_pointfinder',
+              'percent_length_overlap_plasmidfinder']
+    check_nums(self, params, defaults, floats, float, soft.name)
+    check_default(self, params, defaults, soft.name,
+                  (ints + floats + ['exclude_genes_file']))
+    return defaults
+
 
 # def check_ToolName(self, params, soft):
 #     defaults = {
