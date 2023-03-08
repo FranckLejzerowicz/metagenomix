@@ -65,6 +65,7 @@ abritamr	annotation (ARGs)
 abricate	annotation (ARGs)
 amrplusplus2	annotation (ARGs)
 amrfinderplus	annotation (ARGs)
+staramr	annotation (ARGs)
 argsoap	annotation (ARGs)
 pooling	coassembly setup
 quast	assembling (quality check)
