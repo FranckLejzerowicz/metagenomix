@@ -3099,7 +3099,7 @@ def check_woltka(self, params, soft):
 
 def check_mobsuite(self, params, soft):
     defaults = {
-        'multi': [False, True],
+        'multi': [True, False],
         'debug': [False, True],
         'filter_db': [None],
         'genome_filter_db_prefix': [None],
