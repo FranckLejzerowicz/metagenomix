@@ -295,16 +295,29 @@ def status_update(
         Paths to input file that need to be created (or whether they are links)
     """
     if self.config.dev:
+        # assume that there is nothing "to do" when developing...
         to_dos = []
     else:
+        # otherwise, get the paths to input file that need to be created
         to_dos = get_to_dos(self, inputs, folder)
+
+    # if there is something to do and that software is not to avoid (explicitly)
     if to_dos and self.soft.name != software:
+
+        # get the current input unit (sample of pool group name)
+        input_unit = self.sam_pool
         if pool:
-            self.soft.add_status(tech, pool, to_dos,
-                                 group=group, genome=genome, message=message)
-        else:
-            self.soft.add_status(tech, self.sam_pool, to_dos,
-                                 group=group, genome=genome, message=message)
+            input_unit = pool
+
+        # add this input unit the software's status, with all extra info
+        self.soft.add_status(
+            tech,
+            input_unit,
+            to_dos,
+            group=group,
+            genome=genome,
+            message=message
+        )
     return to_dos
 
 
@@ -335,10 +348,6 @@ def get_to_dos(
     to_dos = []
     for inp in inputs:
         to_do_inp = to_do(inp)
-        # if folder:
-        #     to_do_inp = to_do(folder=inp)
-        # else:
-        #     to_do_inp = to_do(inp)
         if to_do_inp:
             to_dos.append(inp)
         if isinstance(inp, list):
