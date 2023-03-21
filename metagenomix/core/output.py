@@ -15,7 +15,34 @@ from os.path import basename, getsize, isdir, isfile, splitext
 
 
 class Output(object):
+    """
 
+    Attributes
+    ----------
+    soft : str
+
+    soft_dir : str
+        Path to the software output folder (without after folder)
+    name : str
+        Name of the job
+    after : tuple
+        (previous software, hash value)
+    script : str
+        Path to the job script file (.slm or .pbs)
+    after_dir : str
+        Path of a current after folder
+    oe : list
+        All job standard output files infos
+        [{'name': name, 'id': job_id, 'stdout': stdout, 'done': 'N',
+          'AllocCPUS': 1, 'MinCPU': None, 'AveCPU': None,
+          'MaxRSS': None, 'AveRSS': None, 'error': None}, ...]
+    hpc : list
+
+    input : list
+
+    outputs : dict
+
+    """
     def __init__(self, folder, soft):
         self.soft = soft
         self.soft_dir = folder + '/' + soft
@@ -154,7 +181,23 @@ class Output(object):
 
 
 class Softwares(object):
+    """This class gets the softwares to export, manage or monitor.
+    For these softwares, the class will have two attribues:
 
+    This class is called by:
+        class Exported(object)
+        class Manage(object)
+        class Monitored(object)
+
+    Attributes
+    ----------
+    names : set
+        All softwares to export, manage or monitor
+    roles : dict
+        Set of softwares (values) per role (keys)
+    softs : dict
+        Dictionaries of {software: full_role} (values) per short role (keys)
+    """
     def __init__(self, **kwargs) -> None:
         self.__dict__.update(kwargs)
         self.inputs = {'res': {}, 'dir': set(), 'pip': set(), 'usr': set()}
@@ -164,49 +207,98 @@ class Softwares(object):
         self.get_softs()
 
     def _from_dir(self):
+        """Get the softwares that have a folder in the output directory."""
         self.inputs['dir'].update([soft for soft in os.listdir(self.dir)])
 
     def _from_usr(self):
+        """Get user-defined softwares but only those that have a folder in
+        the output directory."""
+        # for every command-line software(s) (`-s, --software`)
         for soft in self.softwares:
             if soft in self.inputs['dir']:
+                # add it the user softwares if it has as folder
                 self.inputs['usr'].add(soft)
             else:
+                # add all its regex matches it this regex match to folder(s)
                 r = re.compile(soft.replace('*', '.*').replace('..*', '.*'))
                 self.inputs['usr'].update(
                     set(filter(r.match, list(self.inputs['dir']))))
 
     def _from_res(self):
+        """Get the softwares in the `softwares.txt` resource file."""
+        # get the paths resources folder
         res = pkg_resources.resource_filename("metagenomix", "resources")
         with open('%s/softwares.txt' % res) as f:
+            # parse the `softwares.txt` file to collect:
             for line in f:
                 soft, role = line.strip().split('\t')
+                # set of software names per role (category)
                 self.roles.setdefault(role.split(' (')[0], set()).add(soft)
+                # role (in full) or each software name
                 self.inputs['res'][soft] = role
 
-    def _from_pipeline(self):
+    def _from_pip(self):
+        """Get the softwares scheduled to run the pipeline."""
+        # it could be that for exporting, there is no pipeline configuration
         if self.pipeline_tsv:
+            # but if there is a pipeline configuration
             with open(self.pipeline_tsv) as f:
+                # collect then softwares scheduled to run the pipeline
                 self.inputs['pip'].update([x.strip().split()[-1] for x in
                                            f if x.strip() and x[0] != '#'])
 
     def _intersection(self) -> set:
+        """Get the set of softwares in the intersection of softwares from the
+        various softwares found in the output folder, the resources file,
+        and either the pipeline and user-defined softwares (if monitoring:
+        restrictive scope) ot the pipeline or user-defined softwares (if
+        managing: broader scope).
+        """
+        # softwares have to be present in both the output folder and resource
         softs = self.inputs['dir'] & set(self.inputs['res'])
-        if self.inputs['pip'] | self.inputs['usr']:
+        # get the union of softwares from the pipeline and passed by the user
+        pip_usr = self.inputs['pip'] | self.inputs['usr']
+        # if at least one software was given by user (command-line or pipeline)
+        if pip_usr:
             if self.command == 'monitor':
-                softs = softs & self.inputs['pip'] & self.inputs['usr']
+                # restrict monitoring to softwares given by all these inputs
+                if self.inputs['pip']:
+                    softs = softs & self.inputs['pip']
+                if self.inputs['usr']:
+                    softs = softs & self.inputs['usr']
             else:
-                softs = softs & (self.inputs['pip'] | self.inputs['usr'])
+                # restrict exporting or management to softwares across inputs
+                softs = softs & pip_usr
         return softs
 
-    def _to_manage(self) -> dict:
+    def _in_scope(self) -> dict:
+        """Collect softwares per role and the full list of softwares in scope"""
+        # get softwares in the intersection of softwares
         softs_intersection = self._intersection()
         for role, softs in self.roles.items():
             cur_softs = softs & softs_intersection
             if cur_softs:
+                # e.g., {'preprocessing': {'fastp': 'preprocessing'}}
                 self.softs[role] = {t: self.inputs['res'][t] for t in cur_softs}
+                # add to the full set of softwares in scope
                 self.names.update(cur_softs)
 
     def show(self):
+        """Print the softwares in the scope of softwares to export, manage
+        or monitor. For example:
+        ```
+        Tools to monitor per role:
+          [Role: preprocessing]
+                - fastp
+          [Role: paired-read merging]
+                - bbmerge
+                - flash
+          [Role: coassembly setup]
+                - pooling
+          [Role: MAG]
+                - drep
+        ```
+        """
         print('Tools to %s per role:' % self.command)
         for role, softs in self.softs.items():
             print('  [Role: %s]' % role)
@@ -220,10 +312,11 @@ class Softwares(object):
                     print(' ' * (n-len(soft)), '\t:', role_.split('(')[-1][:-1])
 
     def get_softs(self):
+        """Get the softwares to export, manage or monitor."""
         print('* Getting softwares to %s' % self.command)
-        self._from_dir()
-        self._from_usr()
-        self._from_res()
-        self._from_pipeline()
-        self._to_manage()
+        self._from_dir()  # fills self.inputs['dir'] with folder'd software
+        self._from_usr()  # fills self.inputs['usr'] with user-defined softwares
+        self._from_res()  # fills self.inputs['res'] with resource softwares
+        self._from_pip()  # fills self.inputs['pip'] with pipeline softwares
+        self._in_scope()  # restrict scope of softwares
         self.show()
