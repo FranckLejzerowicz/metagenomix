@@ -769,16 +769,15 @@ def get_bams(
     bams : list
         Path(s) to BAMs files
     """
-    assembl = get_assembler(self)
-    map_assembl = 'mapping_%s' % assembl
-    if map_assembl in self.softs:
-        bams = self.softs[map_assembl].outputs[self.sam_pool][(tech, group)]
-        print(bams)
-        print(bamsfds)
+    assembler = get_assembler(self)
+    map_assembler = 'mapping_%s' % assembler
+    if map_assembler in self.softs:
+        bams = self.softs[map_assembler].outputs[self.sam_pool][(tech, group)]
+        sys.exit('[get_bams()] in progress...')
     elif self.config.dev:
         bams = ['/path/to/mapping1.bam', '/path/to/mapping2.bam']
     else:
-        print('Run "%s %s" for checkm coverage' % (assembl, map_assembl))
+        print('Run "%s %s" for checkm coverage' % (assembler, map_assembler))
         return []
     return bams
 
