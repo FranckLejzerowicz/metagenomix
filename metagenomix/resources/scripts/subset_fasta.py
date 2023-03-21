@@ -8,6 +8,7 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
+import gzip
 import argparse
 
 
@@ -28,14 +29,19 @@ def write_seq(seq, seq_id, s, o):
 
 def subset_contigs(filin, filou, names):
     s = set([x.strip() for x in open(names).readlines()])
-    with open(filou, 'w') as o, open(filin) as f:
-        seq, seq_id = '', ''
-        for line in f:
-            if line[0] == '>':
-                write_seq(seq, seq_id, s, o)
-                seq_id = line[1:].strip().split()[0]
-            else:
-                seq += line.strip()
+    with open(filou, 'w') as o:
+        if filin.endswith('gz'):
+            func = gzip.open(filin, 'rt')
+        else:
+            func = open(filin)
+        with func as f:
+            seq, seq_id = '', ''
+            for line in f:
+                if line[0] == '>':
+                    write_seq(seq, seq_id, s, o)
+                    seq_id = line[1:].strip().split()[0]
+                else:
+                    seq += line.strip()
         write_seq(seq, seq_id, s, o)
 
 
