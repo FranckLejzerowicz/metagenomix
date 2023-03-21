@@ -7,11 +7,14 @@
 # ----------------------------------------------------------------------------
 
 import sys
+import pkg_resources
 from os.path import dirname
-from metagenomix._inputs import (sample_inputs, group_inputs,
+from metagenomix._inputs import (sample_inputs, group_inputs, get_assembler,
                                  genome_key, genome_out_dir)
 from metagenomix._io_utils import io_update, to_do, status_update
 from metagenomix.core.parameters import tech_params
+
+RESOURCES = pkg_resources.resource_filename("metagenomix", "resources/scripts")
 
 
 def plasforest_cmd(
@@ -66,8 +69,8 @@ def plasforest_cmd(
 def get_plasforest(
         self,
         tech: str,
+        sam_group: str,
         fastas: dict,
-        sam_group: str
 ) -> None:
     """
 
@@ -78,10 +81,10 @@ def get_plasforest(
             Configurations
     tech : str
         Technology: 'illumina', 'pacbio', or 'nanopore'
-    fastas : dict
-        Paths to the input fasta files per genome/MAG
     sam_group : str
         Sample or co-assembly name
+    fastas : dict
+        Paths to the input fasta files per genome/MAG
     """
     for genome, fastas in fastas.items():
 
@@ -89,7 +92,7 @@ def get_plasforest(
         self.outputs['dirs'].append(out_dir)
 
         out_fp = '%s/plasmids.csv.gz' % out_dir
-        self.outputs['outs'].setdefault((tech, sam_group), []).append(out_fp)
+        self.outputs['outs'][(tech, sam_group)][genome] = out_dir
         fasta = fastas[0]
         to_dos = status_update(self, tech, [fasta], group=sam_group,
                                genome=genome)
@@ -169,8 +172,8 @@ def plasmidfinder_cmd(
 def get_plasmidfinder(
         self,
         tech: str,
+        sam_group: str,
         fastas: dict,
-        sam_group: str
 ) -> None:
     """
 
@@ -181,16 +184,16 @@ def get_plasmidfinder(
             Configurations
     tech : str
         Technology: 'illumina', 'pacbio', or 'nanopore'
-    fastas : dict
-        Paths to the input fasta files per genome/MAG
     sam_group : str
         Sample or co-assembly name
+    fastas : dict
+        Paths to the input fasta files per genome/MAG
     """
     for genome, fasta in fastas.items():
 
         out_dir = genome_out_dir(self, tech, sam_group, genome)
         self.outputs['dirs'].append(out_dir)
-        self.outputs['outs'].setdefault((tech, sam_group), []).append(out_dir)
+        self.outputs['outs'][(tech, sam_group)][genome] = out_dir
         to_dos = status_update(
             self, tech, [fasta[0]], group=sam_group, genome=genome)
 
@@ -232,15 +235,17 @@ def dispatch(self) -> None:
     __plasmid_tool__ = getattr(sys.modules[__name__], 'get_%s' % self.soft.name)
     if self.sam_pool in self.pools:
         for (tech, group), inputs in self.inputs[self.sam_pool].items():
+            self.outputs['outs'][(tech, group)] = {}
             fastas = group_inputs(self, inputs)
-            __plasmid_tool__(self, tech, fastas, group)
+            __plasmid_tool__(self, tech, group, fastas)
     else:
         if self.soft.name == 'plasmidfinder':
             tech_fastas = sample_inputs(self, raw=True)
         else:
             tech_fastas = sample_inputs(self)
         for tech, fastas in tech_fastas.items():
-            __plasmid_tool__(self, tech, fastas, self.sam_pool)
+            self.outputs['outs'][(tech, self.sam_pool)] = {}
+            __plasmid_tool__(self, tech, self.sam_pool, fastas)
 
 
 def plasmidfinder(self) -> None:
@@ -319,8 +324,8 @@ def plasforest(self) -> None:
 def mob_typer_cmd(
         self,
         tech: str,
-        contig: str,
-        out_dir: str,
+        fasta: str,
+        typer_dir: str,
         key: tuple
 ) -> str:
     """Collect the mob_typer command line.
@@ -329,8 +334,8 @@ def mob_typer_cmd(
     ----------
     self
     tech : str
-    contig : str
-    out_dir : str
+    fasta : str
+    typer_dir : str
     key : tuple
 
     Returns
@@ -342,13 +347,13 @@ def mob_typer_cmd(
     tmp_dir = '$TMPDIR/mob_typer_%s' % '_'.join(key)
 
     cmd, cmd_rm = '', ''
-    if contig.endswith('.fa.gz') or contig.endswith('.fasta.gz'):
-        cmd += 'gunzip -c %s > %s\n' % (contig, contig.rstrip('.gz'))
-        contig = contig.rstrip('.gz')
-        cmd_rm += 'rm %s\n' % contig
+    if fasta.endswith('.fa.gz') or fasta.endswith('.fasta.gz'):
+        cmd += 'gunzip -c %s > %s\n' % (fasta, fasta.rstrip('.gz'))
+        fasta = fasta.rstrip('.gz')
+        cmd_rm += 'rm %s\n' % fasta
 
     cmd += '\nmob_typer'
-    cmd += ' --infile %s' % contig
+    cmd += ' --infile %s' % fasta
     cmd += ' --analysis_dir %s' % tmp_dir
     cmd += ' --num_threads %s' % params['cpus']
     cmd += ' --force'
@@ -373,10 +378,10 @@ def mob_typer_cmd(
         if params[path]:
             cmd += ' --%s %s' % (path, params[path])
 
-    cmd += ' --mge_report_file %s/typer_mge_report.txt' % out_dir
-    cmd += ' --out_file %s/mobtyper_results.txt\n' % out_dir
+    cmd += ' --mge_report_file %s/mge.report.txt' % typer_dir
+    cmd += ' --out_file %s/mobtyper_results.txt\n' % typer_dir
 
-    cmd += 'for i in %s/*; do gzip -q $i; done\n' % out_dir
+    cmd += 'for i in %s/*; do gzip -q $i; done\n' % typer_dir
     cmd += cmd_rm
     return cmd
 
@@ -384,8 +389,8 @@ def mob_typer_cmd(
 def mob_recon_cmd(
         self,
         tech: str,
-        contig: str,
-        out_dir: str,
+        fasta: str,
+        recon_dir: str,
 ) -> str:
     """Collect the mob_recon command line.
 
@@ -393,9 +398,8 @@ def mob_recon_cmd(
     ----------
     self
     tech : str
-    contig : str
-    out_dir : str
-    key : tuple
+    fasta : str
+    recon_dir : str
 
     Returns
     -------
@@ -405,20 +409,20 @@ def mob_recon_cmd(
     params = tech_params(self, tech)
 
     cmd, cmd_rm = '', ''
-    if contig.endswith('.fa.gz') or contig.endswith('.fasta.gz'):
-        cmd += 'gunzip -c %s > %s\n' % (contig, contig.rstrip('.gz'))
-        contig = contig.rstrip('.gz')
+    if fasta.endswith('.fa.gz') or fasta.endswith('.fasta.gz'):
+        cmd += 'gunzip -c %s > %s\n' % (fasta, fasta.rstrip('.gz'))
+        contig = fasta.rstrip('.gz')
         cmd_rm += 'rm %s\n' % contig
 
     cmd += '\nmob_recon'
-    cmd += ' --infile %s' % contig
+    cmd += ' --infile %s' % fasta
     cmd += ' --num_threads %s' % params['cpus']
 
     if params['prefix']:
         cmd += ' --prefix %s' % params['prefix']
 
     cmd += ' --force'
-    for boolean in ['multi', 'keep_tmp', 'run_overhang']:
+    for boolean in ['keep_tmp', 'run_overhang']:
         if params[boolean]:
             cmd += ' --%s' % boolean
 
@@ -448,9 +452,9 @@ def mob_recon_cmd(
     ]:
         if params[path]:
             cmd += ' --%s %s' % (path, params[path])
-    cmd += ' --outdir %s\n' % out_dir
+    cmd += ' --outdir %s\n' % recon_dir
 
-    cmd += 'for i in %s/*; do gzip -q $i; done\n' % out_dir
+    cmd += 'for i in %s/*; do gzip -q $i; done\n' % recon_dir
     cmd += cmd_rm
     return cmd
 
@@ -458,8 +462,7 @@ def mob_recon_cmd(
 def mob_cluster_cmd(
         self,
         tech: str,
-        typer_report: str,
-        out_dir: str
+        cluster_dir: str
 ) -> str:
     """Collect the mob_cluster command line.
 
@@ -467,8 +470,7 @@ def mob_cluster_cmd(
     ----------
     self
     tech : str
-    typer_report : str
-    out_dir : str
+    cluster_dir : str
 
     Returns
     -------
@@ -479,7 +481,7 @@ def mob_cluster_cmd(
 
     cmd, cmd_rm = '', ''
 
-    typer_report = '%s/typer_mge_report.txt.gz' % out_dir
+    typer_report = '%s/../typer/mge.report.txt.gz' % cluster_dir
     if params['mob_typer_file']:
         typer_report = params['mob_typer_file']
 
@@ -497,7 +499,7 @@ def mob_cluster_cmd(
     if params['taxonomy']:
         cmd += ' --taxonomy %s' % params['taxonomy']
 
-    cmd += ' --outdir %s' % out_dir
+    cmd += ' --outdir %s' % cluster_dir
     if params['ref_cluster_file']:
         cmd += ' --ref_cluster_file %s' % params['ref_cluster_file']
     if params['ref_fasta_file']:
@@ -507,7 +509,7 @@ def mob_cluster_cmd(
     cmd += ' --primary_cluster_dist %s' % params['primary_cluster_dist']
     cmd += ' --secondary_cluster_dist %s\n' % params['secondary_cluster_dist']
 
-    cmd += 'for i in %s/*; do gzip -q $i; done\n' % out_dir
+    cmd += 'for i in %s/*; do gzip -q $i; done\n' % cluster_dir
     cmd += cmd_rm
     return cmd
 
@@ -515,7 +517,7 @@ def mob_cluster_cmd(
 def mobsuite_cmds(
         self,
         tech: str,
-        contig: str,
+        fasta: str,
         out_dir: str,
         key: tuple
 ) -> str:
@@ -525,9 +527,8 @@ def mobsuite_cmds(
     ----------
     self
     tech : str
-    contig : str
+    fasta : str
     out_dir : str
-    typer_out : str
     key : tuple
 
     Returns
@@ -535,23 +536,53 @@ def mobsuite_cmds(
     cmd : str
     """
     cmd = ''
-    if to_do('%s/typer_mge_report.txt.gz' % out_dir):
-        cmd += mob_typer_cmd(self, tech, contig, out_dir, key)
+    typer_dir = '%s/typer' % out_dir
+    self.outputs['dirs'].append(typer_dir)
+    if to_do('%s/mge.report.txt.gz' % typer_dir):
+        cmd += mob_typer_cmd(self, tech, fasta, typer_dir, key)
 
-    if to_do('%s/mge.report.txt.gz' % out_dir):
-        cmd += mob_recon_cmd(self, tech, contig, out_dir)
+    if self.config.tools[self.soft.prev] != 'annotation (plasmid)':
+        recon_dir = '%s/recon' % out_dir
+        self.outputs['dirs'].append(recon_dir)
+        if to_do('%s/mge.report.txt.gz' % recon_dir):
+            cmd += mob_recon_cmd(self, tech, fasta, recon_dir)
 
-    params = tech_params(self, tech)
-    if params['cluster'] or params['new_plasmids']:
-        cmd += mob_cluster_cmd(self, tech, out_dir)
+        params = tech_params(self, tech)
+        if params['cluster'] or params['new_plasmids']:
+            cluster_dir = '%s/cluster' % out_dir
+            self.outputs['dirs'].append(cluster_dir)
+            cmd += mob_cluster_cmd(self, tech, cluster_dir)
+
     return cmd
+
+
+def get_mobsuite_fasta(self, fastas, contigs) -> tuple:
+    if self.soft.prev == 'plasmidfinder':
+        plasmids = fastas + '/results_tab.tsv.gz'
+        cmd = 'tail -n +2 | cut -f 5'
+    elif self.soft.prev == 'plasforest':
+        plasmids = fastas + '/plasmids.csv.gz'
+        cmd = 'grep Plasmid | cut -d"," -f 1'
+    elif self.soft.prev == 'viralverify':
+        plasmids = fastas + '/contigs_result_table.csv.gz'
+        cmd = 'cut -d "," -f 1,2 | grep Plasmid | cut -d"," -f 1'
+    else:
+        sys.exit('[mobsuite] Can not run mobsuite after "%s"' % self.soft.prev)
+
+    subset = plasmids.replace('.gz', '.ref')
+    fasta = plasmids.replace('.gz', '.fa')
+    cmds = 'zcat %s | %s | cut -f 1 > %s\n' % (plasmids, cmd, subset)
+    cmds += 'python3 %s/subset_fasta.py -i %s -s %s -o %s\n' % (
+        RESOURCES, contigs, subset, fasta)
+    return cmds, plasmids, fasta
 
 
 def get_mobsuite(
         self,
         tech: str,
-        contigs_dict: dict,
-        group: str
+        group: str,
+        inputs_dict: dict,
+        contigs: str
 ) -> None:
     """
 
@@ -559,40 +590,47 @@ def get_mobsuite(
     ----------
     self
     tech : str
-    contigs_dict : dict
     group : str
+    inputs_dict : dict
+    contigs: str
+        Empty of not run after a plasmid-detection tool
     """
-    for genome, contigs in contigs_dict.items():
+    for genome, fastas in inputs_dict.items():
 
         out_dir = genome_out_dir(self, tech, group)
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
-        contig = contigs[0]
-        to_dos = status_update(self, tech, [contig], group=group)
+        if contigs:
+            cmds, plasmids, fasta = get_mobsuite_fasta(self, fastas, contigs)
+            i_f = [plasmids, contigs]
+        else:
+            cmds, plasmids, fasta = '', '', fastas[0]
+            i_f = [fasta]
+        to_dos = status_update(self, tech, i_f, group=group)
 
         key = (tech, group)
-        typer_out = '%s/mobtyper_results.txt.gz' % out_dir
+        typer_out = '%s/typer/mobtyper_results.txt.gz' % out_dir
         if self.config.force or to_do(typer_out):
-            cmds = mobsuite_cmds(self, tech, contig, out_dir, key)
+            cmds += mobsuite_cmds(self, tech, fasta, out_dir, key)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmds)
-            io_update(self, i_f=contig, i_d=out_dir, o_d=out_dir, key=key)
+            io_update(self, i_f=i_f, i_d=out_dir, o_d=out_dir, key=key)
             self.soft.add_status(tech, self.sam_pool, 1, group=group)
         else:
             self.soft.add_status(tech, self.sam_pool, 0, group=group)
 
 
 def mobsuite(self) -> None:
-    """MOB-suite: Software softwares for clustering, reconstruction and typing of
-    plasmids from draft assemblies.
+    """MOB-suite: Software softwares for clustering, reconstruction and
+    typing of plasmids from draft assemblies.
 
     Plasmids are mobile genetic elements (MGEs), which allow for rapid
     evolution and adaption of bacteria to new niches through horizontal
     transmission of novel traits to different genetic backgrounds. The
-    MOB-suite is designed to be a modular set of softwares for the typing and
-    reconstruction of plasmid sequences from WGS assemblies.
+    MOB-suite is designed to be a modular set of softwares for the typing
+    and reconstruction of plasmid sequences from WGS assemblies.
 
     The MOB-suite depends on a series of databases which are too large to be
     hosted in git-hub. They can be downloaded or updated by running mob_init
@@ -617,13 +655,19 @@ def mobsuite(self) -> None:
     self
     """
     assemblers = self.config.tools['assembling']
-    if self.soft.prev not in assemblers:
+    previous = self.config.tools[self.soft.prev]
+    if not (self.soft.prev in assemblers or previous == 'annotation (plasmid)'):
         sys.exit('[mobsuite] Only after assembly (%s)' % ', '.join(assemblers))
 
     if self.sam_pool in self.pools:
         for (tech, group), inputs in self.inputs[self.sam_pool].items():
-            contigs_dict = group_inputs(self, inputs)
-            get_mobsuite(self, tech, contigs_dict, group)
+            inputs_dict = group_inputs(self, inputs)
+            contigs = ''
+            if previous == 'annotation (plasmid)':
+                assembler = get_assembler(self)
+                contigs = self.softs[assembler].outputs[
+                    self.sam_pool][(tech, group)][0]
+            get_mobsuite(self, tech, group, inputs_dict, contigs)
 
 
 def oritfinder_cmd(
