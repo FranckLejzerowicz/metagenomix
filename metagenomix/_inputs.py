@@ -280,7 +280,7 @@ def check_input(
     tech : str
         Technology: 'illumina', 'pacbio', or 'nanopore'
     raw : bool
-        Whether illumina data cna be processed as raw/per-sample paired reads
+        Whether illumina data can be processed as raw/per-sample paired reads
 
     Returns
     -------
@@ -425,12 +425,13 @@ def group_inputs(
                     fastas['/'.join(inp.rsplit('/', 3)[-3:])] = [inp]
                 else:
                     fastas[basename(inp)] = [inp]
-    elif self.soft.name.startswith('checkm_'):
-        fastas = inputs
+    # elif self.soft.name.startswith('checkm_'):
+    #     fastas = inputs
     else:
-        print(prev)
-        print(inputs)
-        sys.exit('[check group_inputs()]')
+        fastas = inputs
+        # print(prev)
+        # print(inputs)
+        # sys.exit('[check group_inputs()]')
     return fastas
 
 
