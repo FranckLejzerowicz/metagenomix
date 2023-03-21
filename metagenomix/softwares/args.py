@@ -1465,9 +1465,8 @@ def get_staramr(self, tech, folders, group):
         out_dir = genome_out_dir(self, tech, group)
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
-        contigs = [inputs[0]]
         to_dos = status_update(
-            self, tech, [contigs], self.sam_pool, group=group)
+            self, tech, [inputs[0]], self.sam_pool, group=group)
 
         key = genome_key(tech, group)
 
@@ -1476,9 +1475,9 @@ def get_staramr(self, tech, folders, group):
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
-                cmd = staramr_cmd(self, tech, contigs[0], out_dir)
+                cmd = staramr_cmd(self, tech, inputs[0], out_dir)
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
-            io_update(self, i_f=contigs, o_d=out_dir, key=key)
+            io_update(self, i_f=inputs[0], o_d=out_dir, key=key)
             self.soft.add_status(tech, self.sam_pool, 1, group=group)
         else:
             self.soft.add_status(tech, self.sam_pool, 0, group=group)
