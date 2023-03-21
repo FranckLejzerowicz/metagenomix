@@ -14,6 +14,36 @@ from metagenomix.core.parameters import *
 
 
 class Soft(object):
+    """
+    This class is instantiated for very software of the pipeline and
+    will contain all the info about it, that can be looked up by finding this
+    class after it is registered as value in the `self.softs` dict, which key
+    is the software name itself.
+
+    It contains the following info:
+        self.config     : copy of all the config
+        self.name       : software name
+        self.hash       : text to hash (see `get_hash()` in "commands.py")
+        self.hashed     : hashed text (see `get_hash()` in "commands.py")
+        self.dir        : software output folder
+        self.prev       : previously-run software name
+        self.scratch    : scratch location where to run this software
+        self.params     : default -> user parameters for this software
+
+        # the following attributes are set when the software commands are made
+        self.io         : input/output for the movement to scratch
+        self.links      :
+        self.inputs     :
+        self.outputs    :
+        self.defaults   :
+        self.cmds       :
+        self.bash       :
+        self.path       :
+        self.status     :
+        self.tables     :
+        self.dirs       :
+        self.messages   :
+    """
 
     def __init__(self, config):
         self.config = config
@@ -24,8 +54,7 @@ class Soft(object):
         self.prev = None
         self.scratch = None   # no use of the scratch file system by default
         self.params = dict(config.params)  # init with default params
-        # key attributes to be filled by each tool-specific code
-        self.io = {}  # contains the input/output for the movement to scratch
+        self.io = {}
         self.links = {}
         self.inputs = {}
         self.outputs = {}
@@ -56,17 +85,25 @@ class Soft(object):
             message=None,
             genome=None
     ):
-        row = [tech, sam_pool]
+        """A "status" format consists of a list made of 6 elements:
+            - `tech`                    : technology
+            - `sam_pool`                : sample or pool assembly group
+            - `"Done/To do/<tuple>"`    : Done/To do/list
+            - `group`                   : co-assembly group (default to None)
+            - `message`                 : message to print (default to None)
+            - `genome`                  : name of the genome (default to None)
+        """
+        # 0 or 1 are given for the
         if dec == 0:
-            row.append('Done')
+            val = 'Done'
         elif dec == 1:
-            row.append('To do')
+            val = 'To do'
         else:
             if isinstance(dec, list):
-                dec = tuple(dec)
+                val = tuple(dec)
             elif isinstance(dec, str):
-                dec = (dec,)
-            row.append(dec)
+                val = (dec,)
+        row = [tech, sam_pool, val]
         row.extend([None if not x else x for x in [group, message, genome]])
         self.status.append(row)
 
