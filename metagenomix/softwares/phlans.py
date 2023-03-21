@@ -51,12 +51,56 @@ def get_read_count(
     return reads
 
 
+def get_tax_levs(params):
+    """Get taxa levels.
+
+    Parameters
+    ----------
+    params : dict
+        Parameters
+
+    Returns
+    -------
+    tax_levs : list
+        List of taxa levels
+    """
+    if 'a' in params:
+        tax_levs = ['a']
+    else:
+        tax_levs = params['tax_lev']
+    return tax_levs
+
+
+def get_out_fp(self, tech, t, reads):
+    """Get te output folder path.
+
+    Parameters
+    ----------
+    self
+    tech : str
+        Technology
+    t : str
+        Value to the `t` argument
+    reads : str
+        Whether a reads file exists
+
+    Returns
+    -------
+    out : str
+        Path to the output folder
+    """
+    if t == 'marker_ab_table' and reads:
+        out = '%s/%s/%s_reads' % (self.dir, tech, t)
+    else:
+        out = '%s/%s/%s' % (self.dir, tech, t)
+    return out
+
+
 def analyses(
         self,
         tech: str,
         sam: str,
         bowtie2out: str,
-        reads: str,
         cmds: list
 ) -> None:
     """Get the taxonomic analyses Metaphlan command.
@@ -80,18 +124,15 @@ def analyses(
         Name of the current sample
     bowtie2out : str
         Input type was a bowtie2 output of the same tool
-    reads : str
-        Number of reads in the current sample
     cmds : list
         Commands per tech
     """
+    reads = get_read_count(self, tech, sam)
     params = tech_params(self, tech)
-    if 'a' in params:
-        tax_levs = ['a']
-    else:
-        tax_levs = params['tax_lev']
+    tax_levs = get_tax_levs(params)
+
     for t in params['t']:
-        out = '%s/%s/%s' % (self.dir, tech, t)
+        out = get_out_fp(self, tech, t, reads)
         for tax_lev in tax_levs:
             rad = '%s/%s_t-%s' % (out, sam, tax_lev)
             cmd = 'metaphlan'
@@ -103,18 +144,12 @@ def analyses(
             cmd += ' --sample_id_key sample_name'
             cmd += ' --nproc %s' % params['cpus']
             for param in [
-                'perc_nonzero',
-                'stat_q',
-                'min_cu_len',
-                'min_alignment_len',
+                'perc_nonzero', 'stat_q', 'min_cu_len', 'min_alignment_len',
             ]:
                 cmd += ' --%s %s' % (param, params[param])
             for param in [
-                'ignore_eukaryotes',
-                'ignore_bacteria',
-                'ignore_archaea',
-                'add_viruses',
-                'avoid_disqm'
+                'ignore_eukaryotes', 'ignore_bacteria', 'ignore_archaea',
+                'add_viruses', 'avoid_disqm'
             ]:
                 if params[param]:
                     cmd += ' --%s' % param
@@ -305,9 +340,7 @@ def metaphlan(self) -> None:
         self.outputs['dirs'] = [
             dirname(x) for x in self.outputs['outs'][(tech, sam)]]
 
-        reads = get_read_count(self, tech, sam)
-        if reads:
-            analyses(self, tech, sam, bowtie2out, reads, cmds)
+        analyses(self, tech, sam, bowtie2out, cmds)
         if cmds:
             _cmd = ['mkdir -p %s\n' % tmpdir]
             if to_dos:
