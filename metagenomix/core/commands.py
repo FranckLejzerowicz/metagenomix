@@ -68,8 +68,8 @@ class Commands(object):
             print(' - %s' % softs[-1])
             self.soft = self.softs[softs[-1]]
             self.soft.add_soft_path(self.softs)
-            self.get_inputs()
-            self.get_hash()
+            self.get_inputs()  # Update self.inputs to previous output
+            self.get_hash()  # collect `self.soft.hash` and `self.soft.hashed`
             self.get_dir()
             self.make_holistic()
             self.generic_command()
@@ -78,24 +78,35 @@ class Commands(object):
     def get_inputs(self):
         """Update the `inputs` attribute of the software object."""
         if self.soft.prev:
+            # if the previous software is not None (i.e., not on the raw data)
             self.inputs = self.softs[self.soft.prev].outputs
         else:
+            # if running on raw data: use the fastq files (possibly on scratch)
             self.inputs = self.config.fastq
             if self.soft.params['scratch'] and self.config.jobs:
                 self.inputs = self.config.fastq_mv
         show_inputs(self)
 
     def get_hash(self):
+        """Get info to hash and hash it.
+            - `self.soft.hash`      : info to hash
+            - `self.soft.hashed`    : hashed info
+        """
+        # variables to not account for in the calculation of the hash value
         avoid = {'time', 'nodes', 'mem', 'mem_dim', 'env', 'chunks',
                  'scratch', 'machine', 'partition', 'cpus', 'skip_samples'}
+        # do not account for 'databases' for specific softwares
         if self.soft.name not in ['filtering', 'databases']:
             avoid.add('databases')
+        # do not account for (search) 'terms' for search_* softwares
         if 'search_' in self.soft.name:
             avoid.add('terms')
+        # get all info to hash
         params = dict(x for x in self.soft.params.items() if x[0] not in avoid)
         path = self.soft.path
         hashes = [self.softs[x].hash for x in self.soft.path[1:-1]]
         self.soft.hash = (params, path, hashes)
+        # hash all this info
         self.soft.hashed = compute_hash(self.soft.hash)
 
     def get_dir(self):
