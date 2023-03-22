@@ -571,7 +571,7 @@ def get_mobsuite_fasta(self, fastas, contigs) -> tuple:
 
     subset = plasmids.replace('.gz', '.ref')
     fasta = plasmids.replace('.gz', '.fa')
-    cmds = 'zcat %s | %s | cut -f 1 > %s\n' % (plasmids, cmd, subset)
+    cmds = 'zcat %s | %s > %s\n' % (plasmids, cmd, subset)
     cmds += 'python3 %s/subset_fasta.py -i %s -s %s -o %s\n' % (
         RESOURCES, contigs, subset, fasta)
     return cmds, plasmids, fasta
