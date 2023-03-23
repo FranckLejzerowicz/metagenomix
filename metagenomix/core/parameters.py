@@ -4212,7 +4212,7 @@ def check_staramr(self, params, soft):
         'exclude_resistance_phenotypes': [False, True],
         'report_all_blast': [False, True]
     }
-    if 'exclude_genes_file' in params:
+    if 'exclude_genes_file' in params and params['exclude_genes_file']:
         if not isfile(params['exclude_genes_file']):
             sys.exit('[staramr] Param "exclude_genes_file" is not a file')
     else:
