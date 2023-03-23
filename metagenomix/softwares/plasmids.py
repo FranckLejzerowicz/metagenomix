@@ -352,14 +352,14 @@ def mob_typer_cmd(
         fasta = fasta.rstrip('.gz')
         cmd_rm += 'rm %s\n' % fasta
 
-    cmd += '\nmob_typer'
-    cmd += ' --infile %s' % fasta
-    cmd += ' --analysis_dir %s' % tmp_dir
-    cmd += ' --num_threads %s' % params['cpus']
-    cmd += ' --force'
+    cmd_typer = '\nmob_typer'
+    cmd_typer += ' --infile %s' % fasta
+    cmd_typer += ' --analysis_dir %s' % tmp_dir
+    cmd_typer += ' --num_threads %s' % params['cpus']
+    cmd_typer += ' --force'
     for boolean in ['multi', 'keep_tmp']:
         if params[boolean]:
-            cmd += ' --%s' % boolean
+            cmd_typer += ' --%s' % boolean
 
     for param in [
         'min_rep_evalue', 'min_mob_evalue', 'min_con_evalue', 'min_rpp_evalue',
@@ -368,7 +368,7 @@ def mob_typer_cmd(
         'min_length', 'min_overlap', 'primary_cluster_dist'
     ]:
         if params[param]:
-            cmd += ' --%s %s' % (param, params[param])
+            cmd_typer += ' --%s %s' % (param, params[param])
 
     for path in [
         'plasmid_mash_db', 'plasmid_meta', 'plasmid_db_type',
@@ -376,11 +376,14 @@ def mob_typer_cmd(
         'plasmid_mpf', 'plasmid_orit', 'database_directory'
     ]:
         if params[path]:
-            cmd += ' --%s %s' % (path, params[path])
+            cmd_typer += ' --%s %s' % (path, params[path])
 
-    cmd += ' --mge_report_file %s/mge.report.txt' % typer_dir
-    cmd += ' --out_file %s/mobtyper_results.txt\n' % typer_dir
+    cmd_typer += ' --mge_report_file %s/mge.report.txt' % typer_dir
+    cmd_typer += ' --out_file %s/mobtyper_results.txt\n' % typer_dir
 
+    cmd += 'if [ -s %s ]; then\n' % fasta
+    cmd += cmd_typer
+    cmd += 'fi\n'
     cmd += 'for i in %s/*; do gzip -q $i; done\n' % typer_dir
     cmd += cmd_rm
     return cmd
