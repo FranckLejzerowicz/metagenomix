@@ -8,6 +8,7 @@
 
 import os
 import re
+import timeit
 import socket
 import subprocess
 import datetime as dt
@@ -28,15 +29,24 @@ def exporter(**kwargs):
     """
     print('\n>>> `metagenomix export` started >>>\n')
     kwargs['command'] = 'export'
+    print(1, timeit.timeit())
     exporting = Exported(**kwargs)
+    print(2, timeit.timeit())
     exporting.get_folder_exp()
+    print(3, timeit.timeit())
     exporting.get_extensions()
+    print(4, timeit.timeit())
     exporting.get_inputs()
+    print(5, timeit.timeit())
     exporting.get_output()
+    print(6, timeit.timeit())
     print('\t>', exporting.out)
     exporting.get_commands()
+    print(7, timeit.timeit())
     exporting.write_job()
+    print(8, timeit.timeit())
     exporting.showdown()
+    print(9, timeit.timeit())
     print('\n<<< `metagenomix export` completed <<<\n')
 
 
@@ -44,7 +54,9 @@ class Exported(object):
 
     def __init__(self, **kwargs) -> None:
         self.__dict__.update(kwargs)
+        print(1.1, timeit.timeit())
         self.softs = Softwares(**kwargs)
+        print(1.2, timeit.timeit())
         self.time = dt.datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
         self.dir = abspath(self.dir)
         self.export_dir = abspath('%s/_exports' % self.dir)
