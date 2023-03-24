@@ -2376,17 +2376,19 @@ def trf_cmd(
         cmd_rm += 'rm %s\n' % fasta.rstrip('.gz')
         fasta = fasta.rstrip('.gz')
 
-    cmd += '\nmkdir -p %s\ncd %s\ntrf' % (out_dir, out_dir)
-    cmd += ' %s' % fasta
+    cmd += 'mkdir -p %s\n' % out_dir
+    cmd += 'cd %s\n' % out_dir
+    cmd += 'trf %s' % fasta
     for param in ['match', 'mismatch', 'delta', 'match_probability',
                   'indel_probability', 'min_score', 'max_period']:
         cmd += ' %s' % params[param]
     for boolean in ['m', 'f', 'd', 'h', 'r']:
         if params[boolean]:
             cmd += ' -%s' % boolean
-    cmd += ' -l %s\n' % params['l']
-    cmd += 'tar cpfz %s *\n' % out
-    cmd += 'rm *.dat *.mask *.html\n'
+    cmd += ' -l %s' % params['l']
+    cmd += ' -ngs > %s\n' % out
+
+    cmd += 'rm *.mask *.html\n'
     cmd += cmd_rm
     return cmd
 
@@ -2430,7 +2432,7 @@ def get_trf(
             nums = '.'.join([str(params[x]) for x in [
                 'match', 'mismatch', 'delta', 'match_probability',
                 'indel_probability', 'min_score', 'max_period']])
-            out = '%s/%s.%s.tar.gz' % (out_dir, base, nums)
+            out = '%s/%s.%s.out' % (out_dir, base, nums)
             if self.config.force or to_do(out):
                 cmd = trf_cmd(fasta, params, out_dir, out)
                 key = genome_key(tech, group, genome)
@@ -2438,7 +2440,7 @@ def get_trf(
                     self.outputs['cmds'].setdefault(key, []).append(False)
                 else:
                     self.outputs['cmds'].setdefault(key, []).append(cmd)
-                io_update(self, i_f=fasta, o_f=out, key=key)
+                io_update(self, i_f=fasta, o_d=out_dir, key=key)
                 self.soft.add_status(
                     tech, self.sam_pool, 1, group=group, genome=genome)
             else:

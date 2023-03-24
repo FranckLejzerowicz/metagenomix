@@ -4108,7 +4108,7 @@ def check_trf(self, params, soft):
         'm': [True, False],
         'f': [True, False],
         'd': [True, False],
-        'h': [False, True],
+        'h': [True, False],
         'r': [False, True],
         'l': 10
     }
