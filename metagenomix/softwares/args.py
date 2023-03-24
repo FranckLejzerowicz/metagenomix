@@ -1412,6 +1412,7 @@ def staramr_cmd(
         contigs = contigs.rstrip('.gz')
         cmd_rm += 'rm %s\n' % contigs
 
+    cmd += 'rm -rf %s\n' % out_dir
     cmd += 'staramr search'
     for param in [ 'pointfinder_organism', 'plasmidfinder_database_type',
                    'mlst_scheme', 'exclude_genes_file']:
