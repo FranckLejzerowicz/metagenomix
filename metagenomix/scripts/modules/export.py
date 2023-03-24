@@ -28,7 +28,7 @@ from metagenomix import __version__
               help='If not creating the tar locally, create it there')
 @click.option("--local/--no-local", default=False,
               help="Creates the tar locally, and not in the location of `-l`")
-@click.option("-a", "--account", show_default=False, default=None,
+@click.option("-a", "--account", show_default=False, default='nn9745k',
               help="User account for your HPC (in use for Slurm)")
 @click.option("--jobs/--no-jobs", default=True, show_default=True,
               help="Whether to make the archive in a job")
