@@ -15,7 +15,7 @@ from metagenomix import __version__
 @click.command()
 @click.option("-i", "--folder", required=True,
               help='Path to pipeline output folder (`-o` for "create" module)')
-@click.option("-o", "--output", required=True, help="Output archive file")
+@click.option("-o", "--output", required=False, help="Output archive file")
 @click.option("-p", "--pipeline",
               help="Path to the file containing the softwares to run in order")
 @click.option("-s", "--software", multiple=True,

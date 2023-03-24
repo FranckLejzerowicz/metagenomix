@@ -92,7 +92,7 @@ class Exported(object):
             soft_dir = self.dir + '/' + soft
             for root, dirs, files in os.walk(soft_dir):
                 for fil in files:
-                    pref, ext = splitext(fil)[1]
+                    pref, ext = splitext(fil)
                     if fil.endswith('gz'):
                         ext = '%s.gz' % splitext(pref)[1]
                     if self.exts:
@@ -145,7 +145,10 @@ class Exported(object):
 
     def get_output(self):
         print('* Getting output archive path')
-        self.output = abspath(self.output)
+        if self.output:
+            self.output = abspath(self.output)
+        else:
+            self.output = '%s/%s.tar' % (self.dir, '_'.join(self.softs.names))
         if not self.local and self.loc:
             self.output = '%s/%s' % (self.loc, basename(self.output))
         self.get_output_name()
