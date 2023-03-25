@@ -1371,7 +1371,6 @@ def metamic_cmd(
     cmd += ' --mode meta\n'
 
     cmd += '\nmetaMIC predict'
-    cmd += ' --bam %s' % bam
     cmd += ' --contig %s' % contigs
     cmd += ' --output %s' % out_dir
     if assembler == 'megahit':
