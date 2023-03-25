@@ -2387,8 +2387,6 @@ def trf_cmd(
             cmd += ' -%s' % boolean
     cmd += ' -l %s' % params['l']
     cmd += ' -ngs > %s\n' % out
-
-    cmd += 'rm *.mask *.html\n'
     cmd += cmd_rm
     return cmd
 
