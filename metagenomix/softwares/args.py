@@ -1471,7 +1471,7 @@ def get_staramr(self, tech, folders, group):
 
         key = genome_key(tech, group)
 
-        out_fp = '%s/output_dedup.fasta.gz' % out_dir
+        out_fp = '%s/summary.tsv' % out_dir
         if self.config.force or to_do(out_fp):
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
