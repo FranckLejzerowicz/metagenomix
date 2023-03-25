@@ -383,8 +383,8 @@ def mob_typer_cmd(
 
     cmd += 'if [ -s %s ]; then\n' % fasta
     cmd += cmd_typer
-    cmd += 'fi\n'
     cmd += 'for i in %s/*; do gzip -q $i; done\n' % typer_dir
+    cmd += 'fi\n'
     cmd += cmd_rm
     return cmd
 
