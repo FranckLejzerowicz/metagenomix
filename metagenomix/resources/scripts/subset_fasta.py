@@ -39,7 +39,7 @@ def subset_contigs(filin, filou, names):
             for line in f:
                 if line[0] == '>':
                     write_seq(seq, seq_id, s, o)
-                    seq_id = line[1:].strip()
+                    seq_id = line[1:].strip().split()[0]
                 else:
                     seq += line.strip()
         write_seq(seq, seq_id, s, o)
@@ -47,7 +47,4 @@ def subset_contigs(filin, filou, names):
 
 if __name__ == '__main__':
     args = get_args()
-    filin = args['i'][0]
-    filou = args['o'][0]
-    names = args['s'][0]
-    subset_contigs(filin, filou, names)
+    subset_contigs(args['i'][0], args['o'][0], args['s'][0])
