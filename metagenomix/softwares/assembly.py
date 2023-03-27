@@ -1356,6 +1356,8 @@ def metamic_cmd(
         cmd_rm += 'rm %s\n' % contigs.rstrip('.gz')
         contigs = contigs.rstrip('.gz')
 
+    cmd += 'samtools faidx %s\n' % contigs
+
     pileup = '%s.pileup' % splitext(bam)[0]
     cmd += '\nsamtools mpileup'
     cmd += ' -C 50 -A -f %s %s' % (contigs, bam)
