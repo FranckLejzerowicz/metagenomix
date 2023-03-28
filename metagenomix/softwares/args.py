@@ -340,10 +340,11 @@ def mmarc_cmd(
     """
     cmd, cmd_rm = '', ''
     if genome or len(inputs) == 1:
-        if inputs[0].endswith('.fa.gz') or inputs[0].endswith('.fasta.gz'):
-            cmd += 'gunzip -c %s > %s\n' % (out, out.rstrip('.gz'))
-            cmd_rm += 'rm %s\n' % out.rstrip('.gz')
-            inp = inputs[0].rstrip('.gz')
+        inp = inputs[0]
+        if inp.endswith('.fa.gz') or inp.endswith('.fasta.gz'):
+            cmd += 'gunzip -c %s > %s\n' % (inp, inp.rstrip('.gz'))
+            cmd_rm += 'rm %s\n' % inp.rstrip('.gz')
+            inp = inp.rstrip('.gz')
         cmd += '\n./mmarc --input %s' % inp
     else:
         cmd += '\n./mmarc --i1 %s --i2 %s' % tuple(inputs)
