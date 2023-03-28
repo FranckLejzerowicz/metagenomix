@@ -414,8 +414,8 @@ def mob_recon_cmd(
     cmd, cmd_rm = '', ''
     if fasta.endswith('.fa.gz') or fasta.endswith('.fasta.gz'):
         cmd += 'gunzip -c %s > %s\n' % (fasta, fasta.rstrip('.gz'))
-        contig = fasta.rstrip('.gz')
-        cmd_rm += 'rm %s\n' % contig
+        fasta = fasta.rstrip('.gz')
+        cmd_rm += 'rm %s\n' % fasta
 
     cmd += '\nmob_recon'
     cmd += ' --infile %s' % fasta
