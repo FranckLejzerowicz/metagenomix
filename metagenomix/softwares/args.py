@@ -339,17 +339,14 @@ def mmarc_cmd(
         mmarc (meta-marc) command
     """
     cmd, cmd_rm = '', ''
-    if genome:
+    if genome or len(inputs) == 1:
         if inputs[0].endswith('.fa.gz') or inputs[0].endswith('.fasta.gz'):
             cmd += 'gunzip -c %s > %s\n' % (out, out.rstrip('.gz'))
             cmd_rm += 'rm %s\n' % out.rstrip('.gz')
             inp = inputs[0].rstrip('.gz')
         cmd += '\n./mmarc --input %s' % inp
     else:
-        if len(inputs) == 1:
-            cmd += '\n./mmarc --input %s' % inputs[0]
-        elif len(inputs) == 2:
-            cmd += '\n./mmarc --i1 %s --i2 %s' % tuple(inputs)
+        cmd += '\n./mmarc --i1 %s --i2 %s' % tuple(inputs)
         if tech == 'illumina':
             cmd += ' --dedup'
         cmd += ' --multicorrect'
