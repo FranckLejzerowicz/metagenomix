@@ -70,8 +70,7 @@ setup(
     package_data={
         'metagenomix': [
             'test/*/*/*',
-            'resources/run_params.yml',
-            'resources/wol_tree.nwk'
+            'resources/*'
         ],
     },
     include_package_data=True,
