@@ -63,7 +63,7 @@ setup(
         "tabulate",
         "pyyaml",
         "seaborn",
-        "Xhpc==2.8"
+        "Xhpc==2.9"
     ],
     classifiers=classifiers,
     entry_points={'console_scripts': standalone},
