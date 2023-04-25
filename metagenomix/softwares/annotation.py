@@ -1305,8 +1305,9 @@ def ccfind_cmd(
         cmd += 'seqtk seq -a %s > %s\n' % (fastx, fasta)
 
     cmd += 'rm -rf %s\n' % out_dir
-    cmd += 'export PATH=$PATH:%s\n' % self.soft.params['path']
-    cmd += self.soft.params['binary']
+    if self.soft.params['path']:
+        cmd += 'export PATH=$PATH:%s\n' % self.soft.params['path']
+    cmd += 'ccfind'
     cmd += ' %s' % fasta
     cmd += ' %s' % out_dir
     cmd += ' --terminal-fragment-size %s' % params['terminal_fragment_size']
@@ -1985,7 +1986,8 @@ def eggnogmapper_cmd(
         cmd_rm += 'rm %s\n' % proteins.rstrip('.gz')
         proteins = proteins.rstrip('.gz')
 
-    cmd += 'export EGGNOG_DATA_DIR=%s\n' % params['data_dir']
+    if params['data_dir']:
+        cmd += 'export EGGNOG_DATA_DIR=%s\n' % params['data_dir']
     cmd += 'emapper.py'
     cmd += ' -i %s' % proteins
     cmd += ' --output %s' % prefix
@@ -2370,7 +2372,8 @@ def trf_cmd(
         trf command
     """
     cmd_rm = ''
-    cmd = 'export PATH=$PATH:%s\n' % params['path']
+    if params['path']:
+        cmd = 'export PATH=$PATH:%s\n' % params['path']
     if fasta.endswith('.fa.gz') or fasta.endswith('.fasta.gz'):
         cmd += 'gunzip -c %s > %s\n' % (fasta, fasta.rstrip('.gz'))
         cmd_rm += 'rm %s\n' % fasta.rstrip('.gz')
@@ -2496,7 +2499,8 @@ def kmerssr_cmd(
         kmerssr command
     """
     cmd_rm = ''
-    cmd = 'export PATH=$PATH:%s\n' % params['path']
+    if params['path']:
+        cmd = 'export PATH=$PATH:%s\n' % params['path']
     if fasta.endswith('.fa.gz') or fasta.endswith('.fasta.gz'):
         cmd += 'gunzip -c %s > %s\n' % (fasta, fasta.rstrip('.gz'))
         cmd_rm += 'rm %s\n' % fasta.rstrip('.gz')
