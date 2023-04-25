@@ -29,7 +29,7 @@ class AnalysesConfig(object):
         self.conda_envs = {}
         self.modules = {}
         self.soft_paths = []
-        self.techs = []
+        self.techs = ['illumina', 'pacbio', 'nanopore']
         self.techs_fastqs = {}
         self.fastq_mv = {}
         self.fastq = {}
@@ -134,9 +134,11 @@ class AnalysesConfig(object):
         self.pooling_groups.append(name)
 
     def init_fastq(self, sam):
+        def fill_fq_dict(techs):
+            return dict(((tech, sam), []) for tech in techs)
         if sam not in self.fastq:
-            self.fastq[sam] = dict(((tech, sam), []) for tech in self.techs)
-            self.fastq_mv[sam] = dict(((tech, sam), []) for tech in self.techs)
+            self.fastq[sam] = fill_fq_dict(self.techs_fastqs)
+            self.fastq_mv[sam] = fill_fq_dict(self.techs_fastqs)
 
     def fill_fastq(self, fastq_paths: list):
         """Populate a `fastq` dict with for each sample (keys) the list of
@@ -186,14 +188,13 @@ class AnalysesConfig(object):
             tech = tech_dir.split('_')[0]
             fastq_paths = get_fastq_paths(self.__dict__[tech_dir])
             if fastq_paths:
-                self.techs.append(tech)
                 self.techs_fastqs[tech] = fastq_paths
 
     def set_fastqs(self):
         """
         Check that fastq folder exists and that it contains fastq files.
         """
-        for tech in self.techs:
+        for tech in self.techs_fastqs:
             self.get_fastq_samples(tech)
         if not sum([len(y) for _, x in self.fastq.items() for y in x.values()]):
             sys.exit('Input fastq folder(s) do not exist')
@@ -206,7 +207,9 @@ class AnalysesConfig(object):
             for sam in self.fastq:
                 print('%s%s' % (sam, ' '*(max_sam_len - len(sam))), end='')
                 for tech in self.techs:
-                    n = len(self.fastq[sam][(tech, sam)])
+                    n = 0
+                    if self.fastq[sam].get((tech, sam)):
+                        n = len(self.fastq[sam][(tech, sam)])
                     print(' %s%s' % (n, ' '*(len(tech) - len(str(n)))), end='')
                 print()
 
