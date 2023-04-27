@@ -1160,7 +1160,10 @@ def yamb_cmd(
         contigs = contigs.rstrip('.gz')
         cmd_rm += 'rm %s\n' % contigs
 
-    cmd += '%s/yamb.sh' % params['path']
+    if params['path']:
+        cmd += '%s/yamb.sh' % params['path']
+    else:
+        cmd += 'yamb.sh'
     cmd += ' -c %s' % contigs
     if len(fastxs) == 3:
         cmd += ' -s %s' % fastxs[0]
