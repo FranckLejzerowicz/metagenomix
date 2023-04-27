@@ -1283,7 +1283,11 @@ def binspreader_cmd(
     contigs_per_bin = '%s/contigs_per_bin.tsv' % out_dir
     cmd = '%s/contigs_per_bin.py -i %s -m %s -o %s\n' % (
         SCRIPTS, inputs, self.soft.prev, contigs_per_bin)
-    cmd += '%s/bin-refine' % params['path']
+
+    if params['path']:
+        cmd += '%s/bin-refine' % params['path']
+    else:
+        cmd += 'bin-refine'
     cmd += ' %s' % graph
     cmd += ' %s' % contigs_per_bin
     cmd += ' %s' % out_dir
@@ -1311,6 +1315,7 @@ def binspreader_cmd(
         cmd += ' -Rcorr'
     else:
         cmd += ' -Rprop'
+
     tmp_dir = '$TMPDIR/bnsprdr_%s_%s_%s' % (self.sam_pool, tech, group)
     cmd += ' --tmp-dir %s' % tmp_dir
     return cmd
