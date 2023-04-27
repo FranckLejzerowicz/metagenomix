@@ -1446,7 +1446,13 @@ def check_checkm2(self, params, soft):
         'dbg_cos': [False, True],
         'dbg_vectors': [False, True]
     }
-    check_default(self, params, defaults, soft.name)
+    if 'database_path' in params:
+        if not self.config.dev and not isdir(params['database_path']):
+            sys.exit('[checkm2] Param "database_path" do not exist')
+    else:
+        params['database_path'] = None
+    check_default(self, params, defaults, soft.name, ['database_path'])
+    defaults['database_path'] = '<path to an alternative reference database>'
     return defaults
 
 
@@ -4232,6 +4238,71 @@ def check_staramr(self, params, soft):
     check_default(self, params, defaults, soft.name,
                   (ints + floats + ['exclude_genes_file']))
     return defaults
+
+
+# def check_rosella(self, params, soft):
+#     defaults = {
+#     }
+#     ints = []
+#     check_nums(self, params, defaults, ints, int, soft.name)
+#     floats = []
+#     check_nums(self, params, defaults, floats, float, soft.name)
+#     check_default(self, params, defaults, soft.name, (ints + floats))
+#     defaults[''] = '<>'
+#     return defaults
+
+
+
+# def check_skani(self, params, soft):
+#     defaults = {
+#     }
+#     ints = []
+#     check_nums(self, params, defaults, ints, int, soft.name)
+#     floats = []
+#     check_nums(self, params, defaults, floats, float, soft.name)
+#     check_default(self, params, defaults, soft.name, (ints + floats))
+#     defaults[''] = '<>'
+#     return defaults
+
+
+
+# def check_ToolName(self, params, soft):
+#     defaults = {
+#     }
+#     ints = []
+#     check_nums(self, params, defaults, ints, int, soft.name)
+#     floats = []
+#     check_nums(self, params, defaults, floats, float, soft.name)
+#     check_default(self, params, defaults, soft.name, (ints + floats))
+#     defaults[''] = '<>'
+#     return defaults
+
+
+
+# def check_ToolName(self, params, soft):
+#     defaults = {
+#     }
+#     ints = []
+#     check_nums(self, params, defaults, ints, int, soft.name)
+#     floats = []
+#     check_nums(self, params, defaults, floats, float, soft.name)
+#     check_default(self, params, defaults, soft.name, (ints + floats))
+#     defaults[''] = '<>'
+#     return defaults
+
+
+
+# def check_ToolName(self, params, soft):
+#     defaults = {
+#     }
+#     ints = []
+#     check_nums(self, params, defaults, ints, int, soft.name)
+#     floats = []
+#     check_nums(self, params, defaults, floats, float, soft.name)
+#     check_default(self, params, defaults, soft.name, (ints + floats))
+#     defaults[''] = '<>'
+#     return defaults
+
 
 
 # def check_ToolName(self, params, soft):
