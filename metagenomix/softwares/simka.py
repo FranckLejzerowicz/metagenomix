@@ -184,10 +184,10 @@ def simka_base_cmd(
     cmd : str
         Simka command line.
     """
-    if params['path'] is None:
-        cmd = 'simka'
-    else:
+    if params['path']:
         cmd = '%s/bin/simka' % params['path']
+    else:
+        cmd = 'simka'
     cmd += ' -in %s.tmp' % sim_in
     cmd += ' -out %s' % out_dir
     cmd += ' -out-tmp %s_tmp' % out_dir
