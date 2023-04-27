@@ -1711,6 +1711,8 @@ def checkm2_cmd(
     cmd += ' --input %s' % folder
     cmd += ' --extension .%s' % get_extension(self)
     cmd += ' --output-directory %s' % out_dir
+    if self.soft.params['database_path']:
+        cmd += ' --database_path %s' % self.soft.params['database_path']
     cmd += ' --threads %s' % self.soft.params['cpus']
     for boolean in ['lowmem', 'general', 'specific', 'allmodels',
                     'genes', 'force', 'dbg_cos', 'dbg_vectors']:
