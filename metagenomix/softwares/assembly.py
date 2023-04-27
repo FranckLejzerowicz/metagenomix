@@ -315,7 +315,7 @@ def spades_cmd(
                         elif 'notCombined_2' in fastq:
                             cmd += ' -2 %s' % fastq
                         elif 'R1.fastq' in fastq:
-                            cmd += ' -2 %s' % fastq
+                            cmd += ' -1 %s' % fastq
                         elif 'R2.fastq' in fastq:
                             cmd += ' -2 %s' % fastq
 
