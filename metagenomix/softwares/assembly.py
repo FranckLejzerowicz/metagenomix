@@ -848,8 +848,6 @@ def canu_cmd(
     """
     params = tech_params(self, tech)
     cmd = 'if [ -d %s]; then rm -rf %s; fi\n' % (out, out)
-    if 'path' in params:
-        cmd += 'export PATH=$PATH:%s\n' % params['path']
     cmd += 'canu'
     cmd += ' -%s %s' % (tech, ' '.join(inputs))
     cmd += ' -d %s' % out
