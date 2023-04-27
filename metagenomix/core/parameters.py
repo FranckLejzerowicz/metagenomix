@@ -239,8 +239,9 @@ def check_binary(self, t, params, defaults, opt):
         isfile_or_isdir = isfile
     if opt not in params:
         sys.exit('[%s] %s' % (t, message))
-    if not self.config.dev and not isfile_or_isdir(params[opt]):
-        sys.exit('[%s] Please provide valid path to param "%s"' % (opt, t))
+    if not self.config.dev:
+        if params[opt] != 'module' and not isfile_or_isdir(params[opt]):
+            sys.exit('[%s] Please provide valid path to param "%s"' % (opt, t))
 
 
 class Parameters(object):
