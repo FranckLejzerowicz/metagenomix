@@ -163,7 +163,10 @@ def quantify_cmd(
         cmd += 'gunzip -c %s > %s\n' % (contigs, contigs.rstrip('.gz'))
         contigs = contigs.rstrip('.gz')
         cmd_rm += 'rm %s\n' % contigs
-    cmd += 'export PATH=$PATH:%s/bin\n' % self.soft.params['path']
+
+    if self.soft.params['path']:
+        cmd += 'export PATH=$PATH:%s/bin\n' % self.soft.params['path']
+
     cmd += 'metawrap quant_bins'
     cmd += ' -b %s' % bins
     cmd += ' -o %s' % out
@@ -387,7 +390,10 @@ def classify_or_annotate_cmd(
     cmd : str
         metaWRAP classify_bins or annotate command_bins
     """
-    cmd = 'export PATH=$PATH:%s/bin\n' % self.soft.params['path']
+    cmd = ''
+    if self.soft.params['path']:
+        cmd += 'export PATH=$PATH:%s/bin\n' % self.soft.params['path']
+
     cmd += 'metawrap %s' % command
     cmd += ' -b %s' % bin_dir
     cmd += ' -o %s' % out
@@ -561,12 +567,16 @@ def blobology_cmd(
         metaWRAP blobology command
     """
     gz, fqs, fqs_cmd = get_fqs(fastq_fps)
-    cmd_rm = ''
-    cmd = 'export PATH=$PATH:%s/bin\n' % self.soft.params['path']
+    cmd, cmd_rm = '', ''
+
     if contigs.endswith('.gz'):
         cmd += 'gunzip -c %s > %s\n' % (contigs, contigs.rstrip('.gz'))
         contigs = contigs.rstrip('.gz')
         cmd_rm += 'rm %s\n' % contigs
+
+    if self.soft.params['path']:
+        cmd += 'export PATH=$PATH:%s/bin\n' % self.soft.params['path']
+
     cmd += 'metawrap blobology'
     cmd += ' -o %s' % out
     cmd += ' -a %s' % contigs
@@ -677,7 +687,10 @@ def reassembly_bins_cmd(
         metaWRAP bin reassembly command
     """
     gz, fqs, fqs_cmd = get_fqs(fastq)
-    cmd = 'export PATH=$PATH:%s/bin\n' % self.soft.params['path']
+    cmd = ''
+    if self.soft.params['path']:
+        cmd += 'export PATH=$PATH:%s/bin\n' % self.soft.params['path']
+
     cmd += 'metawrap reassemble_bins'
     cmd += ' -o %s' % out
     for idx, fq in enumerate(fqs):
@@ -815,8 +828,6 @@ def refine_cmd(
         self,
         out_dir: str,
         bin_folders: list,
-        group: str,
-        key: tuple
 ) -> tuple:
     """Collect metaWRAP bin refinement command
 
@@ -831,10 +842,6 @@ def refine_cmd(
         Path to the output folder
     bin_folders : list
         Path to the input bin folder
-    group : str
-        Name of the group
-    key : tuple
-        (tech, group)
 
     Returns
     -------
@@ -852,7 +859,10 @@ def refine_cmd(
     stats = '%s.stats' % bins
     cmd = ''
     if to_do(bins) or to_do(stats):
-        cmd += 'export PATH=$PATH:%s/bin\n' % self.soft.params['path']
+
+        if self.soft.params['path']:
+            cmd += 'export PATH=$PATH:%s/bin\n' % self.soft.params['path']
+
         cmd += 'rm -rf %s\n' % out_dir
         cmd += 'metawrap bin_refinement'
         cmd += ' -o %s' % out_dir
@@ -987,8 +997,10 @@ def binning_cmd(
             contigs = contigs.rstrip('.gz')
             cmd_rm += 'rm %s\n' % contigs
 
+        if self.soft.params['path']:
+            cmd += 'export PATH=$PATH:%s/bin\n' % self.soft.params['path']
+
         gz, fqs, fqs_cmd = get_fqs(fastq)
-        cmd += 'export PATH=$PATH:%s/bin\n' % self.soft.params['path']
         cmd += 'metawrap binning'
         cmd += ' -o %s' % out
         cmd += ' -a %s' % contigs
