@@ -299,7 +299,9 @@ def tree_cmd(
     cmd : str
         checkm tree command
     """
-    cmd = 'export CHECKM_DATA_PATH=%s\n' % self.databases.paths['checkm']
+    cmd = ''
+    if self.databases.paths['checkm']:
+        cmd += 'export CHECKM_DATA_PATH=%s\n' % self.databases.paths['checkm']
     cmd += '\ncheckm tree'
     cmd += ' --extension %s' % get_extension(self)
     cmd += ' --threads %s' % self.soft.params['cpus']
@@ -393,7 +395,9 @@ def treeqa_cmd(
     cmd : str
         checkm tree_qa command
     """
-    cmd = 'export CHECKM_DATA_PATH=%s\n' % self.databases.paths['checkm']
+    cmd = ''
+    if self.databases.paths['checkm']:
+        cmd += 'export CHECKM_DATA_PATH=%s\n' % self.databases.paths['checkm']
     for (filename, out_format) in [
         ('tree_placement_summary.txt', '1'),
         ('tree_placement_lineage_stats.txt', '2'),
@@ -505,7 +509,9 @@ def lineageset_cmd(
     cmd : str
         checkm lineage_set command
     """
-    cmd = 'export CHECKM_DATA_PATH=%s\n' % self.databases.paths['checkm']
+    cmd = ''
+    if self.databases.paths['checkm']:
+        cmd += 'export CHECKM_DATA_PATH=%s\n' % self.databases.paths['checkm']
     cmd += '\ncheckm lineage_set'
     cmd += ' --unique %s' % self.soft.params['unique']
     cmd += ' --multi %s' % self.soft.params['multi']
@@ -611,7 +617,9 @@ def analyze_cmd(
     cmd : str
         checkm analyze command
     """
-    cmd = 'export CHECKM_DATA_PATH=%s\n' % self.databases.paths['checkm']
+    cmd = ''
+    if self.databases.paths['checkm']:
+        cmd += 'export CHECKM_DATA_PATH=%s\n' % self.databases.paths['checkm']
     cmd += '\ncheckm analyze'
     cmd += ' --extension %s' % get_extension(self)
     cmd += ' --threads %s' % self.soft.params['cpus']
@@ -723,7 +731,9 @@ def coverage_cmd(
     cmd : str
         checkm coverage command
     """
-    cmd = 'export CHECKM_DATA_PATH=%s\n' % self.databases.paths['checkm']
+    cmd = ''
+    if self.databases.paths['checkm']:
+        cmd += 'export CHECKM_DATA_PATH=%s\n' % self.databases.paths['checkm']
     cmd += '\ncheckm coverage'
     cmd += ' --extension %s' % get_extension(self)
     if self.soft.params['all_reads']:
@@ -875,7 +885,9 @@ def qa_cmd(
     cmd : str
         checkm qa command
     """
-    cmd = 'export CHECKM_DATA_PATH=%s\n' % self.databases.paths['checkm']
+    cmd = ''
+    if self.databases.paths['checkm']:
+        cmd += 'export CHECKM_DATA_PATH=%s\n' % self.databases.paths['checkm']
     for idx, (filename, out_format) in enumerate([
         ('completeness_contamination.txt', 1),
         ('bin_statistics.txt', 2),
@@ -1060,7 +1072,9 @@ def unbinned_cmd(
     cmd : str
         checkm unbinned command
     """
-    cmd = 'export CHECKM_DATA_PATH=%s\n' % self.databases.paths['checkm']
+    cmd = ''
+    if self.databases.paths['checkm']:
+        cmd += 'export CHECKM_DATA_PATH=%s\n' % self.databases.paths['checkm']
     cmd += '\ncheckm unbinned'
     cmd += ' --extension %s' % get_extension(self)
     cmd += ' --min_seq_len %s' % self.soft.params['min_seq_len']
@@ -1158,7 +1172,9 @@ def tetra_cmd(
     cmd : str
         checkm tetra command
     """
-    cmd = 'export CHECKM_DATA_PATH=%s\n' % self.databases.paths['checkm']
+    cmd = ''
+    if self.databases.paths['checkm']:
+        cmd += 'export CHECKM_DATA_PATH=%s\n' % self.databases.paths['checkm']
     cmd += '\ncheckm tetra'
     cmd += ' --threads %s' % self.soft.params['cpus']
     cmd += ' %s' % fasta
@@ -1357,7 +1373,10 @@ def denovo_cmd(
     """
     params = tech_params(self, tech)
 
-    cmd_init = "export GTDBTK_DATA_PATH=%s\n" % self.databases.paths['gtdbtk']
+    cmd_init = ''
+    if self.databases.paths['gtdbtk']:
+        cmd_init += "GTDBTK_DATA_PATH=%s\n" % self.databases.paths['gtdbtk']
+        cmd_init += "export GTDBTK_DATA_PATH\n"
     cmd_init += 'TMPDIR="$(dirname $TMPDIR)/dnv"\n'
     cmd_init += 'mkdir -p $TMPDIR\n'
 
@@ -1433,8 +1452,9 @@ def classify_cmd(
         gtdbtk classify_wf command
     """
     params = tech_params(self, tech)
-
-    cmd = "export GTDBTK_DATA_PATH=%s\n" % self.databases.paths['gtdbtk']
+    cmd = ''
+    if self.databases.paths['gtdbtk']:
+        cmd += "export GTDBTK_DATA_PATH=%s\n" % self.databases.paths['gtdbtk']
     cmd += 'TMPDIR="$(dirname $TMPDIR)/dnv"\n'
     cmd += 'mkdir -p $TMPDIR\n'
     cmd += '\ngtdbtk classify_wf'
