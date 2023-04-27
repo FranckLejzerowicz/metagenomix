@@ -1241,7 +1241,7 @@ def check_bwa(self, params, soft, no_database=False):
 def check_spades(self, params, soft):
     defaults = {
         'hybrid': ['illumina', 'nanopore', 'pacbio'],
-        'k': ['33', '55', '77', '99', '127'],
+        'k': ['auto'],
         'checkpoints': ['all', 'last'],
         'cov_cutoff': ['off', 'auto'],
         'meta': [True, False],
@@ -1257,9 +1257,12 @@ def check_spades(self, params, soft):
     if 'k' not in params:
         params['k'] = defaults['k']
     else:
-        kerrors = [x for x in params['k'] if not str(x).isdigit()]
-        if len(kerrors):
-            sys.exit('[spades] "k" must be integers (%s)' % ','.join(kerrors))
+        if isinstance(params['k'], str) and params['k'] == 'auto':
+            params['k'] = ['auto']
+        elif isinstance(params['k'], list):
+            kerrs = [x for x in params['k'] if not str(x).isdigit()]
+            if len(kerrs):
+                sys.exit('[spades] "k" must be integers (%s)' % ','.join(kerrs))
     check_default(self, params, defaults, soft.name, ['k'], ['hybrid'])
     return defaults
 
