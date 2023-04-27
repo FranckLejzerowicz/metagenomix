@@ -693,16 +693,24 @@ def hifiadapterfilt_cmd(
     cmd : str
         HiFiAdapterFilt commands
     """
-    cmd = 'export PATH=$PATH:%s\n' % self.soft.params['path']
-    cmd += 'export PATH=$PATH:%s/DB\n' % self.soft.params['path']
+    cmd = ''
+    if self.soft.params['path']:
+        cmd += 'export PATH=$PATH:%s\n' % self.soft.params['path']
+        cmd += 'export PATH=$PATH:%s/DB\n' % self.soft.params['path']
+
     cmd += 'cd %s\n' % out_dir
     cmd += 'cp %s %s/.\n' % (' '.join(fastqs), out_dir)
-    cmd += 'bash %s/pbadapterfilt.sh' % self.soft.params['path']
+
+    if self.soft.params['path']:
+        cmd += 'bash %s/pbadapterfilt.sh' % self.soft.params['path']
+    else:
+        cmd += 'pbadapterfilt.sh'
     cmd += ' -p %s' % sam
     cmd += ' -l %s' % self.soft.params['l']
     cmd += ' -m %s' % self.soft.params['m']
     cmd += ' -t %s' % self.soft.params['cpus']
     cmd += ' -o %s\n' % out_dir
+
     for fastq in fastqs:
         cmd += 'rm %s/%s\n' % (out_dir, basename(fastq))
     return cmd
