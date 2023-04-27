@@ -133,8 +133,11 @@ def simka_min_cmd(
     cmd : str
         Simka command line.
     """
-    cmd = 'python %s/simkaMin/simkaMin.py' % params['path']
-    cmd += ' -bin %s/bin/simkaMinCore' % params['path']
+    if params['path'] is None:
+        cmd = 'simkaMin.py'
+    else:
+        cmd = 'python %s/simkaMin/simkaMin.py' % params['path']
+        cmd += ' -bin %s/bin/simkaMinCore' % params['path']
     cmd += ' -in %s' % sim_in
     cmd += ' -out %s' % out_dir
     cmd += ' -max-reads %s' % n
@@ -181,7 +184,10 @@ def simka_base_cmd(
     cmd : str
         Simka command line.
     """
-    cmd = '%s/bin/simka' % params['path']
+    if params['path'] is None:
+        cmd = 'simka'
+    else:
+        cmd = '%s/bin/simka' % params['path']
     cmd += ' -in %s.tmp' % sim_in
     cmd += ' -out %s' % out_dir
     cmd += ' -out-tmp %s_tmp' % out_dir
