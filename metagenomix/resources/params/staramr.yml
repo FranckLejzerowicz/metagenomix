@@ -1,0 +1,32 @@
+staramr:
+  chunks: 1
+  cpus: 1
+  env: null
+  exclude_genes_file: null
+  exclude_negatives: false
+  exclude_resistance_phenotypes: false
+  genome_size_lower_bound: 4000000
+  genome_size_upper_bound: 6000000
+  ignore_invalid_files: false
+  machine: null
+  mem: 1
+  mem_dim: gb
+  minimum_N50_value: 10000
+  minimum_contig_length: 300
+  mlst_scheme: null
+  no_exclude_gene: false
+  nodes: 1
+  partition: null
+  percent_length_overlap_plasmidfinder: 60.0
+  percent_length_overlap_pointfinder: 95.0
+  percent_length_overlap_resfinder: 60.0
+  pid_threshold: 98.0
+  plasmidfinder_database_type: null
+  pointfinder_organism: null
+  report_all_blast: false
+  scratch: null
+  skip_samples:
+  - null
+  time: 24
+  unacceptable_number_contigs: 1000
+
