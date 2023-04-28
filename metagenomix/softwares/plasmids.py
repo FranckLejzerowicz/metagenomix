@@ -39,6 +39,7 @@ def plasforest_cmd(
     cmd : str
         plasforest command
     """
+    print(self.soft.params)
     binary = self.soft.params['binary']
     cmd = 'cd %s\n' % out_dir
     cmd_rm = ''
@@ -782,6 +783,34 @@ def oritfinder(self):
         tech_fastas = sample_inputs(self)
         for tech, fastas in tech_fastas.items():
             get_oritfinder(self, tech, fastas, self.sam_pool)
+
+
+def rfplasmid(self):
+    """Identifies the number of chromosomal marker genes, plasmid replication
+    genes and plasmid typing genes using CheckM and DIAMOND Blast, and
+    determines pentamer frequencies and contig sizes per contig. A prediction
+    model was trained using Random Forest on an extensive set of plasmids and
+    chromosomes from 19 different bacterial species and validated on separate
+    test sets of known chromosomal and plasmid contigs of the different
+    bacteria.
+
+    References
+    ----------
+    van der Graaf-Van Bloois, L., Wagenaar, J.A. and Zomer, A.L.,
+    2021. RFPlasmid: predicting plasmid sequences from short-read assembly
+    data using machine learning. Microbial genomics, 7(11).
+
+    Notes
+    -----
+    GitHub  : https://github.com/aldertzomer/RFPlasmid
+    Paper   : https://doi.org/10.1099/mgen.0.000683
+    Docs    : http://klif.uu.nl/rfplasmid/
+
+    Parameters
+    ----------
+    self
+    """
+    pass
 
 
 def deeplasmid(self):
