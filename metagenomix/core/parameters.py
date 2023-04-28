@@ -1850,6 +1850,7 @@ def check_plasforest(self, params, soft):
     check_nums(self, params, defaults, ['size_of_batch'], int, soft.name)
     check_default(self, params, defaults, soft.name, ['size_of_batch'])
     check_binary(self, soft.name, params, defaults, 'binary')
+    defaults['binary'] = '<Path to the "PlasForest.py" binary>'
     return defaults
 
 
