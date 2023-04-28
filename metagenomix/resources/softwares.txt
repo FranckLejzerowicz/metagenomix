@@ -45,6 +45,7 @@ search_hmmer	annotation (proteins)
 prokka	annotation (genome)
 barrnap	annotation (rRNA)
 ccfind	annotation (circularity)
+circlator	annotation (circularity)
 antismash	annotation (antibiotics and secondary metabolite)
 tiara	annotation (eukaryotic sequences)
 metaclade2	annotation (protein domains)
@@ -110,6 +111,7 @@ checkm_unbinned	MAG (quality check)
 checkm_tetra	MAG (quality check)
 checkm	MAG (quality check)
 checkm2	MAG (quality check)
+busco	MAG (quality check)
 metamarker	profiling
 midas	profiling
 midas2_snps	profiling
@@ -119,6 +121,7 @@ midas2	profiling
 metaphlan	profiling
 humann	profiling
 shogun	profiling
+kaiju	profiling
 woltka	profiling
 kraken2	profiling
 bracken	profiling
@@ -135,6 +138,8 @@ divissr	repeats
 eggnogmapper	annotation
 plasmidfinder	annotation (plasmid)
 plasforest	annotation (plasmid)
+plasflow	annotation (plasmid)
+rfplasmid	annotation (plasmid)
 mobsuite	annotation (mobilome)
 strainphlan	strain-level analysis
 lorikeet_call	strain-level analysis
@@ -146,6 +151,7 @@ strainpro	strain-level analysis
 panphlan	strain-level analysis
 strainsifter	strain-level analysis
 viralverify	annotation (virus)
+virstrain	annotation (virus)
 threecac	annotation (virus)
 coconet	annotation (virus)
 deepvirfinder	annotation (virus)
