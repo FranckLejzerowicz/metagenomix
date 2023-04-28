@@ -7,6 +7,8 @@
 # ----------------------------------------------------------------------------
 
 import re
+import sys
+
 import yaml
 from collections import defaultdict, Counter
 from metagenomix.core import parameters
@@ -268,12 +270,15 @@ class Workflow(object):
             soft.params[param] = value
 
     def ignored_params(self, user_params, soft):
+        # take union of defaults params known from software check and run_params
         valid_params = set(soft.defaults) | set(self.config.params)
+        # then, for each if the user params
         for param in sorted(user_params):
+            # if param never returned by checks (default) or in run_params
             if param not in valid_params:
+                # print that it is unknown and stop
                 name = soft.name
-                print('[%s] Param "%s" unknown and ignored' % (name, param))
-                del user_params[param]
+                sys.exit('[%s] Param "%s" unknown and ignored' % (name, param))
 
     def set_scratch(self, soft):
         """scratch set on command line overrides per-software scratches"""
@@ -290,12 +295,20 @@ class Workflow(object):
         return user_params
 
     def set_user_params(self, soft):
+        # get the name of the software ("metawrap_binning" would be "metawrap")
         name = soft.name.split('_')[0]
+        # get the user parameters (looking up to class attribute value)
         user_params = self.get_user_params(soft, name)
+        # get the name of the parameter-checking function for the software
         func = 'check_%s' % name
+        # if this parameter-checking function exists in the "parameters" module
         if hasattr(parameters, func) and callable(getattr(parameters, func)):
+            # get the function as an object
             check_ = getattr(parameters, func)
+            # run this function to check that all parameters are valid
+            # and get the returned value as default (for --show-params etc)
             soft.defaults = check_(self, user_params, soft)
+            # if here, params were valids, then check that the params are known
             self.ignored_params(user_params, soft)
         self.check_basic_params(user_params, soft)
 
