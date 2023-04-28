@@ -39,7 +39,6 @@ def plasforest_cmd(
     cmd : str
         plasforest command
     """
-    print(self.soft.params)
     binary = self.soft.params['binary']
     cmd = 'cd %s\n' % out_dir
     cmd_rm = ''
