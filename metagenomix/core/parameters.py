@@ -1253,18 +1253,24 @@ def check_spades(self, params, soft):
         'disable_gzip_output': [False, True],
         'only_error_correction': [False, True],
     }
-    if 'hybrid' not in params:
-        params['hybrid'] = defaults['hybrid']
+    t = soft.name
+    if 'hybrid' in params:
+        invalids = [x for x in params['hybrid'] if x not in defaults['hybrid']]
+        if invalids:
+            sys.exit('[%s] Param "hybrid" has invalid terms: %s' % (
+                t, ','.join(invalids)))
+    else:
+        params['hybrid'] = ['illumina']
     if 'k' not in params:
         params['k'] = defaults['k']
     else:
         if isinstance(params['k'], str) and params['k'] == 'auto':
             params['k'] = ['auto']
         elif isinstance(params['k'], list):
-            kerrs = [x for x in params['k'] if not str(x).isdigit()]
-            if len(kerrs):
-                sys.exit('[spades] "k" must be integers (%s)' % ','.join(kerrs))
-    check_default(self, params, defaults, soft.name, ['k'], ['hybrid'])
+            kerr = [x for x in params['k'] if not str(x).isdigit()]
+            if len(kerr):
+                sys.exit('[%s] "k" must be integers (%s)' % (t, ','.join(kerr)))
+    check_default(self, params, defaults, soft.name, ['k', 'hybrid'])
     return defaults
 
 
