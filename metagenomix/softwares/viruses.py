@@ -35,11 +35,14 @@ def viralverify_cmd(
     cmd : str
         ViralVerify command
     """
-    cmd_rm = ''
-    cmd = 'export PATH=$PATH:%s\n' % self.soft.params['path']
+    cmd, cmd_rm = '', ''
+    if self.soft.params['path']:
+        cmd += 'export PATH=$PATH:%s\n' % self.soft.params['path']
+
     if contigs.endswith('.fa.gz') or contigs.endswith('.fasta.gz'):
         cmd += 'gunzip -c %s > %s\n' % (contigs, contigs.rstrip('.gz'))
         cmd_rm += 'rm %s\n' % contigs.rstrip('.gz')
+
     cmd += 'viralverify'
     cmd += ' -f %s' % contigs.rstrip('.gz')
     cmd += ' -o %s' % out
@@ -300,38 +303,6 @@ def threecac(self) -> None:
     print()
 
 
-def plasclass(self) -> None:
-    """
-
-    References
-    ----------
-
-    Notes
-    -----
-    GitHub  :
-    Paper   :
-
-    Parameters
-    ----------
-    self : Commands class instance
-        .soft.prev : str
-            Previous software in the pipeline
-        .dir : str
-            Path to pipeline output folder for PlasClass
-        .soft.sam_pool : str
-            Sample or co-assembly group name.
-        .inputs : dict
-            Input files
-        .outputs : dict
-            All outputs
-        .soft.params
-            Parameters
-        .config
-            Configurations
-    """
-    pass
-
-
 def deepvirfinder(self):
     """DeepVirFinder predicts viral sequences using deep learning method. The
     method has good prediction accuracy for short viral sequences, so it can
@@ -391,6 +362,40 @@ def wish(self):
             Previous software in the pipeline
         .dir : str
             Path to pipeline output folder for WiSH
+        .soft.sam_pool : str
+            Sample or co-assembly group name.
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    """
+    pass
+
+
+def virstrain(self):
+    """An RNA virus strain-level identification tool for short reads.
+
+    References
+    ----------
+    Liao, H., Cai, D. and Sun, Y., 2022. VirStrain: a strain identification
+    tool for RNA viruses. Genome Biology, 23(1), p.38.
+
+    Notes
+    -----
+    GitHub  : https://github.com/liaoherui/VirStrain
+    Paper   : https://doi.org/10.1186/s13059-022-02609-x
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .soft.prev : str
+            Previous software in the pipeline
+        .dir : str
+            Path to pipeline output folder for VirStrain
         .soft.sam_pool : str
             Sample or co-assembly group name.
         .inputs : dict
