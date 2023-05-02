@@ -323,9 +323,8 @@ def spades_cmd(
     cmd += 'if [ -d %s/misc ]; then rm -rf %s/misc; fi\n' % (out, out)
     cmd += 'if [ -d %s/pipeline_state ];' % out
     cmd += ' then rm -rf %s/pipeline_state; fi\n' % out
-    for k in self.soft.params['k']:
-        cmd += 'if [ -d %s/K%s ]; then rm -rf %s/K%s; fi\n' % (out, k, out, k)
-    cmd += 'for i in %s/*; do gzip $i; done\n' % out
+    cmd += 'rm -rf %s/K*\n' % out
+    cmd += 'for i in %s/*; do gzip -q $i; done\n' % out
 
     return cmd, inputs, to_dos
 
