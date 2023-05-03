@@ -2752,6 +2752,31 @@ def metaclade2(self):
     pass
 
 
+def circlator(self):
+    """Circlator will attempt to identify each circular sequence and
+    output a linearised version of it. It does this by assembling all reads
+    that map to contig ends and comparing the resulting contigs with the
+    input assembly.
+
+    References
+    ----------
+    Hunt, M., Silva, N.D., Otto, T.D., Parkhill, J., Keane, J.A. and Harris,
+    S.R., 2015. Circlator: automated circularization of genome assemblies
+    using long sequencing reads. Genome biology, 16(1), pp.1-10.
+
+    Notes
+    -----
+    GitLab  : https://github.com/sanger-pathogens/circlator
+    Paper   : https://doi.org/10.1186/s13059-015-0849-0
+    Docs    : https://sanger-pathogens.github.io/circlator/
+
+    Parameters
+    ----------
+    self : Commands class instance
+    """
+    pass
+
+
 def deeptmhmm(self):
     """A Deep Learning Model for Transmembrane Topology Prediction and
     Classification
