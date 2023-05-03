@@ -115,7 +115,11 @@ def quast_cmd(
     if params['circos_path']:
         cmd += 'export PATH=$PATH:%s\n' % params['circos_path']
 
-    cmd += '%s/metaquast.py' % params['path']
+    if params['path']:
+        cmd += '%s/metaquast.py' % params['path']
+    else:
+        cmd += 'metaquast.py'
+
     # cmd += 'pe1'
     # cmd += 'pe2'
     # cmd += 'single'
