@@ -1872,3 +1872,25 @@ def skani(self):
     self
     """
     pass
+
+
+def busco(self):
+    """Assessing genome assembly and annotation completeness with
+    Benchmarking Universal Single-Copy Orthologs (BUSCO).
+
+    References
+    ----------
+    Manni, M., Berkeley, M.R., Seppey, M. and Zdobnov, E.M., 2021. BUSCO:
+    assessing genomic data quality and beyond. Current Protocols, 1(12), p.e323.
+
+    Notes
+    -----
+    GitHub  : https://gitlab.com/ezlab/busco/-/releases#5.4.6
+    Docs    : https://busco.ezlab.org/
+    Paper   : https://doi.org/10.1002/cpz1.323
+
+    Parameters
+    ----------
+    self
+    """
+    pass
