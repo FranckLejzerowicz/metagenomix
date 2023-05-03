@@ -1428,8 +1428,8 @@ def check_checkm(self, params, soft):
         'force_domain': [False, True],
         'no_refinement': [False, True],
     }
-    if 'data' not in params:
-        sys.exit('[checkm] Param "data" needed: path for "checkm data setRoot"')
+    # if 'data' not in params:
+    #     sys.exit('[checkm] Param "data" needed: path for "checkm data setRoot"')
     ints = ['min_seq_len', 'min_qc', 'multi', 'unique']
     check_nums(self, params, defaults, ints, int, soft.name)
     floats = ['min_align', 'max_edit_dist', 'aai_strain', 'length']
@@ -1437,7 +1437,7 @@ def check_checkm(self, params, soft):
     floats_ = ['e_value']
     check_nums(self, params, defaults, floats_, float, soft.name)
     check_default(self, params, defaults, soft.name, (ints + floats + floats_))
-    defaults['data'] = '<path to the CheckM reference data>'
+    # defaults['data'] = '<path to the CheckM reference data>'
     return defaults
 
 
