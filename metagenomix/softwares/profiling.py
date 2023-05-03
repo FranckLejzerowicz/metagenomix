@@ -2698,8 +2698,32 @@ def phyloflash(self):
     Notes
     -----
     Paper   : https://doi.org/10.1128/mSystems.00920-20
-    GitHub  : https://github.com/HRGV/phyloFlash/
+    GitHub  : https://github.com/HRGV/phyloFlash
     Docs    : http://hrgv.github.io/phyloFlash
+
+    Parameters
+    ----------
+    self
+    """
+    pass
+
+
+def kaiju(self):
+    """Kaiju is a program for sensitive taxonomic classification of
+    high-throughput sequencing reads from metagenomic whole genome
+    sequencing or metatranscriptomics experiments.
+
+    References
+    ----------
+    Menzel, P., Ng, K.L. and Krogh, A., 2016. Fast and sensitive taxonomic
+    classification for metagenomics with Kaiju. Nature communications, 7(1),
+    p.11257.
+
+    Notes
+    -----
+    Paper   : https://doi.org/10.1038/ncomms11257
+    GitHub  : https://github.com/bioinformatics-centre/kaiju
+    Docs    : https://kaiju.binf.ku.dk/
 
     Parameters
     ----------
