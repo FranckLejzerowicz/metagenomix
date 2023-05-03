@@ -413,7 +413,7 @@ def bbmerge_cmd(
         cmd += ' %s=t' % params['strictness']
     else:
         for param in [
-            'reads', 'ziplevel', 'trimq','minlength', 'maxlength',
+            'reads', 'ziplevel', 'trimq', 'minlength', 'maxlength',
             'minavgquality', 'maxexpectederrors', 'forcetrimleft',
             'forcetrimright', 'forcetrimright2', 'forcetrimmod',
             'mininsert', 'mininsert0', 'minoverlap', 'minoverlap0', 'minq',
@@ -799,6 +799,7 @@ def bowtie2(self) -> None:
 
         out = '%s/%s/%s' % (self.dir, tech, sample)
         self.outputs['outs'][(tech, sample)] = dict()
+        # update to lookup the `databases.yml`
         for db, db_path in self.soft.params['databases'].items():
             if self.soft.params['paired'] and len(fastxs) == 2:
                 out_dir = '%s/%s/paired' % (out, db)
