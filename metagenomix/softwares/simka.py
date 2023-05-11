@@ -307,7 +307,7 @@ def simka(self) -> None:
         .config
             Configurations
     """
-    for tech in self.config.techs:
+    for tech in self.config.techs_fastqs:
         params = tech_params(self, tech)
         input_cmd, input_fastqs, input_file = get_simka_input(self, tech)
         to_dos = status_update(self, tech, input_fastqs)
