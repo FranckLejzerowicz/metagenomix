@@ -2956,26 +2956,6 @@ def ioncom(self):
     pass
 
 
-def gmove(self):
-    """Gene modelling using various evidence.
-
-    References
-    ----------
-
-
-    Notes
-    -----
-    GitHub  : https://github.com/institut-de-genomique/Gmove
-    Paper   :
-    Docs    :
-
-    Parameters
-    ----------
-    self : Commands class instance
-    """
-    pass
-
-
 def srst2(self):
     """
 
