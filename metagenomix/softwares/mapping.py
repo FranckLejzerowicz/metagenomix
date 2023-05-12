@@ -184,6 +184,7 @@ def get_cmds(
             cmd += 'samtools index %s\n' % bam_sorted
         fastas_bams[bam_sorted] = [
             reads_tech, sam, ali, self.sam_pool, ref_group, fasta]
+        bam_dirs.append(bam_dir)
     if cmd:
         cmd += cmd_rm
     return cmd, bams, bam_dirs, fastas_bams
@@ -223,6 +224,10 @@ def raw(
                 cmd, bams, bam_dirs, fastas_bams = get_cmds(
                     self, ref_group, reads_tech, sam, out, fastqs, fastas,
                     ali, params)
+                print("out")
+                print(out)
+                print("bam_dirs")
+                print(bam_dirs)
                 self.outputs['dirs'].extend(bam_dirs)
                 self.outputs['outs'].update(fastas_bams)
                 to_do_list = [to_do(x) for x in fastas_bams.keys()]
@@ -266,10 +271,6 @@ def get_mapping(
     for genome, fastas in references.items():
         key = genome_key(ref_tech, ref_group, genome)
         out_dir = genome_out_dir(self, ref_tech, ref_group, genome)
-        print(out_dir)
-        print(out_dir)
-        print(out_dir)
-        print(out_dir)
         to_dos = status_update(
             self, ref_tech, fastas, group=ref_group, genome=genome)
         func(self, source, ref_tech, ref_group,
