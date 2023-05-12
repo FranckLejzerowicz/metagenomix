@@ -103,11 +103,6 @@ class Commands(object):
             avoid.add('terms')
         # get all info to hash
         params = dict(x for x in self.soft.params.items() if x[0] not in avoid)
-        print()
-        print()
-        print(params)
-        print()
-        print()
         path = self.soft.path
         hashes = [self.softs[x].hash for x in self.soft.path[1:-1]]
         self.soft.hash = (params, path, hashes)
