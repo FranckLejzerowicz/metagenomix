@@ -872,19 +872,6 @@ def refine_cmd(
         cmd += ' -c %s' % self.soft.params['min_completion']
         cmd += ' -x %s\n' % self.soft.params['max_contamination']
         cmd += 'rm -rf %s/work_files\n' % out_dir
-    # if to_do(names):
-    #     if not to_do(bins):
-    #         io_update(self, i_d=out_dir, key=key)
-    #     cmd += 'for i in %s/*.fa; do\n' % bins
-    #     cmd += 'b="$(basename $i)";\n'
-    #     cmd += 'grep ">" $i > $i.tmp;\n'
-    #     cmd += 'awk -v SAMPLE="%s" -v BIN="$b"' % group
-    #     cmd += " '{printf "
-    #     cmd += '"%s\\t%s\\t%s\\r\\n",'
-    #     cmd += " $0,BIN,SAMPLE}' $i.tmp"
-    #     cmd += ' | cut -d ">" -f 2 >> %s\n' % names
-    #     cmd += 'rm $i.tmp; done\n'
-
     return cmd, bins, names
 
 
@@ -914,7 +901,7 @@ def refine(self):
         out_dir = '/'.join([self.dir, tech, self.sam_pool, group])
         to_dos = status_update(self, tech, bin_dirs, group=group, folder=True)
 
-        cmd, bins, names = refine_cmd(self, out_dir, bin_dirs, group, key)
+        cmd, bins, names = refine_cmd(self, out_dir, bin_dirs)
         if process_outputs(self, key, group, [bins]):
             continue
         # self.outputs['dirs'].append(dirname(out_dir))
