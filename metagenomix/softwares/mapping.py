@@ -266,6 +266,10 @@ def get_mapping(
     for genome, fastas in references.items():
         key = genome_key(ref_tech, ref_group, genome)
         out_dir = genome_out_dir(self, ref_tech, ref_group, genome)
+        print(out_dir)
+        print(out_dir)
+        print(out_dir)
+        print(out_dir)
         to_dos = status_update(
             self, ref_tech, fastas, group=ref_group, genome=genome)
         func(self, source, ref_tech, ref_group,
