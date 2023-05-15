@@ -60,7 +60,7 @@ class Commands(object):
             'woltka',
             'drep',
             'strainphlan',
-            'midas2_merge',
+            'midas2_merge'
         }
 
     def collect(self):
