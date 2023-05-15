@@ -218,7 +218,7 @@ def macsyfinder_cmd(
     proteins_fp = proteins
     if tech in ['illumina', 'pacbio', 'nanopore']:
         proteins_fp = '%s_edit.fasta' % proteins.replace('.fasta', '')
-        cmd_header += '%s/header_space_replace.py -i %s -o %s --n\n' % (
+        cmd_header += 'python %s/header_space_replace.py -i %s -o %s --n\n' % (
             RESOURCES, proteins, proteins_fp)
 
     cmd = ''
