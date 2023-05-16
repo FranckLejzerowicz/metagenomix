@@ -357,9 +357,7 @@ def hybridize_tech(
     """
     techs = []
     for tech in self.soft.params['hybrid']:
-        print("techs_inputs[tech]")
-        print(techs_inputs[tech])
-        if tech in techs_inputs:
+        if tech in techs_inputs and techs_inputs[tech]:
             techs.append(tech)
 
     hybrid = '_'.join(techs)
