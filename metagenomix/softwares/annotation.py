@@ -2107,6 +2107,7 @@ def eggnogmapper_cmd(
 
     cmd += ' --cpu %s\n' % params['cpus']
     cmd += cmd_rm
+    cmd += 'for i in %s/*; do gzip -q $i; done\n' % out_dir
     return cmd
 
 
@@ -2146,7 +2147,7 @@ def get_eggnogmapper(
             self, tech, [proteins], group=sam_group, genome=genome)
 
         prefix = '-'.join([x for x in [sam_group, genome] if x])
-        out = '%s/%s.emapper.hits' % (out_dir, prefix)
+        out = '%s/%s.emapper.hits.gz' % (out_dir, prefix)
         self.outputs['outs'].setdefault((tech, sam_group), []).append(out_dir)
 
         if self.config.force or to_do(out):
