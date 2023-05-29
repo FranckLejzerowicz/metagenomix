@@ -2,9 +2,11 @@
 
 `metagenomix` is a pipeline
 [creator](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/creating.md),
-[monitor](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/monitoring.md)
+[monitor](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/monitoring.md),
+[manager](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/managing.md),
+[exporter](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/exporting.md)
 and 
-[manager](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/managing.md)
+[merger](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/merging.md)
 that takes care of writing the command-lines for any shotgun metagenomics 
 software, either as bash scripts or
 [Slurm](https://slurm.schedmd.com/documentation.html)

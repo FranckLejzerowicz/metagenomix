@@ -25,8 +25,7 @@ file "`softwares.txt`".
 The file must contain one or two [software names](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/pipline.md#software-names)
 separated by a space (can be one or mulitple space(s), or a tab):
 * if **only one software name** is given, then this software will use the raw 
-  input 
-  reads as input, those fastq files from the folders of the [input]() 
+  input reads as input, those fastq files from the folders of the [input]() 
   options `-i` (or `--fastq-dir-illumina`), and/or `-j` (or 
   `--fastq-dir-pacbio`), and/or `-k` (or `--fastq-dir-nanopore`).
 * if **two software names** are given, then the second space-separated 

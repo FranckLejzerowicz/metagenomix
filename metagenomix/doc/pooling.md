@@ -32,7 +32,7 @@ with itself only.
 
 ## Pipeline usage 
 
-It is mandatory that the  ipeline configuration file includes
+It is mandatory that the pipeline configuration file includes
 [pooling](https://github.com/FranckLejzerowicz/metagenomix/wiki/Softwares#pooling)
 as output software name and that it is used as input to an assembler. For 
 example, these pipeline configurations are valid.

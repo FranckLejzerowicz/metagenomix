@@ -8,16 +8,17 @@ This page explains the types of input and output data structures that are
 being used for every software function, and how these are used and collected 
 by various utility functions allowing the
 [creation](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/creating.md),
-[monitoring](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/monitoring.md)
-and 
+[monitoring](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/monitoring.md),
 [management](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/managing.md)
+and 
+[merging](https://github.com/FranckLejzerowicz/metagenomix/blob/main/metagenomix/doc/merging.md)
 of the pipeline jobs and outputs.
 
 ### Data structures
 
 The code for every software function starts by iterating over the different 
 samples or co-assembly pools (for non-
-[holistic]()
+[holistic](https://github.com/FranckLejzerowicz/metagenomix/wiki/Softwares)
 softwares), using a `for` loop iterating over dictionary items consisting of 
 the list of input files or folder (dict values) either per 
 `(technology, sample_name)` or `(technology/ies, co-assembly group)` (dict 
@@ -27,7 +28,7 @@ The reason why the key of the input dictionary can be either per sample or
 per co-assembly pool group is because the essential input/output data 
 structure in use by the pipeline will change depending on whether the 
 software currently being processed is located upstream of downstream of the 
-co-assembly [pooling]()
+co-assembly [pooling](https://github.com/FranckLejzerowicz/metagenomix/wiki/Softwares#pooling)
 step.
 
 ### Scratch relocation
