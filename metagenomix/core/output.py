@@ -61,7 +61,10 @@ class Output(object):
             self.after = tuple(folder.split('after_')[-1].rsplit('_', 1))
             self.after_dir = folder
             self.outputs[self.after] = {
-                'sample_pool': 'sample', 'provenance': {}, 'sizes': {}}
+                'sample_pool': 'sample',
+                'provenance': {},
+                'sizes': {}
+            }
             self.get_results()
             self.parse_provenance()
             self.parse_run_sh()
@@ -132,8 +135,15 @@ class Output(object):
                     break
                 if line.startswith('#SBATCH') and '=' in line:
                     k, v = line.strip().split('SBATCH ')[-1].split('=')
-                    if k.strip('-') in {'account', 'partition', 'gres', 'time',
-                                        'mem', 'ntasks', 'job-name'}:
+                    if k.strip('-') in {
+                        'account',
+                        'partition',
+                        'gres',
+                        'time',
+                        'mem',
+                        'ntasks',
+                        'job-name'
+                    }:
                         directives[k.split('-')[-1]] = v
         self.name = directives.get('name')
         self.hpc.append(directives)
@@ -142,9 +152,13 @@ class Output(object):
         o_fps = '%s/jobs/output/*.o' % self.after_dir
         for sdx, stdout in enumerate(sorted(glob(o_fps))):
             name, job_id = basename(stdout[:-2]).split('-', 1)[1].rsplit('_', 1)
-            status = {'name': name, 'id': job_id, 'stdout': stdout, 'done': 'N',
-                      'AllocCPUS': 1, 'MinCPU': None, 'AveCPU': None,
-                      'MaxRSS': None, 'AveRSS': None, 'error': None}
+            status = {
+                'name': name, 'id': job_id,
+                'stdout': stdout, 'done': 'N',
+                'AllocCPUS': 1, 'MinCPU': None,
+                'AveCPU': None, 'MaxRSS': None,
+                'AveRSS': None, 'error': None
+            }
             ls = open(stdout).readlines()[-25:]
             uses = {
                 'Memory usage stats:\n': ['MaxRSS', 'AveRSS'],
@@ -178,8 +192,6 @@ class Output(object):
                         data = {col: data[x] for x, col in enumerate(cols)}
                         data['name'] = self.name
                         self.input.append(data)
-                        print(data)
-                        print(datafds)
 
 
 class Softwares(object):
