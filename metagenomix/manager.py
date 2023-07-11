@@ -109,6 +109,7 @@ class Manage(object):
         for role, softs in self.softwares.softs.items():
             self.role = role
             for soft in softs:
+                print(soft)
                 output = Output(self.dir, soft)
                 output.get_outputs()
                 self.managed[soft] = output.outputs
@@ -117,31 +118,36 @@ class Manage(object):
         for role, softs in self.softwares.softs.items():
             for soft in softs:
                 self.soft = soft
-                afters = self.managed[self.soft]
-                term = 'after %s software' % len(afters)
-                if len(afters) > 1:
+                print()
+                print()
+                print()
+                print()
+                print()
+                print("self.managed[self.soft]:")
+                print(self.managed[self.soft])
+                print()
+                term = 'after %s software' % len(self.managed[self.soft])
+                if len(self.managed[self.soft]) > 1:
                     term += 's'
-                m = '[%s: %s] %s (%s)' % (
-                    role, soft, term, '; '.join([x[0] for x in afters]))
+                m = '[%s: %s] %s (%s)' % (role, soft, term, '; '.join(
+                    [x[0] for x in self.managed[self.soft]]))
                 sep = ('*' * len(m))
                 print('\n\n\n%s\n%s\n%s' % (sep, m, sep))
                 if self.jobs:
                     self.task = 'jobs'
-                    self.manage_jobs(afters)
+                    self.manage_jobs()
                 if self.rename:
                     self.task = 'rename'
-                    self.rename_folders(afters)
+                    self.rename_folders()
                 if self.store:
                     self.task = 'store'
-                    self.store_data(afters)
+                    self.store_data()
                 if not self.removes and not self.stores and not self.renames:
                     print('  -> No management')
 
-    def store_data(self, afters):
-        for (after, h), data in afters.items():
+    def store_data(self):
+        for (after, h), data in self.managed[self.soft].items():
             self.data, self.after, self.h, self.stores = data, after, h, []
-            print(self.data)
-            print(self.datadsa)
             self.folders = self.data['results']
             self.print_after()
             if self.sizes:
@@ -196,8 +202,8 @@ class Manage(object):
             self.folders = {folder: self.data['results'][folder]}
             self.manage_storage(False)
 
-    def manage_jobs(self, afters):
-        for (after, h), data in afters.items():
+    def manage_jobs(self):
+        for (after, h), data in self.managed[self.soft].items():
             self.data, self.after, self.h = data, after, h
             self.print_after()
             self.get_oes()
@@ -224,8 +230,8 @@ class Manage(object):
         self.rename_pd = pd.DataFrame(rename_pd, columns=[
             'index', 'dir/file', 'path (in:)\n%s' % path, 'name (to rename)'])
 
-    def rename_folders(self, afters):
-        for (after, h), data in afters.items():
+    def rename_folders(self):
+        for (after, h), data in self.managed[self.soft].items():
             self.data, self.after, self.h = data, after, h
             if not self.data['results']:
                 continue
