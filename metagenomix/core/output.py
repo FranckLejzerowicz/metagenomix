@@ -178,6 +178,8 @@ class Output(object):
                         data = {col: data[x] for x, col in enumerate(cols)}
                         data['name'] = self.name
                         self.input.append(data)
+                        print(data)
+                        print(datafds)
 
 
 class Softwares(object):
