@@ -140,6 +140,8 @@ class Manage(object):
     def store_data(self, afters):
         for (after, h), data in afters.items():
             self.data, self.after, self.h, self.stores = data, after, h, []
+            print(self.data)
+            print(self.datadsa)
             self.folders = self.data['results']
             self.print_after()
             if self.sizes:
