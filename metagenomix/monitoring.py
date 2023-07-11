@@ -28,17 +28,23 @@ def monitoring(**kwargs):
     print("monitor.log_dir:", monitor.log_dir)
     print("monitor.roles:", monitor.roles)
     print("monitor.monitored:", monitor.monitored)
-
+    print("monitor.softwares.names:", monitor.softwares.names)
+    print("monitor.softwares.softs:", monitor.softwares.softs)
     print('* setting up the output file name')
     monitor.make_status_dir()
     monitor.get_out()
     print("monitor.result_fp:", monitor.result_fp)
 
     print('* collecting and showing the current status of the analyses')
+    print('monitor.monitor_status()')
     monitor.monitor_status()
+    print('monitor.get_status()')
     monitor.get_status()
+    print('monitor.write_status()')
     monitor.write_status()
+    print('monitor.parse_softs()')
     monitor.parse_softs()
+    print('monitor.monitor_softs()')
     monitor.monitor_softs()
 
     print('\n<<< `metagenomix monitor` completed <<<\n')
@@ -69,15 +75,26 @@ class Monitored(object):
         self.monitored = {}
 
     def monitor_status(self):
+        """Print enumerated pipeline softwares and
+        """
+        # get a text padding length
         m = max(len(x) for x in self.commands.softs) + 1
+        # for each software in enumeration
         for sdx, (name, soft) in enumerate(self.commands.softs.items()):
+            # skip softwares that not registered in the resources/softwares.txt
+            print(self.softwares.names)
             if name not in self.softwares.names:
                 continue
+            # get the current software name length per padding
             n = (m - len(name) - len(str(sdx))) + 1
             cur_soft = '%s [%s]' % (sdx, name)
-            soft.tables.append(cur_soft)
+            # print and collect the print for pretty´-table printing
             print('\t%s %s%s' % (cur_soft, ('.' * n), ('.' * 8)), end=' ')
+            soft.tables.append(cur_soft)
+            print('--------------1')
             print_status_table(soft, True)
+            print('--------------2')
+            print(gfdsa)
 
     def make_status_dir(self):
         if not isdir(self.log_dir):
