@@ -500,7 +500,7 @@ def megahit_cmd(
         m_cmd += ' --continue\n'
     else:
         if len(inputs) == 3:
-            m_cmd += ' -1 %s -2 %s --read %s\n' % tuple(inputs)
+            m_cmd += ' --read %s -1 %s -2 %s\n' % tuple(sorted(inputs))
         if len(inputs) == 2:
             m_cmd += ' -1 %s -2 %s\n' % tuple(inputs)
         if len(inputs) == 1:
