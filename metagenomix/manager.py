@@ -126,7 +126,6 @@ class Manage(object):
                 print("self.managed[self.soft]:")
                 print(self.managed[self.soft])
                 print(self.managed[self.soft].keys())
-                print(bgfds)
                 term = 'after %s software' % len(self.managed[self.soft])
                 if len(self.managed[self.soft]) > 1:
                     term += 's'
@@ -189,6 +188,8 @@ class Manage(object):
                 self.store_details()
         elif inp != 'n':
             sys.exit('Error: "%s" is unknown (not in ["y", "n", "d"])' % inp)
+
+    # {'illumina': {'folder': ['file1', 'file2', 'file3']}}
 
     def store_all(self):
         root = '%s/after_%s_%s' % (self.soft, self.after, self.h)
