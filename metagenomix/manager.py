@@ -109,7 +109,6 @@ class Manage(object):
         for role, softs in self.softwares.softs.items():
             self.role = role
             for soft in softs:
-                print(soft)
                 output = Output(self.dir, soft)
                 output.get_outputs()
                 self.managed[soft] = output.outputs
@@ -118,14 +117,6 @@ class Manage(object):
         for role, softs in self.softwares.softs.items():
             for soft in softs:
                 self.soft = soft
-                print()
-                print()
-                print()
-                print()
-                print()
-                print("self.managed[self.soft]:")
-                print(self.managed[self.soft])
-                print(self.managed[self.soft].keys())
                 term = 'after %s software' % len(self.managed[self.soft])
                 if len(self.managed[self.soft]) > 1:
                     term += 's'
@@ -194,7 +185,6 @@ class Manage(object):
         for tech_dir, folders_files in self.folders.items():
             for folder, files in folders_files.items():
                 for fp in files:
-                    print(self.dir, root, tech_dir, folder, fp)
                     self.stores.append([self.dir, root, tech_dir, folder, fp])
 
     def store_details(self):

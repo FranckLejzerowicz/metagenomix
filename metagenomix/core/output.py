@@ -57,7 +57,6 @@ class Output(object):
 
     def get_outputs(self):
         for folder in glob('%s/after_*' % self.soft_dir):
-            print('folder:', folder)
             self.after = tuple(folder.split('after_')[-1].rsplit('_', 1))
             self.after_dir = folder
             self.outputs[self.after] = {
