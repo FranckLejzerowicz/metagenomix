@@ -189,13 +189,12 @@ class Manage(object):
         elif inp != 'n':
             sys.exit('Error: "%s" is unknown (not in ["y", "n", "d"])' % inp)
 
-    # {'illumina': {'folder': ['file1', 'file2', 'file3']}}
-
     def store_all(self):
         root = '%s/after_%s_%s' % (self.soft, self.after, self.h)
         for tech_dir, folders_files in self.folders.items():
             for folder, files in folders_files.items():
                 for fp in files:
+                    print(self.dir, root, tech_dir, folder, fp)
                     self.stores.append([self.dir, root, tech_dir, folder, fp])
 
     def store_details(self):

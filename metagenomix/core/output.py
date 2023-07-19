@@ -74,32 +74,20 @@ class Output(object):
     def get_results(self):
         """Collect the output files (values) of each folder (keys) located
         inside each software's non-jobs output folder (and their sizes)."""
-        for data_dir in os.listdir(self.after_dir):
-            print()
-            print()
-            print("data_dir")
-            print(data_dir)
-            cur_dir = self.after_dir + '/' + data_dir
-            if not isdir(cur_dir) or data_dir == 'jobs':
+        for tech in os.listdir(self.after_dir):
+            cur_dir = self.after_dir + '/' + tech
+            if not isdir(cur_dir) or tech == 'jobs':
                 continue
-            print("cur_dir")
-            print(cur_dir)
-            self.outputs[self.after]['sizes'][data_dir] = 0
+            self.outputs[self.after]['sizes'][tech] = 0
             for root_, dirs, fs in os.walk(cur_dir):
                 if root_ == cur_dir:
                     continue
                 sizes = sum([getsize('%s/%s' % (root_, x)) for x in fs])
-                self.outputs[self.after]['sizes'][data_dir] += sizes
-                print("root_")
-                print(root_)
-                print("dirs")
-                print(dirs)
-                print("fs")
-                print(fs)
-                print(fsdsa)
-
-                # self.outputs[self.after]['results'][root_] = fs
-                # {'illumina': {'folder': ['file1', 'file2', 'file3']}}
+                self.outputs[self.after]['sizes'][tech] += sizes
+                if tech not in self.outputs[self.after]['results']:
+                    self.outputs[self.after]['results'][tech] = {}
+                folder = root_.split('%s/%s/' % (self.after_dir, tech))[-1]
+                self.outputs[self.after]['results'][tech][folder] = fs
 
     def parse_provenance(self):
         """Collect the provenance as step (key) - software (value) dict and set
