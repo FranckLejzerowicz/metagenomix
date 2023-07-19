@@ -63,6 +63,7 @@ class Output(object):
             self.outputs[self.after] = {
                 'sample_pool': 'sample',
                 'provenance': {},
+                'results': {},
                 'sizes': {}
             }
             self.get_results()
