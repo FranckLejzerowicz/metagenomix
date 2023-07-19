@@ -75,15 +75,31 @@ class Output(object):
         """Collect the output files (values) of each folder (keys) located
         inside each software's non-jobs output folder (and their sizes)."""
         for data_dir in os.listdir(self.after_dir):
+            print()
+            print()
+            print("data_dir")
+            print(data_dir)
             cur_dir = self.after_dir + '/' + data_dir
             if not isdir(cur_dir) or data_dir == 'jobs':
                 continue
+            print("cur_dir")
+            print(cur_dir)
             self.outputs[self.after]['sizes'][data_dir] = 0
             for root_, dirs, fs in os.walk(cur_dir):
                 if root_ == cur_dir:
                     continue
                 sizes = sum([getsize('%s/%s' % (root_, x)) for x in fs])
                 self.outputs[self.after]['sizes'][data_dir] += sizes
+                print("root_")
+                print(root_)
+                print("dirs")
+                print(dirs)
+                print("fs")
+                print(fs)
+                print(fsdsa)
+
+                # self.outputs[self.after]['results'][root_] = fs
+                # {'illumina': {'folder': ['file1', 'file2', 'file3']}}
 
     def parse_provenance(self):
         """Collect the provenance as step (key) - software (value) dict and set
