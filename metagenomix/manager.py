@@ -125,6 +125,7 @@ class Manage(object):
                 print()
                 print("self.managed[self.soft]:")
                 print(self.managed[self.soft])
+                print(self.managed[self.soft].keys())
                 print(bgfds)
                 term = 'after %s software' % len(self.managed[self.soft])
                 if len(self.managed[self.soft]) > 1:
