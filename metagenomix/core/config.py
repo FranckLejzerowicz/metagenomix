@@ -74,7 +74,7 @@ class AnalysesConfig(object):
     def get_conda_envs(self):
         """Get the names of the conda environments."""
         for env in subprocess.getoutput('conda env list').split('\n'):
-            if env.startswith('#') or '*' in env or not env.strip():
+            if env.startswith('#') or '*' in env or len(env.strip()) != 2:
                 continue
             name, path = env.split()
             self.conda_envs[name] = path
