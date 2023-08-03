@@ -619,7 +619,7 @@ def check_quast(self, params, soft):
         params['circos_path'] = None
     else:
         db_dir = params['circos_path']
-        if not self.config.dev and db_dir and isdir(db_dir):
+        if not self.config.dev and db_dir and not isdir(db_dir):
             sys.exit('[quast] Params "circos_path": path do not exist')
 
     defaults['path'] = '<path to the quast installation folder>'
