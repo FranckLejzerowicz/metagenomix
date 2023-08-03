@@ -74,13 +74,10 @@ class AnalysesConfig(object):
     def get_conda_envs(self):
         """Get the names of the conda environments."""
         for env in subprocess.getoutput('conda env list').split('\n'):
-            print(env)
-            print(len(env.strip()) != 2)
-            if env.startswith('#') or '*' in env or len(env.strip()) != 2:
+            if env.startswith('#') or '*' in env or len(env.split()) != 2:
                 continue
             name, path = env.split()
             self.conda_envs[name] = path
-        print(self.conda_envs)
 
     def set_metadata(self):
         """Read metadata with first column as index."""
