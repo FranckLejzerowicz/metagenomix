@@ -51,6 +51,7 @@ class Exported(object):
         self.export_dir = abspath('%s/_exports' % self.dir)
         self.out = ''
         self.loc = ''
+        self.provenances = []
         self.extensions = []
         self.to_exports = []
         self.commands = []
@@ -79,7 +80,11 @@ class Exported(object):
         m = ''
         for soft in self.softs.names:
             soft_dir = self.dir + '/' + soft
-            for root, dirs, files in os.walk(soft_dir):
+            added, prov = 0, []
+            for idx, (root, dirs, files) in enumerate(os.walk(soft_dir)):
+                if not idx:
+                    prov = ['%s/%s/provenance.txt' % (root, d) for d in dirs]
+                    continue
                 for fil in files:
                     pref, ext = splitext(fil)
                     if fil.endswith('gz'):
@@ -88,8 +93,12 @@ class Exported(object):
                         if ext in self.exts:
                             m = '(with extension "%s")' % '", "'.join(self.exts)
                             self.to_exports.append('%s/%s' % (root, fil))
+                            added = 1
                     else:
                         self.to_exports.append('%s/%s' % (root, fil))
+                        added = 1
+            if added and prov:
+                self.to_exports.extend(prov)
 
         if self.regex:
             regexes = r'%s' % '|'.join(list(self.regex))
