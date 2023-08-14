@@ -407,7 +407,7 @@ def spades(self) -> None:
 
         # make output folder path
         tmp = '$TMPDIR/spades_%s_%s_%s' % (hybrid, group, self.sam_pool)
-        out = '%s/%s/%s/%s' % (self.dir, hybrid, self.sam_pool, group)
+        out = '/'.join([self.dir, hybrid, self.sam_pool, group])
         # collect as folder to create under 'dirs'
         self.outputs['dirs'].append(out)
 
@@ -569,7 +569,7 @@ def megahit(self) -> None:
         inputs = techs_inputs[tech]
         to_dos = status_update(self, tech, inputs, group=group)
 
-        out = '%s/%s/%s' % (self.dir, self.sam_pool, group)
+        out = '/'.join([self.dir, tech, self.sam_pool, group])
         self.outputs['dirs'].append(out)
 
         inter_dir = '%s/intermediate_contigs' % out
@@ -1285,7 +1285,7 @@ def necat(self) -> None:
     tech = 'nanopore'
     for group, fastxs in self.inputs[self.sam_pool].get(tech, {}).items():
         # define the output folder
-        out = '%s/%s/%s' % (self.dir, self.sam_pool, group)
+        out = '/'.join([self.dir, tech, self.sam_pool, group])
 
         to_dos = status_update(self, tech, fastxs, group=group)
 
