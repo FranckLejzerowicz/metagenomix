@@ -224,10 +224,6 @@ def raw(
                 cmd, bams, bam_dirs, fastas_bams = get_cmds(
                     self, ref_group, reads_tech, sam, out, fastqs, fastas,
                     ali, params)
-                print("out")
-                print(out)
-                print("bam_dirs")
-                print(bam_dirs)
                 self.outputs['dirs'].extend(bam_dirs)
                 self.outputs['outs'].update(fastas_bams)
                 to_do_list = [to_do(x) for x in fastas_bams.keys()]
