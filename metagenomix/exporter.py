@@ -103,7 +103,8 @@ class Exported(object):
         if self.regex:
             regexes = r'%s' % '|'.join(list(self.regex))
             rgx = re.compile(regexes, flags=re.IGNORECASE)
-            self.to_exports = [x for x in self.to_exports if re.search(rgx, x)]
+            self.to_exports = [x for x in self.to_exports if re.search(rgx, x)
+                               or 'provenance.txt' in x]
 
         print('\t%s files %s will be exported' % (len(self.to_exports), m))
 
