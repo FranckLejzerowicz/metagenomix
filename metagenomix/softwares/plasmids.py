@@ -216,6 +216,106 @@ def get_plasmidfinder(
                 tech, self.sam_pool, 0, group=sam_group, genome=genome)
 
 
+def platon_cmd(
+        self,
+        fasta: str,
+        out_dir: str,
+        key: tuple
+) -> str:
+    """Collect PlasmidFinder command.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .pool : str
+            Pool name.
+        .soft.params
+            platon parameters
+    fasta : str
+        Path to the input file
+    out_dir : str
+        Path to the output folder for the current sample/MAG
+    key : str
+        Technology and/or co-assembly pool group name
+
+    Returns
+    -------
+    cmd : str
+        platon command
+    """
+    tmp_dir = '$TMPDIR/platon_%s' % '_'.join(key)
+    cmd_rm = ''
+    cmd = 'mkdir -p %s\n' % tmp_dir
+    if len(fasta) == 2:
+        infile = ' '.join(fasta)
+    elif fasta[0].endswith('.fa.gz') or fasta[0].endswith('.fasta.gz'):
+        cmd += 'gunzip -c %s > %s\n' % (fasta[0], fasta[0].rstrip('.gz'))
+        infile = fasta[0].rstrip('.gz')
+        cmd_rm += 'rm %s\n' % infile
+    else:
+        infile = fasta[0]
+
+    cmd += 'platon'
+    cmd += ' --prefix output'
+    cmd += ' --db %s' % self.databases.paths['platon']
+    for boolean in ['characterize', 'meta']:
+        if self.soft.params[boolean]:
+            cmd += ' --%s' % boolean
+    cmd += ' --mode %s' % self.soft.params['mode']
+    cmd += ' --output %s\n' % out_dir
+    cmd += ' --threads %s' % self.soft.params['cpus']
+    cmd += ' %s' % infile
+
+    cmd += 'rm -rf %s\n' % tmp_dir
+    cmd += 'for i in %s/*; do gzip -q $i; done\n' % out_dir
+    cmd += cmd_rm
+    return cmd
+
+
+def get_platon(
+        self,
+        tech: str,
+        sam_group: str,
+        fastas: dict,
+) -> None:
+    """
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .config
+            Configurations
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    sam_group : str
+        Sample or co-assembly name
+    fastas : dict
+        Paths to the input fasta files per genome/MAG
+    """
+    for genome, fasta in fastas.items():
+
+        out_dir = genome_out_dir(self, tech, sam_group, genome)
+        self.outputs['dirs'].append(out_dir)
+        self.outputs['outs'][(tech, sam_group)][genome] = out_dir
+        to_dos = status_update(
+            self, tech, [fasta[0]], group=sam_group, genome=genome)
+
+        out_fp = '%s/output.tsv.gz' % out_dir
+        if self.config.force or to_do(out_fp):
+            key = genome_key(tech, sam_group, genome)
+            cmd = platon_cmd(self, fasta, out_dir, key)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
+            io_update(self, i_f=fasta, i_d=out_dir, o_d=out_dir, key=key)
+            self.soft.add_status(
+                tech, self.sam_pool, 1, group=sam_group, genome=genome)
+        else:
+            self.soft.add_status(
+                tech, self.sam_pool, 0, group=sam_group, genome=genome)
+
+
 def dispatch(self) -> None:
     """Classify assembly contigs or genomes/MAGs as plasmids or not.
 
@@ -320,6 +420,25 @@ def plasforest(self) -> None:
             Configurations
         .sam_pool
             Sample of co-assembly group name
+    """
+    dispatch(self)
+
+
+def platon(self):
+    """Platon detects plasmid-borne contigs within bacterial draft (meta)
+    genomes assemblies. Therefore, Platon analyzes the distribution bias of
+    protein-coding gene families among chromosomes and plasmids.
+    This analysis is complemented by comprehensive contig characterizations
+    followed by heuristic filters.
+
+    Notes
+    -----
+    GitHub  : https://github.com/oschwengers/platon
+    Paper   : https://doi.org/10.1099/mgen.0.000398
+
+    Parameters
+    ----------
+    self
     """
     dispatch(self)
 
