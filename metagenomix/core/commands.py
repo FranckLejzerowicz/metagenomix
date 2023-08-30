@@ -87,10 +87,14 @@ class Commands(object):
                 self.inputs = self.config.fastq_mv
         show_inputs(self)
 
-    def get_hash(self):
-        """Get info to hash and hash it.
-            - `self.soft.hash`      : info to hash
-            - `self.soft.hashed`    : hashed info
+    def get_to_avoid(self) -> set:
+        """Define the set of parameters that can be changed without affecting
+        the hash value of the software's "after" folder.
+
+        Returns
+        -------
+        avoid : set
+            Names of parameters to be avoided when computing the hash value
         """
         # variables to not account for in the calculation of the hash value
         avoid = {'time', 'nodes', 'mem', 'mem_dim', 'env', 'chunks',
@@ -101,6 +105,14 @@ class Commands(object):
         # do not account for (search) 'terms' for search_* softwares
         if 'search_' in self.soft.name:
             avoid.add('terms')
+        return avoid
+
+    def get_hash(self):
+        """Get info to hash and hash it.
+            - `self.soft.hash`      : info to hash
+            - `self.soft.hashed`    : hashed info
+        """
+        avoid = self.get_to_avoid()
         # get all info to hash
         params = dict(x for x in self.soft.params.items() if x[0] not in avoid)
         path = self.soft.path
