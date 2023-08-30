@@ -262,9 +262,9 @@ def platon_cmd(
         if self.soft.params[boolean]:
             cmd += ' --%s' % boolean
     cmd += ' --mode %s' % self.soft.params['mode']
-    cmd += ' --output %s\n' % out_dir
+    cmd += ' --output %s' % out_dir
     cmd += ' --threads %s' % self.soft.params['cpus']
-    cmd += ' %s' % infile
+    cmd += ' %s\n' % infile
 
     cmd += 'rm -rf %s\n' % tmp_dir
     cmd += 'for i in %s/*; do gzip -q $i; done\n' % out_dir
