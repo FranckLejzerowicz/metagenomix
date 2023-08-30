@@ -182,6 +182,7 @@ def get_cmds(
         if to_do(bam_sorted):
             cmd += 'samtools sort %s > %s\n' % (bam, bam_sorted)
             cmd += 'samtools index %s\n' % bam_sorted
+            cmd_rm += '\nrm %s\n' % bam
         fastas_bams[bam_sorted] = [
             reads_tech, sam, ali, self.sam_pool, ref_group, fasta]
         bam_dirs.append(bam_dir)
@@ -383,10 +384,10 @@ def annotation(
     Parameters
     ----------
     target
-    prev
-    maps
-    fas
-    out_dir
+    prev : str
+    maps : dict
+    fas : list
+    out_dir : str
 
     Returns
     -------
@@ -399,12 +400,12 @@ def annotation(
     """
     fastas = {}
     aas, sam_bams = [], []
-    cmd_gz, cmd_rm = '', ''
+    cmd, cmd_rm = '', ''
     for fa in fas:
         aa = '%s/protein.translations.fasta.gz' % fa
         aas.append(aa)
         if aa.endswith('.gz'):
-            cmd_gz += 'gunzip -c %s > %s\n' % (aa, aa.rstrip('.gz'))
+            cmd += 'gunzip -c %s > %s\n' % (aa, aa.rstrip('.gz'))
             aa = aa.rstrip('.gz')
             coassembly, group = fa.rstrip('/').rsplit('/', 2)[-2:]
             bams = [[x] + y[:-1] for x, y in maps.items()
@@ -413,11 +414,7 @@ def annotation(
             sam_bams.extend(['%s.bai' % x[0] for x in bams])
             fastas[aa] = bams
 
-    cmd = get_pysam_inputs(prev, target, fastas, out_dir, 'annotation')
-    cmd += cmd_gz
-    cmd += 'python3 %s/pysam_count.py' % RESOURCES
-    cmd += ' -i %s/inputs.txt' % out_dir
-    cmd += ' -o %s/reads.txt\n' % out_dir
+    cmd += get_pysam_cmd(prev, target, fastas, out_dir, 'annotation')
     cmd += cmd_rm
     return cmd, sam_bams, aas
 
@@ -450,10 +447,10 @@ def assembling(
     """
     fastas = {}
     sam_bams = []
-    cmd_gz, cmd_rm = '', ''
+    cmd, cmd_rm = '', ''
     for fa in fas:
         if fa.endswith('.gz'):
-            cmd_gz += 'gunzip -c %s > %s\n' % (fa, fa.rstrip('.gz'))
+            cmd += 'gunzip -c %s > %s\n' % (fa, fa.rstrip('.gz'))
             fa = fa.rstrip('.gz')
             cmd_rm += 'rm %s\n' % fa
             bams = [[x] + y[:-1] for x, y in maps.items() if y[-1] == fa]
@@ -461,13 +458,43 @@ def assembling(
             sam_bams.extend(['%s.bai' % x[0] for x in bams])
             fastas[fa] = bams
 
-    cmd = get_pysam_inputs(prev, target, fastas, out_dir, 'assembling')
-    cmd += cmd_gz
+    cmd += get_pysam_cmd(prev, target, fastas, out_dir, 'assembling')
+    cmd += cmd_rm
+    return cmd, sam_bams, fas
+
+
+def get_pysam_cmd(
+        prev: str,
+        target: str,
+        fastas: dict,
+        out_dir: str,
+        classif='assembling'
+) -> str:
+    """
+
+    Parameters
+    ----------
+    prev : str
+        Name of the previous software
+    target : str
+    fastas : dict
+        Pairs of fastas files to counts per reference bam file
+    out_dir : str
+        Output folder
+    classif : str
+        target to count the reads for ("assembling", "annotation")
+
+    Returns
+    -------
+    cmd : str
+        pysam counting command lines
+    """
+    cmd = get_pysam_inputs(prev, target, fastas, out_dir, classif)
     cmd += 'python3 %s/pysam_count.py' % RESOURCES
     cmd += ' -i %s/inputs.txt' % out_dir
     cmd += ' -o %s/reads.txt\n' % out_dir
-    cmd += cmd_rm
-    return cmd, sam_bams, fas
+    cmd += 'for i in %s/*; do gzip -q $i; done\n' % out_dir
+    return cmd
 
 
 def get_pysam_inputs(
@@ -542,11 +569,21 @@ def get_pysam(
     ----------
     self
     func
+        Function to use to get the mapping couting adapted to:
+            assembly data: func "assembling"
+            binning data: func "binning"
+            MAGs data: func "mag"
+            annotation data: func "annotation"
     mappings
+        Name of the mapping softwares
     tech : str
+        Name of the technology
     group : str
+        Name of the co-assembly group
     target : str
+        Name of the reads to map
     references : dict
+        Name of the references to map against
     """
     prev = mappings.prev
     maps = mappings.outputs[self.sam_pool]
@@ -586,35 +623,6 @@ def pysam(self):
         for (tech, group), inputs in pool_inputs.items():
             references = group_inputs(self, inputs, target=target)
             get_pysam(self, func, mappings, tech, group, target, references)
-
-
-# def prep_map__spades_prodigal(self):
-#     if 'prodigal' not in self.softs or 'mapping' not in self.softs:
-#         return None
-#     if self.softs['prodigal'].prev != 'spades':
-#         return None
-#     if self.softs['mapping'].prev != 'spades':
-#         return None
-#     prodigals_fps = self.softs['prodigal'].outputs
-#     sams_fps = self.softs['mapping'].outputs
-#     group_fps = self.inputs[self.pool]
-#     self.outputs['outs'] = {}
-#     for group, fps in group_fps.items():
-#         self.outputs['outs'][group] = {}
-#         for sam in self.pools[self.pool][group]:
-#             bam = sams_fps[self.pool][group][sam]
-#             prot = prodigals_fps[self.pool][group][1]
-#             out_dir = '%s/%s/%s' % (self.dir, self.pool, sam)
-#             out = '%s/reads.txt' % out_dir
-#             if not isfile(out):
-#                 cmd = 'pysam_reads_to_prodigal.py \\\n'
-#                 cmd += '-prodigal %s \\\n' % prot
-#                 cmd += '-bam %s \\\n' % bam
-#                 cmd += '-out %s\n' % out
-#                 self.outputs['cmds'].setdefault(
-#                     (self.pool, group), []).append(cmd)
-#             self.outputs['outs'][group][sam] = out
-#             io_update(self, i_f=[prot, bam, out])
 
 
 def get_salmon_reads_cmd(
