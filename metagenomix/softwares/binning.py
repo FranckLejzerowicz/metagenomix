@@ -1073,6 +1073,8 @@ def binning(self):
 
 
 def metawrap_(self):
+    # for step in [binning, refine, ..]:
+    #     step(...)
     pass
 
 
@@ -1236,10 +1238,6 @@ def yamb(self):
                     fastxs += [fastq for sam in self.pools[self.sam_pool][group]
                                for fastq in reads[sam].get((t, sam), [])]
         get_yamb(self, tech, group, inputs[0], fastxs)
-
-
-def summarize_yamb(self):
-    pass
 
 
 def binspreader_cmd(
@@ -1441,3 +1439,31 @@ def semibin(self):
     """
     pass
 
+
+def vamb(self):
+    """Vamb is a metagenomic binner which feeds sequence composition
+    information from a contig catalogue and co-abundance information from BAM
+    files into a variational autoencoder and clusters the latent representation.
+    It performs excellently with multiple samples, and pretty good on
+    single-sample data. Vamb is implemented purely in Python (with a little
+    bit of Cython) and can be used both from command line and from within a
+    Python interpreter.
+
+    References
+    ----------
+    Nissen, J.N., Johansen, J., Allesøe, R.L., Sønderby, C.K., Armenteros,
+    J.J.A., Grønbech, C.H., Jensen, L.J., Nielsen, H.B., Petersen, T.N.,
+    Winther, O. and Rasmussen, S., 2021. Improved metagenome binning and
+    assembly using deep variational autoencoders. Nature biotechnology,
+    39(5), pp.555-560.
+
+    Notes
+    -----
+    GitHub  : https://github.com/RasmussenLab/vamb
+    Paper   : https://doi.org/10.1038/s41587-020-00777-4
+
+    Parameters
+    ----------
+    self : Commands class instance
+    """
+    pass
