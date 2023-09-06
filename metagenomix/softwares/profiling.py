@@ -2769,6 +2769,33 @@ def ngless(self):
     pass
 
 
+def ngmetaprofiler(self):
+    """Collection of predefined ngless pipelines for processing shotgun
+    metagenomes, incl:
+    - human-gut.ngl for human gut samples
+    - marine.ngl for marine samples
+    - mouse-gut.ngl for mouse gut samples
+    - dog-gut.ngl for dog gut samples
+    - pig-gut.ngl for pig gut samples
+
+    References
+    ----------
+    Coelho, L.P., Alves, R., Monteiro, P., Huerta-Cepas, J., Freitas,
+    A.T. and Bork, P., 2019. NG-meta-profiler: fast processing of metagenomes
+    using NGLess, a domain-specific language. Microbiome, 7(1), pp.1-10.
+
+    Notes
+    -----
+    GitHub  : https://github.com/ngless-toolkit/ng-meta-profiler
+    Paper   : https://doi.org/10.1186/s40168-019-0684-8
+
+    Parameters
+    ----------
+    self
+    """
+    pass
+
+
 def motus(self):
     """The mOTU profiler is a computational tool that estimates relative
     taxonomic abundance of known and currently unknown microbial community
