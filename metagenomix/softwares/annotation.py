@@ -2958,17 +2958,22 @@ def ioncom(self):
 
 
 def srst2(self):
-    """
+    """Short Read Sequence Typing for Bacterial Pathogens.
+    This program is designed to take Illumina sequence data, a MLST database
+    and/or a database of gene sequences (e.g. resistance genes, virulence
+    genes, etc) and report the presence of STs and/or reference genes.
 
     References
     ----------
-
+    Inouye, M., Dashnow, H., Raven, L.A., Schultz, M.B., Pope, B.J., Tomita,
+    T., Zobel, J. and Holt, K.E., 2014. SRST2: Rapid genomic surveillance for
+    public health and hospital microbiology labs. Genome medicine, 6(11),
+    pp.1-16.
 
     Notes
     -----
     GitHub  : https://github.com/katholt/srst2
-    Paper   :
-    Docs    :
+    Paper   : https://doi.org/10.1186/s13073-014-0090-6
 
     Parameters
     ----------
@@ -2978,23 +2983,57 @@ def srst2(self):
 
 
 def pirate(self):
-    """
+    """Cataloguing genes and their distributions within natural bacterial
+    populations is essential for understanding evolutionary processes and the
+    genetic bases of adaptation. genes that are shared between different
+    bacterial strains and species is essential for understanding the genomic
+    variation that underlies the enormous phenotypic variation observed in
+    the microbial world. Here we present a pangenomics toolbox, PIRATE,
+    which identifies and classifies orthologous gene families in bacterial
+    pangenomes over a wide range of sequence similarity thresholds. PIRATE
+    builds upon recent scalable software developments for the rapid
+    interrogation of pangenomes from large dat thousands of genomes. PIRATE
+    clusters genes (or other annotated features) over a wide range of
+    amino-acid or nucleotide identity thresholds, and classifies paralogous
+    genes families into either putative gene fission/fusion events or gene
+    duplications. Furthermore, PIRATE provides a measure of allelic variance
+    and cluster homology, and orders the resulting pangenome on a pangenome
+    graph. Additional scripts are provided for comparison and visualization.
+    PIRATE provides a robust framework for analysing the pangenomes of
+    bacteria, from largely clonal to panmictic species.
 
     References
     ----------
-
+    Bayliss, S.C., Thorpe, H.A., Coyle, N.M., Sheppard, S.K. and Feil, E.J.,
+    2019. PIRATE: A fast and scalable pangenomics toolbox for clustering
+    diverged orthologues in bacteria. Gigascience, 8(10), p.giz119.
 
     Notes
     -----
-    GitHub  : https://github.com/tseemann/PIRATE
-    Paper   :
-    Docs    :
+    GitHub  : https://github.com/SionBayliss/PIRATE
+    Paper   : https://doi.org/10.1093/gigascience/giz119
 
     Parameters
     ----------
     self : Commands class instance
     """
     pass
+
+
+def mummer2circos(self):
+    """Generate circular bacterial genome plots based on BLAST or
+    NUCMER/PROMER alignments. Generate SVG and PNG images with circos.
+
+    Notes
+    -----
+    GitHub  : https://github.com/metagenlab/mummer2circos
+
+    Parameters
+    ----------
+    self : Commands class instance
+    """
+    pass
+
 
 
 # def write_dbcan_subset(
