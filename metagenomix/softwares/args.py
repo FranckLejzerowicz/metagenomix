@@ -417,13 +417,13 @@ def get_metamarc(
             full_cmd = 'cd %s\n' % out_dir
             full_cmd += 'cp -r %s/bin %s/.\n' % (path, out_dir)
             full_cmd += 'cp -r %s/src %s/.\n' % (path, out_dir)
-            full_cmd += 'cp -r %s/hmmer-3.1b2 %s/.\n' % (path, out_dir)
+            # full_cmd += 'cp -r %s/hmmer-3.1b2 %s/.\n' % (path, out_dir)
             full_cmd += 'cd bin\n'
             full_cmd += cmd
             full_cmd += '\ncd ..\n'
             full_cmd += 'rm -rf bin\n'
             full_cmd += 'rm -rf src\n'
-            full_cmd += 'rm -rf hmmer-3.1b2\n'
+            # full_cmd += 'rm -rf hmmer-3.1b2\n'
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
@@ -1566,14 +1566,25 @@ def amrfinderplus(self) -> None:
 
 
 def ariba(self) -> None:
-    """
+    """ARIBA is a tool that identifies antibiotic resistance genes by
+    running local assemblies. It can also be used for MLST calling.
+        The input is a FASTA file of reference sequences (can be a mix of genes
+    and noncoding sequences) and paired sequencing reads. ARIBA reports which
+    of the reference sequences were found, plus detailed information on the
+    quality of the assemblies and any variants between the sequencing reads
+    and the reference sequences.
 
     References
     ----------
+    Hunt, M., Mather, A.E., Sánchez-Busó, L., Page, A.J., Parkhill, J.,
+    Keane, J.A. and Harris, S.R., 2017. ARIBA: rapid antimicrobial resistance
+    genotyping directly from sequencing reads. Microbial genomics, 3(10).
 
     Notes
     -----
     GitHub  : https://github.com/sanger-pathogens/ariba
+    Docs    : http://sanger-pathogens.github.io/ariba/
+    Paper   : https://doi.org/10.1099/mgen.0.000131
 
     Parameters
     ----------
