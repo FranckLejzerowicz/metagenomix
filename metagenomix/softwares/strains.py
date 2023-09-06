@@ -7,8 +7,10 @@
 # ----------------------------------------------------------------------------
 
 import glob
+from os.path import dirname
 from metagenomix._io_utils import (
-    caller, io_update, status_update, get_assembly, get_assembly_contigs)
+    caller, io_update, tech_specificity, status_update, get_assembly,
+    to_do, get_assembly_contigs)
 from metagenomix._inputs import (
     group_inputs, genome_key, genome_out_dir, get_extension, get_reads,
     get_group_reads, add_folder)
@@ -457,6 +459,181 @@ def lorikeet(self) -> None:
             module_call(self, tech, fastas_folders, group_reads, group)
 
 
+def get_sample_to_marker(
+        self,
+        tech,
+        sam_dir: str,
+        markers_dir: str
+) -> None:
+    """
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .outputs : dict
+            All outputs
+        .config
+            Configurations
+    tech : str
+    sam_dir : str
+    markers_dir : str
+    """
+
+    sam_dir_ = sam_dir.replace('${SCRATCH_FOLDER}', '')
+    to_dos = status_update(self, tech, [sam_dir], folder=True)
+    if self.config.force or len(glob.glob('%s/*.sam.bz2' % sam_dir_)):
+        cmd = 'sample2markers.py'
+        cmd += ' -i %s/*.sam.bz2' % sam_dir
+        cmd += ' -o %s' % markers_dir
+        cmd += ' -n %s' % self.soft.params['cpus']
+        if to_dos:
+            self.outputs['cmds'].setdefault((tech,), []).append(False)
+        else:
+            self.outputs['cmds'].setdefault((tech,), []).append(cmd)
+
+
+def extract_markers(
+        self,
+        tech,
+        key,
+        st: str,
+        strain_dir: str,
+        db_dir: str
+) -> None:
+    """Extract markers for the current species strains
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .config
+            Configurations
+    tech
+    key
+    st : str
+    strain_dir : str
+    db_dir : str
+    """
+    to_dos = status_update(self, tech, [strain_dir], folder=True)
+    if self.config.force or to_do('%s/%s.fna' % (strain_dir, st)):
+        cmd = 'extract_markers.py'
+        cmd += ' -c %s' % st
+        cmd += ' -o %s' % db_dir
+        if to_dos:
+            self.outputs['cmds'].setdefault(key, []).append(False)
+        else:
+            self.outputs['cmds'].setdefault(key, []).append(cmd)
+
+
+def get_strainphlan(
+        self,
+        tech: str,
+        sam: str,
+        inputs: dict
+):
+    bt2_fp, sam_fp = inputs[:2]
+    sam_dir = dirname(sam_fp)
+    db_dir = '%s/db_markers' % self.dir
+    meta_dir = '%s/metadata' % self.dir
+    markers_dir = '%s/consensus_markers' % self.dir
+    wol_pd = self.databases.paths['wol']['taxonomy']
+
+    self.outputs['outs'] = dict({})
+    self.outputs['dirs'].extend([db_dir, meta_dir])
+    get_sample_to_marker(self, tech, sam_dir, markers_dir)
+
+    for strain_group, strains in self.config.strains.items():
+
+        tmp = '$TMPDIR/strainphlan_%s' % strain_group
+        key = (tech, strain_group)
+        io_update(self, i_d=sam_dir, o_d=[markers_dir, db_dir, meta_dir],
+                  key=key)
+
+        strain_dir = '%s/%s' % (db_dir, strain_group)
+        self.outputs['dirs'].append(strain_dir)
+        for strain in [x.replace(' ', '_') for x in strains]:
+            if strain[0] != 's':
+                continue
+            extract_markers(self, tech, key, strain, strain_dir, db_dir)
+            odir = '%s/output/%s' % (self.dir, strain_group)
+            self.outputs['dirs'].append(odir)
+            self.outputs['outs'][(strain_group, strain)] = odir
+            io_update(self, o_d=odir, key=key)
+            tree = '%s/RAxML_bestTree.%s.StrainPhlAn3.tre' % (odir, strain)
+            to_dos = status_update(self, tech, [markers_dir, db_dir],
+                                   folder=True)
+            if self.config.force or to_do(tree):
+                # cmd = strainphlan_cmd(self, markers_dir, db_dir, strain,
+                #                       wol_pd, key)
+                cmd = 'strainphlan'
+                cmd += ' -s %s/*.pkl' % markers_dir
+                cmd += ' -m %s/%s.fna' % (db_dir, strain)
+                if strain in wol_pd['species']:
+                    fna = '%s/%s.fna.bz2' % (
+                        self.databases.paths['wol']['fna'],
+                        wol_pd.loc[wol_pd['species'] == strain, 0])
+                    io_update(self, i_f=fna, key=key)
+                    cmd += ' -r %s' % fna
+                cmd += ' -o %s' % odir
+                cmd += ' -n %s' % self.soft.params['cpus']
+                cmd += ' -c %s' % strain
+                cmd += ' --mutation_rates'
+                cmd = 'mkdir -p %s\n' % tmp + cmd
+                if to_dos:
+                    self.outputs['cmds'].setdefault(key, []).append(False)
+                else:
+                    self.outputs['cmds'].setdefault(key, []).append(cmd)
+                self.soft.add_status(
+                    tech, sam, 1, group=strain_group, genome=strain)
+            else:
+                self.soft.add_status(
+                    tech, sam, 0, group=strain_group, genome=strain)
+
+
+def strainphlan(self) -> None:
+    """StrainPhlAn is a computational tool for tracking individual strains
+    across a large set of samples. The input of StrainPhlAn is a set of
+    metagenomic samples and for each species, the output is a multiple
+    sequence alignment (MSA) file of all species strains reconstructed
+    directly from the samples. From this MSA, StrainPhlAn calls (PhyloPhlAn
+    3)[http://segatalab.cibio.unitn.it/tools/phylophlan3/index.html] to build
+    the phylogenetic tree showing the strain evolution of the sample strains.
+
+    References
+    ----------
+    Beghini, Francesco, et al. "Integrating taxonomic, functional,
+    and strain-level profiling of diverse microbial communities with
+    bioBakery 3." Elife 10 (2021): e65088.
+
+    Notes
+    -----
+    Docs    : https://github.com/biobakery/MetaPhlAn/wiki/StrainPhlAn-3
+    Website : http://segatalab.cibio.unitn.it/tools/phylophlan3/index.html
+    Paper   : https://doi.org/10.7554/eLife.65088
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for humann
+        .sam : str
+            Sample name
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters for humann
+        .databases
+            All databases
+        .config
+            Configurations
+    """
+    for (tech, sam), inputs in self.inputs[self.sam_pool].items():
+        if tech_specificity(self, inputs, 'illumina', sam):
+            continue
+        get_strainphlan(self, tech, sam, inputs)
+
+
 def instrain(self):
     """InStrain is a tool for analysis of co-occurring genome populations
     from metagenomes that allows highly accurate genome comparisons, analysis
@@ -481,3 +658,89 @@ def instrain(self):
     self
     """
     pass
+
+
+def panphlan(self):
+    """PanPhlAn is a strain-level metagenomic profiling tool for identifying
+    the gene composition of individual strains in metagenomic samples.
+    PanPhlAn’s ability for strain-tracking and functional analysis of unknown
+    pathogens makes it an efficient tool for culture-free microbial
+    population studies.
+
+    References
+    ----------
+    Beghini, F., McIver, L.J., Blanco-Míguez, A., Dubois, L., Asnicar, F.,
+    Maharjan, S., Mailyan, A., Manghi, P., Scholz, M., Thomas, A.M. and
+    Valles-Colomer, M., 2021. Integrating taxonomic, functional,
+    and strain-level profiling of diverse microbial communities with
+    bioBakery 3. elife, 10, p.e65088.
+
+    Notes
+    -----
+    GitHub  : https://github.com/segatalab/panphlan
+    Paper   : https://elifesciences.org/articles/65088
+
+    Parameters
+    ----------
+    self
+    """
+    pass
+
+
+def strainsifter(self):
+    """A straightforward bioinformatic pipeline for detecting the presence of
+    a bacterial strain in one or more metagenome(s).
+    StrainSifter is based on Snakemake. This pipeline allows you to output
+    phylogenetic trees showing strain relatedness of input strains, as well
+    as pairwise counts of single-nucleotide variants (SNVs) between input
+    samples.
+
+    References
+    ----------
+    Tamburini, F.B., Andermann, T.M., Tkachenko, E. et al. Precision
+    identification of diverse bloodstream pathogens in the gut microbiome.
+    Nat Med 24, 1809–1814 (2018). https://doi.org/10.1038/s41591-018-0202-8.
+
+    Notes
+    -----
+    GitHub  : https://github.com/bhattlab/StrainSifter
+    Paper   : https://doi.org/10.1038/s41591-018-0202-8
+
+    Parameters
+    ----------
+    self
+    """
+    pass
+
+
+def strainpro(self):
+    """Characterizing the taxonomic diversity of a microbial community is
+    very important to understand the roles of microorganisms. Next generation
+    sequencing (NGS) provides great potential for investigation of a
+    microbial community and leads to Metagenomic studies. NGS generates DNA
+    sequences directly from microorganism samples, and it requires analysis
+    tools to identify microbial species (or taxonomic composition) and
+    estimate their relative abundance in the studied community. Here we
+    developed a novel metagenomic analysis tool, called StrainPro, which is
+    highly accurate both at characterizing microorganisms at strain-level and
+    estimating their relative abundances. A unique feature of StrainPro is it
+    identifies representative sequence segments from reference genomes. We
+    generate three simulated datasets using known strain sequences and
+    another three simulated datasets using unknown strain sequences.
+
+    References
+    ----------
+    Lin, H.N., Lin, Y.L. and Hsu, W.L., 2019. StrainPro–a highly accurate
+    Metagenomic strain-level profiling tool. bioRxiv, p.807149.
+
+    Notes
+    -----
+    GitHub  : https://github.com/hsinnan75/StrainPro#download
+    Paper   : https://doi.org/10.1101/807149
+
+    Parameters
+    ----------
+    self
+    """
+    pass
+
