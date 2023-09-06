@@ -958,3 +958,59 @@ def deeplasmid(self):
     self
     """
     pass
+
+
+def plasflow(self):
+    """PlasFlow is a set of scripts used for prediction of plasmid sequences
+    in metagenomic contigs. It relies on the neural network models trained on
+    full genome and plasmid sequences and is able to differentiate between
+    plasmids and chromosomes with accuracy reaching 96%. It outperforms other
+    available solutions for plasmids recovery from metagenomes and incorporates
+    the thresholding which allows for exclusion of incertain predictions.
+
+    References
+    ----------
+    Krawczyk, P.S., Lipinski, L. and Dziembowski, A., 2018. PlasFlow:
+    predicting plasmid sequences in metagenomic data using genome signatures.
+    Nucleic acids research, 46(6), pp.e35-e35.
+
+    Notes
+    -----
+    GitHub  : https://github.com/smaegol/PlasFlow
+    Paper   : https://doi.org/10.1093/nar/gkx1321
+
+    Parameters
+    ----------
+    self
+    """
+    pass
+
+
+def pprmeta(self):
+    """PPR-Meta is designed to identify metagenomic sequences as phages,
+    chromosomes or plasmids. The program calculate three score reflecting the
+    likelihood of each input fragment as phage, chromosome or plasmid.
+    PPR-Meta can run either on the virtual machine or physical host. For
+    non-computer professionals, we recommend running the virtual machine
+    version of PPR-Meta on local PC. In this way, users do not need to
+    install any dependency package. If GPU is available, you can also choose
+    to run the physical host version. This version can automatically speed up
+    with GPU and is more suitable to handle large scale data.
+
+    References
+    ----------
+    Fang, Z., Tan, J., Wu, S., Li, M., Xu, C., Xie, Z. and Zhu, H.,
+    2019. PPR-Meta: a tool for identifying phages and plasmids from
+    metagenomic fragments using deep learning. GigaScience, 8(6), p.giz066.
+
+    Notes
+    -----
+    GitHub  : https://github.com/zhenchengfang/PPR-Meta
+    Paper   : https://doi.org/10.1093/gigascience/giz066
+    Docs    : http://cqb.pku.edu.cn/ZhuLab/PPR_Meta/
+
+    Parameters
+    ----------
+    self
+    """
+    pass
