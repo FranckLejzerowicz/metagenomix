@@ -1473,13 +1473,20 @@ def metamic(self) -> None:
 
 
 def trycycler(self) -> None:
-    """
+    """Trycycler is a tool for generating consensus long-read assemblies for
+    bacterial genomes. I.e. if you have multiple long-read assemblies for the
+    same isolate, Trycycler can combine them into a single assembly that is
+    better than any of your inputs.
 
     References
     ----------
+    Wick, R.R., Judd, L.M., Cerdeira, L.T., Hawkey, J., Méric, G., Vezina,
+    B., Wyres, K.L. and Holt, K.E., 2021. Trycycler: consensus long-read
+    assemblies for bacterial genomes. Genome biology, 22, pp.1-17.
 
     Notes
     -----
+    GitHub  : https://github.com/rrwick/Trycycler
     Paper   : https://doi.org/10.1186/s13059-021-02483-z
 
     Parameters
