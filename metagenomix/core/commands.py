@@ -28,7 +28,8 @@ from metagenomix.softwares.simka import *
 from metagenomix.softwares.strains import *
 from metagenomix.softwares.viruses import *
 from metagenomix.softwares.mapping import *
-from metagenomix.softwares.pipelines import *
+from metagenomix.softwares.anvio import *
+from metagenomix.softwares.squeezemeta import *
 
 
 class Commands(object):
