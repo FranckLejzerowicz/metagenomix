@@ -1037,20 +1037,18 @@ def filtering(self):
 
 
 def berokka(self):
-    """
+    """Trim, circularise, orient & filter long read bacterial genome assemblies.
 
-    References
-    ----------
-
+    Useful if you only have the contig files and do not have the corrected
+    reads anymore, if your contigs are simple cases with clear overhang and
+    could be done manually with BLAST, and if circlator fails on your data even
+    after troubleshooting.
 
     Notes
     -----
     GitHub  : https://github.com/tseemann/berokka
-    Paper   :
-    Docs    :
 
     Parameters
     ----------
     self : Commands class instance
     """
-    pass
