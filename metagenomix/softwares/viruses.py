@@ -300,7 +300,7 @@ def threecac(self) -> None:
         .config
             Configurations
     """
-    print()
+    pass
 
 
 def deepvirfinder(self):
