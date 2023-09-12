@@ -486,11 +486,25 @@ def check_prokka(self, params, soft):
         'gcode': [11, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
         'notrna': [False, True],
         'norrna': [False, True],
-        'metagenome': [True, False]
+        'metagenome': [True, False],
+        'addgenes': [False, True],
+        'addmrna': [False, True],
+        'gffver': 3,
+        'compliant': [False, True],
+        'centre': [''],
+        'gram': [''],
+        'accver': 1,
+        'rawproduct': [False, True],
+        'cdsrnaolap': [False, True],
+        'fast': [False, True],
+        'noanno': [False, True],
+        'rnammer': [False, True],
+        'rfam': 0
     }
     check_nums(self, params, defaults, ['evalue'], float, soft.name, 0, 100)
     check_nums(self, params, defaults, ['coverage'], int, soft.name, 0, 100)
-    check_nums(self, params, defaults, ['mincontiglen'], int, soft.name)
+    ints = ['mincontiglen', 'gffver', 'accver', 'rfam']
+    check_nums(self, params, defaults, ints, int, soft.name)
     check_default(self, params, defaults, soft.name,
                   ['evalue', 'coverage', 'mincontiglen'])
     if 'config' in params and params['config'] is not None:
