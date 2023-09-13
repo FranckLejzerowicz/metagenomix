@@ -2181,7 +2181,7 @@ def midas(self) -> None:
 def get_kraken2_db(
         self,
         db: str
-) -> None:
+) -> str:
     """Get the path the Kraken2 database passed by the user.
 
     Notes
@@ -2216,14 +2216,15 @@ def get_kraken2_db(
     if db == 'default':
         return self.databases.paths['kraken2']
     elif db in self.databases.paths:
-        for path in ['', '/databases']:
-            db_path = '%s%s/kraken2' % (self.databases.paths[db], path)
+        for subdir in ['', '/kraken2', '/databases', '/databases/kraken2']:
+            db_path = '%s%s' % (self.databases.paths[db], subdir)
             if self.config.dev:
                 return db_path
-            if not isfile('%s/hash.k2d' % db_path):
-                nested = glob.glob('%s/*/hash.k2d' % db_path)
-                if nested:
-                    return dirname(nested[0])
+            if isfile('%s/hash.k2d' % db_path):
+                return db_path
+            nested = glob.glob('%s/*/hash.k2d' % db_path)
+            if nested:
+                return dirname(nested[0])
     sys.exit('[kraken2] Database not found: %s' % db)
 
 
@@ -2271,30 +2272,17 @@ def get_kraken2_cmd(
 
     cmd = ''
     result = '%s/result.tsv' % out
+    report = '%s/report.tsv' % out
     if to_do(result):
         cmd += 'kraken2 '
         cmd += ' -db %s' % db_path
-        cmd += ' --report %s/report.tsv' % out
+        cmd += ' --report %s' % report
         cmd += ' --threads %s' % params['cpus']
         cmd += ' --confidence %s' % params['confidence']
-        # names = ['classified', 'unclassified']
         if len(inputs) > 1:
             cmd += ' --paired'
-            #fqs = ['%s/%s_%s.fastq' % (out, x, r) for r in [1, 2] for x in names]
-            #cmd += ' --unclassified-out %s/unclassified#.fastq' % out
-            #cmd += ' --classified-out %s/classified#.fastq' % out
-        #else:
-            #fqs = ['%s/%s.fastq' % (out, x) for x in names]
-            #cmd += ' --unclassified-out %s/unclassified.fastq' % out
-            #cmd += ' --classified-out %s/classified.fastq' % out
-        # if inputs[0].endswith('.gz'):
-        #     cmd += ' --gzip-compressed'
         cmd += ' %s > %s\n' % (' '.join(inputs), result)
-
-    cmd += 'gzip %s\n' % result
-    cmd += 'gzip %s/report.tsv\n' % out
-    #for fq in fqs:
-    #    cmd += 'if [ -e %s ]; then gzip %s; fi\n' % (fq, fq)
+    cmd += 'for i in %s/*; do gzip -q $i; done\n' % out
     return cmd
 
 
@@ -2398,17 +2386,23 @@ def get_bracken_db(
     path : str
         Path tho the Bracken database
     """
+    if self.config.dev:
+        return 'dummy/bracken/path'
     if db == 'default':
-        path = self.databases.paths['kraken2']
+        return self.databases.paths['kraken2']
     elif 'bracken' in self.databases.builds[db]:
-        path = self.databases.builds[db]['bracken']
-    elif self.config.dev:
-        path = 'dummy/bracken/path'
-    else:
-        sys.exit('[bracken] Database name "%s" not found' % db)
-    if not self.config.dev and not isdir(path):
-        sys.exit('[bracken] No database for name "%s": %s' % (db, path))
-    return path
+        return self.databases.builds[db]['bracken']
+    elif db in self.databases.paths:
+        for subdir in ['', '/bracken', '/databases/bracken', '/kraken2',
+                       '/databases', '/databases/kraken2']:
+            db_path = '%s%s' % (self.databases.paths[db], subdir)
+            db_paths = glob.glob('%s/*kmer_distrib' % db_path)
+            if db_paths:
+                return db_path
+            nested = glob.glob('%s/*/*kmer_distrib' % db_path)
+            if nested:
+                return dirname(nested[0])
+    sys.exit('[bracken] Database not found: %s' % db)
 
 
 def bracken_cmd(
