@@ -137,9 +137,6 @@ class AnalysesConfig(object):
         def fill_fq_dict(techs):
             return dict(((tech, sam), []) for tech in techs)
         if sam not in self.fastq:
-            print()
-            print("fill_fq_dict(self.techs_fastqs)")
-            print(fill_fq_dict(self.techs_fastqs))
             self.fastq[sam] = fill_fq_dict(self.techs_fastqs)
             self.fastq_mv[sam] = fill_fq_dict(self.techs_fastqs)
 
@@ -169,7 +166,8 @@ class AnalysesConfig(object):
         sams = set(self.meta.sample_name)
         for fastq_path in sorted(fastq_paths):
             for sam in sams:
-                if basename(fastq_path).startswith(sam):
+                r1, r2 = '%s_R1.fastq.gz' % sam, '%s_R2.fastq.gz' % sam
+                if basename(fastq_path) in [r1, r2]:
                     if sam in fastq:
                         fastq[sam].append(abspath(fastq_path))
                     else:
