@@ -28,7 +28,7 @@ def files_to_show_list(
     for i in ins:
         if '/%s/' % tech in i:
             fs.add(i)
-        elif s in fastq_mv and i in fastq_mv[s][(tech, s)]:
+        elif s in fastq_mv and i in fastq_mv[s].get((tech, s)):
             fs.add(i)
         elif isinstance(i, tuple) and '/%s/' % tech in i[0]:
             fs.add('%s (%s)' % i)
@@ -83,9 +83,7 @@ def files_to_show(
     seps, fs = [], set()
     techs = techs[:1 + techs.index(tech)]
     for t in techs:
-        if (t, sam) in inputs[sam]:
-            fill_seps_and_fs(self, inputs, sam, tech, t, seps, fs)
-        elif t in inputs[sam]:
+        if (t, sam) in inputs[sam] or t in inputs[sam]:
             fill_seps_and_fs(self, inputs, sam, tech, t, seps, fs)
         else:
             no_file_to_show(t, seps)
