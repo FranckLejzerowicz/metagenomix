@@ -190,6 +190,9 @@ class AnalysesConfig(object):
         for tech_dir in [x for x in self.__dict__.keys() if x.endswith('dirs')]:
             tech = tech_dir.split('_')[0]
             fastq_paths = get_fastq_paths(self.__dict__[tech_dir])
+            print()
+            print("fastq_paths")
+            print(fastq_paths)
             if fastq_paths:
                 self.techs_fastqs[tech] = fastq_paths
 
