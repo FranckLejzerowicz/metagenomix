@@ -137,6 +137,9 @@ class AnalysesConfig(object):
         def fill_fq_dict(techs):
             return dict(((tech, sam), []) for tech in techs)
         if sam not in self.fastq:
+            print()
+            print("fill_fq_dict(self.techs_fastqs)")
+            print(fill_fq_dict(self.techs_fastqs))
             self.fastq[sam] = fill_fq_dict(self.techs_fastqs)
             self.fastq_mv[sam] = fill_fq_dict(self.techs_fastqs)
 
