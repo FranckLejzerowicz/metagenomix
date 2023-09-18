@@ -616,9 +616,9 @@ def condition_ali_command(
 def bowtie2_cmd(
         sample_name: str,
         fastx: list,
+        db: str,
         db_path: str,
         out_dir: str,
-        bam: str,
         params: dict
 ) -> str:
     """Get the bowtie2 alignment command.
@@ -629,12 +629,12 @@ def bowtie2_cmd(
         Name of the current sample
     fastx : list
         Path to the input fasta/fastq/fastq.gz files
+    db : str
+        Name of the bowtie2 database
     db_path : str
         Path to the bowtie2 database
     out_dir: str
         Path to the output folder
-    bam : str
-        Path to the output .bam file
     params : dict
         Run parameters
 
@@ -666,8 +666,8 @@ def bowtie2_cmd(
     else:
         cmd += ' -U %s' % ','.join(fastx)
 
-    sam = '%s.sam' % splitext(bam)[0]
-    cmd += ' -S %s' % sam
+    # sam = '%s.sam' % splitext(bam)[0]
+    # cmd += ' -S %s' % sam
 
     if params['un']:
         cmd += ' --un-gz %s/%s_unali.fastq.gz' % (out_dir, sample_name)
@@ -693,7 +693,7 @@ def bowtie2_cmd(
             cmd += ' --%s-local' % params['presets']
 
     if params['met']:
-        cmd += ' --met-file %s.met' % splitext(sam)[0]
+        cmd += ' --met-file %s/metrics.txt' % out_dir
         cmd += ' --met %s' % params['met']
 
     cmd += ' --%s' % params['fr']
@@ -725,9 +725,7 @@ def bowtie2_cmd(
                     cmd += ' -%s' % boolean
                 else:
                     cmd += ' --%s' % boolean.replace('_', '-')
-
-    cmd += '\nsamtools view -S -b %s > %s\n' % (sam, bam)
-    cmd += 'rm %s\n' % sam
+    cmd += ' 2> %s/%s_stats.txt' % (out_dir, db)
     return cmd
 
 
@@ -822,20 +820,26 @@ def bowtie2(self) -> None:
 
 
 def minimap2_cmd(
+        sample_name: str,
         fastx: list,
+        db: str,
         db_path: str,
-        db_out: str,
+        out_dir: str,
         params: dict
-) -> tuple:
+) -> str:
     """Get the minimap2 alignment command.
 
     Parameters
     ----------
+    sample_name : str
+        Name of the current sample
     fastx : list
         Path to the input fasta/fastq/fastq.gz files
+    db : str
+        Name of the bowtie2 database
     db_path : str
-        Path to the minimap2 database
-    db_out: str
+        Path to the bowtie2 database
+    out_dir: str
         Path to the output folder
     params : dict
         Run parameters
@@ -844,8 +848,6 @@ def minimap2_cmd(
     -------
     cmd : str
         Alignment command
-    bam : str
-        Alignment .bam file
     """
 
     cmd = 'minimap2'
@@ -956,20 +958,12 @@ def minimap2_cmd(
             if params[param]:
                 cmd += ' --%s' % param.replace('_', '-')
 
-    sam = '%s/alignment.minimap2' % db_out
     if len(fastx) == 2 and params['no_pairing']:
         cmd += ' --no-pairing'
-        sam += '.unpaired'
-    sam += '.sam'
-    cmd += ' -o %s' % sam
 
     cmd += ' %s' % db_path
-    cmd += ' %s\n' % ' '.join(fastx)
-
-    bam = '%s.bam' % splitext(sam)[0]
-    cmd += '\nsamtools view -S -b %s > %s' % (sam, bam)
-    cmd += '\nrm %s' % sam
-    return cmd, bam
+    cmd += ' %s' % ' '.join(fastx)
+    return cmd
 
 
 def get_minimap2_indexing_cmd(
