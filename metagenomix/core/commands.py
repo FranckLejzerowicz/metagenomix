@@ -142,22 +142,13 @@ class Commands(object):
     def generic_command(self):
         self.sam_pool = ''
         self.soft.io = {}
-        print()
-        print("self.soft.name")
-        print(self.soft.name)
         if self.soft.name in self.holistics:
-            print()
-            print("self.sam_pool")
-            print(self.sam_pool)
             self.prep_job()
         elif self.soft.name == 'pooling':
             self.pooling()
         else:
             for sam_or_pool in sorted(self.inputs):
                 self.sam_pool = sam_or_pool
-                print()
-                print("self.sam_pool")
-                print(self.sam_pool)
                 self.prep_job()
         self.register_command()
 
