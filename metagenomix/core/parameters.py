@@ -664,16 +664,22 @@ def check_filtering(self, params, soft):
     }
     if "databases" not in params or not isinstance(params["databases"], list):
         sys.exit('[filtering] Param "databases" not a list of databases')
+    print(params)
 
     for aligner in defaults['aligner']:
+        print(aligner)
         aligner_params = params.get(aligner, {})
+        print(aligner_params)
         check_aligner = 'check_%s' % aligner
         if check_aligner in globals():
             func = globals()[check_aligner]
+            print(func)
             aligner_defaults = func(self, aligner_params, soft, True)
+            print(aligner_params)
             defaults[aligner] = aligner_defaults
-    check_default(
-        self, params, defaults, soft.name, (['aligner'] + defaults['aligner']))
+    print(params)
+    print((['aligner'] + defaults['aligner']))
+    check_default(self, params, defaults, soft.name, defaults['aligner'])
 
     aligner = params['aligner']
     for db in params["databases"]:
@@ -683,7 +689,8 @@ def check_filtering(self, params, soft):
             if len(glob.glob('%s/*.bt2' % self.databases.paths[db])) != 6:
                 sys.exit('[filtering] Param "databases" bowtie2 files '
                          'missing for database "%s"' % db)
-
+    print(params)
+    print(paramsdsa)
     defaults['databases'] = '<list of databases>'
     return defaults
 
