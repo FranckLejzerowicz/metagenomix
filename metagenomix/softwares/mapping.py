@@ -79,15 +79,16 @@ def get_minimap2_db_cmd(
 
     Returns
     -------
-    db_cmds : tuple
-        (Command to create the fasta db, Command to delete the fasta db)
+    cmd : str
+        minimap2-build command
+    cmd_rm : str
+        minimap2-build command removers
     dbs : dict
         Databases indices
     """
-    db_cmds = ''
+    cmd, cmd_rm = '', ''
     dbs = {}
-
-    return db_cmds, dbs
+    return cmd, cmd_rm, dbs
 
 
 def get_bowtie2_db_cmd(
@@ -108,6 +109,8 @@ def get_bowtie2_db_cmd(
     -------
     cmd : str
         bowtie2-build command
+    cmd_rm : str
+        bowtie2-build command removers
     dbs : dict
         Databases indices
     """
@@ -122,16 +125,14 @@ def get_bowtie2_db_cmd(
 
         base = splitext(basename(fasta))[0]
         bam_dir = out + '/' + base
-        bam = '%s/alignment.bowtie2.bam' % bam_dir
-        bam_sorted = '%s.sorted.bam' % splitext(bam)[0]
-        dbs[base] = (fasta, bam, bam_sorted, bam_dir)
-        if to_do(bam_sorted):
-            if to_do(bam):
-                cmd += 'mkdir -p %s/%s\n' % (out, base)
-                cmd += 'mkdir -p %s/dbs/%s\n' % (out, base)
-                cmd += 'bowtie2-build'
-                cmd += ' --threads %s' % params['cpus']
-                cmd += ' %s %s/dbs/%s\n' % (fasta, out, base)
+        bam = '%s/alignment.bowtie2.sorted.bam' % bam_dir
+        dbs[base] = (fasta, bam, bam_dir)
+        if to_do(bam):
+            cmd += 'mkdir -p %s/%s\n' % (out, base)
+            cmd += 'mkdir -p %s/dbs/%s\n' % (out, base)
+            cmd += 'bowtie2-build'
+            cmd += ' --threads %s' % params['cpus']
+            cmd += ' %s %s/dbs/%s\n' % (fasta, out, base)
     if cmd:
         cmd = cmd_gz + cmd
         cmd_rm += '\nrm -rf %s/dbs\n' % out
@@ -172,18 +173,18 @@ def get_cmds(
     """
     bams, bam_dirs, fastas_bams = [], [], {}
     cmd, cmd_rm, dbs = globals()['get_%s_db_cmd' % ali](out, fastas, params)
-    for db_, (fasta, bam, bam_sorted, bam_dir) in dbs.items():
-        db = '%s/dbs/%s' % (out, db_)
+    for db, (fasta, bam, bam_dir) in dbs.items():
+        db_path = '%s/dbs/%s' % (out, db)
         if to_do(bam):
-            cmd += globals()['%s_cmd' % ali](sam, fastqs, db, out, bam, params)
+            cmd += globals()['%s_cmd' % ali](
+                sam, fastqs, db, db_path, bam_dir, params)
+            cmd += ' | samtools view -b -'
+            cmd += ' | samtools sort -o %s\n' % bam
         else:
-            cmd_rm = ''
             bams.append(bam)
-        if to_do(bam_sorted):
-            cmd += 'samtools sort %s > %s\n' % (bam, bam_sorted)
-            cmd += 'samtools index %s\n' % bam_sorted
-            cmd_rm += '\nrm %s\n' % bam
-        fastas_bams[bam_sorted] = [
+        if to_do('%s.bai' % bam):
+            cmd += 'samtools index %s\n' % bam
+        fastas_bams[bam] = [
             reads_tech, sam, ali, self.sam_pool, ref_group, fasta]
         bam_dirs.append(bam_dir)
     if cmd:

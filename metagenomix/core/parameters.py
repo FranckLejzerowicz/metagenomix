@@ -641,7 +641,27 @@ def check_quast(self, params, soft):
     return defaults
 
 
+def check_mapping(self, params, soft):
+    defaults = {
+        'aligners': ['minimap2', 'bowtie2', 'bwa', 'bbmap'],
+        'per_tech': [False, True]
+    }
+    for aligner in defaults['aligners']:
+        aligner_params = params.get(aligner, {})
+        check_aligner = 'check_%s' % aligner
+        if check_aligner in globals():
+            func = globals()[check_aligner]
+            aligner_defaults = func(self, aligner_params, soft, True)
+            defaults[aligner] = aligner_defaults
+    check_default(self, params, defaults, soft.name,
+                  defaults['aligners'], ['aligners'])
+    return defaults
+
+
 def check_filtering(self, params, soft):
+    defaults = {
+        'aligner': ['bowtie2', 'minimap2', 'bwa', 'bbmap'],
+    }
     db = 'databases'
     if db not in params or not isinstance(params[db], dict):
         sys.exit('[filtering] Param "%s" not a name:path bowtie2 db dict' % db)
@@ -649,7 +669,17 @@ def check_filtering(self, params, soft):
         for (d, index) in params[db].items():
             if not self.config.dev and not glob.glob('%s.*' % index):
                 sys.exit('[filtering] Param "%s" no bowtie2 file %s*' % (db, d))
-    return {'databases': '<list of databases>'}
+
+    aligner = params['aligner']
+    aligner_params = params.get(aligner, {})
+    check_aligner = 'check_%s' % aligner
+    if check_aligner in globals():
+        func = globals()[check_aligner]
+        aligner_defaults = func(self, aligner_params, soft, True)
+        defaults[aligner] = aligner_defaults
+    check_default(self, params, defaults, soft.name, defaults['aligner'])
+    defaults['databases'] = '<list of databases>'
+    return defaults
 
 
 def check_atropos(self, params, soft):
@@ -3048,23 +3078,6 @@ def check_midas2(self, params, soft):
     defaults['databases'] = '<Path the folder containing the MIDAS2 databases>'
     defaults['genome_depth'] = '<1 for merge_genes; 5 for merge_snps>'
     defaults['sample_counts'] = '<1 for merge_genes; 2 for merge_snps>'
-    return defaults
-
-
-def check_mapping(self, params, soft):
-    defaults = {
-        'aligners': ['minimap2', 'bowtie2', 'bwa', 'bbmap'],
-        'per_tech': [False, True]
-    }
-    for aligner in defaults['aligners']:
-        aligner_params = params.get(aligner, {})
-        check_aligner = 'check_%s' % aligner
-        if check_aligner in globals():
-            func = globals()[check_aligner]
-            aligner_defaults = func(self, aligner_params, soft, True)
-            defaults[aligner] = aligner_defaults
-    check_default(self, params, defaults, soft.name,
-                  defaults['aligners'], ['aligners'])
     return defaults
 
 
