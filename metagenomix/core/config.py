@@ -7,6 +7,7 @@
 # ----------------------------------------------------------------------------
 
 import os
+import re
 import sys
 import subprocess
 import pkg_resources
@@ -140,7 +141,7 @@ class AnalysesConfig(object):
             self.fastq[sam] = fill_fq_dict(self.techs_fastqs)
             self.fastq_mv[sam] = fill_fq_dict(self.techs_fastqs)
 
-    def fill_fastq(self, fastq_paths: list):
+    def fill_fastq(self, fastqs: list):
         """Populate a `fastq` dict with for each sample (keys) the list of
         fastq file paths (values), which would be either of length 1 if there
         is only one fastq file for the sample, or of length 2 if there are
@@ -154,7 +155,7 @@ class AnalysesConfig(object):
 
         Parameters
         ----------
-        fastq_paths : list
+        fastqs : list
             All fastq files in the input folder
 
         Returns
@@ -164,14 +165,13 @@ class AnalysesConfig(object):
         """
         fastq = {}
         sams = set(self.meta.sample_name)
-        for fastq_path in sorted(fastq_paths):
+        for fq in sorted(fastqs):
             for sam in sams:
-                r1, r2 = '%s_R1.fastq.gz' % sam, '%s_R2.fastq.gz' % sam
-                if basename(fastq_path) in [r1, r2]:
+                if re.match('%s_R?[1-2].fastq(.gz)?' % sam, basename(fq)):
                     if sam in fastq:
-                        fastq[sam].append(abspath(fastq_path))
+                        fastq[sam].append(abspath(fq))
                     else:
-                        fastq[sam] = [abspath(fastq_path)]
+                        fastq[sam] = [abspath(fq)]
                     break
         return fastq
 
