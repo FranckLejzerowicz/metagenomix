@@ -645,6 +645,7 @@ def bowtie2_cmd(
     """
     cmd = 'bowtie2'
     cmd += ' -x %s' % db_path
+    print(params)
     if params['paired'] and len(fastx) >= 2:
         cmd += ' -1 %s' % fastx[0]
         cmd += ' -2 %s' % fastx[1]
