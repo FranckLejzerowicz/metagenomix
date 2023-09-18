@@ -662,22 +662,28 @@ def check_filtering(self, params, soft):
     defaults = {
         'aligner': ['bowtie2', 'minimap2', 'bwa', 'bbmap'],
     }
-    db = 'databases'
-    if db not in params or not isinstance(params[db], dict):
-        sys.exit('[filtering] Param "%s" not a name:path bowtie2 db dict' % db)
-    else:
-        for (d, index) in params[db].items():
-            if not self.config.dev and not glob.glob('%s.*' % index):
-                sys.exit('[filtering] Param "%s" no bowtie2 file %s*' % (db, d))
+    if "databases" not in params or not isinstance(params["databases"], list):
+        sys.exit('[filtering] Param "databases" not a list of databases')
+
+    for aligner in defaults['aligner']:
+        aligner_params = params.get(aligner, {})
+        check_aligner = 'check_%s' % aligner
+        if check_aligner in globals():
+            func = globals()[check_aligner]
+            aligner_defaults = func(self, aligner_params, soft, True)
+            defaults[aligner] = aligner_defaults
+    check_default(
+        self, params, defaults, soft.name, (['aligner'] + defaults['aligner']))
 
     aligner = params['aligner']
-    aligner_params = params.get(aligner, {})
-    check_aligner = 'check_%s' % aligner
-    if check_aligner in globals():
-        func = globals()[check_aligner]
-        aligner_defaults = func(self, aligner_params, soft, True)
-        defaults[aligner] = aligner_defaults
-    check_default(self, params, defaults, soft.name, defaults['aligner'])
+    for db in params["databases"]:
+        if self.config.dev:
+            continue
+        if aligner == 'bowtie2':
+            if len(glob.glob('%s/*.bt2' % self.databases.paths[db])) != 6:
+                sys.exit('[filtering] Param "databases" bowtie2 files '
+                         'missing for database "%s"' % db)
+
     defaults['databases'] = '<list of databases>'
     return defaults
 

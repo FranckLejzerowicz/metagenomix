@@ -964,7 +964,8 @@ def filtering_cmd(
     params = tech_params(self, tech, aligner)
     inputs = sorted(fastqs)
     cmd = ''
-    for dx, (db, db_path) in enumerate(dbs.items()):
+    for dx, db in enumerate(dbs):
+        db_path = self.databases.paths[db]
         bam = '%s/%s.bam' % (out_dir, db)
         cmd += globals()['%s_cmd' % aligner](
             sam, inputs, db, db_path, out_dir, params)
