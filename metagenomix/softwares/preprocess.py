@@ -10,7 +10,12 @@ from os.path import basename
 from metagenomix._io_utils import (io_update, to_do, tech_specificity,
                                    status_update)
 from metagenomix.core.parameters import tech_params
-
+from metagenomix.softwares.alignment import (
+    bowtie2_cmd,
+    minimap2_cmd,
+    # bbmap_cmd,
+    # bwa_cmd
+)
 
 def count_cmd(
         self,
@@ -897,13 +902,12 @@ def kneaddata(self) -> None:
 
 def filtering_cmd(
         self,
+        sam: str,
         tech: str,
-        db_path: str,
-        inputs: list,
+        fastqs: list,
         out_dir: str,
-        out1: str,
-        out2: str
-) -> tuple:
+        outs: list,
+) -> str:
     """Collect the command line for filtering.
 
     Parameters
@@ -911,64 +915,80 @@ def filtering_cmd(
     self : Commands class instance
         .soft.params
             Parameters
+    sam : str
+        Name of the sample
     tech : str
         Technology: 'illumina', 'pacbio', or 'nanopore'
-    db_path : str
-        Path to the reference bowtie2 database
-    inputs : list
+    fastqs : list
         Path to the input fastq files
     out_dir : str
         Path to the output folder
-    out1 : str
-        Path to the output fastq.gz files
-    out2 : str
+    outs : list
         Path to the output fastq.gz files
 
     Returns
     -------
     cmd : str
         filtering commands
-    fastqs : list
-        Path to the output fastq files
     """
-    params = tech_params(self, tech)
-    cmd = '\nbowtie2'
-    cmd += ' -p %s' % params['cpus']
-    cmd += ' -x %s' % db_path
-    cmd += ' --very-sensitive'
-    if len(inputs) == 1:
-        cmd += ' -U %s' % inputs[0]
-    else:
-        cmd += ' -1 %s' % inputs[0]
-        cmd += ' -2 %s' % inputs[1]
+    # params = tech_params(self, tech, self.soft.params['aligner'])
+    # for dx, (db, db_path) in enumerate(dbs.items()):
+    #
+    #     cmd = '\nbowtie2'
+    #     cmd += ' -p %s' % params['cpus']
+    #     cmd += ' -x %s' % db_path
+    #     cmd += ' --very-sensitive'
+    #     if len(fastqs) == 1:
+    #         cmd += ' -U %s' % fastqs[0]
+    #     else:
+    #         cmd += ' -1 %s' % fastqs[0]
+    #         cmd += ' -2 %s' % fastqs[1]
+    #
+    #     # alternative
+    #     cmd += ' > %s/tmp.sam\n' % out_dir
+    #     cmd += 'samtools view -f 12 -F 256 %s/tmp.sam > %s/tmp.filt.sam\n' % (
+    #         out_dir, out_dir)
+    #     cmd += 'samtools sort -@ %s -n %s/tmp.filt.sam > %s/tmp.filt.sort.sam\n' % (
+    #         params['cpus'], out_dir, out_dir)
+    #     cmd += 'samtools view -bS %s/tmp.filt.sort.sam > %s/tmp.filt.sort.bam\n' % (
+    #         out_dir, out_dir)
+    #     cmd += 'bedtools bamtofastq -i %s/tmp.filt.sort.bam' % out_dir
+    #     cmd += ' -fq %s' % out1.replace('fastq.gz', 'fastq')
+    #     fastqs = [out1.replace('fastq.gz', 'fastq')]
+    #     if len(inputs) > 1:
+    #         cmd += ' -fq2 %s' % out2.replace('fastq.gz', 'fastq')
+    #         fastqs.append(out2.replace('fastq.gz', 'fastq'))
+    #     cmd += '\nrm %s/tmp.*\n' % out_dir
+    dbs = self.soft.params['databases']
+    aligner = self.soft.params['aligner']
+    params = tech_params(self, tech, aligner)
+    inputs = sorted(fastqs)
+    cmd = ''
+    for dx, (db, db_path) in enumerate(dbs.items()):
+        bam = '%s/%s.bam' % (out_dir, db)
+        cmd += globals()['%s_cmd' % aligner](
+            sam, inputs, db, db_path, out_dir, params)
+        cmd += ' | samtools view -b -f 12 -F 256 -'
+        cmd += ' | samtools sort -@ %s -n - > %s\n' % (params['cpus'], bam)
+        cmd += 'bedtools bamtofastq -i %s' % bam
+        out1 = '%s/%s_R1.fastq' % (out_dir, db)
+        cmd += ' -fq %s' % out1
+        fastqs = [out1]
+        if len(inputs) > 1:
+            out2 = '%s/%s_R2.fastq' % (out_dir, db)
+            cmd += ' -fq2 %s\n' % out2
+            fastqs.append(out2)
+        cmd += 'rm %s\n' % bam
+        if dx:
+            cmd += 'rm %s\n' % ' '.join(inputs)
+        inputs = list(fastqs)
 
-    # alternative
-    cmd += ' > %s/tmp.sam\n' % out_dir
-    cmd += 'samtools view -f 12 -F 256 %s/tmp.sam > %s/tmp.filt.sam\n' % (
-        out_dir, out_dir)
-    cmd += 'samtools sort -@ %s -n %s/tmp.filt.sam > %s/tmp.filt.sort.sam\n' % (
-        params['cpus'], out_dir, out_dir)
-    cmd += 'samtools view -bS %s/tmp.filt.sort.sam > %s/tmp.filt.sort.bam\n' % (
-        out_dir, out_dir)
-    cmd += 'bedtools bamtofastq -i %s/tmp.filt.sort.bam' % out_dir
-    cmd += ' -fq %s' % out1.replace('fastq.gz', 'fastq')
-    fastqs = [out1.replace('fastq.gz', 'fastq')]
-    if len(inputs) > 1:
-        cmd += ' -fq2 %s' % out2.replace('fastq.gz', 'fastq')
-        fastqs.append(out2.replace('fastq.gz', 'fastq'))
-    cmd += '\nrm %s/tmp.*\n' % out_dir
-
-    # cmd += ' | samtools view -f 12 -F 256'
-    # cmd += ' | samtools sort -@ %s -n' % params['cpus']
-    # cmd += ' | samtools view -bS'
-    # cmd += ' | bedtools bamtofastq -i -'
-    # cmd += ' -fq %s' % out1.replace('fastq.gz', 'fastq')
-    # fastqs = [out1.replace('fastq.gz', 'fastq')]
-    # if len(inputs) > 1:
-    #     cmd += ' -fq2 %s' % out2.replace('fastq.gz', 'fastq')
-    #     fastqs.append(out2.replace('fastq.gz', 'fastq'))
-    # cmd += '\n'
-    return cmd, fastqs
+    if fastqs:
+        cmd += 'for i in %s/*; do gzip -q $i; done\n' % out_dir
+        cmd += 'mv %s.gz %s\n' % (fastqs[0], outs[0])
+        if len(fastqs) > 1:
+            cmd += 'mv %s.gz %s\n' % (fastqs[1], outs[1])
+    return cmd
 
 
 def filtering(self):
@@ -991,49 +1011,69 @@ def filtering(self):
         .config
             Configurations
     """
-    for (tech, sam), fastqs_ in self.inputs[self.sam_pool].items():
-        if tech_specificity(self, fastqs_, tech, sam):
+    for (tech, sam), fastqs in self.inputs[self.sam_pool].items():
+        if tech_specificity(self, fastqs, tech, sam):
             continue
-        to_dos = status_update(self, tech, fastqs_)
-
-        fastqs = fastqs_
-        cmds = ''
-        out_dirs = []
-        databases = self.soft.params['databases']
-        for dx, (db, db_path) in enumerate(databases.items()):
-            inputs = list(fastqs)
-            out_dir = '%s/%s/%s_%s/%s' % (self.dir, tech, dx, db, self.sam_pool)
-            out_dirs.append(out_dir)
-            self.outputs['dirs'].append(out_dir)
-            if len(inputs) == 1:
-                out1 = '%s/%s.fastq' % (out_dir, self.sam_pool)
-            else:
-                out1 = '%s/%s_R1.fastq' % (out_dir, self.sam_pool)
-            out2 = '%s/%s_R2.fastq' % (out_dir, self.sam_pool)
-            if inputs[0].endswith('.gz'):
-                out1 += '.gz'
-                out2 += '.gz'
-            cmd, fastqs = filtering_cmd(self, tech, db_path, inputs, out_dir,
-                                        out1, out2)
-            if self.config.force or to_do(out1):
-                cmds += cmd
-                if dx:
-                    cmds += '\nrm %s' % ' '.join(inputs)
-        if fastqs[0].endswith('.fastq'):
-            for fastq in fastqs:
-                cmds += '\ngzip -f %s' % fastq
-        fastqs_gz = ['%s.gz' % x for x in fastqs]
-        self.outputs['outs'].setdefault(
-            (tech, self.sam_pool), []).extend(fastqs_gz)
-        if (self.config.force or sum([to_do(x) for x in fastqs_gz])) and cmds:
+        to_dos = status_update(self, tech, fastqs)
+        out_dir = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
+        self.outputs['dirs'].append(out_dir)
+        if len(fastqs) == 1:
+            outs = ['%s/%s.fastq.gz' % (out_dir, self.sam_pool)]
+        else:
+            outs = ['%s/%s_R1.fastq.gz' % (out_dir, self.sam_pool),
+                    '%s/%s_R2.fastq.gz' % (out_dir, self.sam_pool)]
+        self.outputs['outs'].setdefault((tech, self.sam_pool), []).extend(outs)
+        if self.config.force or sum([to_do(x) for x in outs]):
             if to_dos:
                 self.outputs['cmds'][(tech,)] = [False]
             else:
-                self.outputs['cmds'][(tech,)] = [cmds]
-            io_update(self, i_f=fastqs_, i_d=out_dirs, o_f=fastqs_gz, key=tech)
+                cmd = filtering_cmd(self, sam, tech, fastqs, out_dir, outs)
+                self.outputs['cmds'][(tech,)] = [cmd]
+            io_update(self, i_f=fastqs, i_d=out_dir, o_d=out_dir, key=tech)
             self.soft.add_status(tech, sam, 1)
         else:
             self.soft.add_status(tech, sam, 0)
+
+
+        # fastqs = fastqs_
+        # cmds = ''
+        # out_dirs = []
+        # databases = self.soft.params['databases']
+        # for dx, (db, db_path) in enumerate(databases.items()):
+        #     inputs = list(fastqs)
+        #     out_dir = '%s/%s/%s_%s/%s' % (self.dir, tech, dx, db, self.sam_pool)
+        #     out_dirs.append(out_dir)
+        #     self.outputs['dirs'].append(out_dir)
+        #     if len(inputs) == 1:
+        #         out1 = '%s/%s.fastq' % (out_dir, self.sam_pool)
+        #     else:
+        #         out1 = '%s/%s_R1.fastq' % (out_dir, self.sam_pool)
+        #     out2 = '%s/%s_R2.fastq' % (out_dir, self.sam_pool)
+        #     if inputs[0].endswith('.gz'):
+        #         out1 += '.gz'
+        #         out2 += '.gz'
+        #     cmd, fastqs = filtering_cmd(self, tech, db_path, inputs, out_dir,
+        #                                 out1, out2)
+        #     if self.config.force or to_do(out1):
+        #         cmds += cmd
+        #         if dx:
+        #             cmds += '\nrm %s' % ' '.join(inputs)
+        #
+        # if fastqs[0].endswith('.fastq'):
+        #     for fastq in fastqs:
+        #         cmds += '\ngzip -f %s' % fastq
+        # fastqs_gz = ['%s.gz' % x for x in fastqs]
+        # self.outputs['outs'].setdefault(
+        #     (tech, self.sam_pool), []).extend(fastqs_gz)
+        # if (self.config.force or sum([to_do(x) for x in fastqs_gz])) and cmds:
+        #     if to_dos:
+        #         self.outputs['cmds'][(tech,)] = [False]
+        #     else:
+        #         self.outputs['cmds'][(tech,)] = [cmds]
+        #     io_update(self, i_f=fastqs_, i_d=out_dirs, o_f=fastqs_gz, key=tech)
+        #     self.soft.add_status(tech, sam, 1)
+        # else:
+        #     self.soft.add_status(tech, sam, 0)
 
 
 def berokka(self):
