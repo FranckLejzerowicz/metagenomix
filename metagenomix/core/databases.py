@@ -191,25 +191,44 @@ class ReferenceDatabases(object):
                 else:
                     print(' > No Pfam models previously extracted')
 
-    def get_pfam_terms(self, params):
-        terms_hmms_dias = {}
-        hmm = '%s/Pfam-A.hmm' % self.paths['pfam']
-        for term in params['terms']:
-            term_pd = self.hmms_pd.loc[
-                self.hmms_pd['DE'].str.lower().str.contains(term.lower())
-            ].copy()
-            if not term_pd.shape[0]:
-                continue
-            hmms_dias, cmd = get_hmms_dias_cmd(
-                hmm, term_pd, term, self.pfams['res'])
-            terms_hmms_dias[term] = hmms_dias
-            self.cmds[term] = [cmd]
-        # collect the "pfams per term" for the parameters of current softwares
-        # params['terms'] = terms
-        # add these "pfams per term" to a full, database-level collection
-        self.pfams['terms'].update(terms_hmms_dias)
-        self.register_command()
-        return terms_hmms_dias
+    # def get_pfam(
+    #         self,
+    #         descriptions=[],
+    #         accessions=[],
+    #         interpro=[]
+    # ):
+    #     """
+    #
+    #     Parameters
+    #     ----------
+    #     descriptions : list
+    #         List of description terms
+    #     accessions : list
+    #         List of Pfam accessions
+    #     interpro : list
+    #         List of InterPro tsv export files
+    #     """
+    #     if descriptions
+    #
+    #
+    #     hmm = '%s/Pfam-A.hmm' % self.paths['pfam']
+    #     for term in params.get('terms', []):
+    #         term_pd = self.hmms_pd.loc[
+    #             self.hmms_pd['DE'].str.lower().str.contains(term.lower())
+    #         ].copy()
+    #         if not term_pd.shape[0]:
+    #             continue
+    #         print(term_pd)
+    #         print(term_pddsa)
+    #         hmms_dias, cmd = get_hmms_dias_cmd(
+    #             hmm, term_pd, term, self.pfams['res'])
+    #         terms_hmms_dias[term] = hmms_dias
+    #         self.cmds[term] = [cmd]
+    #     # collect the "pfams per term" for the parameters of current softwares
+    #     # params['terms'] = terms
+    #     # add these "pfams per term" to a full, database-level collection
+    #     self.pfams.update(accessions)
+    #     self.register_command()
 
     def get_dbcan_hmms(self) -> None:
         """Get all the .hmm files from the dbCAN database."""
