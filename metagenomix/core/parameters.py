@@ -641,23 +641,6 @@ def check_quast(self, params, soft):
     return defaults
 
 
-def check_mapping(self, params, soft):
-    defaults = {
-        'aligners': ['minimap2', 'bowtie2', 'bwa', 'bbmap'],
-        'per_tech': [False, True]
-    }
-    for aligner in defaults['aligners']:
-        aligner_params = params.get(aligner, params)
-        check_aligner = 'check_%s' % aligner
-        if check_aligner in globals():
-            func = globals()[check_aligner]
-            aligner_defaults = func(self, aligner_params, soft, True)
-            defaults[aligner] = aligner_defaults
-    check_default(self, params, defaults, soft.name,
-                  defaults['aligners'], ['aligners'])
-    return defaults
-
-
 def check_bowtie2(self, params, soft, no_database=False):
     defaults = {
         'presets': ['sensitive', 'very-sensitive', 'very-fast', 'fast', None],
@@ -785,6 +768,25 @@ def check_bowtie2(self, params, soft, no_database=False):
                     valid_dbs[db] = bt2_path.rsplit('.', 2)[0]
         params['databases'] = valid_dbs
         defaults['databases'] = '<list of databases>'
+    return defaults
+
+
+def check_mapping(self, params, soft):
+    defaults = {
+        'aligners': ['minimap2', 'bowtie2', 'bwa', 'bbmap'],
+        'per_tech': [False, True]
+    }
+    for aligner in defaults['aligners']:
+        aligner_params = dict(params.get(aligner, {}))
+        check_aligner = 'check_%s' % aligner
+        if check_aligner in globals():
+            func = globals()[check_aligner]
+            aligner_defaults = func(self, aligner_params, soft, True)
+            defaults[aligner] = aligner_defaults
+            params[aligner] = aligner_params
+
+    check_default(
+        self, params, defaults, soft.name, defaults['aligners'], ['aligners'])
     return defaults
 
 
