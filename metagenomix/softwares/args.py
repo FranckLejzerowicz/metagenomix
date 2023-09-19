@@ -601,7 +601,8 @@ def get_karga_kargva(
 
         outs, cmd = [], ''
         bas = basename(fastx).rstrip('.gz').rstrip('.fastq')
-        for db, db_path in self.soft.params['databases'].items():
+        for db in self.soft.params['databases']:
+            db_path = self.databases.paths[db]
             self.outputs['dirs'].append(out_dir)
             out_db = '%s/db_%s' % (out_dir, db)
             outs.append(out_db)
