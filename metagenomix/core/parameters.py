@@ -200,7 +200,7 @@ def check_default(
 ):
     """Verifies that the parameters given by the used for the current tool
     and that are to be checked (i.e., not in the `let_go` list) are valid.
-    This mean that they must be one (or sevreral) of the values matching the
+    This mean that they must be one (or several) of the values matching the
     passed defaults. If a default parameter is not given by the user,
     then the parameter is created and set to the first as value of the
     passed defaults.
@@ -647,7 +647,7 @@ def check_mapping(self, params, soft):
         'per_tech': [False, True]
     }
     for aligner in defaults['aligners']:
-        aligner_params = params.get(aligner, {})
+        aligner_params = params.get(aligner, params)
         check_aligner = 'check_%s' % aligner
         if check_aligner in globals():
             func = globals()[check_aligner]
@@ -658,27 +658,152 @@ def check_mapping(self, params, soft):
     return defaults
 
 
+def check_bowtie2(self, params, soft, no_database=False):
+    defaults = {
+        'presets': ['sensitive', 'very-sensitive', 'very-fast', 'fast', None],
+        'paired': [True, False],
+        'fr': ['fr', 'rf', 'ff'],
+        'i': 'S,1,1.15',
+        'n_ceil': 'L,0,0.15',
+        'rdg': '5,3',
+        'rfg': '5,3',
+        'score_min': 'L,0,-0.05',
+        'skip': 0,
+        'upto': 0,
+        'trim5': 0,
+        'trim3': 0,
+        'trim_to': 0,
+        'N': 0,
+        'L': 22,
+        'dpad': 15,
+        'gbar': 4,
+        'ma': 0,
+        'k': 0,
+        'np': 1,
+        'mp': 6,
+        'D': 15,
+        'R': 2,
+        'minins': 0,
+        'maxins': 500,
+        'met': 240,
+        'seed': 12345,
+        'q': [True, False],
+        'tab5': [False, True],
+        'tab6': [False, True],
+        'qseq': [False, True],
+        'f': [False, True],
+        'r': [False, True],
+        'c': [False, True],
+        'phred33': [True, False],
+        'phred64': [False, True],
+        'int_quals': [False, True],
+        'ignore_quals': [False, True],
+        'nofw': [False, True],
+        'norc': [False, True],
+        'no_1mm_upfront': [False, True],
+        'end_to_end': [True, False],
+        'local': [False, True],
+        'all': [False, True],
+        'no_mixed': [False, True],
+        'no_discordant': [False, True],
+        'dovetail': [False, True],
+        'no_contain': [False, True],
+        'no_overlap': [False, True],
+        'align_paired_reads': [False, True],
+        'preserve_tags': [False, True],
+        't': [False, True],
+        'un': [False, True],
+        'al': [False, True],
+        'un_conc': [False, True],
+        'al_conc': [False, True],
+        'quiet': [False, True],
+        'met_file': [False, True],
+        'met_stderr': [False, True],
+        'no_unal': [True, False],
+        'no_head': [False, True],
+        'no_sq': [False, True],
+        'omit_sec_seq': [False, True],
+        'sam_no_qname_trunc': [False, True],
+        'xeq': [False, True],
+        'soft_clipped_unmapped_tlen': [False, True],
+        'sam_append_comment': [False, True],
+        'reorder': [False, True],
+        'mm': [False, True],
+        'qc_filter': [False, True],
+        'non_deterministic': [False, True]
+    }
+    if 'mp' in params:
+        if ',' in str(params['mp']):
+            if len([x.isdigit() for x in str(params['mp']).split(',')]) != 2:
+                sys.exit('[bowtie2] Dual-value "mp" option must be two INTs')
+        elif not str(params['mp']).isdigit():
+            sys.exit('[bowtie2] Single-value "mp" option must be an int')
+    else:
+        params['mp'] = defaults['mp']
+
+    for param in ['rdg', 'rfg']:
+        if param in params:
+            if len([x.isdigit() for x in str(params[param]).split(',')]) != 2:
+                sys.exit('[bowtie2] "%s" option invalid' % param)
+        else:
+            params[param] = defaults[param]
+
+    for param in ['i', 'n_ceil', 'score_min']:
+        if param in params:
+            s = params[param].split(',')
+            if len(s) != 3 or s[0] not in 'CLSG':
+                sys.exit('[bowtie2] "%s" option invalid' % param)
+            else:
+                for r in [1, 2]:
+                    try:
+                        float(s[r])
+                    except ValueError:
+                        sys.exit('[bowtie2] "%s" option invalid' % param)
+        else:
+            params[param] = defaults[param]
+
+    ints = ['skip', 'upto', 'trim5', 'trim3', 'trim_to', 'dpad', 'gbar', 'ma',
+            'k', 'np', 'D', 'R', 'minins', 'maxins', 'met', 'seed']
+    check_nums(self, params, defaults, ints, int, soft.name)
+    check_nums(self, params, defaults, ['N'], int, soft.name, 0, 1)
+    check_nums(self, params, defaults, ['L'], int, soft.name, 4, 31)
+
+    let_go = ints + ['N', 'L', 'i', 'n_ceil', 'score_min', 'rdg', 'rfg', 'mp']
+    check_default(self, params, defaults, soft.name, let_go)
+
+    if not no_database:
+        dbs_existing = check_databases(soft.name, params, self.databases)
+        valid_dbs = {}
+        for db in dbs_existing:
+            if 'bowtie2' in self.databases.builds[db]:
+                bt2_path = '%s/*.*.bt2*' % self.databases.builds[db]['bowtie2']
+                if not self.config.dev:
+                    bt2_paths = glob.glob(bt2_path)
+                    if bt2_paths:
+                        valid_dbs[db] = bt2_paths[0].rsplit('.', 2)[0]
+                else:
+                    valid_dbs[db] = bt2_path.rsplit('.', 2)[0]
+        params['databases'] = valid_dbs
+        defaults['databases'] = '<list of databases>'
+    return defaults
+
+
 def check_filtering(self, params, soft):
     defaults = {
         'aligner': ['bowtie2', 'minimap2', 'bwa', 'bbmap'],
     }
     if "databases" not in params or not isinstance(params["databases"], list):
         sys.exit('[filtering] Param "databases" not a list of databases')
-    print(params)
 
     for aligner in defaults['aligner']:
-        print(aligner)
-        aligner_params = params.get(aligner, {})
-        print(aligner_params)
+        aligner_params = dict(params.get(aligner, {}))
         check_aligner = 'check_%s' % aligner
         if check_aligner in globals():
             func = globals()[check_aligner]
-            print(func)
             aligner_defaults = func(self, aligner_params, soft, True)
-            print(aligner_params)
             defaults[aligner] = aligner_defaults
-    print(params)
-    print((['aligner'] + defaults['aligner']))
+            params[aligner] = aligner_params
+
     check_default(self, params, defaults, soft.name, defaults['aligner'])
 
     aligner = params['aligner']
@@ -689,8 +814,6 @@ def check_filtering(self, params, soft):
             if len(glob.glob('%s/*.bt2' % self.databases.paths[db])) != 6:
                 sys.exit('[filtering] Param "databases" bowtie2 files '
                          'missing for database "%s"' % db)
-    print(params)
-    print(paramsdsa)
     defaults['databases'] = '<list of databases>'
     return defaults
 
@@ -1003,137 +1126,6 @@ def check_shogun(self, params, soft):
         if not params['databases']:
             print('[shogun] No database formatted for shogun: will be skipped')
     defaults['databases'] = '<list of databases>'
-    return defaults
-
-
-def check_bowtie2(self, params, soft, no_database=False):
-    defaults = {
-        'presets': ['sensitive', 'very-sensitive', 'very-fast', 'fast', None],
-        'paired': [True, False],
-        'fr': ['fr', 'rf', 'ff'],
-        'i': 'S,1,1.15',
-        'n_ceil': 'L,0,0.15',
-        'rdg': '5,3',
-        'rfg': '5,3',
-        'score_min': 'L,0,-0.05',
-        'skip': 0,
-        'upto': 0,
-        'trim5': 0,
-        'trim3': 0,
-        'trim_to': 0,
-        'N': 0,
-        'L': 22,
-        'dpad': 15,
-        'gbar': 4,
-        'ma': 0,
-        'k': 0,
-        'np': 1,
-        'mp': 6,
-        'D': 15,
-        'R': 2,
-        'minins': 0,
-        'maxins': 500,
-        'met': 240,
-        'seed': 12345,
-        'q': [True, False],
-        'tab5': [False, True],
-        'tab6': [False, True],
-        'qseq': [False, True],
-        'f': [False, True],
-        'r': [False, True],
-        'c': [False, True],
-        'phred33': [True, False],
-        'phred64': [False, True],
-        'int_quals': [False, True],
-        'ignore_quals': [False, True],
-        'nofw': [False, True],
-        'norc': [False, True],
-        'no_1mm_upfront': [False, True],
-        'end_to_end': [True, False],
-        'local': [False, True],
-        'all': [False, True],
-        'no_mixed': [False, True],
-        'no_discordant': [False, True],
-        'dovetail': [False, True],
-        'no_contain': [False, True],
-        'no_overlap': [False, True],
-        'align_paired_reads': [False, True],
-        'preserve_tags': [False, True],
-        't': [False, True],
-        'un': [False, True],
-        'al': [False, True],
-        'un_conc': [False, True],
-        'al_conc': [False, True],
-        'quiet': [False, True],
-        'met_file': [False, True],
-        'met_stderr': [False, True],
-        'no_unal': [True, False],
-        'no_head': [False, True],
-        'no_sq': [False, True],
-        'omit_sec_seq': [False, True],
-        'sam_no_qname_trunc': [False, True],
-        'xeq': [False, True],
-        'soft_clipped_unmapped_tlen': [False, True],
-        'sam_append_comment': [False, True],
-        'reorder': [False, True],
-        'mm': [False, True],
-        'qc_filter': [False, True],
-        'non_deterministic': [False, True]
-    }
-
-    if 'mp' in params:
-        if ',' in str(params['mp']):
-            if len([x.isdigit() for x in str(params['mp']).split(',')]) != 2:
-                sys.exit('[bowtie2] Dual-value "mp" option must be two INTs')
-        elif not str(params['mp']).isdigit():
-            sys.exit('[bowtie2] Single-value "mp" option must be an int')
-    else:
-        params['mp'] = defaults['mp']
-
-    for param in ['rdg', 'rfg']:
-        if param in params:
-            if len([x.isdigit() for x in str(params[param]).split(',')]) != 2:
-                sys.exit('[bowtie2] "%s" option invalid' % param)
-        else:
-            params[param] = defaults[param]
-
-    for param in ['i', 'n_ceil', 'score_min']:
-        if param in params:
-            s = params[param].split(',')
-            if len(s) != 3 or s[0] not in 'CLSG':
-                sys.exit('[bowtie2] "%s" option invalid' % param)
-            else:
-                for r in [1, 2]:
-                    try:
-                        float(s[r])
-                    except ValueError:
-                        sys.exit('[bowtie2] "%s" option invalid' % param)
-        else:
-            params[param] = defaults[param]
-
-    ints = ['skip', 'upto', 'trim5', 'trim3', 'trim_to', 'dpad', 'gbar', 'ma',
-            'k', 'np', 'D', 'R', 'minins', 'maxins', 'met', 'seed']
-    check_nums(self, params, defaults, ints, int, soft.name)
-    check_nums(self, params, defaults, ['N'], int, soft.name, 0, 1)
-    check_nums(self, params, defaults, ['L'], int, soft.name, 4, 31)
-
-    let_go = ints + ['N', 'L', 'i', 'n_ceil', 'score_min', 'rdg', 'rfg', 'mp']
-    check_default(self, params, defaults, soft.name, let_go)
-
-    if not no_database:
-        dbs_existing = check_databases(soft.name, params, self.databases)
-        valid_dbs = {}
-        for db in dbs_existing:
-            if 'bowtie2' in self.databases.builds[db]:
-                bt2_path = '%s/*.*.bt2*' % self.databases.builds[db]['bowtie2']
-                if not self.config.dev:
-                    bt2_paths = glob.glob(bt2_path)
-                    if bt2_paths:
-                        valid_dbs[db] = bt2_paths[0].rsplit('.', 2)[0]
-                else:
-                    valid_dbs[db] = bt2_path.rsplit('.', 2)[0]
-        params['databases'] = valid_dbs
-        defaults['databases'] = '<list of databases>'
     return defaults
 
 
