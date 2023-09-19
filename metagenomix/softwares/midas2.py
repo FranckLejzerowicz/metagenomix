@@ -365,7 +365,7 @@ def get_midas2_cmd(
     cmd += ' %s\n' % focus_dir
 
     if step in ['midas2_genes', 'midas2_snps']:
-        cmd += 'rm %s/%s/bt2_indexes\n' % (focus_dir, self.sam_pool)
+        cmd += 'rm -rf %s/%s/bt2_indexes\n' % (focus_dir, self.sam_pool)
         cmd += 'rm %s/%s/temp/*/*.bam*\n' % (focus_dir, self.sam_pool)
         cmd += 'rm %s/%s/temp/*/*/*.lz4\n' % (focus_dir, self.sam_pool)
     return cmd
