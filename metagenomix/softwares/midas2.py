@@ -294,8 +294,8 @@ def get_midas2_cmd(
     cmd += ' -1 %s' % fastqs[0]
     if len(fastqs) == 2:
         cmd += ' -2 %s' % fastqs[1]
-
     if step in ['midas2_genes', 'midas2_snps']:
+        cmd += ' --debug'
         for param in ['prebuilt_bowtie2_indexes', 'prebuilt_bowtie2_species']:
             if params[param]:
                 cmd += ' --%s %s' % (param, params[param])
@@ -362,8 +362,12 @@ def get_midas2_cmd(
         cmd += ' --midasdb_name s3db'
     cmd += ' --midasdb_dir %s' % db_path
     cmd += ' --num_cores %s' % params['cpus']
-    cmd += ' %s' % focus_dir
+    cmd += ' %s\n' % focus_dir
 
+    if step in ['midas2_genes', 'midas2_snps']:
+        cmd += 'rm %s/%s/bt2_indexes\n' % (focus_dir, self.sam_pool)
+        cmd += 'rm %s/%s/temp/*/*.bam*\n' % (focus_dir, self.sam_pool)
+        cmd += 'rm %s/%s/temp/*/*/*.lz4\n' % (focus_dir, self.sam_pool)
     return cmd
 
 
