@@ -409,7 +409,6 @@ def integronfinder_cmd(
         tech: str,
         fastx: str,
         out: str,
-        hmms_fp: str
 ) -> str:
     """Collect command for integron_finder.
 
@@ -424,7 +423,6 @@ def integronfinder_cmd(
         Path to the input fasta/fastq(.gz) file
     out : str
         Path to the output folder
-    hmms_fp : str
 
     Returns
     -------
@@ -451,32 +449,38 @@ def integronfinder_cmd(
 
     cmd += 'integron_finder'
     for boolean in [
-        'local_max', 'promoter_attI', 'mute', 'pdf', 'gbk', 'union_integrases'
-    ]:
+        'pdf', 'gbk', 'keep_tmp', 'mute', 'gembase', 'local_max',
+        'promoter_attI', 'union_integrases', 'keep_palindromes',
+        'circ', 'linear',
+        ]:
         if params[boolean]:
             cmd += ' --%s' % boolean.replace('_', '-')
+
     cmd += ' --verbose'
     cmd += ' --outdir %s' % out
     cmd += ' --cpu %s' % params['cpus']
-    if self.databases.hmms_dias:
+
+    if params['no_proteins']:
+        cmd += ' --no-proteins'
+    elif params['func_annot']:
         cmd += ' --func-annot'
-        cmd += ' --path-func-annot %s' % hmms_fp
-    if params['prot_file']:
-        cmd += ' --prot-file %s' % params['prot_file']
+        if params['path_func_annot']:
+            cmd += ' --path-func-annot %s' % params['path_func_annot']
+
     if params['attc_model']:
         cmd += ' --attc-model %s' % params['attc_model']
         cmd += ' --evalue-attc %s' % params['evalue_attc']
         cmd += ' --max-attc-size %s' % params['max_attc_size']
         cmd += ' --min-attc-size %s' % params['min_attc_size']
+
+    if params['linear']:
+        cmd += ' --linear'
+    if params['circ']:
+        cmd += ' --circ'
     if params['topology_file']:
+        # this file is automatically created for contigs annotates as plasmids
         cmd += ' --topology-file %s' % params['topology_file']
-    else:
-        if self.soft.prev == 'plass':
-            cmd += ' --topology linear'
-        elif '_spades_' in out:
-            cmd += ' --topology linear'
-        elif '_drep_' in out or '_metawrap' in out:
-            cmd += ' --topology circ'
+
     cmd += ' %s\n' % fasta_out
     cmd += cmd_rm
     return cmd
@@ -513,6 +517,10 @@ def get_integronfinder(
         with open(hmms_sh.replace('${SCRATCH_FOLDER}', ''), 'w') as o:
             o.write(hmms_cmds)
         hmms_cmd = '\nif [ ! -f %s ]; then sh %s; fi\n' % (hmms_fp, hmms_sh)
+
+    # --------------------------------------------------------------
+    # create a topology file for the contigs annotated as plasmids
+    # --------------------------------------------------------------
 
     for genome, fasta_ in fastas.items():
 
