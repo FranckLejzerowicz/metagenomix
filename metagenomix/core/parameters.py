@@ -452,12 +452,12 @@ def check_integronfinder(self, params, soft):
         'func_annot': [True, False],
         'circ': [False, True],
         'linear': [True, False],
-        'keep_tmp': [True, False],
+        'keep_tmp': [True, False]
     }
     paths = ['annot_parser', 'attc_model', 'topology_file', 'path_func_annot']
     for p in paths:
         if p in params:
-            if not isfile(params[p]):
+            if not isfile(str(params[p])):
                 sys.exit('[integron_finder] Path "%s" do not exist' % params[p])
         else:
             params[p] = None
