@@ -434,29 +434,44 @@ def check_barrnap(self, params, soft):
 
 def check_integronfinder(self, params, soft):
     defaults = {
+        'dt': 400,
         'evalue_attc': 1,
         'min_length': 1500,
         'min_attc_size': 40,
         'max_attc_size': 200,
+        'calin_threshold': 2,
         'pdf': [True, False],
         'gbk': [True, False],
         'mute': [True, False],
+        'gembase': [False, True],
         'local_max': [True, False],
         'promoter_attI': [True, False],
         'union_integrases': [False, True],
+        'keep_palindromes': [False, True],
+        'no_proteins': [False, True],
+        'func_annot': [True, False],
+        'circ': [False, True],
+        'linear': [True, False],
+        'keep_tmp': [True, False],
     }
-    for param in ['prot_file', 'attc_model', 'topology_file']:
-        if param not in params:
-            params[param] = None
-    check_nums(self, params, defaults, ['min_length', 'min_attc_size',
-                                        'max_attc_size'], int, soft.name)
-    check_nums(self, params, defaults, ['evalue_attc'],
-               float, soft.name, 0, 100)
-    let_go = ['min_length', 'min_attc_size', 'max_attc_size', 'evalue_attc']
+    paths = ['annot_parser', 'attc_model', 'topology_file', 'path_func_annot']
+    for p in paths:
+        if p in params:
+            if not isfile(params[p]):
+                sys.exit('[integron_finder] Path "%s" do not exist' % params[p])
+        else:
+            params[p] = None
+    ints = [
+        'dt', 'min_length', 'min_attc_size', 'max_attc_size', 'calin_threshold']
+    check_nums(self, params, defaults, ints, int, soft.name)
+    ints1 = ['evalue_attc']
+    check_nums(self, params, defaults, ints1, float, soft.name, 0, 100)
+    let_go = ints + ints1
     check_default(self, params, defaults, soft.name, let_go)
-    defaults['prot_file'] = '<Path to proteins file used for annotations>'
+    defaults['annot_parser'] = '<Parser to use to get info from protein file>'
     defaults['attc_model'] = '<Path to the attc model (Covariance Matrix)>'
     defaults['topology_file'] = '<Path to file with each replicon topology>'
+    defaults['path_func_annot'] = '<Path containing all hmm bank paths>'
     return defaults
 
 
