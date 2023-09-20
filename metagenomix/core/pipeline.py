@@ -290,7 +290,15 @@ class Workflow(object):
             soft.params['scratch'] = 'userscratch'
 
     def get_user_params(self, soft, name):
+        """The params set by user for a tool's subcommand take precedence over
+        the params of the general tool. For example, if params are set both for:
+         - `metawrap`
+         - `metawrap_refine`
+        then the values given under `metawrap_refine` take precedence.
+        """
+        # params of the general tool
         user_params = dict(self.config.user_params.get(name, {}))
+        # params of the specific tool subcommand/module
         user_params.update(dict(self.config.user_params.get(soft.name, {})))
         return user_params
 
