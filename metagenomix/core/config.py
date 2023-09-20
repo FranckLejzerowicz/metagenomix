@@ -35,6 +35,7 @@ class AnalysesConfig(object):
         self.fastq_mv = {}
         self.fastq = {}
         self.params = {}
+        self.params_dbs = set()
         self.read = []
         self.dir = ''
         self.r = {}
@@ -53,6 +54,7 @@ class AnalysesConfig(object):
         self.get_r()
         self.set_output()
         self.parse_yamls()
+        self.get_params_dbs()
         self.set_coassembly()
         self.update_metadata()
         self.get_default_params()
@@ -263,6 +265,10 @@ class AnalysesConfig(object):
                         if x[0] != '#' and len(x.strip().split())]
                     self.add_mergers()
                     setattr(self, arg[:-4], self.read)
+
+    def get_params_dbs(self):
+        for soft, params in self.user_params.items():
+            self.params_dbs.update(params.get("databases", set()))
 
     def get_default_params(self):
         """
