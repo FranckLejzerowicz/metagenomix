@@ -508,15 +508,15 @@ def get_integronfinder(
     sam_group : str
         Sample name or group for the current co-assembly
     """
-    hmms_cmds, hmms_fp = write_hmms_cmd(self)
-    if hmms_cmds:
-        hmms_sh = '%s/hmms.sh' % self.dir
-        hmms_dir = self.dir.replace('${SCRATCH_FOLDER}', '')
-        if not isdir(hmms_dir):
-            os.makedirs(hmms_dir)
-        with open(hmms_sh.replace('${SCRATCH_FOLDER}', ''), 'w') as o:
-            o.write(hmms_cmds)
-        hmms_cmd = '\nif [ ! -f %s ]; then sh %s; fi\n' % (hmms_fp, hmms_sh)
+    # hmms_cmds, hmms_fp = write_hmms_cmd(self)
+    # if hmms_cmds:
+    #     hmms_sh = '%s/hmms.sh' % self.dir
+    #     hmms_dir = self.dir.replace('${SCRATCH_FOLDER}', '')
+    #     if not isdir(hmms_dir):
+    #         os.makedirs(hmms_dir)
+    #     with open(hmms_sh.replace('${SCRATCH_FOLDER}', ''), 'w') as o:
+    #         o.write(hmms_cmds)
+    #     hmms_cmd = '\nif [ ! -f %s ]; then sh %s; fi\n' % (hmms_fp, hmms_sh)
 
     # --------------------------------------------------------------
     # create a topology file for the contigs annotated as plasmids
@@ -538,12 +538,14 @@ def get_integronfinder(
 
         fpo = '%s/Results_Integron_Finder_mysequences/mysequences.summary' % out
         if self.config.force or to_do(fpo):
-            cmd = hmms_cmd + integronfinder_cmd(self, tech, fasta, out, hmms_fp)
+            # cmd = hmms_cmd + integronfinder_cmd(self, tech, fasta, out)
+            cmd = integronfinder_cmd(self, tech, fasta, out)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
-            io_update(self, i_f=[fasta, hmms_sh], o_d=out, key=key)
+            # io_update(self, i_f=[fasta, hmms_sh], o_d=out, key=key)
+            io_update(self, i_f=fasta, o_d=out, key=key)
             self.soft.add_status(
                 tech, self.sam_pool, 1, group=sam_group, genome=genome)
         else:
