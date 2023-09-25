@@ -2213,9 +2213,7 @@ def get_kraken2_db(
     str
         Path to the Kraken2 database
     """
-    if db == 'default':
-        return self.databases.paths['kraken2']
-    elif db in self.databases.paths:
+    if db in self.databases.paths:
         for subdir in ['', '/kraken2', '/databases', '/databases/kraken2']:
             db_path = '%s%s' % (self.databases.paths[db], subdir)
             if self.config.dev:
