@@ -491,12 +491,13 @@ class ReferenceDatabases(object):
         if len(bt2s) < 6:
             self.messages[self.db] = 'Less than six "bt2*" files'
             self.formatted = False
-        bt2_1s = glob.glob('%s/*.1.bt2*' % self.fdir)
-        if bt2_1s:
-            for bt2_1 in bt2_1s:
-                bt2_rad = bt2_1.rsplit('.1.bt2', 1)[0]
-                for e in ['2.bt2', '3.bt2', '4.bt2', 'rev.1.bt2', 'rev.2.bt2']:
+        bt2_4s = glob.glob('%s/*.4.bt2*' % self.fdir)
+        if bt2_4s:
+            for bt2_4 in bt2_4s:
+                bt2_rad = bt2_4.rsplit('.4.bt2', 1)[0]
+                for e in ['1.bt2', '2.bt2', '3.bt2', 'rev.1.bt2', 'rev.2.bt2']:
                     f = '%s.%s' % (bt2_rad, e)
+                    print(f)
                     if not isfile(f) and not isfile('%sl' % f):
                         self.messages[self.db] = 'Missing "bt2*"'
                         self.formatted = False
