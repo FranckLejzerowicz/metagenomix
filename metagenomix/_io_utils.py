@@ -83,7 +83,7 @@ def mkdr(
         os.makedirs(path, exist_ok=True)
 
 
-def get_pfam_wget_cmd(
+def wget_pfam(
         pfam_dir: str
 ) -> str:
     """Get the validation (even through downloading) that the HMM file is there.
