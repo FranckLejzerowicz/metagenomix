@@ -808,6 +808,7 @@ def bowtie2(self) -> None:
             bam = '%s/alignment.bowtie2.bam' % out_dir
             self.outputs['outs'][(tech, sample)][(db, 'bowtie2')] = bam
             if self.config.force or to_do(bam):
+                print(self.databases.builds[db])
                 db_path = self.databases.builds[db]['bowtie2']
                 cmd = bowtie2_cmd(sample, fastxs, db, db_path, out_dir, params)
                 cmd += ' > %s.sam\n' % sam
