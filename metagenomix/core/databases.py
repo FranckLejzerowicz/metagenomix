@@ -132,6 +132,7 @@ class ReferenceDatabases(object):
         for db, path in sorted(self.config.databases.items()):
             self.db = db
             self.path = path.rstrip('/')
+            self.messages = {}
             self.set_paths()
 
     def set_paths(self):
@@ -152,6 +153,9 @@ class ReferenceDatabases(object):
             print()
         else:
             self.set_format()
+        if self.config.verbose:
+            for fmt, mess in self.messages.get(self.db):
+                print('[databases] "%s": %s" (%s)' % (self.path, mess, fmt))
         self.set_dmnd()
         self.set_hmms()
         self.set_path()
@@ -179,9 +183,6 @@ class ReferenceDatabases(object):
             self.formatted = True
             if hasattr(self, "check_format_%s" % self.format):
                 getattr(self, "check_format_%s" % self.format)()
-                if self.config.verbose:
-                    print('[databases] "%s": %s"' % (self.fdir, self.messages,
-                                                     self.db))
 
     def set_format(self) -> None:
         builds = {}
