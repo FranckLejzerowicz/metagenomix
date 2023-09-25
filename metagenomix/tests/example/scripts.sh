@@ -1,11 +1,12 @@
-metagenomix \
-  -m metagenomix/tests/example/agp/metadata/meta.txt \
-  -o metagenomix/tests/example/agp/output \
-  -i metagenomix/tests/example/agp/fastqs \
-  -u metagenomix/tests/example/user_params.yml \
-  -p metagenomix/tests/example/pipeline.txt \
-  -d metagenomix/tests/example/databases.yml \
-  -s metagenomix/tests/example/strains.yml \
-  -c light -c depth \
+metagenomix create \
+  -i metagenomix/tests/example/fastqs_illumina \
+  -m metagenomix/tests/example/metadata/meta.txt \
+  -o metagenomix/tests/example/output \
+  -p metagenomix/tests/example/pipeline/pipeline_red4.txt \
+  -d metagenomix/tests/example/configs/databases.yml \
+  -c metagenomix/tests/example/configs/coassembly.yml \
+  -u metagenomix/tests/example/configs/user_params.yml \
+  -M metagenomix/tests/example/configs/modules.yml \
+  --dev \
   -n test \
   --force
