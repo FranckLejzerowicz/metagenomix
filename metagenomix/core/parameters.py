@@ -775,12 +775,12 @@ def check_bowtie2(self, params, soft, no_database=False):
         for db in dbs_existing:
             if 'bowtie2' in self.databases.builds[db]:
                 bt2_path = '%s/*.*.bt2*' % self.databases.builds[db]['bowtie2']
-                if not self.config.dev:
+                if self.config.dev:
+                    valid_dbs[db] = bt2_path.rsplit('.', 2)[0]
+                else:
                     bt2_paths = glob.glob(bt2_path)
                     if bt2_paths:
                         valid_dbs[db] = bt2_paths[0].rsplit('.', 2)[0]
-                else:
-                    valid_dbs[db] = bt2_path.rsplit('.', 2)[0]
         params['databases'] = valid_dbs
         defaults['databases'] = '<list of databases>'
     return defaults
