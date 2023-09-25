@@ -1,0 +1,59 @@
+# -------------------- Follow the format examples below -------------------- #
+# my_database_name: /a/path/to/the/folder/containing/my/database             #
+#                                                                            #
+#  for the softwares that ship with a database, such as humann, wol, etc...  #
+#  then this must be the path where the database is installed, but if you    #
+#  have created re-formatted versions of these databases (or others), then   #
+#  this path must contain the formatting sub-folders (as explained  above)   #
+# -------------------------------------------------------------------------- #
+
+# tools dbs
+dbcan: /Users/franck/programs/metagenomix/metagenomix/tests/databases/dbCAN
+midas: /Users/franck/programs/metagenomix/metagenomix/tests/databases/midas_db_v1.2
+platon: /Users/franck/programs/metagenomix/metagenomix/tests/databases/platon
+ioncom: /Users/franck/programs/metagenomix/metagenomix/tests/databases/IonCom
+itasser: /Users/franck/programs/metagenomix/metagenomix/tests/databases/I-TASSER5.2
+macsyfinder: /Users/franck/programs/metagenomix/metagenomix/tests/databases/macsyfinder
+squeezemeta: /Users/franck/programs/metagenomix/metagenomix/tests/databases/SqueezeMeta
+humann: /Users/franck/programs/metagenomix/metagenomix/tests/databases/metaphlan3/latest
+metaphlan: /Users/franck/programs/metagenomix/metagenomix/tests/databases/metaphlan3/latest
+midas2_gtdb: /Users/franck/programs/metagenomix/metagenomix/tests/databases/MIDAS2/latest/gtdb
+checkm: /Users/franck/programs/metagenomix/metagenomix/tests/databases/checkm_data_2015_01_16
+gtdbtk: /Users/franck/programs/metagenomix/metagenomix/tests/databases/gtdb/auxillary_files/gtdbtk_r207_v2_data
+uniref: /Users/franck/programs/metagenomix/metagenomix/tests/databases/uniprot/latest/uniref90
+wol: /Users/franck/programs/metagenomix/metagenomix/tests/databases/wol/latest
+metaxa2: /Users/franck/programs/metagenomix/metagenomix/tests/databases/metaxa2_db
+  /latest
+
+# builds
+mar: /Users/franck/programs/metagenomix/metagenomix/tests/databases/MAR/MarDB_1.5
+tara_mags: /Users/franck/programs/metagenomix/metagenomix/tests/databases/tara_oceans/latest/TaraOceans_BAC_ARC_MAGs
+tara_smags: /Users/franck/programs/metagenomix/metagenomix/tests/databases/tara_oceans/latest/TaraOceans_SMAGs
+gtdb_genomes: /Users/franck/programs/metagenomix/metagenomix/tests/databases/gtdb/databases/gtdb_r207_v2_genomes
+gtdb_plasmids: /Users/franck/programs/metagenomix/metagenomix/tests/databases/gtdb/databases/gtdb_r207_v2_plasmids
+oceandna_rep: /Users/franck/programs/metagenomix/metagenomix/tests/databases/tara_oceans/latest/OceanDNA_MAGs/databases/oceandna_rep
+rep82: /Users/franck/programs/metagenomix/metagenomix/tests/databases/SHOGUN/latest/rep82/
+# human pangenomes for filtering
+CHM13Y: /Users/franck/programs/metagenomix/metagenomix/tests/databases/HPRC/databases/CHM13Y
+HG002.1: /Users/franck/programs/metagenomix/metagenomix/tests/databases/HPRC/databases/HG002.1
+HG002.2: /Users/franck/programs/metagenomix/metagenomix/tests/databases/HPRC/databases/HG002.2
+HG00438.1: /Users/franck/programs/metagenomix/metagenomix/tests/databases/HPRC/databases/HG00438.1
+HG00438.2: /Users/franck/programs/metagenomix/metagenomix/tests/databases/HPRC/databases/HG00438.2
+# kraken2 and bracken
+k2_minusb: /Users/franck/programs/metagenomix/metagenomix/tests/databases/Kraken2/latest/minusb
+k2_pluspf: /Users/franck/programs/metagenomix/metagenomix/tests/databases/Kraken2/latest/pluspf
+k2_pluspf_08gb: /Users/franck/programs/metagenomix/metagenomix/tests/databases/Kraken2/latest/pluspf_08gb
+
+# general dbs
+pfam: /Users/franck/programs/metagenomix/metagenomix/tests/databases/Pfam35.0
+
+# karga... test
+megares_db: /Users/franck/programs/metagenomix/metagenomix/tests/databases/megares_db/megares_db.fasta
+ice: /Users/franck/programs/metagenomix/metagenomix/tests/databases/ice/ice.fasta
+
+# for testing
+db_name_1: /Users/franck/programs/metagenomix/metagenomix/tests/databases/db_name_1
+db_name_2: /Users/franck/programs/metagenomix/metagenomix/tests/databases/db_name_2
+db_name_n: /Users/franck/programs/metagenomix/metagenomix/tests/databases/db_name_n
+default: /what/ever
+#data_name:
