@@ -830,11 +830,11 @@ def check_filtering(self, params, soft):
         if aligner == 'bowtie2':
             if db not in self.databases.paths:
                 sys.exit('[filtering] DB "%s" not in databases config' % db)
-            print(self.databases.paths[db])
-            print(self.databases.builds)
-            dbs = '%s/*.*.bt2*' % self.databases.builds[db]
-            print(dbs)
-            print(glob.glob(dbs))
+            elif db not in self.databases.builds:
+                sys.exit('[filtering] DB "%s" not built for bowtie2' % db)
+            elif not self.databases.builds[db].get('bowtie2'):
+                sys.exit('[filtering] DB "%s" not built for bowtie2' % db)
+            dbs = '%s/*.*.bt2*' % self.databases.builds[db]['bowtie2']
             if len(glob.glob(dbs)) != 6:
                 sys.exit('[filtering] Param "databases" bowtie2 files '
                          'missing for database "%s"' % db)
