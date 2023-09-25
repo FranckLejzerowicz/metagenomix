@@ -29,6 +29,7 @@ class ReferenceDatabases(object):
         self.commands = {}
         self.cmds = {}
         self.paths = {}
+        self.build = ''
         self.builds = {}
         self.content = {}
         self.db = ''
@@ -185,20 +186,25 @@ class ReferenceDatabases(object):
                 getattr(self, "check_format_%s" % self.format)()
 
     def set_format(self) -> None:
-        builds = {}
+        self.builds[self.db] = {}
         for fmt in self.formats:
             self.format = fmt
             for sub_folder in ['', 'databases/']:
                 self.fdir = self.path + '/%s' % sub_folder + self.format
                 self.check_format()
                 if self.config.dev or self.formatted:
-                    builds[self.format] = str(self.fdir)
+                    self.register_build()
                     print('+%s' % (' ' * len(self.format)), end='')
                     break
             else:
                 print('-%s' % (' ' * len(self.format)), end='')
         print()
-        self.builds[self.db] = builds
+
+    def register_build(self):
+        if self.format == 'bowtie2':
+            self.builds[self.db][self.format] = str(self.build)
+        else:
+            self.builds[self.db][self.format] = str(self.fdir)
 
     def register_command(self) -> None:
         self.commands.setdefault(self.db, {}).update(dict(self.cmds))
@@ -504,9 +510,9 @@ class ReferenceDatabases(object):
         bt2_4s = glob.glob('%s/*.4.bt2*' % self.fdir)
         if bt2_4s:
             for bt2_4 in bt2_4s:
-                bt2_rad = bt2_4.rsplit('.4.bt2', 1)[0]
+                self.build = bt2_4.rsplit('.4.bt2', 1)[0]
                 for e in ['1.bt2', '2.bt2', '3.bt2', 'rev.1.bt2', 'rev.2.bt2']:
-                    f = '%s.%s' % (bt2_rad, e)
+                    f = '%s.%s' % (self.build, e)
                     if not isfile(f) and not isfile('%sl' % f):
                         self.messages[self.format] = 'Missing "bt2*"'
                         self.formatted = False

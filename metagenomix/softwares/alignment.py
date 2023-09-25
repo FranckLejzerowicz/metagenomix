@@ -799,7 +799,7 @@ def bowtie2(self) -> None:
         out = '%s/%s/%s' % (self.dir, tech, sample)
         self.outputs['outs'][(tech, sample)] = dict()
         # update to lookup the `databases.yml`
-        for db, db_path in params['databases'].items():
+        for db in params['databases']:
             if self.soft.params['paired'] and len(fastxs) == 2:
                 out_dir = '%s/%s/paired' % (out, db)
             else:
@@ -808,6 +808,7 @@ def bowtie2(self) -> None:
             bam = '%s/alignment.bowtie2.bam' % out_dir
             self.outputs['outs'][(tech, sample)][(db, 'bowtie2')] = bam
             if self.config.force or to_do(bam):
+                db_path = self.databases.builds[db]['bowtie2']
                 cmd = bowtie2_cmd(sample, fastxs, db, db_path, out_dir, params)
                 cmd += ' > %s.sam\n' % sam
                 cmd += 'samtools view -b %s | samtools sort -o %s' % (sam, bam)
