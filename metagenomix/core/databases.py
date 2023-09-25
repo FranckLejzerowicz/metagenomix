@@ -487,7 +487,7 @@ class ReferenceDatabases(object):
     #     self.pfams.update(accessions)
     #     self.register_command()
 
-    def check_format_bowtie2(self) -> bool:
+    def check_format_bowtie2(self):
         bt2s = glob.glob('%s/*.bt2*' % self.fdir)
         if len(bt2s) < 6:
             self.messages[self.db] = 'Less than six "bt2*" files'
@@ -505,7 +505,7 @@ class ReferenceDatabases(object):
             self.messages[self.db] = 'No "1.bt2*" file'
             self.formatted = False
 
-    def check_format_bbmap(self) -> bool:
+    def check_format_bbmap(self):
         files = {'genome': 'info.txt', 'index': '*.block'}
         for fdx, (folder, fil) in enumerate(files.items()):
             fold = '%s/*/ref/%s/1' % (self.fdir, folder)
@@ -517,17 +517,18 @@ class ReferenceDatabases(object):
                 self.messages[self.db] = 'incomplete "%s"' % fold
                 self.formatted = False
 
-    def check_format_blastn(self) -> bool:
-        nhr = '%s/*.nhr' % self.fdir
-        if not glob.glob(nhr):
+    def check_format_blastn(self):
+        nhrs = glob.glob('%s/*.nhr' % self.fdir)
+        if not nhrs:
             self.messages[self.db] = 'Not a single ".nhr" file'
             self.formatted = False
-        for ext in ['nin', 'nsq']:
-            if not isfile('%s.%s' % (splitext(nhr)[0], ext)):
-                self.messages[self.db] = 'No ".%s" file' % ext
-                self.formatted = False
+        for nhr in nhrs:
+            for ext in ['nin', 'nsq']:
+                if not isfile('%s.%s' % (splitext(nhr)[0], ext)):
+                    self.messages[self.db] = 'No ".%s" file' % ext
+                    self.formatted = False
 
-    def check_format_bracken(self) -> bool:
+    def check_format_bracken(self):
         kraken = '%s/database*mers.kraken' % self.fdir
         if not glob.glob(kraken):
             self.messages[self.db] = 'No "%s" file' % kraken
@@ -542,7 +543,7 @@ class ReferenceDatabases(object):
                 self.messages[self.db] = 'No "%s"' % basename(k)
                 self.formatted = False
 
-    def check_format_burst(self) -> bool:
+    def check_format_burst(self):
         acxs = glob.glob('%s/*.acx' % self.fdir)
         if not acxs:
             self.messages[self.db] = 'No ".acx" file'
@@ -553,7 +554,7 @@ class ReferenceDatabases(object):
                 self.messages[self.db] = 'No "%s.edx" file' % b
                 self.formatted = False
 
-    def check_format_centrifuge(self) -> bool:
+    def check_format_centrifuge(self):
         cfs = glob.glob('%s/*.cf' % self.fdir)
         if len(cfs) < 4:
             self.messages[self.db] = 'Less than four "cf" files'
@@ -570,37 +571,38 @@ class ReferenceDatabases(object):
             self.messages[self.db] = 'No ".1.cf" file'
             self.formatted = False
 
-    def check_format_kraken2(self) -> bool:
-        acxs = glob.glob('%s/.acx' % self.fdir)
-        if not acxs:
-            self.messages[self.db] = 'No ".acx" file'
+    def check_format_kraken2(self):
+        h_k2d = '%s/*/hash.k2d' % self.fdir
+        o_k2d = '%s/*/opts.k2d' % self.fdir
+        t_k2d = '%s/*/taxo.k2d' % self.fdir
+        if not glob.glob(h_k2d):
+            self.messages[self.db] = 'No "hash.k2d" file'
             self.formatted = False
-        for acx in acxs:
-            if not isfile('%s.edx' % splitext(acx)[0]):
-                b = basename(splitext(acx)[0])
-                self.messages[self.db] = 'No "%s.edx" file' % b
-                self.formatted = False
+        elif not glob.glob(o_k2d):
+            self.messages[self.db] = 'No "opts.k2d" file'
+            self.formatted = False
+        elif not glob.glob(t_k2d):
+            self.messages[self.db] = 'No "taxo.k2d" file'
+            self.formatted = False
 
-    def check_format_minimap2(self) -> bool:
+    def check_format_minimap2(self):
         mmi = '%s/*.mmi' % self.fdir
         if not glob.glob(mmi):
             self.messages[self.db] = 'No ".mmi" file'
             self.formatted = False
 
-    def check_format_qiime2(self) -> bool:
+    def check_format_qiime2(self):
         qza = '%s/*.qza' % self.fdir
         if not glob.glob(qza):
             self.messages[self.db] = 'No ".qza" file'
             self.formatted = False
 
-    def check_format_utree(self) -> bool:
-        for ext in ['ctr', 'log']:
-            fp = '%s/*.%s' % (self.fdir, ext)
-            if not glob.glob(fp):
-                self.messages[self.db] = 'No ".%s" file' % ext
-                self.formatted = False
+    def check_format_utree(self):
+        if not glob.glob('%s/*.ctr' % self.fdir):
+            self.messages[self.db] = 'No ".ctr" file'
+            self.formatted = False
 
-    def check_format_fasta(self) -> bool:
+    def check_format_fasta(self):
         fastas = []
         for ext in ['fa', 'fas', 'fasta']:
             fastas.extend(glob.glob('%s/*.%s' % (self.fdir, ext)))
