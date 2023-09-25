@@ -838,6 +838,8 @@ def check_filtering(self, params, soft):
             if len(dbs) != 6:
                 sys.exit('[filtering] Param "databases" bowtie2 files '
                          'missing for database "%s"' % db)
+            print(sorted(dbs)[0])
+            print(sorted(dbs)[0].rsplit('.1.bt2', 1))
             params["databases"][db] = sorted(dbs)[0].rsplit('.1.bt2', 1)[0]
     defaults['databases'] = '<list of databases>'
     return defaults
