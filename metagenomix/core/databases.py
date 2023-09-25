@@ -56,6 +56,7 @@ class ReferenceDatabases(object):
         if len(self.config.databases):
             print('  * Found databases config "%s"' % self.config.databases_yml)
             self.get_length()
+            self.print_formats()
             self.set_databases()
         else:
             print('  * No database passed to option `-d`')
@@ -120,6 +121,12 @@ class ReferenceDatabases(object):
             db_length = len(db) + 5
             if db_length > self.length:
                 self.length = db_length
+
+    def print_formats(self):
+        print(' ' * self.length, end='\t')
+        for fmt in self.formats:
+            print('%s ' % fmt, end='')
+        print()
 
     def set_databases(self) -> None:
         for db, path in sorted(self.config.databases.items()):
