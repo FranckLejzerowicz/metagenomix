@@ -7,6 +7,7 @@
 # ----------------------------------------------------------------------------
 
 import os
+import sys
 import glob
 
 import pkg_resources
@@ -15,8 +16,8 @@ import pandas as pd
 from skbio.tree import TreeNode
 from os.path import basename, exists, isdir, isfile, splitext
 
-from metagenomix._io_utils import (mkdr, get_pfam_wget_cmd, get_hmm_dat,
-                                   get_hmms_dias_cmd)
+from metagenomix._io_utils import (
+    mkdr, wget_pfam, get_hmm_dat, get_hmms_dias_cmd)
 
 RESOURCES = pkg_resources.resource_filename('metagenomix', 'resources')
 
@@ -29,63 +30,111 @@ class ReferenceDatabases(object):
         self.cmds = {}
         self.paths = {}
         self.builds = {}
+        self.content = {}
         self.db = ''
         self.path = ''
         self.length = 0
-        self.pfams = {'terms': {}}
-        self.hmms_dias = {}
+        self.messages = {}
+        self.formats = []
+        self.format = ''
+        self.fdir = ''
         self.hmms_pd = pd.DataFrame()
+        self.pfams = {}
+        self.dmnd = {}
+        self.hmms = {}
         self.dbcan_meta = pd.DataFrame()
         self.cazys = {}
         self.gtdb = {}
         self.wol = {}
-        self.formats = [
-            'bbmap', 'blastn', 'bowtie2', 'burst', 'centrifuge', 'diamond',
-            'hmmer', 'kraken2', 'minimap2', 'qiime2', 'utree']
 
     def run(self) -> None:
         self.get_formats()
+        self.check_path()
+        self.check_no_default()
+        self.check_params_dbs()
         if len(self.config.databases):
-            print('  * Found %s' % self.config.databases_yml)
+            print('  * Found databases config "%s"' % self.config.databases_yml)
             self.get_length()
             self.set_databases()
         else:
             print('  * No database passed to option `-d`')
 
+    def get_formats(self):
+        """
+        Set all possible database formats, which also corresponds to the names
+        of folders where a database is built.
+
+        For example, format "blastn" is for the path of a database for which
+        there is a "blastn" sub-folder containing the indices for BLASTn:
+
+            If the database yaml file has a database called:
+                my_db: /the/absolute/path/to/my_db_folder
+
+            Then there must exist one of these folder:
+                /the/absolute/path/to/my_db_folder/blastn
+                /the/absolute/path/to/my_db_folder/databases/blastn
+            which would contain the BLASTn database index files
+
+        For example, format "bowtie2" is for the path of a database for which
+        there is a "bowtie2" sub-folder containing the .bt2 indices:
+
+            Then there must exist one of these folder:
+                /the/absolute/path/to/my_db_folder/bowtie2
+                /the/absolute/path/to/my_db_folder/databases/bowtie2
+            which would contain the .bt2 files
+        """
+        self.formats = ['bbmap', 'blastn', 'bowtie2', 'bracken', 'burst',
+                        'centrifuge', 'diamond', 'hmmer', 'kraken2',
+                        'minimap2', 'qiime2', 'utree', 'fasta']
+
+    def check_path(self):
+        for db, path in sorted(self.config.databases.items()):
+            if not path:
+                sys.exit('[databases] No value for "%s"' % db)
+            if not isinstance(path, str):
+                sys.exit('[databases] "%s" value not a path string' % db)
+            if path[0] != '/':
+                sys.exit('[databases] Path to "%s" not absolute' % db)
+
+    def check_no_default(self):
+        if 'default' in self.config.databases:
+            print('[databases] Database name "default" not allowed (ignored)')
+            del self.config.databases['default']
+
+    def check_params_dbs(self):
+        config_dbs = set(self.config.databases)
+        tool_dbs = ['metaxa2']
+        params_dbs = set([z for x, y in self.config.params_dbs.items()
+                          for z in y if x not in tool_dbs])
+        missing_dbs = params_dbs.difference(config_dbs)
+        missing_dbs.discard('default')
+        if missing_dbs:
+            print('[databases] %s databases not in "%s" (ignored):' % (
+                    len(missing_dbs), self.config.databases_yml))
+            for ddx, db in enumerate(sorted(missing_dbs)):
+                print('[databases]  - %s\t: %s' % (ddx, db))
+
     def get_length(self):
         for db, path in sorted(self.config.databases.items()):
-            db_length = len(db) + len(path) + 5
+            db_length = len(db) + 5
             if db_length > self.length:
                 self.length = db_length
-        print('%s\t%s' % ((' ' * self.length), ' '.join(self.formats)))
-
-    def get_formats(self):
-        """Override init (default) database formats with those from yaml file"""
-        if 'formats' in self.config.databases:
-            self.formats = self.config.databases['formats']
 
     def set_databases(self) -> None:
         for db, path in sorted(self.config.databases.items()):
-            if db == 'formats':  # "formats" is not a database
-                continue
-            if not path or not isinstance(path, str):  # must have a "path"
-                print('  - %s: path (char. string) missing (ignored)' % db)
-                continue
-            self.db, self.path = db, path
+            self.db = db
+            self.path = path.rstrip('/')
             self.set_paths()
-
-    def print_db(self):
-        gaps = self.length - (len(self.db) + len(self.path) + 5)
-        print('  + %s: %s%s' % (self.db, self.path, (' ' * gaps)), end='\t')
 
     def set_paths(self):
         if self.config.dev:
             self.set_database()
         else:
-            if not exists(self.path):  # not-found database will be ignored
-                print("  - %s: can't find %s (ignored)" % (self.db, self.path))
-            else:
+            # if the path of a database is not found, it will be ignored
+            if exists(self.path):
                 self.set_database()
+            else:
+                print('  - %s: "%s" not found (ignored)' % (self.db, self.path))
 
     def set_database(self):
         self.print_db()
@@ -94,38 +143,205 @@ class ReferenceDatabases(object):
             getattr(self, "set_%s" % self.db)()
             print()
         else:
-            self.set_path()
             self.set_format()
+        self.set_dmnd()
+        self.set_hmms()
+        self.set_path()
+
+    # ------------------------------------------------------
+    # ------------------------------------------------------
+    def set_dmnd(self):
+        pass
+
+    def set_hmms(self):
+        pass
+    # ------------------------------------------------------
+    # ------------------------------------------------------
+
+    def print_db(self):
+        gaps = self.length - (len(self.db) + 5)
+        print('    + %s%s' % (self.db, (' ' * gaps)), end='\t')
 
     def set_path(self) -> None:
         self.paths[self.db] = self.path
 
+    def check_format(self):
+        formatted = False
+        if isdir(self.fdir):
+            if hasattr(self, "check_format_%s" % self.format):
+                formatted = getattr(self, "check_format_%s" % self.format)()
+            else:
+                sys.exit('[databases] Format "%s" not supported' % self.format)
+        return formatted
+
     def set_format(self) -> None:
-        formats = {}
-        for db_format in self.formats:
-            for subfolder in ['', 'databases/']:
-                db_format_dir = self.path + '/%s' % subfolder + db_format
-                if self.config.dev or isdir(db_format_dir):
-                    formats[db_format] = db_format_dir
-                    print('+%s' % (' ' * len(db_format)), end='')
+        builds = {}
+        for fmt in self.formats:
+            self.format = fmt
+            for sub_folder in ['', 'databases/']:
+                self.fdir = self.path + '/%s' % sub_folder + self.format
+                if self.config.dev or self.check_format():
+                    builds[self.format] = str(self.fdir)
+                    print('+%s' % (' ' * len(self.format)), end='')
                     break
             else:
-                print('-%s' % (' ' * len(db_format)), end='')
+                print('-%s' % (' ' * len(self.format)), end='')
         print()
-        self.builds[self.db] = formats
+        self.builds[self.db] = builds
 
     def register_command(self) -> None:
         self.commands.setdefault(self.db, {}).update(dict(self.cmds))
         self.cmds = {}
 
-    # =====================================================================
-    # Below are the database-specific functions, potentially to make builds
-    # =====================================================================
+    def get_content(self, exp_files, exp_dirs):
+        self.content = dict((x, 'file') for x in exp_files)
+        self.content.update(dict((x, 'folder') for x in exp_dirs))
+
+    def check_content(self):
+        missing = {}
+        for content, typ in self.content.items():
+            x = '%s/%s' % (self.config.databases[self.db], content)
+            if not exists(x):
+                missing[content] = typ
+        return missing
+
+    def show_exit(self, missing):
+        if missing:
+            prints = sorted([' - %s (%s)' % x for x in missing.items()])
+            sys.exit('\n"%s": missing content in "%s"\n%s' % (
+                self.db, self.config.databases[self.db], '\n'.join(prints)))
+
+    def check_tool_db(self, exp_files=None, exp_dirs=None):
+        if exp_files is None:
+            exp_files = []
+        if exp_dirs is None:
+            exp_dirs = []
+        self.get_content(exp_files, exp_dirs)
+        missing = self.check_content()
+        self.show_exit(missing)
+
+    def set_metaxa2(self):
+        dbs = ['SSU', 'LSU', 'SSU_SILVA128', 'SSU_SILVA123.1',
+               'SSU_Typestrains', 'ATP9-NAD9', 'COI', 'cpn60', 'EF1_alpha',
+               'ITS2', 'matK', 'rbcL', 'rpb1', 'rpb2', 'trnH', 'trnL']
+        for db in dbs:
+            if isdir('%s/%s' % (self.fdir, db)):
+                exp_files = ['%s/blast.cutoffs.txt' % db, '%s/blast.nhr' % db,
+                             '%s/blast.nin' % db, '%s/blast.nsd' % db,
+                             '%s/blast.nhr' % db, '%s/blast.nsi' % db,
+                             '%s/blast.nsq' % db, '%s/blast.taxonomy.txt' % db]
+                self.check_tool_db(exp_files)
+
+    def set_midas(self):
+        exp_files = ['exclude.txt', 'genome_info.txt', 'genome_taxonomy.txt',
+                     'README.txt', 'species_info.txt', 'species_tree.newick']
+        exp_dirs = ['marker_genes', 'ontologies', 'pan_genomes', 'rep_genomes']
+        self.check_tool_db(exp_files, exp_dirs)
+
+    def set_platon(self):
+        exp_files = [
+            'conjugation.h3f', 'conjugation.h3i', 'conjugation.h3m',
+            'conjugation.h3p', 'inc-types.fasta', 'mobilization.h3f',
+            'mobilization.h3i', 'mobilization.h3m', 'mobilization.h3p',
+            'mps.dmnd', 'mps.tsv', 'ncbifam-amr.h3f', 'ncbifam-amr.h3i',
+            'ncbifam-amr.h3m', 'ncbifam-amr.h3p', 'ncbifam-amr.tsv',
+            'orit.nhr', 'orit.nin', 'orit.nsq', 'refseq-plasmids.nhr',
+            'refseq-plasmids.nin', 'refseq-plasmids.nsq', 'refseq-plasmids.tsv',
+            'replication.h3f', 'replication.h3i', 'replication.h3m',
+            'replication.h3p', 'rRNA.i1f', 'rRNA.i1i', 'rRNA.i1m', 'rRNA.i1p']
+        self.check_tool_db(exp_files)
+
+    def set_itasser(self):
+        exp_files = ['download_lib.pl', 'README.txt']
+        exp_dirs = [
+            'abs', 'bin', 'blast', 'COACH', 'COFACTOR', 'common', 'data',
+            'example', 'file2html', 'I-TASSERmod', 'PSSpred', 'ResQ', 'src']
+        self.check_tool_db(exp_files, exp_dirs)
+
+    def set_ioncom(self):
+        exp_files = ['readme.txt', 'run_IonCom.pl', 'runninglist']
+        exp_dirs = ['bin', 'model', 'output']
+        self.check_tool_db(exp_files, exp_dirs)
+
+    def set_macsyfinder(self):
+        exp_files = ['models/readme.txt']
+        exp_dirs = ['models/CasFinder', 'models/CONJScan_plasmids',
+                    'models/TFF-SF', 'models/TFFscan', 'models/TXSScan']
+        self.check_tool_db(exp_files, exp_dirs)
+
+    def set_squeezemeta(self):
+        exp_files = [
+            'db/arc.all.faa', 'db/arc.hmm', 'db/arc.scg.faa',
+            'db/arc.scg.lookup', 'db/bac.all.faa', 'db/bac.hmm',
+            'db/bac.scg.faa', 'db/bac.scg.lookup', 'db/bacar_marker.hmm',
+            'db/DB_BUILD_DATE', 'db/eggnog.dmnd', 'db/euk.hmm',
+            'db/keggdb.dmnd', 'db/marker.hmm', 'db/mito.hmm', 'db/nr.dmnd',
+            'db/Pfam-A.hmm', 'db/ReadMe', 'db/selected_marker_sets.tsv',
+            'db/silva.nr_v132.align', 'db/silva.nr_v132.tax',
+            'db/taxon_marker_sets.tsv']
+        exp_dirs = [
+            'db/distributions', 'db/genome_tree', 'db/hmms', 'db/hmms_ssu',
+            'db/img', 'db/LCA_tax', 'db/pfam', 'db/test_data']
+        self.check_tool_db(exp_files, exp_dirs)
+
+    def set_humann(self):
+        exp_files = [
+            'mpa_v30_CHOCOPhlAn_201901.1.bt2',
+            'mpa_v30_CHOCOPhlAn_201901.2.bt2',
+            'mpa_v30_CHOCOPhlAn_201901.3.bt2',
+            'mpa_v30_CHOCOPhlAn_201901.4.bt2', 'mpa_v30_CHOCOPhlAn_201901.fna',
+            'mpa_v30_CHOCOPhlAn_201901_marker_info.txt',
+            'mpa_v30_CHOCOPhlAn_201901.md5', 'mpa_v30_CHOCOPhlAn_201901.pkl',
+            'mpa_v30_CHOCOPhlAn_201901.rev.1.bt2',
+            'mpa_v30_CHOCOPhlAn_201901.rev.2.bt2']
+        self.check_tool_db(exp_files)
+
+    def set_metaphlan(self):
+        exp_files = [
+            'mpa_v30_CHOCOPhlAn_201901.1.bt2',
+            'mpa_v30_CHOCOPhlAn_201901.2.bt2',
+            'mpa_v30_CHOCOPhlAn_201901.3.bt2',
+            'mpa_v30_CHOCOPhlAn_201901.4.bt2', 'mpa_v30_CHOCOPhlAn_201901.fna',
+            'mpa_v30_CHOCOPhlAn_201901_marker_info.txt',
+            'mpa_v30_CHOCOPhlAn_201901.md5', 'mpa_v30_CHOCOPhlAn_201901.pkl',
+            'mpa_v30_CHOCOPhlAn_201901.rev.1.bt2',
+            'mpa_v30_CHOCOPhlAn_201901.rev.2.bt2']
+        self.check_tool_db(exp_files)
+
+    def set_midas2_gtdb(self):
+        exp_files = ['genomes.tsv', 'md5sum.json', 'metadata.tsv', 'README.txt']
+        exp_dirs = ['markers', 'markers_models', 'pangenomes']
+        self.check_tool_db(exp_files, exp_dirs)
+
+    def set_checkm(self):
+        exp_files = ['selected_marker_sets.tsv', 'taxon_marker_sets.tsv']
+        exp_dirs = ['distributions', 'genome_tree', 'hmms', 'hmms_ssu',
+                    'img', 'pfam', 'test_data']
+        self.check_tool_db(exp_files, exp_dirs)
+
+    def set_gtdbtk(self):
+        exp_files = [
+            'fastani/create_genome_paths.sh', 'fastani/genome_paths.tsv',
+            'masks/gtdb_r207_ar53.mask', 'masks/gtdb_r207_bac120.mask',
+            'metadata/metadata.txt', 'mrca_red/gtdbtk_r207_ar53.tsv',
+            'mrca_red/gtdbtk_r207_bac120.tsv', 'msa/gtdb_r207_ar53.faa',
+            'msa/gtdb_r207_bac120.faa', 'radii/gtdb_radii.tsv',
+            'taxonomy/ar53_taxonomy_r207_reps.tsv',
+            'taxonomy/bac120_taxonomy_r207_reps.tsv',
+            'taxonomy/gtdb_taxonomy.tsv']
+        exp_dirs = [
+            'fastani/database', 'markers/pfam', 'markers/tigrfam',
+            'pplacer/gtdb_r207_ar53.refpkg', 'pplacer/gtdb_r207_bac120.refpkg',
+            'split/backbone', 'split/class_level']
+        self.check_tool_db(exp_files, exp_dirs)
+
+    def set_uniref(self):
+        exp_files = ['uniref90.fasta', 'uniref90.xml']
+        self.check_tool_db(exp_files)
 
     def set_wol(self) -> None:
-        wol_dir = self.config.databases[self.db]
-        self.set_path()
         self.set_format()
+        wol_dir = self.config.databases[self.db]
         # WOL is a fasta file used to build indices
         fna_dir = '%s/genomes' % wol_dir
         genomes = glob.glob('%s/fna/*' % fna_dir)
@@ -158,15 +374,45 @@ class ReferenceDatabases(object):
         self.wol['sizes'] = sizes
         self.register_command()
 
-    def set_pfam(self) -> None:
-        self.set_path()
-        cmd = get_pfam_wget_cmd(self.path)
-        if cmd:
-            self.cmds[''] = [cmd]
-        else:
-            self.hmms_pd = get_hmm_dat(self.path)
+    def set_dbcan(self) -> None:
+        # dbcan has hmms and fasta file that can be turned to diamond indices
+        self.get_dbcan_hmms()
         self.register_command()
-        self.pfam_models()
+        m = '%s/dbCAN-seq/metadata.txt' % self.config.databases['dbcan']
+        if self.config.dev:
+            self.dbcan_meta = pd.DataFrame([
+                ['GCF_000007365.1', 'Buchnera aphidicola Sg'],
+                ['GCF_000007725.1', 'Buchnera aphidicola Bp'],
+                ['GCF_000021065.1', 'Buchnera aphidicola Tuc7'],
+                ['GCF_000021085.1', 'Buchnera aphidicola 5A'],
+                ['GCF_000090965.1', 'Buchnera aphidicola Cc'],
+                ['GCF_001280225.1', 'Buchnera aphidicola SBA'],
+                ['GCF_000218545.1', 'Cellulomonas gilvus ATCC']],
+                columns=['gen', 'genome_name'],
+            )
+            self.dbcan_meta.set_index('gen', inplace=True)
+        elif isfile(m):
+            self.dbcan_meta = pd.read_csv(m, header=0, index_col=0, sep='\t')
+
+    def get_dbcan_hmms(self) -> None:
+        """Get all the .hmm files from the dbCAN database."""
+        self.hmms[self.db] = {}
+        self.dmnd[self.db] = {}
+        for root, _, files in os.walk(self.config.databases['dbcan']):
+            for fil in files:
+                if fil.endswith('.hmm'):
+                    # get the full HMM file path
+                    hmm = root + '/' + fil
+                    # get the extension-striped and basename
+                    rad = splitext(hmm)[0]
+                    base = basename(fil)
+                    # collect the fasta and dmnd files for this HMM'ed sequences
+                    fas, dia = '%s.fas' % rad, '%s.dmnd' % rad
+                    self.hmms[self.db][base] = hmm
+                    self.dmnd[self.db][base] = dia
+                    if not isfile(dia):
+                        cmd = 'diamond makedb --in %s -d %s\n' % (fas, dia)
+                        self.cmds.setdefault(base, []).append(cmd)
 
     def pfam_models(self):
         pfam_terms_dir = '%s/pfam_terms' % RESOURCES
@@ -190,6 +436,15 @@ class ReferenceDatabases(object):
                             os.rmdir(term_dir)
                 else:
                     print(' > No Pfam models previously extracted')
+
+    def set_pfam(self) -> None:
+        cmd = wget_pfam(self.path)
+        if cmd:
+            self.cmds[''] = [cmd]
+        else:
+            self.hmms_pd = get_hmm_dat(self.path)
+        self.register_command()
+        self.pfam_models()
 
     # def get_pfam(
     #         self,
@@ -230,22 +485,124 @@ class ReferenceDatabases(object):
     #     self.pfams.update(accessions)
     #     self.register_command()
 
-    def get_dbcan_hmms(self) -> None:
-        """Get all the .hmm files from the dbCAN database."""
-        for root, _, files in os.walk(self.config.databases['dbcan']):
-            for fil in files:
-                if fil.endswith('.hmm'):
-                    hmm = root + '/' + fil
-                    rad = splitext(hmm)[0]
-                    fas, dia = '%s.fas' % rad, '%s.dmnd' % rad
-                    cmd = 'diamond makedb --in %s -d %s\n' % (fas, dia)
-                    if 'cazy' not in self.hmms_dias:
-                        self.hmms_dias['cazy'] = {}
-                    self.hmms_dias['cazy'][basename(rad)] = [hmm, dia]
-                    self.cmds.setdefault(basename(rad), []).append(cmd)
+    def check_format_bowtie2(self) -> bool:
+        bt2s = glob.glob('%s/*.bt2*' % self.fdir)
+        if len(bt2s) < 6:
+            self.messages[self.db] = 'Less than six "bt2*" files'
+            return False
+        bt2_1s = glob.glob('%s/*.1.bt2*' % self.fdir)
+        if bt2_1s:
+            for bt2_1 in bt2_1s:
+                bt2_rad = bt2_1.rsplit('.1.bt2', 1)[0]
+                for e in ['2.bt2', '3.bt2', '4.bt2', 'rev.1.bt2', 'rev.2.bt2']:
+                    f = '%s.%s' % (bt2_rad, e)
+                    if not isfile(f) and not isfile('%sl' % f):
+                        self.messages[self.db] = 'Missing "bt2*"'
+                        return False
 
-    def set_dbcan(self) -> None:
-        self.get_dbcan_hmms()
-        m = '%s/dbCAN-seq/metadata.txt' % self.config.databases['dbcan']
-        if isfile(m):
-            self.dbcan_meta = pd.read_csv(m, header=0, index_col=0, sep='\t')
+        else:
+            self.messages[self.db] = 'No "1.bt2*" file'
+            return False
+
+    def check_format_bbmap(self) -> bool:
+        files = {'genome': 'info.txt', 'index': '*.block'}
+        for fdx, (folder, fil) in enumerate(files.items()):
+            fold = '%s/*/ref/%s/1' % (self.fdir, folder)
+            if not glob.glob(fold):
+                self.messages[self.db] = 'no "%s" folder' % folder
+                return False
+            fils = glob.glob('%s/%s' % (fold, fil))
+            if not fils:
+                self.messages[self.db] = 'incomplete "%s"' % fold
+                return False
+
+    def check_format_blastn(self) -> bool:
+        nhr = '%s/*.nhr' % self.fdir
+        if not glob.glob(nhr):
+            self.messages[self.db] = 'Not a single ".nhr" file'
+            return False
+        for ext in ['nin', 'nsq']:
+            if not isfile('%s.%s' % (splitext(nhr)[0], ext)):
+                self.messages[self.db] = 'No ".%s" file' % ext
+                return False
+
+    def check_format_bracken(self) -> bool:
+        kraken = '%s/database*mers.kraken' % self.fdir
+        if not glob.glob(kraken):
+            self.messages[self.db] = 'No "%s" file' % kraken
+            return False
+        kmer_d = '%s/database*mers.kmer_distrib' % self.fdir
+        if not glob.glob(kmer_d):
+            self.messages[self.db] = 'No "%s" file' % kmer_d
+            return False
+        for kraken in glob.glob('%s/database*mers.kraken' % self.fdir):
+            k = '%s.kmer_distrib' % splitext(kraken)[0]
+            if not isfile(k):
+                self.messages[self.db] = 'No "%s"' % basename(k)
+                return False
+
+    def check_format_burst(self) -> bool:
+        acxs = glob.glob('%s/*.acx' % self.fdir)
+        if not acxs:
+            self.messages[self.db] = 'No ".acx" file'
+            return False
+        for acx in acxs:
+            if not isfile('%s.edx' % splitext(acx)[0]):
+                b = basename(splitext(acx)[0])
+                self.messages[self.db] = 'No "%s.edx" file' % b
+                return False
+
+    def check_format_centrifuge(self) -> bool:
+        cfs = glob.glob('%s/*.cf' % self.fdir)
+        if len(cfs) < 4:
+            self.messages[self.db] = 'Less than four "cf" files'
+            return False
+        cf_1s = glob.glob('%s/*.1.cf' % self.fdir)
+        if cf_1s:
+            for cf_1 in cf_1s:
+                cf_rad = cf_1.rsplit('.1.cf', 1)[0]
+                for ext in ['.2.cf', '.3.cf', '.4.cf']:
+                    if not isfile('%s.%s' % (cf_rad, ext)):
+                        self.messages[self.db] = 'Missing "cf"'
+                        return False
+        else:
+            self.messages[self.db] = 'No ".1.cf" file'
+            return False
+
+    def check_format_kraken2(self) -> bool:
+        acxs = glob.glob('%s/.acx' % self.fdir)
+        if not acxs:
+            self.messages[self.db] = 'No ".acx" file'
+            return False
+        for acx in acxs:
+            if not isfile('%s.edx' % splitext(acx)[0]):
+                b = basename(splitext(acx)[0])
+                self.messages[self.db] = 'No "%s.edx" file' % b
+                return False
+
+    def check_format_minimap2(self) -> bool:
+        mmi = '%s/*.mmi' % self.fdir
+        if not glob.glob(mmi):
+            self.messages[self.db] = 'No ".mmi" file'
+            return False
+
+    def check_format_qiime2(self) -> bool:
+        qza = '%s/*.qza' % self.fdir
+        if not glob.glob(qza):
+            self.messages[self.db] = 'No ".qza" file'
+            return False
+
+    def check_format_utree(self) -> bool:
+        for ext in ['ctr', 'log']:
+            fp = '%s/*.%s' % (self.fdir, ext)
+            if not glob.glob(fp):
+                self.messages[self.db] = 'No ".%s" file' % ext
+                return False
+
+    def check_format_fasta(self) -> bool:
+        fastas = []
+        for ext in ['fa', 'fas', 'fasta']:
+            fastas.extend(glob.glob('%s/*.%s' % (self.fdir, ext)))
+        if not fastas:
+            self.messages[self.db] = 'No fasta file'
+            return False
