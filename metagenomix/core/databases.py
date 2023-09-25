@@ -172,7 +172,8 @@ class ReferenceDatabases(object):
             self.formatted = True
             if hasattr(self, "check_format_%s" % self.format):
                 getattr(self, "check_format_%s" % self.format)()
-                print(self.messages)
+                if self.config.verbose:
+                    print(self.messages)
 
     def set_format(self) -> None:
         builds = {}
@@ -497,7 +498,6 @@ class ReferenceDatabases(object):
                 bt2_rad = bt2_4.rsplit('.4.bt2', 1)[0]
                 for e in ['1.bt2', '2.bt2', '3.bt2', 'rev.1.bt2', 'rev.2.bt2']:
                     f = '%s.%s' % (bt2_rad, e)
-                    print(f)
                     if not isfile(f) and not isfile('%sl' % f):
                         self.messages[self.db] = 'Missing "bt2*"'
                         self.formatted = False
