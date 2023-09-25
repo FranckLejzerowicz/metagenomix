@@ -499,7 +499,7 @@ class ReferenceDatabases(object):
     def check_format_bowtie2(self):
         bt2s = glob.glob('%s/*.bt2*' % self.fdir)
         if len(bt2s) < 6:
-            self.messages[self.db] = 'Less than six "bt2*" files'
+            self.messages[self.format] = 'Less than six "bt2*" files'
             self.formatted = False
         bt2_4s = glob.glob('%s/*.4.bt2*' % self.fdir)
         if bt2_4s:
@@ -508,10 +508,10 @@ class ReferenceDatabases(object):
                 for e in ['1.bt2', '2.bt2', '3.bt2', 'rev.1.bt2', 'rev.2.bt2']:
                     f = '%s.%s' % (bt2_rad, e)
                     if not isfile(f) and not isfile('%sl' % f):
-                        self.messages[self.db] = 'Missing "bt2*"'
+                        self.messages[self.format] = 'Missing "bt2*"'
                         self.formatted = False
         else:
-            self.messages[self.db] = 'No "1.bt2*" file'
+            self.messages[self.format] = 'No "1.bt2*" file'
             self.formatted = False
 
     def check_format_bbmap(self):
@@ -519,54 +519,54 @@ class ReferenceDatabases(object):
         for fdx, (folder, fil) in enumerate(files.items()):
             fold = '%s/*/ref/%s/1' % (self.fdir, folder)
             if not glob.glob(fold):
-                self.messages[self.db] = 'no "%s" folder' % folder
+                self.messages[self.format] = 'no "%s" folder' % folder
                 self.formatted = False
             fils = glob.glob('%s/%s' % (fold, fil))
             if not fils:
-                self.messages[self.db] = 'incomplete "%s"' % fold
+                self.messages[self.format] = 'incomplete "%s"' % fold
                 self.formatted = False
 
     def check_format_blastn(self):
         nhrs = glob.glob('%s/*.nhr' % self.fdir)
         if not nhrs:
-            self.messages[self.db] = 'Not a single ".nhr" file'
+            self.messages[self.format] = 'Not a single ".nhr" file'
             self.formatted = False
         for nhr in nhrs:
             for ext in ['nin', 'nsq']:
                 if not isfile('%s.%s' % (splitext(nhr)[0], ext)):
-                    self.messages[self.db] = 'No ".%s" file' % ext
+                    self.messages[self.format] = 'No ".%s" file' % ext
                     self.formatted = False
 
     def check_format_bracken(self):
         kraken = '%s/database*mers.kraken' % self.fdir
         if not glob.glob(kraken):
-            self.messages[self.db] = 'No "%s" file' % kraken
+            self.messages[self.format] = 'No "%s" file' % kraken
             self.formatted = False
         kmer_d = '%s/database*mers.kmer_distrib' % self.fdir
         if not glob.glob(kmer_d):
-            self.messages[self.db] = 'No "%s" file' % kmer_d
+            self.messages[self.format] = 'No "%s" file' % kmer_d
             self.formatted = False
         for kraken in glob.glob('%s/database*mers.kraken' % self.fdir):
             k = '%s.kmer_distrib' % splitext(kraken)[0]
             if not isfile(k):
-                self.messages[self.db] = 'No "%s"' % basename(k)
+                self.messages[self.format] = 'No "%s"' % basename(k)
                 self.formatted = False
 
     def check_format_burst(self):
         acxs = glob.glob('%s/*.acx' % self.fdir)
         if not acxs:
-            self.messages[self.db] = 'No ".acx" file'
+            self.messages[self.format] = 'No ".acx" file'
             self.formatted = False
         for acx in acxs:
             if not isfile('%s.edx' % splitext(acx)[0]):
                 b = basename(splitext(acx)[0])
-                self.messages[self.db] = 'No "%s.edx" file' % b
+                self.messages[self.format] = 'No "%s.edx" file' % b
                 self.formatted = False
 
     def check_format_centrifuge(self):
         cfs = glob.glob('%s/*.cf' % self.fdir)
         if len(cfs) < 4:
-            self.messages[self.db] = 'Less than four "cf" files'
+            self.messages[self.format] = 'Less than four "cf" files'
             self.formatted = False
         cf_1s = glob.glob('%s/*.1.cf' % self.fdir)
         if cf_1s:
@@ -574,7 +574,7 @@ class ReferenceDatabases(object):
                 cf_rad = cf_1.rsplit('.1.cf', 1)[0]
                 for ext in ['.2.cf', '.3.cf', '.4.cf']:
                     if not isfile('%s.%s' % (cf_rad, ext)):
-                        self.messages[self.db] = 'Missing "cf"'
+                        self.messages[self.format] = 'Missing "cf"'
                         self.formatted = False
         else:
             self.messages[self.db] = 'No ".1.cf" file'
@@ -585,30 +585,30 @@ class ReferenceDatabases(object):
         o_k2d = '%s/*/opts.k2d' % self.fdir
         t_k2d = '%s/*/taxo.k2d' % self.fdir
         if not glob.glob(h_k2d):
-            self.messages[self.db] = 'No "hash.k2d" file'
+            self.messages[self.format] = 'No "hash.k2d" file'
             self.formatted = False
         elif not glob.glob(o_k2d):
-            self.messages[self.db] = 'No "opts.k2d" file'
+            self.messages[self.format] = 'No "opts.k2d" file'
             self.formatted = False
         elif not glob.glob(t_k2d):
-            self.messages[self.db] = 'No "taxo.k2d" file'
+            self.messages[self.format] = 'No "taxo.k2d" file'
             self.formatted = False
 
     def check_format_minimap2(self):
         mmi = '%s/*.mmi' % self.fdir
         if not glob.glob(mmi):
-            self.messages[self.db] = 'No ".mmi" file'
+            self.messages[self.format] = 'No ".mmi" file'
             self.formatted = False
 
     def check_format_qiime2(self):
         qza = '%s/*.qza' % self.fdir
         if not glob.glob(qza):
-            self.messages[self.db] = 'No ".qza" file'
+            self.messages[self.format] = 'No ".qza" file'
             self.formatted = False
 
     def check_format_utree(self):
         if not glob.glob('%s/*.ctr' % self.fdir):
-            self.messages[self.db] = 'No ".ctr" file'
+            self.messages[self.format = 'No ".ctr" file'
             self.formatted = False
 
     def check_format_fasta(self):
@@ -616,5 +616,5 @@ class ReferenceDatabases(object):
         for ext in ['fa', 'fas', 'fasta']:
             fastas.extend(glob.glob('%s/*.%s' % (self.fdir, ext)))
         if not fastas:
-            self.messages[self.db] = 'No fasta file'
+            self.messages[self.format] = 'No fasta file'
             self.formatted = False
