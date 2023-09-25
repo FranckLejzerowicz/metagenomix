@@ -182,6 +182,9 @@ class ReferenceDatabases(object):
             for sub_folder in ['', 'databases/']:
                 self.fdir = self.path + '/%s' % sub_folder + self.format
                 self.check_format()
+                print()
+                print(self.fdir)
+                print(self.formatted)
                 if self.config.dev or self.formatted:
                     builds[self.format] = str(self.fdir)
                     print('+%s' % (' ' * len(self.format)), end='')
