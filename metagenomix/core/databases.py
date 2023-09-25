@@ -608,7 +608,7 @@ class ReferenceDatabases(object):
 
     def check_format_utree(self):
         if not glob.glob('%s/*.ctr' % self.fdir):
-            self.messages[self.format = 'No ".ctr" file'
+            self.messages[self.format] = 'No ".ctr" file'
             self.formatted = False
 
     def check_format_fasta(self):
