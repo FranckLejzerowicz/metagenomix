@@ -154,7 +154,7 @@ class ReferenceDatabases(object):
         else:
             self.set_format()
         if self.config.verbose:
-            for fmt, mess in self.messages.get(self.db):
+            for fmt, mess in self.messages.get(self.db, {}).items():
                 print('[databases] "%s": %s" (%s)' % (self.path, mess, fmt))
         self.set_dmnd()
         self.set_hmms()
