@@ -824,7 +824,7 @@ def check_filtering(self, params, soft):
     check_default(self, params, defaults, soft.name, defaults['aligner'])
 
     aligner = params['aligner']
-    for db in sorted(params["databases"]):
+    for db in params["databases"]:
         if self.config.dev:
             continue
         if aligner == 'bowtie2':
@@ -834,13 +834,10 @@ def check_filtering(self, params, soft):
                 sys.exit('[filtering] DB "%s" not built for bowtie2' % db)
             elif not self.databases.builds[db].get('bowtie2'):
                 sys.exit('[filtering] DB "%s" not built for bowtie2' % db)
-            dbs = glob.glob('%s/*.bt2*' % self.databases.builds[db]['bowtie2'])
+            dbs = glob.glob('%s*.bt2*' % self.databases.builds[db]['bowtie2'])
             if len(dbs) != 6:
                 sys.exit('[filtering] Param "databases" bowtie2 files '
                          'missing for database "%s"' % db)
-            print(sorted(dbs)[0])
-            print(sorted(dbs)[0].rsplit('.1.bt2', 1))
-            params["databases"][db] = sorted(dbs)[0].rsplit('.1.bt2', 1)[0]
     defaults['databases'] = '<list of databases>'
     return defaults
 
