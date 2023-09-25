@@ -831,6 +831,8 @@ def check_filtering(self, params, soft):
             if db not in self.databases.paths:
                 sys.exit('[filtering] DB "%s" not in databases config' % db)
             dbs = '%s/*.*.bt2*' % self.databases.builds[db]
+            print(dbs)
+            print(glob.glob(dbs))
             if len(glob.glob(dbs)) != 6:
                 sys.exit('[filtering] Param "databases" bowtie2 files '
                          'missing for database "%s"' % db)
