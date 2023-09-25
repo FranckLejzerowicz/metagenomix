@@ -35,7 +35,7 @@ class AnalysesConfig(object):
         self.fastq_mv = {}
         self.fastq = {}
         self.params = {}
-        self.params_dbs = set()
+        self.params_dbs = {}
         self.read = []
         self.dir = ''
         self.r = {}
@@ -268,7 +268,8 @@ class AnalysesConfig(object):
 
     def get_params_dbs(self):
         for soft, params in self.user_params.items():
-            self.params_dbs.update(params.get("databases", set()))
+            if "databases" in params:
+                self.params_dbs[soft] = params.get("databases")
 
     def get_default_params(self):
         """
