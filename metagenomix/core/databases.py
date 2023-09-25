@@ -180,7 +180,7 @@ class ReferenceDatabases(object):
             if hasattr(self, "check_format_%s" % self.format):
                 getattr(self, "check_format_%s" % self.format)()
                 if self.config.verbose:
-                    print(self.messages)
+                    print('[databases] "%s": %s"' % (self.fdir, self.messages))
 
     def set_format(self) -> None:
         builds = {}
