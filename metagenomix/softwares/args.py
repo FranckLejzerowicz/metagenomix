@@ -1436,6 +1436,7 @@ def staramr_cmd(
     cmd += ' %s\n' % contigs
 
     cmd += cmd_rm
+    cmd += 'for i in %s/*; do gzip -q $i; done\n' % out_dir
 
     return cmd
 
@@ -1470,7 +1471,7 @@ def get_staramr(self, tech, folders, group):
 
         key = genome_key(tech, group)
 
-        out_fp = '%s/summary.tsv' % out_dir
+        out_fp = '%s/summary.tsv.gz' % out_dir
         if self.config.force or to_do(out_fp):
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
