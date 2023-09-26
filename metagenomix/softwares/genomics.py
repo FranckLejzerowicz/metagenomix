@@ -631,7 +631,7 @@ def analyze_cmd(
     cmd += ' %s' % genomes_dir
     cmd += ' %s\n' % analyze_dir
     sdir = '%s/storage' % analyze_dir
-    cmd += 'tar xpfz %s/aai_qa.tar.gz -C %s %s/aai_qa\n' % (sdir, sdir, sdir)
+    cmd += 'tar cpfz %s/aai_qa.tar.gz -C %s %s/aai_qa\n' % (sdir, sdir, sdir)
     cmd += 'rm -rf %s/aai_qa\n' % sdir
     return cmd
 
