@@ -38,7 +38,10 @@ def flash_cmd(
         FLASh command
     """
     params = tech_params(self, tech)
-    cmd = 'flash %s' % ' '.join(fastqs)
+    if params['path']:
+        cmd = '%s/flash %s' % (params['path'], ' '.join(fastqs))
+    else:
+        cmd = 'flash %s' % ' '.join(fastqs)
     cmd += ' --min-overlap %s' % params['min_overlap']
     cmd += ' --max-overlap %s' % params['max_overlap']
     cmd += ' --max-mismatch-density %s' % params['mismatch']
