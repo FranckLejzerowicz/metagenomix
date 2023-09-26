@@ -2102,6 +2102,7 @@ def check_flash(self, params, soft):
     floats = ['mismatch']
     check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
     check_default(self, params, defaults, soft.name, (ints + floats))
+    check_binary(self, soft.name, params, defaults, 'path')
     return defaults
 
 
