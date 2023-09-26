@@ -52,7 +52,7 @@ def check_mems(param, value, name):
 
 def check_env(config, value, name):
     """Verifies that the conda environment or module to load do exist."""
-    if value is not None:
+    if not config.dev and value is not None:
         if name not in config.modules and value not in config.conda_envs:
             sys.exit('"%s" not a module or conda env' % value)
 
@@ -3115,7 +3115,7 @@ def check_woltka(self, params, soft):
     defaults = {
         'taxa': [
             'phylum', 'order', 'class', 'family', 'genus', 'species', 'none'],
-        'classifications': [None, 'go', 'eggnog', 'metacyc', 'kegg'],
+        'classifications': ['', 'go', 'eggnog', 'metacyc', 'kegg'],
         'go': ['process', 'function', 'component'],
         'demux': [False, True],
         'trim_sub': [None],
@@ -3157,9 +3157,9 @@ def check_woltka(self, params, soft):
     if 'classifications' not in params:
         params['classifications'] = ['go', 'eggnog', 'metacyc', 'kegg']
     if 'taxa' not in params:
-        params['taxa'] = ['phylum', 'family', 'genus', 'species', 'none']
+        params['taxa'] = defaults['taxa']
     if 'go' not in params:
-        params['go'] = ['process', 'function', 'component']
+        params['go'] = defaults['go']
 
     ints = ['cache', 'min_count', 'field']
     check_nums(self, params, defaults, ints, int, soft.name)
