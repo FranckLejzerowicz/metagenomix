@@ -10,7 +10,7 @@ import glob
 import os
 import sys
 import pkg_resources
-from os.path import basename, isdir, splitext
+from os.path import basename, dirname, isdir, splitext
 
 from metagenomix._inputs import (
     sample_inputs, group_inputs, genome_key, genome_out_dir, get_reads,
@@ -1595,6 +1595,9 @@ def antismash_cmd(
     cmd += ' --html-title "%s"' % splitext(basename(fasta))[0]
     cmd += ' --output-dir %s' % out_dir
     cmd += ' %s\n' % fasta
+    cmd += 'tar cpfz %s.tar.gz -C %s %s\n' % (
+        out_dir, dirname(out_dir), basename(out_dir))
+    cmd += 'rm -rf %s\n' % out_dir
     return cmd
 
 
@@ -1628,19 +1631,17 @@ def get_antismash(
         out_dir = genome_out_dir(self, tech, sam_group, genome)
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'].setdefault((tech, sam_group), []).append(out_dir)
-
         key = genome_key(tech, sam_group, genome)
-
         to_dos = status_update(
             self, tech, [fasta], group=sam_group, genome=genome)
-
-        if self.config.force or to_do(out_dir):
+        out_fp = '%s.tar.gz' % out_dir
+        if self.config.force or to_do(out_fp):
             cmd = antismash_cmd(self, fasta, out_dir)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
-            io_update(self, i_f=fasta, o_d=out_dir, key=key)
+            io_update(self, i_f=fasta, o_f=out_fp, key=key)
             self.soft.add_status(
                 tech, self.sam_pool, 1, group=sam_group, genome=genome)
         else:
