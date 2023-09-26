@@ -1641,7 +1641,7 @@ def get_antismash(
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
-            io_update(self, i_f=fasta, o_f=out_fp, key=key)
+            io_update(self, i_f=fasta, o_d=out_dir, o_f=out_fp, key=key)
             self.soft.add_status(
                 tech, self.sam_pool, 1, group=sam_group, genome=genome)
         else:
