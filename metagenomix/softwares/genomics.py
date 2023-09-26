@@ -630,6 +630,9 @@ def analyze_cmd(
     cmd += ' %s/lineage.ms' % lineage_dir
     cmd += ' %s' % genomes_dir
     cmd += ' %s\n' % analyze_dir
+    sdir = '%s/storage' % analyze_dir
+    cmd += 'tar xpfz %s/aai_qa.tar.gz -C %s %s/aai_qa\n' % (sdir, sdir, sdir)
+    cmd += 'rm -rf %s/aai_qa\n' % sdir
     return cmd
 
 
@@ -1119,6 +1122,8 @@ def unbinned(
         sys.exit('[checkm_unbinned] Only per co-assembly (not after drep)')
 
     assembler = get_assembler(self)
+    print(self.softs[assembler].outputs[self.sam_pool])
+    print(stoperror)
     contigs = self.softs[assembler].outputs[self.sam_pool][(tech, group)][0]
 
     for genome, dirs in folders.items():
