@@ -234,7 +234,7 @@ def macsyfinder_cmd(
         self.outputs['dirs'].append(model_out_dir)
         outs[model] = model_out_dir
 
-        res = '%s/macsyfinder.log' % model_out_dir
+        res = '%s/all_systems.tsv.gz' % model_out_dir
         if self.config.force or to_do(res):
             cmd += 'macsyfinder'
             if self.soft.prev in self.config.tools['assembling']:
@@ -269,6 +269,10 @@ def macsyfinder_cmd(
                 tech, self.sam_pool, 0, group=sam_group, genome=genome)
     if cmd:
         cmd = cmd_header + cmd + cmd_rm
+        cmd += 'tar cpf %s/hmmer_results.tar -C %s hmmer_results\n' % (
+               model_out_dir, model_out_dir)
+        cmd += 'rm %s/hmmer_results\n' % model_out_dir
+        cmd += 'for i in %s/*; do gzip -q $i; done\n' % model_out_dir
     return cmd, outs
 
 
