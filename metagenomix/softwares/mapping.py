@@ -592,7 +592,7 @@ def get_pysam(
         key = genome_key(tech, group, genome)
         out_dir = '/'.join([genome_out_dir(self, tech, group, genome),
                             'map_%s' % prev, 'count_%s' % target])
-        out = '%s/reads.txt' % out_dir
+        out = '%s/reads.txt.gz' % out_dir
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'].setdefault(key, []).append(out)
 
