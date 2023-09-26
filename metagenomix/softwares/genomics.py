@@ -630,9 +630,9 @@ def analyze_cmd(
     cmd += ' %s/lineage.ms' % lineage_dir
     cmd += ' %s' % genomes_dir
     cmd += ' %s\n' % analyze_dir
-    sdir = '%s/storage' % analyze_dir
-    cmd += 'tar cpfz %s/aai_qa.tar.gz -C %s %s/aai_qa\n' % (sdir, sdir, sdir)
-    cmd += 'rm -rf %s/aai_qa\n' % sdir
+    stor_dir = '%s/storage' % analyze_dir
+    cmd += 'tar cpfz %s/aai_qa.tar.gz -C %s aai_qa\n' % (stor_dir, stor_dir)
+    cmd += 'rm -rf %s/aai_qa\n' % stor_dir
     return cmd
 
 
