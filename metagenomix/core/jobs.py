@@ -223,7 +223,8 @@ class Created(object):
                     with open(fil_sto, 'w') as o:
                         for r in range(10, random.randrange(11, 100)):
                             o.write('test\n')
-                    os.symlink(fil_sto, fil_loc)
+                    if not exists(fil_loc):
+                        os.symlink(fil_sto, fil_loc)
 
                 for fol_ in soft.io[key].get(('O', 'd'), []):
                     if fol_.endswith('*'):
