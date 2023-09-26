@@ -38,7 +38,7 @@ def flash_cmd(
         FLASh command
     """
     params = tech_params(self, tech)
-    if params['path']:
+    if 'path' in params:
         cmd = '%s/flash %s' % (params['path'], ' '.join(fastqs))
     else:
         cmd = 'flash %s' % ' '.join(fastqs)
@@ -811,7 +811,6 @@ def bowtie2(self) -> None:
             bam = '%s/alignment.bowtie2.bam' % out_dir
             self.outputs['outs'][(tech, sample)][(db, 'bowtie2')] = bam
             if self.config.force or to_do(bam):
-                print(self.databases.builds[db])
                 db_path = self.databases.builds[db]['bowtie2']
                 cmd = bowtie2_cmd(sample, fastxs, db, db_path, out_dir, params)
                 cmd += ' > %s.sam\n' % sam
@@ -1059,18 +1058,22 @@ def minimap2(self) -> None:
 
         for db, db_path in self.soft.params['databases'].items():
 
-            db_out = '%s/%s' % (out, db)
+            out_dir = '%s/%s' % (out, db)
             params = tech_params(self, tech)
-            cmd, bam = minimap2_cmd(fastxs, db_path, db_out, params)
+            sam = '%s/alignment.bowtie2.sam' % out_dir
+            bam = '%s/alignment.bowtie2.bam' % out_dir
             self.outputs['outs'][(tech, self.sam_pool)][(db, 'minimap2')] = bam
-
             if self.config.force or to_do(bam):
+                db_path = self.databases.builds[db]['minimap2']
+                cmd = minimap2_cmd(sample, fastxs, db, db_path, out_dir, params)
+                cmd += ' > %s.sam\n' % sam
+                cmd += 'samtools view -b %s | samtools sort -o %s' % (sam, bam)
                 if to_dos:
                     self.outputs['cmds'].setdefault((tech,), []).append(False)
                 else:
                     self.outputs['cmds'].setdefault((tech,), []).append(cmd)
-                io_update(self, i_f=fastxs, i_d=db_out, o_d=db_out, key=tech)
+                io_update(self, i_f=fastxs, i_d=out_dir, o_d=out_dir, key=tech)
                 self.soft.add_status(tech, self.sam_pool, 1)
             else:
                 self.soft.add_status(tech, self.sam_pool, 0)
-            self.outputs['dirs'].append(db_out)
+            self.outputs['dirs'].append(out_dir)
