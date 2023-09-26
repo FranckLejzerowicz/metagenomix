@@ -38,7 +38,7 @@ def get_read_count(
     reads = ''
     if 'count' in self.softs:
         reads_fps = self.softs['count'].outputs.get((sam, tech), [])
-        if not to_do(reads_fps):
+        if reads_fps and not sum([to_do(x) for x in reads_fps]):
             reads_fp = reads_fps.replace('${SCRATCH_FOLDER}', '')
             with open(reads_fp) as f:
                 for line in f:
