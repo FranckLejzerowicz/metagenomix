@@ -98,8 +98,9 @@ class Commands(object):
             Names of parameters to be avoided when computing the hash value
         """
         # variables to not account for in the calculation of the hash value
-        avoid = {'time', 'nodes', 'mem', 'mem_dim', 'env', 'chunks',
-                 'scratch', 'machine', 'partition', 'cpus', 'skip_samples'}
+        avoid = {
+            'time', 'nodes', 'mem', 'mem_dim', 'env', 'chunks', 'scratch',
+            'machine', 'partition', 'cpus', 'skip_samples', 'path', 'binary'}
         # do not account for 'databases' for specific softwares
         if self.soft.name not in ['filtering', 'databases']:
             avoid.add('databases')
