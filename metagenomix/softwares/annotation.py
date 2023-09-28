@@ -1881,7 +1881,7 @@ def diting_cmd(
     # make the figures
     cmd += 'diting.py --visualization pathways_relative_abundance.tab\n'
     # remove the temporary, used files for gzip and concat reads, and contigs
-    cmd += 'rm -rf tmp reads contigs\n'
+    cmd += 'rm -rf tmp reads contigs KEGG_annotation/hmmout BBMap\n'
     return cmd
 
 
