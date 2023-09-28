@@ -872,6 +872,7 @@ def refine_cmd(
         cmd += ' -c %s' % self.soft.params['min_completion']
         cmd += ' -x %s\n' % self.soft.params['max_contamination']
         cmd += 'rm -rf %s/work_files\n' % out_dir
+        cmd += 'for i in %s/{ma,metab,c}*_bins; do rm -rf $i; done\n' % out_dir
     return cmd, bins, names
 
 
