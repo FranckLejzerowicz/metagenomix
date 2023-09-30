@@ -38,6 +38,8 @@ class Commands(object):
         self.config = config
         self.databases = databases
         self.graph = workflow.graph
+        self.pipeline = workflow.workflow
+        self.hashes = workflow.hashes
         self.softs = workflow.softs
         self.outputs = {}
         self.cmds = {}
@@ -49,6 +51,7 @@ class Commands(object):
         self.soft = None
         self.sam_pool = None
         self.dir = ''
+        self.path = []
         self.status = {}
         self.links = {}
         self.links_stats = {}
@@ -65,63 +68,31 @@ class Commands(object):
         }
 
     def collect(self):
-        for sdx, softs in enumerate(self.config.pipeline):
-            print(' - %s' % softs[-1])
-            self.soft = self.softs[softs[-1]]
-            self.soft.add_soft_path(self.softs)
-            self.get_inputs()  # Update self.inputs to previous output
-            self.get_hash()  # collect `self.soft.hash` and `self.soft.hashed`
-            self.get_dir()
-            self.make_holistic()
-            self.generic_command()
-            self.show_messages()
+        for sdx, (name, paths) in enumerate(self.graph.paths.items()):
+            print(' [%s] %s' % (sdx, name))
+            for path in paths:
+                self.path = path
+                hashed = self.hashes[tuple(path)]
+                self.soft = self.softs[name][hashed]
+                print('   %s > %s' % (' ' * len(str(sdx)), hashed))
+                self.get_inputs()  # Update self.inputs to previous output
+                self.get_dir()
+                self.make_holistic()
+                self.generic_command()
+                self.show_messages()
 
     def get_inputs(self):
         """Update the `inputs` attribute of the software object."""
-        if self.soft.prev:
-            # if the previous software is not None (i.e., not on the raw data)
-            self.inputs = self.softs[self.soft.prev].outputs
-        else:
+        if self.soft.prev == 'None':
             # if running on raw data: use the fastq files (possibly on scratch)
             self.inputs = self.config.fastq
             if self.soft.params['scratch'] and self.config.jobs:
                 self.inputs = self.config.fastq_mv
+        else:
+            # if the previous software is not None (i.e., not on the raw data)
+            prev_hash = self.hashes[tuple(self.path[:-1])]
+            self.inputs = self.softs[self.soft.prev][prev_hash].outputs
         show_inputs(self)
-
-    def get_to_avoid(self) -> set:
-        """Define the set of parameters that can be changed without affecting
-        the hash value of the software's "after" folder.
-
-        Returns
-        -------
-        avoid : set
-            Names of parameters to be avoided when computing the hash value
-        """
-        # variables to not account for in the calculation of the hash value
-        avoid = {
-            'time', 'nodes', 'mem', 'mem_dim', 'env', 'chunks', 'scratch',
-            'machine', 'partition', 'cpus', 'skip_samples', 'path', 'binary'}
-        # do not account for 'databases' for specific softwares
-        if self.soft.name not in ['filtering', 'databases']:
-            avoid.add('databases')
-        # do not account for (search) 'terms' for search_* softwares
-        if 'search_' in self.soft.name:
-            avoid.add('terms')
-        return avoid
-
-    def get_hash(self):
-        """Get info to hash and hash it.
-            - `self.soft.hash`      : info to hash
-            - `self.soft.hashed`    : hashed info
-        """
-        avoid = self.get_to_avoid()
-        # get all info to hash
-        params = dict(x for x in self.soft.params.items() if x[0] not in avoid)
-        path = self.soft.path
-        hashes = [self.softs[x].hash for x in self.soft.path[1:-1]]
-        self.soft.hash = (params, path, hashes)
-        # hash all this info
-        self.soft.hashed = compute_hash(self.soft.hash)
 
     def get_dir(self):
         self.dir = abspath('%s/%s/after_%s_%s' % (
@@ -218,5 +189,5 @@ class Commands(object):
             raise ValueError('No method for software %s' % self.soft.name)
 
     def register_command(self):
-        self.softs[self.soft.name].cmds = dict(self.cmds)
+        self.softs[self.soft.name][self.soft.hashed].cmds = dict(self.cmds)
         self.cmds = {}
