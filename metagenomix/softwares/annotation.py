@@ -14,7 +14,7 @@ from os.path import basename, dirname, isdir, splitext
 
 from metagenomix._inputs import (
     sample_inputs, group_inputs, genome_key, genome_out_dir, get_reads,
-    get_group_reads, get_contigs)
+    get_group_reads, get_contigs, get_contigs_from_path, get_plasmids_fasta)
 from metagenomix._io_utils import caller, io_update, to_do, status_update
 from metagenomix.core.parameters import tech_params
 
@@ -451,14 +451,23 @@ def integronfinder_cmd(
     cmd += ' -o %s' % fasta_out
     cmd += ' -t %s\n' % params['min_length']
 
-    cmd += 'integron_finder'
+    if params['path'] is None:
+        cmd += 'integron_finder'
+        cmd += ' --distance-thresh %s' % params['distance_threshold']
+    else:
+        cmd += '%s/parallel_integron_finder.nf' % params['path']
+        cmd += ' --distance-threshold %s' % params['distance_threshold']
     for boolean in [
         'pdf', 'gbk', 'keep_tmp', 'mute', 'gembase', 'local_max',
         'promoter_attI', 'union_integrases', 'keep_palindromes',
-        'circ', 'linear',
-        ]:
+        'circ', 'linear'
+    ]:
         if params[boolean]:
-            cmd += ' --%s' % boolean.replace('_', '-')
+            if params['path']:
+                if boolean in ['gembase', 'mute']:
+                    continue
+            else:
+                cmd += ' --%s' % boolean.replace('_', '-')
 
     cmd += ' --verbose'
     cmd += ' --outdir %s' % out
@@ -485,7 +494,10 @@ def integronfinder_cmd(
         # this file is automatically created for contigs annotates as plasmids
         cmd += ' --topology-file %s' % params['topology_file']
 
-    cmd += ' %s\n' % fasta_out
+    if params['path']:
+        cmd += ' --replicons %s\n' % fasta_out
+    else:
+        cmd += ' %s\n' % fasta_out
     cmd += cmd_rm
     return cmd
 
@@ -493,8 +505,9 @@ def integronfinder_cmd(
 def get_integronfinder(
         self,
         tech: str,
+        group: str,
         fastas: dict,
-        sam_group: str,
+        contigs: str
 ) -> None:
     """Get the integron_finder command and fill the pipeline data structures.
 
@@ -507,54 +520,42 @@ def get_integronfinder(
             All outputs
     tech : str
         Technology: 'illumina', 'pacbio', or 'nanopore'
+    group : str
+        Co-assembly group / Sample name
     fastas : dict
         Paths to the input fasta files per genome/MAG
-    sam_group : str
-        Sample name or group for the current co-assembly
+    contigs : str
+        Empty of not run after a plasmid-detection tool
     """
-    # hmms_cmds, hmms_fp = write_hmms_cmd(self)
-    # if hmms_cmds:
-    #     hmms_sh = '%s/hmms.sh' % self.dir
-    #     hmms_dir = self.dir.replace('${SCRATCH_FOLDER}', '')
-    #     if not isdir(hmms_dir):
-    #         os.makedirs(hmms_dir)
-    #     with open(hmms_sh.replace('${SCRATCH_FOLDER}', ''), 'w') as o:
-    #         o.write(hmms_cmds)
-    #     hmms_cmd = '\nif [ ! -f %s ]; then sh %s; fi\n' % (hmms_fp, hmms_sh)
+    for genome, fastas in fastas.items():
 
-    # --------------------------------------------------------------
-    # create a topology file for the contigs annotated as plasmids
-    # --------------------------------------------------------------
-
-    for genome, fasta_ in fastas.items():
-
-        key = genome_key(tech, sam_group, genome)
-        out = genome_out_dir(self, tech, sam_group, genome)
+        key = genome_key(tech, group, genome)
+        out = genome_out_dir(self, tech, group, genome)
         self.outputs['dirs'].append(out)
-        self.outputs['outs'].setdefault((tech, sam_group), []).append(out)
-
-        fasta = fasta_[0]
-        if self.soft.prev == 'prodigal':
-            fasta = '%s/nucleotide.sequences.fasta.gz' % fasta_[0]
-
-        to_dos = status_update(
-            self, tech, [fasta], group=sam_group, genome=genome)
+        self.outputs['outs'].setdefault((tech, group), []).append(out)
+        if contigs:
+            cmds, plasmids, fasta = get_plasmids_fasta(self, fastas, contigs)
+            i_f = [plasmids, contigs]
+        else:
+            cmds, plasmids, fasta = '', '', fastas[0]
+            i_f = [fasta]
+        to_dos = status_update(self, tech, i_f, group=group, genome=genome)
 
         fpo = '%s/Results_Integron_Finder_mysequences/mysequences.summary' % out
         if self.config.force or to_do(fpo):
             # cmd = hmms_cmd + integronfinder_cmd(self, tech, fasta, out)
-            cmd = integronfinder_cmd(self, tech, fasta, out)
+            cmds += integronfinder_cmd(self, tech, fasta, out)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
-                self.outputs['cmds'].setdefault(key, []).append(cmd)
+                self.outputs['cmds'].setdefault(key, []).append(cmds)
             # io_update(self, i_f=[fasta, hmms_sh], o_d=out, key=key)
             io_update(self, i_f=fasta, o_d=out, key=key)
             self.soft.add_status(
-                tech, self.sam_pool, 1, group=sam_group, genome=genome)
+                tech, self.sam_pool, 1, group=group, genome=genome)
         else:
             self.soft.add_status(
-                tech, self.sam_pool, 0, group=sam_group, genome=genome)
+                tech, self.sam_pool, 0, group=group, genome=genome)
 
 
 def integronfinder(self) -> None:
@@ -597,14 +598,22 @@ def integronfinder(self) -> None:
         .config
             Configurations
     """
+    invalid = True
+    previous = self.config.tools[self.soft.prev]
+    if self.soft.prev in self.config.tools['assembling']:
+        invalid = False
+    elif previous in ['MAG (dereplication)', 'annotation (plasmid)']:
+        invalid = False
+    if invalid:
+        sys.exit('[integronfinder] Only on assembly, MAGs, plasmid annotations')
+
     if self.sam_pool in self.pools:
         for (tech, group), inputs in self.inputs[self.sam_pool].items():
             fastas = group_inputs(self, inputs)
-            get_integronfinder(self, tech, fastas, group)
-    else:
-        tech_fastas = sample_inputs(self)
-        for tech, fastas in tech_fastas.items():
-            get_integronfinder(self, tech, fastas, self.sam_pool)
+            contigs = ''
+            if previous == 'annotation (plasmid)':
+                contigs = get_contigs_from_path(self, tech, group)
+            get_integronfinder(self, tech, group, fastas, contigs)
 
 
 # def custom_cmd(
