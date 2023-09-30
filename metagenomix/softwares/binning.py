@@ -8,7 +8,8 @@
 import sys
 import glob
 import pkg_resources
-from os.path import basename, dirname, splitext
+from os.path import basename, splitext
+from metagenomix._inputs import get_contigs_from_path
 from metagenomix._io_utils import (
     caller, status_update, io_update, to_do, get_assembly, get_assembly_graph)
 from metagenomix.core.parameters import tech_params
@@ -618,10 +619,7 @@ def blobology(self):
         self.outputs['outs'][key] = {}
         bins = inputs[0]
 
-        assembler = self.softs['metawrap_binning'].prev
-        path = tuple(self.soft.path[:(self.soft.path.index(assembler) + 1)])
-        contigs = self.softs[assembler][
-            self.hashes[tuple(path)]].outputs[self.sam_pool][key][0]
+        contigs = get_contigs_from_path(self, tech, group)
         fastqs = get_fastqs(self, group)
         if not fastqs:
             # self.soft.add_status(tech, self.sam_pool, [fastqs], group=group)
