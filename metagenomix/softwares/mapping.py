@@ -617,7 +617,7 @@ def pysam(self):
     """
     if not self.soft.prev.startswith('mapping'):
         sys.exit("[%s] Only run after a mapping_* command" % self.soft.name)
-    mappings = self.softs[self.soft.prev]
+    mappings = self.softs[self.soft.prev][self.soft.hashed]
     target, func = get_pysam_target(self)
     if self.sam_pool in self.pools:
         pool_inputs = self.softs[target][
