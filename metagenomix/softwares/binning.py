@@ -205,11 +205,6 @@ def get_fastqs(
     fastqs : dict
         Paths to fastqs files per sample
     """
-
-    print("self.path")
-    print(self.path)
-    print("self.soft.path")
-    print(self.soft.path)
     for reads in self.path[::-1]:
         if self.config.tools[reads] == 'preprocessing':
             break
