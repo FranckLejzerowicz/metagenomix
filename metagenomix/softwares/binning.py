@@ -619,7 +619,9 @@ def blobology(self):
         bins = inputs[0]
 
         assembler = self.softs['metawrap_binning'].prev
-        contigs = self.softs[assembler].outputs[self.sam_pool][key][0]
+        path = tuple(self.soft.path[:(self.soft.path.index(assembler) + 1)])
+        contigs = self.softs[assembler][
+            self.hashes[tuple(path)]].outputs[self.sam_pool][key][0]
         fastqs = get_fastqs(self, group)
         if not fastqs:
             # self.soft.add_status(tech, self.sam_pool, [fastqs], group=group)
