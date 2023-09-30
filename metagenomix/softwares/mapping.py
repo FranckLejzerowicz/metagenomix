@@ -306,7 +306,8 @@ def get_pysam_target(self) -> tuple:
         if target not in self.softs:
             sys.exit("[%s] %s has not been run" % (self.soft.name, target))
     else:
-        target = self.softs[self.soft.prev].prev
+        target = self.softs[self.soft.prev][
+            self.hashes[tuple(self.soft.path[:-1])]].prev
 
     classif = self.config.tools[target].split()[0]
     if classif == 'assembling':
@@ -617,7 +618,7 @@ def pysam(self):
     """
     if not self.soft.prev.startswith('mapping'):
         sys.exit("[%s] Only run after a mapping_* command" % self.soft.name)
-    mappings = self.softs[self.soft.prev][self.soft.hashed]
+    maps = self.softs[self.soft.prev][self.hashes[tuple(self.soft.path[:-1])]]
     target, func = get_pysam_target(self)
     if self.sam_pool in self.pools:
         pool_inputs = self.softs[target][
@@ -625,7 +626,7 @@ def pysam(self):
         ].outputs[self.sam_pool]
         for (tech, group), inputs in pool_inputs.items():
             references = group_inputs(self, inputs, target=target)
-            get_pysam(self, func, mappings, tech, group, target, references)
+            get_pysam(self, func, maps, tech, group, target, references)
 
 
 def get_salmon_reads_cmd(
