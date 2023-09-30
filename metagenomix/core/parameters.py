@@ -93,7 +93,7 @@ def check_nums_generic(param, val, dtype, tool, mi=None, ma=None, tech=None):
         check_num_sys_exit(tool, err, tech)
 
 
-def check_nums(self, params, defaults, vals, dtype, tool, mi=None, ma=None):
+def check_nums(self, params, defaults, vals, dtype, mi=None, ma=None):
     for param in vals:
         if param not in params:
             if defaults[param] == [None]:
@@ -104,9 +104,9 @@ def check_nums(self, params, defaults, vals, dtype, tool, mi=None, ma=None):
             val = params[param]
             if isinstance(val, dict) and set(val).issubset(self.config.techs):
                 for tech, v in val.items():
-                    check_nums_generic(param, v, dtype, tool, mi, ma, tech)
+                    check_nums_generic(param, v, dtype, self.name, mi, ma, tech)
             else:
-                check_nums_generic(param, val, dtype, tool, mi, ma)
+                check_nums_generic(param, val, dtype, self.name, mi, ma)
 
 
 def check_databases(name, params, databases):
@@ -159,13 +159,13 @@ def check_type(vals, param, multi, tool, tech=None):
         check_type_sys_exit(tool, param, True, tech)
 
 
-def check_default_type(self, params, param, multi, tool):
+def check_default_type(self, params, param, multi):
     vals = params[param]
     if isinstance(vals, dict) and set(vals).issubset(self.config.techs):
         for tech, v in vals.items():
-            check_type(v, param, multi, tool, tech)
+            check_type(v, param, multi, self.name, tech)
     else:
-        check_type(vals, param, multi, tool)
+        check_type(vals, param, multi, self.name)
 
 
 def check_type_sys_exit(tool, param, no_dict, tech=None):
@@ -194,7 +194,6 @@ def check_default(
         self,
         params,
         defaults,
-        tool,
         let_go: list = [],
         multi: list = []
 ):
@@ -219,29 +218,31 @@ def check_default(
             vals = params[param]
             if isinstance(vals, dict) and set(vals).issubset(self.config.techs):
                 for tech, v in vals.items():
-                    check_default_generic(param, v, values, tool, tech)
+                    check_default_generic(param, v, values, self.name, tech)
             else:
-                check_default_generic(param, vals, values, tool)
-        check_default_type(self, params, param, multi, tool)
-    add_skip_samples(params, defaults, tool)
+                check_default_generic(param, vals, values, self.name)
+        check_default_type(self, params, param, multi)
+    add_skip_samples(params, defaults, self.name)
 
 
-def check_binary(self, t, params, defaults, opt):
-    if [x for x in self.config.modules.get(t, []) if x.lower().startswith(t)]:
+def check_binary(self, params, defaults, opt, n=None):
+    if n is None:
+        n = self.name
+    if [x for x in self.config.modules.get(n, []) if x.lower().startswith(n)]:
         return None
     if opt == 'path':
         message = 'Param "path" for path to binaries folder missing'
-        defaults['path'] = '<Path to folder containing the %s binary>' % t
+        defaults['path'] = '<Path to folder containing the %s binary>' % n
         isfile_or_isdir = isdir
     if opt in ['binary', 'trimmomatic', 'bowtie2', 'anicalculator']:
         message = 'Param "%s" for path to binary/executable' % opt
-        defaults[opt] = '<Path to the %s binary>' % t
+        defaults[opt] = '<Path to the %s binary>' % self.name
         isfile_or_isdir = isfile
     if opt not in params:
-        sys.exit('[%s] %s' % (t, message))
+        sys.exit('[%s] %s' % (n, message))
     if not self.config.dev:
         if params[opt] != 'module' and not isfile_or_isdir(params[opt]):
-            sys.exit('[%s] Please provide valid path to param "%s"' % (opt, t))
+            sys.exit('[%s] Please provide valid path to param "%s"' % (opt, n))
 
 
 class Parameters(object):
@@ -398,27 +399,26 @@ def get_diamond_hmmer_databases(self, tool, params):
 #     return defaults
 
 
-def check_ccfind(self, params, soft):
+def check_ccfind(self, params):
     defaults = {
         'preserve_tmpdir': [False, True],
         'terminal_fragment_size': 500,
         'min_percent_identity': 94,
-        'min_aligned_length': 50}
-    check_nums(self, params, defaults,
-               ['terminal_fragment_size', 'min_aligned_length'], int, soft.name)
-    check_nums(self, params, defaults, ['min_percent_identity'],
-               int, soft.name, 0, 100)
-    let_go = [
-        'terminal_fragment_size', 'min_aligned_length', 'min_percent_identity']
-    check_default(self, params, defaults, soft.name, let_go)
-    check_binary(self, soft.name, params, defaults, 'path')
-    check_binary(self, soft.name, params, defaults, 'binary')
+        'min_aligned_length': 50
+    }
+    int1 = ['terminal_fragment_size', 'min_aligned_length']
+    check_nums(self, params, defaults, int1, int)
+    int2 = ['min_percent_identity']
+    check_nums(self, params, defaults, int2, int, 0, 100)
+    check_default(self, params, defaults, (int1 + int2))
+    check_binary(self, params, defaults, 'path')
+    check_binary(self, params, defaults, 'binary')
     defaults['path'] = '<path to the ssearch36 installation folder>'
     defaults['binary'] = '<path to the ccfind binary>'
     return defaults
 
 
-def check_barrnap(self, params, soft):
+def check_barrnap(self, params):
     defaults = {
         'evalue': 1e-06,
         'reject': 0.25,
@@ -427,14 +427,14 @@ def check_barrnap(self, params, soft):
         'kingdom': ['bac', 'mito', 'arc', 'euk']
     }
     floats = ['evalue', 'reject', 'lencutoff']
-    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
-    check_default(self, params, defaults, soft.name, floats)
+    check_nums(self, params, defaults, floats, float, 0, 1)
+    check_default(self, params, defaults, floats)
     return defaults
 
 
-def check_integronfinder(self, params, soft):
+def check_integronfinder(self, params):
     defaults = {
-        'dt': 400,
+        'distance_threshold': 400,
         'evalue_attc': 1,
         'min_length': 1500,
         'min_attc_size': 40,
@@ -454,24 +454,36 @@ def check_integronfinder(self, params, soft):
         'linear': [True, False],
         'keep_tmp': [True, False]
     }
-    paths = ['annot_parser', 'attc_model', 'topology_file', 'path_func_annot']
+    paths = [
+        'annot_parser',
+        'attc_model',
+        'topology_file',
+        'path_func_annot'
+    ]
+    nf = ['parallel_integron_finder.nf', 'nextflow.config']
+    if 'path' in params and not self.config.dev:
+        if sum([isfile('%s/%s' % (params['path'], x)) for x in nf]) != 2:
+            print('[integronfinder] Will run without using nextflow (slower)')
+            params['path'] = None
+
     for p in paths:
         if p in params:
             if not isfile(str(params[p])):
-                sys.exit('[integron_finder] Path "%s" do not exist' % params[p])
+                sys.exit('[integronfinder] Path "%s" do not exist' % params[p])
         else:
             params[p] = None
-    ints = [
-        'dt', 'min_length', 'min_attc_size', 'max_attc_size', 'calin_threshold']
-    check_nums(self, params, defaults, ints, int, soft.name)
+    ints = ['distance_threshold', 'min_length', 'min_attc_size',
+            'max_attc_size', 'calin_threshold']
+    check_nums(self, params, defaults, ints, int)
     ints1 = ['evalue_attc']
-    check_nums(self, params, defaults, ints1, float, soft.name, 0, 100)
+    check_nums(self, params, defaults, ints1, float, 0, 100)
     let_go = ints + ints1
-    check_default(self, params, defaults, soft.name, let_go)
+    check_default(self, params, defaults, let_go)
     defaults['annot_parser'] = '<Parser to use to get info from protein file>'
     defaults['attc_model'] = '<Path to the attc model (Covariance Matrix)>'
     defaults['topology_file'] = '<Path to file with each replicon topology>'
     defaults['path_func_annot'] = '<Path containing all hmm bank paths>'
+    defaults['path'] = '<Path to folder containing "%s">' % '", "'.join(nf)
     return defaults
 
 
@@ -492,7 +504,7 @@ def check_prokka_config(params):
                          'tab-separated fields (could be empty):\t%s' % (t, ls))
 
 
-def check_prokka(self, params, soft):
+def check_prokka(self, params):
     defaults = {
         'kingdom': ['Archaea', 'Bacteria', 'Mitochondria', 'Viruses'],
         'evalue': 1e-09,
@@ -516,12 +528,13 @@ def check_prokka(self, params, soft):
         'rnammer': [False, True],
         'rfam': 0
     }
-    check_nums(self, params, defaults, ['evalue'], float, soft.name, 0, 100)
-    check_nums(self, params, defaults, ['coverage'], int, soft.name, 0, 100)
-    ints = ['mincontiglen', 'gffver', 'accver', 'rfam']
-    check_nums(self, params, defaults, ints, int, soft.name)
-    check_default(self, params, defaults, soft.name, [
-        'evalue', 'coverage', 'mincontiglen', 'gffver', 'accver', 'rfam'])
+    floats = ['evalue']
+    int1 = ['mincontiglen', 'gffver', 'accver', 'rfam']
+    int2 = ['coverage']
+    check_nums(self, params, defaults, floats, float, 0, 100)
+    check_nums(self, params, defaults, int1, int)
+    check_nums(self, params, defaults, int2, int, 0, 100)
+    check_default(self, params, defaults, (floats + int1 + int2))
     if 'config' in params and params['config'] is not None:
         if not isfile(params['config']):
             sys.exit('[prokka] Param "config" must be an existing file')
@@ -532,7 +545,7 @@ def check_prokka(self, params, soft):
     return defaults
 
 
-def check_antismash(self, params, soft):
+def check_antismash(self, params):
     defaults = {
         'tta_threshold': 0.65,
         'rre': [False, True],
@@ -552,12 +565,12 @@ def check_antismash(self, params, soft):
             'prodigal-m', 'prodigal', 'glimmerhmm', 'none', 'error']
     }
     floats = ['tta_threshold']
-    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
-    check_default(self, params, defaults, soft.name, floats)
+    check_nums(self, params, defaults, floats, float, 0, 1)
+    check_default(self, params, defaults, floats)
     return defaults
 
 
-def check_quast(self, params, soft):
+def check_quast(self, params):
     defaults = {
         'no_check': [False, True],
         'no_plots': [False, True],
@@ -628,21 +641,21 @@ def check_quast(self, params, soft):
     ints = ['min_contig', 'min_alignment', 'k_mer_size', 'max_ref_number',
             'extensive_mis_size', 'local_mis_size', 'fragmented_max_indent',
             'unaligned_part_size', 'scaffold_gap_max_size']
-    check_nums(self, params, defaults, ints, int, soft.name)
+    check_nums(self, params, defaults, ints, int)
     ints2 = ['x_for_Nx']
-    check_nums(self, params, defaults, ints2, int, soft.name, 0, 100)
+    check_nums(self, params, defaults, ints2, int, 0, 100)
     floats = ['min_identity']
-    check_nums(self, params, defaults, floats, float, soft.name, 80, 100)
+    check_nums(self, params, defaults, floats, float, 80, 100)
     floats2 = ['ambiguity_score']
-    check_nums(self, params, defaults, floats2, float, soft.name, 0.8, 1)
+    check_nums(self, params, defaults, floats2, float, 0.8, 1)
     if 'label' in params:
         if params['label'] not in set(self.config.meta):
             sys.exit('[quast] Params "label" must be a valid metadata column')
     let_go = ints + ints2 + floats + floats2 + [
         'label', 'contig_thresholds', 'gene_thresholds']
-    check_default(self, params, defaults, soft.name, let_go)
+    check_default(self, params, defaults, let_go)
     defaults['label'] = '<an existing metadata column>'
-    check_binary(self, soft.name, params, defaults, 'path')
+    check_binary(self, params, defaults, 'path')
 
     if 'circos_path' not in params:
         params['circos_path'] = None
@@ -656,7 +669,7 @@ def check_quast(self, params, soft):
     return defaults
 
 
-def check_bowtie2(self, params, soft, no_database=False):
+def check_bowtie2(self, params, no_database=False):
     defaults = {
         'presets': ['sensitive', 'very-sensitive', 'very-fast', 'fast', None],
         'paired': [True, False],
@@ -762,15 +775,15 @@ def check_bowtie2(self, params, soft, no_database=False):
 
     ints = ['skip', 'upto', 'trim5', 'trim3', 'trim_to', 'dpad', 'gbar', 'ma',
             'k', 'np', 'D', 'R', 'minins', 'maxins', 'met', 'seed']
-    check_nums(self, params, defaults, ints, int, soft.name)
-    check_nums(self, params, defaults, ['N'], int, soft.name, 0, 1)
-    check_nums(self, params, defaults, ['L'], int, soft.name, 4, 31)
+    check_nums(self, params, defaults, ints, int)
+    check_nums(self, params, defaults, ['N'], int, 0, 1)
+    check_nums(self, params, defaults, ['L'], int, 4, 31)
 
     let_go = ints + ['N', 'L', 'i', 'n_ceil', 'score_min', 'rdg', 'rfg', 'mp']
-    check_default(self, params, defaults, soft.name, let_go)
+    check_default(self, params, defaults, let_go)
 
     if not no_database:
-        dbs_existing = check_databases(soft.name, params, self.databases)
+        dbs_existing = check_databases(self.name, params, self.databases)
         valid_dbs = {}
         for db in dbs_existing:
             if 'bowtie2' in self.databases.builds[db]:
@@ -786,7 +799,7 @@ def check_bowtie2(self, params, soft, no_database=False):
     return defaults
 
 
-def check_mapping(self, params, soft):
+def check_mapping(self, params):
     defaults = {
         'aligners': ['minimap2', 'bowtie2', 'bwa', 'bbmap'],
         'per_tech': [False, True]
@@ -796,16 +809,14 @@ def check_mapping(self, params, soft):
         check_aligner = 'check_%s' % aligner
         if check_aligner in globals():
             func = globals()[check_aligner]
-            aligner_defaults = func(self, aligner_params, soft, True)
+            aligner_defaults = func(self, aligner_params, True)
             defaults[aligner] = aligner_defaults
             params[aligner] = aligner_params
-
-    check_default(
-        self, params, defaults, soft.name, defaults['aligners'], ['aligners'])
+    check_default(self, params, defaults, defaults['aligners'], ['aligners'])
     return defaults
 
 
-def check_filtering(self, params, soft):
+def check_filtering(self, params):
     defaults = {
         'aligner': ['bowtie2', 'minimap2', 'bwa', 'bbmap'],
     }
@@ -817,11 +828,11 @@ def check_filtering(self, params, soft):
         check_aligner = 'check_%s' % aligner
         if check_aligner in globals():
             func = globals()[check_aligner]
-            aligner_defaults = func(self, aligner_params, soft, True)
+            aligner_defaults = func(self, aligner_params, True)
             defaults[aligner] = aligner_defaults
             params[aligner] = aligner_params
 
-    check_default(self, params, defaults, soft.name, defaults['aligner'])
+    check_default(self, params, defaults, defaults['aligner'])
 
     aligner = params['aligner']
     for db in params["databases"]:
@@ -842,7 +853,7 @@ def check_filtering(self, params, soft):
     return defaults
 
 
-def check_atropos(self, params, soft):
+def check_atropos(self, params):
     defaults = {
         'q': 15,
         'overlap': 3,
@@ -868,14 +879,13 @@ def check_atropos(self, params, soft):
     ints = ['q', 'overlap', 'max_reads', 'indel_cost', 'nextseq_trim',
             'minimum_length', 'quality_cutoff']
     floats = ['error_rate']
-    check_nums(self, params, defaults, ints, int, soft.name)
-    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
-    check_default(self, params, defaults, soft.name,
-                  (floats + ints + ['a', 'A']))
+    check_nums(self, params, defaults, ints, int)
+    check_nums(self, params, defaults, floats, float, 0, 1)
+    check_default(self, params, defaults, (floats + ints + ['a', 'A']))
     return defaults
 
 
-def check_kneaddata(self, params, soft):
+def check_kneaddata(self, params):
     defaults = {
         'trimmomatic': None,
         'bowtie2': None,
@@ -885,10 +895,10 @@ def check_kneaddata(self, params, soft):
         if tool not in params:
             params[tool] = defaults[tool]
         else:
-            check_binary(self, 'kneaddata', params, defaults, tool)
+            check_binary(self, params, defaults, tool, 'kneaddata')
     if 'databases' not in params or not isinstance(params['databases'], list):
         sys.exit('[kneaddata] Params "databases" must a list of existing paths')
-    check_default(self, params, defaults, soft.name, (tools + ['databases']))
+    check_default(self, params, defaults, (tools + ['databases']))
     defaults['databases'] = '<list of databases>'
     return defaults
 
@@ -912,7 +922,7 @@ def expand_search_params(params, defaults, name):
     del_search_tool_keys(params)
 
 
-def search_diamond(self, params, soft) -> dict:
+def search_diamond(self, params) -> dict:
     defaults = {
         'mode': [False, 'fast', 'mid-sensitive', 'sensitive', 'more-sensitive',
                  'very-sensitive', 'ultra-sensitive'],
@@ -929,14 +939,14 @@ def search_diamond(self, params, soft) -> dict:
     expand_search_params(params, defaults, 'diamond')
     floats, ints_ = ['evalue'], ['max_target_seqs', 'top', 'max_hsps']
     ints = ['id', 'query_cover', 'subject_cover']
-    check_nums(self, params, defaults, ints_, int, soft.name)
-    check_nums(self, params, defaults, ints, int, soft.name, 0, 100)
-    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
-    check_default(self, params, defaults, soft.name, (ints_ + ints + floats))
+    check_nums(self, params, defaults, ints_, int)
+    check_nums(self, params, defaults, ints, int, 0, 100)
+    check_nums(self, params, defaults, floats, float, 0, 1)
+    check_default(self, params, defaults, (ints_ + ints + floats))
     return defaults
 
 
-def search_hmmer(self, params, soft) -> dict:
+def search_hmmer(self, params) -> dict:
     defaults = {
         'cut_ga': [False, True],
         'cut_nc': [False, True],
@@ -953,30 +963,28 @@ def search_hmmer(self, params, soft) -> dict:
         'F2': 1e-3,
         'F3': 1e-5,
     }
-
     expand_search_params(params, defaults, 'hmmer')
-    e_vals, z_vals = ['E', 'domE'], ['Z', 'domZ', 'textw']
+    evals, zvals = ['E', 'domE'], ['Z', 'domZ', 'textw']
     floats = ['F1', 'F2', 'F3']
-    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
-    check_nums(self, params, defaults, e_vals, float, soft.name, 0, 100)
-    check_nums(self, params, defaults, z_vals, int, soft.name, 0, 1000)
-    check_default(self, params, defaults, soft.name,
-                  (e_vals + z_vals + floats + ['terms']))
+    check_nums(self, params, defaults, floats, float, 0, 1)
+    check_nums(self, params, defaults, evals, float, 0, 100)
+    check_nums(self, params, defaults, zvals, int, 0, 1000)
+    check_default(self, params, defaults, (evals + zvals + floats + ['terms']))
     defaults['descriptions'] = '<List of strings to search Pfam descriptions>'
     defaults['accessions'] = '<List of strings to search Pfam accessions>'
     defaults['interpro'] = '<List of tsv files exported from InterPro>'
     return defaults
 
 
-def search_tool(self, params, soft, tool) -> dict:
+def search_tool(self, params, tool) -> dict:
     if tool == 'diamond':
-        defaults = search_diamond(self, params, soft)
+        defaults = search_diamond(self, params)
     else:
-        defaults = search_hmmer(self, params, soft)
+        defaults = search_hmmer(self, params)
     return defaults
 
 
-def check_metaxa2(self, params, soft) -> dict:
+def check_metaxa2(self, params) -> dict:
     defaults = {
         'databases': ['default'],
         'allow_single_domain': '1e-10,0',
@@ -1081,46 +1089,39 @@ def check_metaxa2(self, params, soft) -> dict:
 
     # check_databases('metaxa2', params, self.databases)
     floats = ['E', 'usearch', 'blast_eval']
-    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
+    check_nums(self, params, defaults, floats, float, 0, 1)
     ints = ['S', 'N', 'M', 'q', 'distance', 'search_score', 'blast_wordsize',
             'taxlevel', 'graph_scale', 'l', 'm', 'n', 'resamples', 'write',
             'ace_rare']
-    check_nums(self, params, defaults, ints, int, soft.name)
+    check_nums(self, params, defaults, ints, int)
     ints2 = ['R', 'H', 'quality_percent', 'ref_identity', 'r', 'd']
-    check_nums(self, params, defaults, ints2, int, soft.name, 0, 100)
-    check_default(self, params, defaults, soft.name, (
+    check_nums(self, params, defaults, ints2, int, 0, 100)
+    check_default(self, params, defaults, (
         ['databases', 'T', 'allow_single_domain'] + floats + ints + ints2))
     defaults['databases'].append('<list of databases>')
     return defaults
 
 
-def check_count(self, params, soft):
-    defaults = {}
-    return defaults
-
-
-def check_kraken2(self, params, soft):
+def check_kraken2(self, params):
     defaults = {
         'databases': ['default'],
         'confidence': 0.5
     }
-    check_databases('kraken2', params, self.databases)
-    check_nums(self, params, defaults, ['confidence'], float, soft.name, 0, 1)
-    check_default(self, params, defaults, soft.name,
-                  ['confidence', 'databases'])
+    check_databases(self.name, params, self.databases)
+    check_nums(self, params, defaults, ['confidence'], float, 0, 1)
+    check_default(self, params, defaults, ['confidence', 'databases'])
     defaults['databases'].append('<list of databases>')
     return defaults
 
 
-def check_shogun(self, params, soft):
+def check_shogun(self, params):
     defaults = {'aligners': ['bowtie2', 'burst', 'utree']}
-    check_default(self, params, defaults, soft.name, [], ['aligners'])
+    check_default(self, params, defaults, [], ['aligners'])
     if 1:
         valid_dbs = {}
-        dbs_existing = check_databases('shogun', params, self.databases)
+        dbs_existing = check_databases(self.name, params, self.databases)
         for db in dbs_existing:
             path = self.databases.paths[db]
-
             yamls = []
             for folder in ['', 'databases/']:
                 yaml = '%s/%sshogun/metadata.yaml' % (path, folder)
@@ -1153,7 +1154,7 @@ def check_shogun(self, params, soft):
     return defaults
 
 
-def check_minimap2(self, params, soft, no_database=False):
+def check_minimap2(self, params, no_database=False):
     defaults = {
         'paired': [True, False],
         'k': 15,
@@ -1245,16 +1246,16 @@ def check_minimap2(self, params, soft, no_database=False):
     ints = ['max_qlen', 'w', 'g', 'F', 'r', 'n', 'm', 'N', 'A', 'B', 's',
             'max_chain_skip', 'max_chain_iter', 'C', 's', 'end_bonus',
             'score_N', 'junc_bonus', 'seed', 'min_occ_floor', 'end_seed_pen']
-    check_nums(self, params, defaults, ints, int, soft.name)
-    check_nums(self, params, defaults, ['k'], int, soft.name, 3, 28)
+    check_nums(self, params, defaults, ints, int)
+    check_nums(self, params, defaults, ['k'], int, 3, 28)
 
     floats = ['f', 'p', 'M', 'lj_min_ratio']
-    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
+    check_nums(self, params, defaults, floats, float, 0, 1)
 
-    check_default(self, params, defaults, soft.name, (ints[1:]+floats+['k']))
+    check_default(self, params, defaults, (ints[1:]+floats+['k']))
 
     if not no_database:
-        dbs_existing = check_databases(soft.name, params, self.databases)
+        dbs_existing = check_databases(self.name, params, self.databases)
         valid_dbs = {}
         for db in dbs_existing:
             if 'minimap2' in self.databases.builds[db]:
@@ -1270,12 +1271,12 @@ def check_minimap2(self, params, soft, no_database=False):
     return defaults
 
 
-def check_bbmap(self, params, soft, no_database=False):
+def check_bbmap(self, params, no_database=False):
     defaults = {
         'paired': [True, False],
     }
     if not no_database:
-        dbs_existing = check_databases(soft.name, params, self.databases)
+        dbs_existing = check_databases(self.name, params, self.databases)
         valid_dbs = {}
         for db in dbs_existing:
             if 'bbmap' in self.databases.builds[db]:
@@ -1291,12 +1292,12 @@ def check_bbmap(self, params, soft, no_database=False):
     return defaults
 
 
-def check_bwa(self, params, soft, no_database=False):
+def check_bwa(self, params, no_database=False):
     defaults = {
         'paired': [True, False],
     }
     if not no_database:
-        dbs_existing = check_databases(soft.name, params, self.databases)
+        dbs_existing = check_databases(self.name, params, self.databases)
         valid_dbs = {}
         for db in dbs_existing:
             if 'bwa' in self.databases.builds[db]:
@@ -1312,7 +1313,7 @@ def check_bwa(self, params, soft, no_database=False):
     return defaults
 
 
-def check_spades(self, params, soft):
+def check_spades(self, params):
     defaults = {
         'hybrid': ['illumina', 'nanopore', 'pacbio'],
         'k': ['auto'],
@@ -1326,12 +1327,11 @@ def check_spades(self, params, soft):
         'disable_gzip_output': [False, True],
         'only_error_correction': [False, True],
     }
-    t = soft.name
     if 'hybrid' in params:
         invalids = [x for x in params['hybrid'] if x not in defaults['hybrid']]
         if invalids:
             sys.exit('[%s] Param "hybrid" has invalid terms: %s' % (
-                t, ','.join(invalids)))
+                self.name, ','.join(invalids)))
     else:
         params['hybrid'] = ['illumina']
     if 'k' not in params:
@@ -1342,16 +1342,17 @@ def check_spades(self, params, soft):
         elif isinstance(params['k'], list):
             kerr = [x for x in params['k'] if not str(x).isdigit()]
             if len(kerr):
-                sys.exit('[%s] "k" must be integers (%s)' % (t, ','.join(kerr)))
-    check_default(self, params, defaults, soft.name, ['k', 'hybrid'])
+                sys.exit('[%s] "k" must be integers (%s)' % (
+                    self.name, ','.join(kerr)))
+    check_default(self, params, defaults, ['k', 'hybrid'])
     return defaults
 
 
-def check_viralverify(self, params, soft):
+def check_viralverify(self, params):
     defaults = {'thr': 7, 'p': [False, True], 'db': [False, True]}
     check_nums(self, params, defaults, ['thr'], int, 'viralverify')
-    check_default(self, params, defaults, soft.name, ['thr'])
-    check_binary(self, soft.name, params, defaults, 'path')
+    check_default(self, params, defaults, ['thr'])
+    check_binary(self, params, defaults, 'path')
     defaults['path'] = '<path to the ViralVerify installation folder>'
     return defaults
 
@@ -1372,7 +1373,7 @@ def simka_error(key: str, kmer_reads: dict) -> None:
                      '"%s") in your input .yml params file' % (p, key))
 
 
-def check_simka(self, params, soft):
+def check_simka(self, params):
     defaults = {
         'simkaMin': [True, False],
         'kmer': np.linspace(15, 80, 6),
@@ -1392,22 +1393,22 @@ def check_simka(self, params, soft):
         n = params['log_reads']
         simka_error('log_reads', n)
         params['log_reads'] = np.logspace(n['start'], n['end'], n['size'])
-    check_nums(self, params, defaults, ['nb_kmers', 'min_read_size'],
-               int, soft.name)
-    check_default(self, params, defaults, soft.name,
-                  ['kmer', 'log_reads', 'nb_kmers', 'min_read_size'])
+    ints = ['nb_kmers', 'min_read_size']
+    check_nums(self, params, defaults, ints, int)
+    defs = ['kmer', 'log_reads'] + ints
+    check_default(self, params, defaults, defs)
     params['kmer'] = [int(x) for x in params['kmer']]
     params['log_reads'] = [int(x) for x in params['log_reads']]
     defaults['kmer'] = [str(x) for x in np.linspace(15, 80, 6)]
     defaults['log_reads'] = [str(x) for x in np.logspace(3, 7, 3)]
-    check_binary(self, soft.name, params, defaults, 'path')
+    check_binary(self, params, defaults, 'path')
     defaults['path'] = '<path to the SimKa installation folder>'
     return defaults
 
 
-def check_metamarker(self, params, soft):
+def check_metamarker(self, params):
     defaults = {'identity': 0.9}
-    check_nums(self, params, defaults, ['identity'], float, 'metamarker', 0, 1)
+    check_nums(self, params, defaults, ['identity'], float, 0, 1)
     if 'groups' not in params:
         sys.exit('[metamarker] Param "groups" not found (metadata variable(s))')
     for group in params['groups']:
@@ -1417,7 +1418,7 @@ def check_metamarker(self, params, soft):
     return defaults
 
 
-def check_metawrap(self, params, soft):
+def check_metawrap(self, params):
     defaults = {
         'min_completion': 25,
         'max_contamination': 5,
@@ -1432,18 +1433,17 @@ def check_metawrap(self, params, soft):
         params['binners'] = defaults['binners']
     mins = ['min_completion', 'min_completion_reassembly',
             'max_contamination', 'max_contamination_reassembly']
-    check_nums(self, params, defaults, mins, int, 'metawrap:binning', 0, 100)
-    check_nums(
-        self, params, defaults, ['min_contig_length'], int, 'metawrap:binning')
+    check_nums(self, params, defaults, mins, int, 0, 100)
+    check_nums(self, params, defaults, ['min_contig_length'], int)
     mins.append('min_contig_length')
-    check_default(self, params, defaults, soft.name, mins,
-                  ['binners', 'reassembly', 'blobology'])
-    check_binary(self, soft.name, params, defaults, 'path')
+    check_default(
+        self, params, defaults, mins, ['binners', 'reassembly', 'blobology'])
+    check_binary(self, params, defaults, 'path')
     defaults['path'] = '<path to the metaWRAP installation folder>'
     return defaults
 
 
-def check_drep(self, params, soft):
+def check_drep(self, params):
     defaults = {
         'n_PRESET': ['normal', 'tight'],
         'coverage_method': ['larger', 'total'],
@@ -1467,16 +1467,15 @@ def check_drep(self, params, soft):
     if 'S_algorithm' not in params:
         params['S_algorithm'] = ['fastANI', 'ANIn']
     ints = ['MASH_sketch', 'primary_chunksize']
-    check_nums(self, params, defaults, ints, int, soft.name)
+    check_nums(self, params, defaults, ints, int)
     flts = ['P_ani', 'S_ani', 'cov_thresh', 'warn_dist', 'warn_sim', 'warn_aln']
-    check_nums(self, params, defaults, flts, float, soft.name, 0, 1)
-    check_default(
-        self, params, defaults, soft.name, (ints + flts), ['S_algorithm'])
-    check_binary(self, soft.name, params, defaults, 'anicalculator')
+    check_nums(self, params, defaults, flts, float, 0, 1)
+    check_default(self, params, defaults, (ints + flts), ['S_algorithm'])
+    check_binary(self, params, defaults, 'anicalculator')
     return defaults
 
 
-def check_checkm(self, params, soft):
+def check_checkm(self, params):
     defaults = {
         'multi': 10,
         'unique': 10,
@@ -1501,20 +1500,17 @@ def check_checkm(self, params, soft):
         'force_domain': [False, True],
         'no_refinement': [False, True],
     }
-    # if 'data' not in params:
-    #     sys.exit('[checkm] Param "data" needed: path for "checkm data setRoot"')
     ints = ['min_seq_len', 'min_qc', 'multi', 'unique']
-    check_nums(self, params, defaults, ints, int, soft.name)
+    check_nums(self, params, defaults, ints, int)
     floats = ['min_align', 'max_edit_dist', 'aai_strain', 'length']
-    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
+    check_nums(self, params, defaults, floats, float, 0, 1)
     floats_ = ['e_value']
-    check_nums(self, params, defaults, floats_, float, soft.name)
-    check_default(self, params, defaults, soft.name, (ints + floats + floats_))
-    # defaults['data'] = '<path to the CheckM reference data>'
+    check_nums(self, params, defaults, floats_, float)
+    check_default(self, params, defaults, (ints + floats + floats_))
     return defaults
 
 
-def check_checkm2(self, params, soft):
+def check_checkm2(self, params):
     defaults = {
         'lowmem': [False, True],
         'general': [False, True],
@@ -1530,12 +1526,12 @@ def check_checkm2(self, params, soft):
             sys.exit('[checkm2] Param "database_path" do not exist')
     else:
         params['database_path'] = None
-    check_default(self, params, defaults, soft.name, ['database_path'])
+    check_default(self, params, defaults, ['database_path'])
     defaults['database_path'] = '<path to an alternative reference database>'
     return defaults
 
 
-def check_prodigal(self, params, soft):
+def check_prodigal(self, params):
     defaults = {
         'f': ['gff', 'gbk', 'sco'],
         'p': ['meta', 'single'],
@@ -1544,11 +1540,11 @@ def check_prodigal(self, params, soft):
         'n': [False, True],
         'q': [False, True],
     }
-    check_default(self, params, defaults, soft.name)
+    check_default(self, params, defaults)
     return defaults
 
 
-def check_fastp(self, params, soft):
+def check_fastp(self, params):
     defaults = {
         'split': 0,
         'split_prefix_digits': 4.,
@@ -1613,31 +1609,31 @@ def check_fastp(self, params, soft):
     for adapter in ['adapter_sequence', 'adapter_sequence_r2', 'adapter_fasta']:
         if adapter not in params:
             params[adapter] = None
-    check_nums(self, params, defaults, int1, int, 'fastp')
+    check_nums(self, params, defaults, int1, int)
     int2 = ['split']
-    check_nums(self, params, defaults, int2, int, 'fastp', 2, 999)
+    check_nums(self, params, defaults, int2, int, 2, 999)
     int3 = ['split_prefix_digits']
-    check_nums(self, params, defaults, int3, int, 'fastp', 1, 10)
+    check_nums(self, params, defaults, int3, int, 1, 10)
     int4 = ['overrepresentation_sampling']
-    check_nums(self, params, defaults, int4, int, 'fastp', 1, 10000)
+    check_nums(self, params, defaults, int4, int, 1, 10000)
     int5 = ['complexity_threshold', 'unqualified_percent_limit']
-    check_nums(self, params, defaults, int5, int, 'fastp', 1, 100)
+    check_nums(self, params, defaults, int5, int, 1, 100)
     int6 = ['cut_mean_quality', 'cut_front_mean_quality',
             'cut_tail_mean_quality', 'cut_right_mean_quality']
-    check_nums(self, params, defaults, int6, int, 'fastp', 1, 36)
+    check_nums(self, params, defaults, int6, int, 1, 36)
     int7 = ['dup_calc_accuracy']
-    check_nums(self, params, defaults, int7, int, 'fastp', 1, 6)
+    check_nums(self, params, defaults, int7, int, 1, 6)
     int8 = ['compression']
-    check_nums(self, params, defaults, int8, int, 'fastp', 1, 9)
+    check_nums(self, params, defaults, int8, int, 1, 9)
     let_go = int1 + int2 + int3 + int4 + int5 + int6 + int7 + int8
-    check_default(self, params, defaults, soft.name, let_go)
+    check_default(self, params, defaults, let_go)
     defaults['adapter_sequence'] = '<the adapter for read1>'
     defaults['adapter_sequence_r2'] = '<the adapter for read2>'
     defaults['adapter_fasta'] = '<Path to fasta file with sequences to trim>'
     return defaults
 
 
-def check_humann(self, params, soft):
+def check_humann(self, params):
     defaults = dict({
         'evalue': 0.1,
         'identity': 90,
@@ -1675,12 +1671,12 @@ def check_humann(self, params, soft):
                 sys.exit('[humann] Param "profiles::%s" must be a string' % key)
             elif not isfile(value):
                 sys.exit('[humann] Param "profiles::%s" does not exist' % key)
-    check_default(self, params, defaults, soft.name, let_go)
+    check_default(self, params, defaults, let_go)
     defaults['profiles'] = '<dict of taxonomic profiles name: file>'
     return defaults
 
 
-def check_midas(self, params, soft):
+def check_midas(self, params):
     defaults = {
         'focus': {'all': ''},
         's': ['very-sensitive', 'sensitive', 'very-fast', 'fast'],
@@ -1718,21 +1714,21 @@ def check_midas(self, params, soft):
             if not self.config.dev and not isfile(v):
                 sys.exit('[midas] Param "focus::%s::%s" not a file' % (k, v))
     ints = ['species_topn', 'readq', 'trim', 'n', 'word_size']
-    check_nums(self, params, defaults, ints, int, soft.name)
+    check_nums(self, params, defaults, ints, int)
     floats = ['mapid', 'aln_cov']
-    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
+    check_nums(self, params, defaults, floats, float, 0, 1)
     floats_ = ['species_cov']
-    check_nums(self, params, defaults, floats_, float, soft.name)
-    check_default(self, params, defaults, soft.name,
-                  (ints + floats + floats_ + ['tracking', 'focus']))
-    check_binary(self, soft.name, params, defaults, 'path')
+    check_nums(self, params, defaults, floats_, float)
+    defs = ['tracking', 'focus']
+    check_default(self, params, defaults, (ints + floats + floats_ + defs))
+    check_binary(self, params, defaults, 'path')
     defaults['focus'] = '<dict of key:value pair some_name: /path/to/spc.txt'
     defaults['tracking'] = '<list of metadata columns>'
     defaults['path'] = '<path to the MIDAS installation folder>'
     return defaults
 
 
-def check_macsyfinder(self, params, soft):
+def check_macsyfinder(self, params):
     defaults = {
         'models': [
             'CasFinder', 'CONJScan_plasmids', 'TFFscan', 'TFF-SF', 'TXSScan'],
@@ -1755,14 +1751,14 @@ def check_macsyfinder(self, params, soft):
     flo1 = ['e_value_search', 'i_evalue_sel', 'coverage_profile',
             'mandatory_weight', 'accessory_weight', 'exchangeable_weight',
             'out_of_cluster']
-    check_nums(self, params, defaults, flo1, float, soft.name, 0, 1)
+    check_nums(self, params, defaults, flo1, float, 0, 1)
     flo2 = ['redundancy_penalty']
-    check_nums(self, params, defaults, flo2, float, soft.name)
-    check_default(self, params, defaults, soft.name, (flo1 + flo2 + ['models']))
+    check_nums(self, params, defaults, flo2, float)
+    check_default(self, params, defaults, (flo1 + flo2 + ['models']))
     return defaults
 
 
-def check_coconet(self, params, soft):
+def check_coconet(self, params):
     defaults = {
         'quiet': [False, True],
         'no_rc': [False, True],
@@ -1821,15 +1817,15 @@ def check_coconet(self, params, soft):
             'load_batch', 'cover_filters', 'cover_kernel', 'cover_stride',
             'merge_neurons', 'kmer', 'wsize', 'wstep', 'n_frags',
             'max_neighbors', 'vote_threshold', 'n_clusters', 'fragment_length']
-    check_nums(self, params, defaults, ints, int, soft.name)
+    check_nums(self, params, defaults, ints, int)
     floats = ['test_ratio', 'learning_rate', 'theta', 'gamma1', 'gamma2']
-    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
+    check_nums(self, params, defaults, floats, float, 0, 1)
     let_go = ['tlen_range', 'compo_neurons', 'cover_neurons']
-    check_default(self, params, defaults, soft.name, (ints + floats + let_go))
+    check_default(self, params, defaults, (ints + floats + let_go))
     return defaults
 
 
-def check_tiara(self, params, soft):
+def check_tiara(self, params):
     defaults = {
         'min_len': 3000, 'first_stage_kmer': 6, 'second_stage_kmer': 7,
         'to_fasta': ['all', 'mit', 'pla', 'bac', 'arc', 'euk', 'unk', 'pro'],
@@ -1864,26 +1860,25 @@ def check_tiara(self, params, soft):
                 sys.exit('[tiara] Param "%s": %s not [0-1] float' % (prob, c))
     params[prob] = [str(x) for x in params[prob]]
     ints = ['min_len', 'first_stage_kmer', 'second_stage_kmer']
-    check_nums(self, params, defaults, ints, int, soft.name)
-    check_default(self, params, defaults, soft.name, (ints + [fas, prob]))
+    check_nums(self, params, defaults, ints, int)
+    check_default(self, params, defaults, (ints + [fas, prob]))
     return defaults
 
 
-def check_bracken(self, params, soft):
+def check_bracken(self, params):
     defaults = {
         'read_len': 100,
         'level': ['S', 'D', 'P', 'C', 'O', 'F', 'G', 'S1'],
         'threshold': 0
     }
-    check_nums(self, params, defaults, ['read_len', 'threshold'],
-               int, soft.name)
-    check_default(self, params, defaults, soft.name, ['read_len', 'threshold'])
-    check_binary(self, soft.name, params, defaults, 'path')
+    check_nums(self, params, defaults, ['read_len', 'threshold'], int)
+    check_default(self, params, defaults, ['read_len', 'threshold'])
+    check_binary(self, params, defaults, 'path')
     defaults['path'] = '<path to the Bracken installation folder>'
     return defaults
 
 
-def check_plasmidfinder(self, params, soft):
+def check_plasmidfinder(self, params):
     defaults = {
         'extented_output': [True, False],
         'threshold': 70,
@@ -1908,9 +1903,9 @@ def check_plasmidfinder(self, params, soft):
             sys.exit('[plasmidfinder] Param "databases" not a string: %s' % dbs)
 
     ints = ['threshold', 'mincov']
-    check_nums(self, params, defaults, ints, int, soft.name, 0, 100)
-    check_default(self, params, defaults, soft.name, ints)
-    check_binary(self, soft.name, params, defaults, 'binary')
+    check_nums(self, params, defaults, ints, int, 0, 100)
+    check_default(self, params, defaults, ints)
+    check_binary(self, params, defaults, 'binary')
     defaults['methodPath'] = '<Path to the "kma" or "blastn" binary>'
     defaults['binary'] = '<Path to the "plasmidfinder.py" binary>'
     defaults['databasePath'] = '<Path databases folder (with a "config" file)>'
@@ -1919,21 +1914,21 @@ def check_plasmidfinder(self, params, soft):
     return defaults
 
 
-def check_plasforest(self, params, soft):
+def check_plasforest(self, params):
     defaults = {
         'size_of_batch': 0,
         'b': [True, False],
         'f': [True, False],
         'r': [False, True]
     }
-    check_nums(self, params, defaults, ['size_of_batch'], int, soft.name)
-    check_default(self, params, defaults, soft.name, ['size_of_batch'])
-    check_binary(self, soft.name, params, defaults, 'binary')
+    check_nums(self, params, defaults, ['size_of_batch'], int)
+    check_default(self, params, defaults, ['size_of_batch'])
+    check_binary(self, params, defaults, 'binary')
     defaults['binary'] = '<Path to the "PlasForest.py" binary>'
     return defaults
 
 
-def check_flye(self, params, soft):
+def check_flye(self, params):
     defaults = {
         'stop_after': [
             None, 'assembly', 'consensus', 'repeat', 'trestle', 'polishing'],
@@ -1953,16 +1948,16 @@ def check_flye(self, params, soft):
             'nano-corr', 'nano-hq'],
     }
     ints = ['iterations', 'asm_coverage', 'min_overlap']
-    check_nums(self, params, defaults, ints, int, soft.name)
+    check_nums(self, params, defaults, ints, int)
     floats = ['read_error']
-    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
-    check_default(self, params, defaults, soft.name, (ints + floats))
+    check_nums(self, params, defaults, floats, float, 0, 1)
+    check_default(self, params, defaults, (ints + floats))
     defaults['stop_after'] = '<Stage name that is completed and to stop after>'
     defaults['genome_size'] = '<estimated genome size (e.g., 5m or 2.6g)>'
     return defaults
 
 
-def check_canu(self, params, soft):
+def check_canu(self, params):
     defaults = {
         'stage': [
             None, 'haplotype', 'correct', 'trim', 'assemble', 'trim-assemble'],
@@ -1981,19 +1976,19 @@ def check_canu(self, params, soft):
     }
     ints = ['minReadLength', 'minOverlapLength', 'redMemory', 'oeaMemory',
             'batMemory', 'maxInputCoverage']
-    check_nums(self, params, defaults, ints, int, soft.name)
+    check_nums(self, params, defaults, ints, int)
     ints_ = ['corMinCoverage', 'corOutCoverage']
-    check_nums(self, params, defaults, ints_, int, soft.name, 0, 4)
+    check_nums(self, params, defaults, ints_, int, 0, 4)
     floats = ['correctedErrorRate', 'rawErrorRate']
-    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
-    check_default(self, params, defaults, soft.name, (ints + ints_ + floats))
-    check_binary(self, soft.name, params, defaults, 'path')
+    check_nums(self, params, defaults, floats, float, 0, 1)
+    check_default(self, params, defaults, (ints + ints_ + floats))
+    check_binary(self, params, defaults, 'path')
     defaults['genome_size'] = '<estimated genome size (e.g., 5m or 2.6g)>'
     defaults['specifications'] = '<Path to assembly option specifications file>'
     return defaults
 
 
-def check_unicycler(self, params, soft):
+def check_unicycler(self, params):
     defaults = {
         'hybrid': [None, 'pacbio', 'nanopore'],
         'min_bridge_qual': 25.0,
@@ -2047,15 +2042,15 @@ def check_unicycler(self, params, soft):
     ints = ['min_component_size', 'min_dead_end_size', 'min_polish_size',
             'min_anchor_seg_len', 'min_fasta_length', 'kmer_count',
             'linear_seqs', 'low_score', 'kmers']
-    check_nums(self, params, defaults, ints, int, soft.name)
+    check_nums(self, params, defaults, ints, int)
     floats = ['min_bridge_qual']
-    check_nums(self, params, defaults, floats, float, soft.name)
+    check_nums(self, params, defaults, floats, float)
     floats_ = ['start_gene_cov', 'start_gene_id']
-    check_nums(self, params, defaults, floats_, float, soft.name, 0, 100)
+    check_nums(self, params, defaults, floats_, float, 0, 100)
     floats__ = ['max_kmer_frac', 'min_kmer_frac', 'depth_filter']
-    check_nums(self, params, defaults, floats__, float, soft.name, 0, 1)
+    check_nums(self, params, defaults, floats__, float, 0, 1)
     paths = [x for x in defaults if '_path' in x]
-    check_default(self, params, defaults, soft.name,
+    check_default(self, params, defaults,
                   (ints + floats + floats_ + floats__ + paths))
     defaults['contamination'] = '<Path to fasta file of known contaminations>'
     defaults['existing_long_read_assembly'] = '<GFA long-read assembly>'
@@ -2068,7 +2063,7 @@ def check_unicycler(self, params, soft):
     return defaults
 
 
-def check_ngmerge(self, params, soft):
+def check_ngmerge(self, params):
     defaults = {
         'p': 0.10,
         'm': 20,
@@ -2082,31 +2077,31 @@ def check_ngmerge(self, params, soft):
         'g': [False, True]
     }
     ints = ['m', 'e', 'q', 'u']
-    check_nums(self, params, defaults, ints, int, soft.name)
+    check_nums(self, params, defaults, ints, int)
     floats = ['p']
-    check_nums(self, params, defaults, floats, float, soft.name)
-    check_default(self, params, defaults, soft.name, (ints + floats))
-    check_binary(self, soft.name, params, defaults, 'path')
+    check_nums(self, params, defaults, floats, float)
+    check_default(self, params, defaults, (ints + floats))
+    check_binary(self, params, defaults, 'path')
     defaults['path'] = '<absolute path to the folder containing "NGmerge">'
     return defaults
 
 
-def check_flash(self, params, soft):
+def check_flash(self, params):
     defaults = {
         'min_overlap': 10,
         'max_overlap': 65,
         'mismatch': 0.25
     }
     ints = ['min_overlap', 'max_overlap']
-    check_nums(self, params, defaults, ints, int, soft.name)
+    check_nums(self, params, defaults, ints, int)
     floats = ['mismatch']
-    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
-    check_default(self, params, defaults, soft.name, (ints + floats))
-    check_binary(self, soft.name, params, defaults, 'path')
+    check_nums(self, params, defaults, floats, float, 0, 1)
+    check_default(self, params, defaults, (ints + floats))
+    check_binary(self, params, defaults, 'path')
     return defaults
 
 
-def check_pear(self, params, soft):
+def check_pear(self, params):
     defaults = {
         'max_uncalled_base': 1.,
         'p_value': 0.01,
@@ -2127,14 +2122,14 @@ def check_pear(self, params, soft):
     ints = ['min_assembly_length', 'max_assembly_length', 'quality_threshold',
             'min_trim_length', 'score_method', 'min_overlap', 'test_method',
             'phred_base', 'cap']
-    check_nums(self, params, defaults, ints, int, soft.name)
+    check_nums(self, params, defaults, ints, int)
     floats = ['p_value', 'max_uncalled_base']
-    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
-    check_default(self, params, defaults, soft.name, (ints + floats))
+    check_nums(self, params, defaults, floats, float, 0, 1)
+    check_default(self, params, defaults, (ints + floats))
     return defaults
 
 
-def check_bbmerge(self, params, soft):
+def check_bbmerge(self, params):
     defaults = {
         'interleaved': [False, True],
         'reads': -1,
@@ -2225,17 +2220,17 @@ def check_bbmerge(self, params, soft):
             'margin', 'mismatches', 'k', 'extend', 'extend2', 'iterations',
             'mindepthseed', 'mindepthextend', 'branchmult1', 'branchmult2',
             'branchlower', 'prefilter', 'filtermem', 'minapproxoverlap']
-    check_nums(self, params, defaults, ints, int, soft.name)
+    check_nums(self, params, defaults, ints, int)
     floats = ['pfilter', 'maxratio', 'ratiomargin',
               'ratiooffset', 'minsecondratio']
-    check_nums(self, params, defaults, floats, float, soft.name)
+    check_nums(self, params, defaults, floats, float)
     floats_ = ['prealloc', 'minprob']
-    check_nums(self, params, defaults, floats_, float, soft.name, 0, 1)
-    check_default(self, params, defaults, soft.name, (ints + floats + floats_))
+    check_nums(self, params, defaults, floats_, float, 0, 1)
+    check_default(self, params, defaults, (ints + floats + floats_))
     return defaults
 
 
-def check_necat(self, params, soft):
+def check_necat(self, params):
     defaults = {
         'min_read_length': 3000,
         'prep_output_coverage': 40,
@@ -2288,22 +2283,22 @@ def check_necat(self, params, soft):
     ints = ['min_read_length', 'prep_output_coverage', 'num_iter',
             'cns_output_coverage', 'cleanup']
     ints += [x for x in defaults if x[-1] in 'axylnzbjua']
-    check_nums(self, params, defaults, ints, int, soft.name)
+    check_nums(self, params, defaults, ints, int)
     floats = [x for x in defaults if x[-2:] in ['_e', '_p']]
-    check_nums(self, params, defaults, floats, float, soft.name)
-    check_default(self, params, defaults, soft.name, (ints + floats))
-    check_binary(self, soft.name, params, defaults, 'path')
+    check_nums(self, params, defaults, floats, float)
+    check_default(self, params, defaults, (ints + floats))
+    check_binary(self, params, defaults, 'path')
     defaults['genome_size'] = '<estimated genome size (in bases)>'
     return defaults
 
 
-def check_pooling(self, params, soft):
+def check_pooling(self, params):
     defaults = {'pool_single_and_merged': [True, False]}
-    check_default(self, params, defaults, soft.name)
+    check_default(self, params, defaults)
     return defaults
 
 
-def check_cutadapt(self, params, soft):
+def check_cutadapt(self, params):
     defaults = {
         'times': 1,
         'overlap': 3,
@@ -2323,14 +2318,14 @@ def check_cutadapt(self, params, soft):
         'action': ['trim', 'retain', 'mask', 'lowercase', 'none'],
     }
     ints = ['times', 'overlap', 'quality_base']
-    check_nums(self, params, defaults, ints, int, soft.name)
+    check_nums(self, params, defaults, ints, int)
     floats = ['error_rate']
-    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
-    check_default(self, params, defaults, soft.name, (ints + floats))
+    check_nums(self, params, defaults, floats, float, 0, 1)
+    check_default(self, params, defaults, (ints + floats))
     return defaults
 
 
-def check_megahit(self, params, soft):
+def check_megahit(self, params):
     defaults = {
         'mem_flag': [1, 0],
         'bubble_level': [2, 1, 0],
@@ -2381,14 +2376,14 @@ def check_megahit(self, params, soft):
             sys.exit('[megahit] Param "%s" invalid: %s' % (p, params[p]))
     ints = ['k_min', 'k_max', 'k_step', 'min_count', 'prune_depth',
             'cleaning_rounds', 'min_contig_len']
-    check_nums(self, params, defaults, ints, int, soft.name)
+    check_nums(self, params, defaults, ints, int)
     floats = ['memory', 'low_local_ratio', 'disconnect_ratio']
-    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
-    check_default(self, params, defaults, soft.name, (let_go + ints + floats))
+    check_nums(self, params, defaults, floats, float, 0, 1)
+    check_default(self, params, defaults, (let_go + ints + floats))
     return defaults
 
 
-def check_plass(self, params, soft):
+def check_plass(self, params):
     defaults = {
         'type': ['assemble', 'nuclassemble'],
         'add_self_matches': [False, True],
@@ -2468,19 +2463,19 @@ def check_plass(self, params, soft):
     ints = ['a', 'split_memory_limit', 'k', 'min_aln_len', 'kmer_per_seq',
             'hash_shift', 'min_length', 'max_length', 'max_gaps',
             'id_offset', 'max_seq_len']
-    check_nums(self, params, defaults, ints, int, soft.name)
+    check_nums(self, params, defaults, ints, int)
     int1 = ['num_iterations']
-    check_nums(self, params, defaults, int1, int, soft.name, 1, 1000000000)
+    check_nums(self, params, defaults, int1, int, 1, 1000000000)
     int2 = ['alph_size']
-    check_nums(self, params, defaults, int2, int, soft.name, 2, 21)
+    check_nums(self, params, defaults, int2, int, 2, 21)
     floats = ['e', 'c', 'min_seq_id', 'protein_filter_threshold']
-    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
-    check_default(self, params, defaults, soft.name,
-                  (ints + int1 + int2 + floats + let_go))
+    check_nums(self, params, defaults, floats, float, 0, 1)
+    check_default(
+        self, params, defaults, (ints + int1 + int2 + floats + let_go))
     return defaults
 
 
-def check_pirate(self, params, soft):
+def check_pirate(self, params):
     defaults = {
         'steps': '50,60,70,80,90,95,98',
         'features':	['CDS', 'mRNA'],
@@ -2508,16 +2503,16 @@ def check_pirate(self, params, soft):
         if [v for v in vals if not v.isdigit() or int(v) not in range(101)]:
             sys.exit('[plass] Prams "%s" not ","-separated integers' % p)
     int1 = ['perc', 'cd_low']
-    check_nums(self, params, defaults, int1, int, soft.name, 0, 100)
+    check_nums(self, params, defaults, int1, int, 0, 100)
     flo1 = ['flat']
-    check_nums(self, params, defaults, flo1, float, soft.name)
+    check_nums(self, params, defaults, flo1, float)
     flo2 = ['cd_step', 'evalue']
-    check_nums(self, params, defaults, flo2, float, soft.name, 0, 1)
-    check_default(self, params, defaults, soft.name, (int1 + flo1 + flo2))
+    check_nums(self, params, defaults, flo2, float, 0, 1)
+    check_default(self, params, defaults, (int1 + flo1 + flo2))
     return defaults
 
 
-def check_deeparg(self, params, soft):
+def check_deeparg(self, params):
     defaults = {
         'min_prob': 0.8,
         'arg_alignment_overlap': 0.8,
@@ -2532,25 +2527,25 @@ def check_deeparg(self, params, soft):
         'bowtie_16s_identity': 0.8
     }
     ints = ['arg_num_alignments_per_entry']
-    check_nums(self, params, defaults, ints, int, soft.name)
+    check_nums(self, params, defaults, ints, int)
     ints1 = ['arg_alignment_identity', 'deeparg_identity']
-    check_nums(self, params, defaults, ints1, int, soft.name, 0, 100)
+    check_nums(self, params, defaults, ints1, int, 0, 100)
     floats = ['min_prob', 'arg_alignment_overlap', 'arg_alignment_evalue',
               'deeparg_probability', 'deeparg_evalue', 'gene_coverage',
               'bowtie_16s_identity']
-    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
+    check_nums(self, params, defaults, floats, float, 0, 1)
     let_go = ints + ints1 + floats
-    check_default(self, params, defaults, soft.name, let_go)
+    check_default(self, params, defaults, let_go)
     defaults['model'] = '<Model to use (SS: for reads, LS: for genes)>'
     db = 'db_dir'
     if db not in params or (not self.config.dev and not isdir(params[db])):
-        sys.exit('[%s] Params "%s" must be an existing path' % (soft.name, db))
+        sys.exit('[%s] Params "%s" must be an existing path' % (self.name, db))
     defaults[db] = '<Path to the installed deepARG database folder>'
 
     return defaults
 
 
-def check_lorikeet(self, params, soft):
+def check_lorikeet(self, params):
     defaults = {
         'mapper': [
             "minimap2-sr", "bwa-mem", "bwa-mem2", "ngmlr-ont", "ngmlr-pb",
@@ -2656,23 +2651,23 @@ def check_lorikeet(self, params, soft):
             'min_dangling_branch_length', 'min_prune_factor',
             'num_pruning_samples', 'max_unpruned_variants',
             'max_prob_propagation_distance', 'max_mnp_distance']
-    check_nums(self, params, defaults, ints, int, soft.name)
+    check_nums(self, params, defaults, ints, int)
     flo = ['heterozygosity', 'heterozygosity_stdev', 'indel_heterozygosity',
            'standard_min_confidence_threshold_for_calling',
            'initial_error_rate_for_pruning']
-    check_nums(self, params, defaults, flo, float, soft.name)
+    check_nums(self, params, defaults, flo, float)
     flo1 = ['min_read_percent_identity', 'min_read_aligned_percent',
             'min_read_percent_identity_pair', 'min_read_aligned_percent_pair']
-    check_nums(self, params, defaults, flo1, float, soft.name, 0, 100)
+    check_nums(self, params, defaults, flo1, float, 0, 100)
     flo2 = ['trim_min', 'trim_max', 'active_probability_threshold',
             'pruning_log_odds_threshold']
-    check_nums(self, params, defaults, flo2, float, soft.name, 0, 1)
-    check_default(self, params, defaults, soft.name, (
+    check_nums(self, params, defaults, flo2, float, 0, 1)
+    check_default(self, params, defaults, (
             ints + flo + flo1 + flo2 + ['kmer_sizes', 'limiting_interval']))
     return defaults
 
 
-def check_metamarc(self, params, soft):
+def check_metamarc(self, params):
     defaults = {
         'coverage': 80,
         'dedup': [False, True],
@@ -2683,26 +2678,27 @@ def check_metamarc(self, params, soft):
     }
     if 'level' not in params:
         params['level'] = defaults['level']
-    check_nums(self, params, defaults, ['evalue', 'kmer'], int, soft.name)
-    check_nums(self, params, defaults, ['coverage'], int, soft.name, 0, 100)
-    check_default(self, params, defaults, soft.name, ['evalue', 'kmer',
-                                                      'coverage'], ['level'])
-    check_binary(self, 'metamarc', params, defaults, 'path')
+    int1 = ['evalue', 'kmer']
+    check_nums(self, params, defaults, int1, int)
+    int2 = ['coverage']
+    check_nums(self, params, defaults, int2, int, 0, 100)
+    check_default(self, params, defaults, (int1 + int2), ['level'])
+    check_binary(self, params, defaults, 'path')
     defaults['path'] = '<Path to the meta-marc software folder (from github)>'
     return defaults
 
 
-def check_hifiadapterfilt(self, params, soft):
+def check_hifiadapterfilt(self, params):
     defaults = {'l': 44, 'm': 97}
-    check_nums(self, params, defaults, ['l'], int, soft.name)
-    check_nums(self, params, defaults, ['m'], float, soft.name, 0, 100)
-    check_default(self, params, defaults, soft.name, ['l', 'm'])
-    check_binary(self, 'hifiadapterfilt', params, defaults, 'path')
+    check_nums(self, params, defaults, ['l'], int)
+    check_nums(self, params, defaults, ['m'], float, 0, 100)
+    check_default(self, params, defaults, ['l', 'm'])
+    check_binary(self, params, defaults, 'path')
     defaults['path'] = '<Path to the folder containing "pbadapterfilt.sh">'
     return defaults
 
 
-def check_karga(self, params, soft):
+def check_karga(self, params):
     defaults = {
         'k': 17,
         'r': ['y', 'n', 'yes', 'no'],
@@ -2712,24 +2708,24 @@ def check_karga(self, params, soft):
     }
     if 'databases' not in params:
         sys.exit('[karga] Param "databases" missing (name: /path/to/db.fasta')
-    check_nums(self, params, defaults, ['k', 'i', 's'], int, soft.name)
-    check_default(self, params, defaults, soft.name, ['k', 'i', 's'])
-    check_binary(self, 'karga', params, defaults, 'path')
+    check_nums(self, params, defaults, ['k', 'i', 's'], int)
+    check_default(self, params, defaults, ['k', 'i', 's'])
+    check_binary(self, params, defaults, 'path')
     defaults['path'] = '<Path to the folder containing "KARGA.class">'
     defaults['databases'] = '<Paths to the ARG/MGE fasta files (with ' \
                             'resistance annotation in header) per name (dict)>'
     return defaults
 
 
-def check_kargva(self, params, soft):
+def check_kargva(self, params):
     defaults = {
         'k': 9,
         'm': ['y', 'n', 'yes', 'no'],
         'i': 125000,
     }
-    check_nums(self, params, defaults, ['k', 'i'], int, soft.name)
-    check_default(self, params, defaults, soft.name, ['k', 'i'])
-    check_binary(self, 'kargva', params, defaults, 'path')
+    check_nums(self, params, defaults, ['k', 'i'], int)
+    check_default(self, params, defaults, ['k', 'i'])
+    check_binary(self, params, defaults, 'path')
     if 'databases' not in params:
         params['databases'] = {
             'default': '%s/kargva_db_v5.fasta' % params['path']}
@@ -2739,7 +2735,7 @@ def check_kargva(self, params, soft):
     return defaults
 
 
-def check_abricate(self, params, soft):
+def check_abricate(self, params):
     defaults = {
         'setupdb': [False, True],
         'noheader': [False, True],
@@ -2753,12 +2749,12 @@ def check_abricate(self, params, soft):
     if 'databases' not in params:
         params['databases'] = defaults['databases']
     ints = ['minid', 'mincov']
-    check_nums(self, params, defaults, ints, int, soft.name, 0, 100)
-    check_default(self, params, defaults, soft.name, ints, ['databases'])
+    check_nums(self, params, defaults, ints, int, 0, 100)
+    check_default(self, params, defaults, ints, ['databases'])
     return defaults
 
 
-def check_amrplusplus2(self, params, soft):
+def check_amrplusplus2(self, params):
     defaults = {
         'leading': 10,
         'trailing': 3,
@@ -2786,14 +2782,14 @@ def check_amrplusplus2(self, params, soft):
         if param not in params:
             params[param] = filename
     ints0 = ['leading', 'trailing', 'minlen', 'min', 'max', 'skip', 'samples']
-    check_nums(self, params, defaults, ints0, int, soft.name)
+    check_nums(self, params, defaults, ints0, int)
     ints1 = ['slidingwindow']
-    check_nums(self, params, defaults, ints1, int, soft.name, 4, 15)
+    check_nums(self, params, defaults, ints1, int, 4, 15)
     ints2 = ['threshold']
-    check_nums(self, params, defaults, ints2, int, soft.name, 0, 100)
-    check_default(self, params, defaults, soft.name,
+    check_nums(self, params, defaults, ints2, int, 0, 100)
+    check_default(self, params, defaults,
                   (ints0 + ints1 + ints2 + list(paths.keys())))
-    check_binary(self, 'amrplusplus2', params, defaults, 'path')
+    check_binary(self, params, defaults, 'path')
     defaults['path'] = '<Path to folder containing "main_AmrPlusPlus_v2.nf">'
     defaults['adapters'] = '<Path to adapter sequences file>'
     defaults['fqc_adapters'] = '<Path to tab delimited adapter sequences file>'
@@ -2808,7 +2804,7 @@ def check_amrplusplus2(self, params, soft):
     return defaults
 
 
-def check_metaphlan(self, params, soft):
+def check_metaphlan(self, params):
     defaults = {
         'tax_lev': ['k', 'p', 'c', 'o', 'f', 'g', 's', 'a'],
         'bt2_ps': ['very-sensitive', 'sensitive', 'sensitive-local',
@@ -2841,16 +2837,15 @@ def check_metaphlan(self, params, soft):
     if 'ignore_markers' in params and not isfile(params['ignore_markers']):
         sys.exit('[metaphlan] Param "ignore_markers" must be a file path')
     ints = ['min_mapq_val', 'min_cu_len', 'min_alignment_len', 'read_min_len']
-    check_nums(self, params, defaults, ints, int, soft.name)
+    check_nums(self, params, defaults, ints, int)
     floats = ['stat_q', 'perc_nonzero', 'pres_th', 'min_ab']
-    check_nums(self, params, defaults, floats, float, soft.name)
-    check_default(
-        self, params, defaults, soft.name, (ints + floats), ['tax_lev', 't'])
+    check_nums(self, params, defaults, floats, float)
+    check_default(self, params, defaults, (ints + floats), ['tax_lev', 't'])
     defaults['ignore_markers'] = '<File containing a list of markers to ignore>'
     return defaults
 
 
-def check_mapdamage2(self, params, soft):
+def check_mapdamage2(self, params):
     defaults = {
         'downsample': [None],
         'downsample_seed': 1234,
@@ -2891,14 +2886,14 @@ def check_mapdamage2(self, params, soft):
     ints = ['downsample_seed', 'length', 'around', 'min_basequal', 'readplot',
             'refplot', 'rand', 'burn', 'adjust', 'iter', 'seq_length',
             'rescale_length_5p', 'rescale_length_3p']
-    check_nums(self, params, defaults, ints, int, soft.name)
+    check_nums(self, params, defaults, ints, int)
     floats = ['ymax']
-    check_nums(self, params, defaults, floats, float, soft.name)
-    check_default(self, params, defaults, soft.name, (ints + floats))
+    check_nums(self, params, defaults, floats, float)
+    check_default(self, params, defaults, (ints + floats))
     return defaults
 
 
-def check_amrfinderplus(self, params, soft):
+def check_amrfinderplus(self, params):
     defaults = {
         'database': [None],
         'annotation_format': [None, 'bakta', 'genbank', 'microscope', 'patric',
@@ -2931,17 +2926,17 @@ def check_amrfinderplus(self, params, soft):
     if 'parm' not in params:
         params['parm'] = [None]
     int1 = ['translation_table']
-    check_nums(self, params, defaults, int1, int, soft.name, 1, 33)
+    check_nums(self, params, defaults, int1, int, 1, 33)
     int2 = ['nucleotide_flank5_size']
-    check_nums(self, params, defaults, int2, int, soft.name)
+    check_nums(self, params, defaults, int2, int)
     floats = ['ident_min', 'coverage_min']
-    check_nums(self, params, defaults, floats, float, soft.name, -1, 1)
-    check_default(self, params, defaults, soft.name,
+    check_nums(self, params, defaults, floats, float, -1, 1)
+    check_default(self, params, defaults,
                   (int1 + int2 + floats + ['database', 'blast_bin']), ['parm'])
     return defaults
 
 
-def check_squeezemeta(self, params, soft):
+def check_squeezemeta(self, params):
     defaults = {
         'm': ['sequential', 'coassembly', 'merged'],
         'restart': [False, True],
@@ -2978,14 +2973,14 @@ def check_squeezemeta(self, params, soft):
     if 'binners' not in params:
         params['binners'] = defaults['binners']
     int1 = ['step']
-    check_nums(self, params, defaults, int1, int, soft.name, 1, 21)
+    check_nums(self, params, defaults, int1, int, 1, 21)
     int2 = ['contiglen', 'consensus', 't', 'canumem', 'block_size']
-    check_nums(self, params, defaults, int2, int, soft.name)
-    check_default(self, params, defaults, soft.name, (int1 + int2), ['binners'])
+    check_nums(self, params, defaults, int2, int)
+    check_default(self, params, defaults, (int1 + int2), ['binners'])
     return defaults
 
 
-def check_binspreader(self, params, soft):
+def check_binspreader(self, params):
     defaults = {
         'l': 0,
         'e': 1e-5,
@@ -3008,16 +3003,16 @@ def check_binspreader(self, params, soft):
         'reads': [False, True]
     }
     ints = ['l', 'n']
-    check_nums(self, params, defaults, ints, int, soft.name)
+    check_nums(self, params, defaults, ints, int)
     floats = ['e', 'la', 'metaalpha', 'bin_weight']
-    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
-    check_default(self, params, defaults, soft.name, (ints + floats))
-    check_binary(self, soft.name, params, defaults, 'path')
+    check_nums(self, params, defaults, floats, float, 0, 1)
+    check_default(self, params, defaults, (ints + floats))
+    check_binary(self, params, defaults, 'path')
     defaults['path'] = '<Path to BinSPreader installation folder>'
     return defaults
 
 
-def check_midas2(self, params, soft):
+def check_midas2(self, params):
     defaults = {
         'force': [False, True],
         'word_size': 28,
@@ -3065,7 +3060,7 @@ def check_midas2(self, params, soft):
         params['species_list'] = defaults['species_list']
     else:
         if not isinstance(params['species_list'], dict):
-            sys.exit('[%s] Param "species_list" not name:path dict' % soft.name)
+            sys.exit('[%s] Param "species_list" not name:path dict' % self.name)
 
     if 'snp_type' not in params:
         params['snp_type'] = ['bi', 'tri', 'quad']
@@ -3079,7 +3074,7 @@ def check_midas2(self, params, soft):
         for param in params['select_by'].split(','):
             if param not in allowed:
                 sys.exit('[%s] Param "select_by" error ("%s" not in %s)' %
-                         (soft.name, param, str(allowed)))
+                         (self.name, param, str(allowed)))
 
     if 'select_threshold' not in params:
         params['select_threshold'] = defaults['select_threshold']
@@ -3095,14 +3090,14 @@ def check_midas2(self, params, soft):
             'read_depth', 'aln_baseq', 'aln_trim', 'sample_counts',
             'fragment_length', 'site_depth', 'max_reads', 'chunk_size',
             'aln_mapq']
-    check_nums(self, params, defaults, ints, int, soft.name)
+    check_nums(self, params, defaults, ints, int)
     floats = ['aln_cov', 'genome_coverage', 'site_prev']
-    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
+    check_nums(self, params, defaults, floats, float, 0, 1)
     floats2 = ['aln_mapid', 'min_cov', 'min_copy', 'genome_depth', 'site_ratio']
-    check_nums(self, params, defaults, floats2, float, soft.name)
+    check_nums(self, params, defaults, floats2, float)
     floats3 = ['snp_maf']
-    check_nums(self, params, defaults, floats3, float, soft.name, 0, 0.5)
-    check_default(self, params, defaults, soft.name, (
+    check_nums(self, params, defaults, floats3, float, 0, 0.5)
+    check_default(self, params, defaults, (
         ints[:-3] + floats + floats2[1:] + floats3 + [
             'select_by', 'select_threshold', 'species_list']), ['snp_type'])
     defaults['databases'] = '<Path the folder containing the MIDAS2 databases>'
@@ -3111,7 +3106,7 @@ def check_midas2(self, params, soft):
     return defaults
 
 
-def check_woltka(self, params, soft):
+def check_woltka(self, params):
     defaults = {
         'taxa': [
             'phylum', 'order', 'class', 'family', 'genus', 'species', 'none'],
@@ -3162,16 +3157,16 @@ def check_woltka(self, params, soft):
         params['go'] = defaults['go']
 
     ints = ['cache', 'min_count', 'field']
-    check_nums(self, params, defaults, ints, int, soft.name)
+    check_nums(self, params, defaults, ints, int)
     floats = ['overlap', 'min_percent']
-    check_nums(self, params, defaults, floats, float, soft.name, 0, 100)
-    check_default(self, params, defaults, soft.name,
+    check_nums(self, params, defaults, floats, float, 0, 100)
+    check_default(self, params, defaults,
                   (ints + floats), ['classifications', 'taxa', 'go'])
     defaults['to_biom'] = [True, False]
     return defaults
 
 
-def check_mobsuite(self, params, soft):
+def check_mobsuite(self, params):
     defaults = {
         'multi': [True, False],
         'debug': [False, True],
@@ -3241,29 +3236,29 @@ def check_mobsuite(self, params, soft):
                 sys.exit("[mobsuite] 'min_con_cov' not of <class 'int'>")
 
     ints = ['max_contig_size', 'max_plasmid_size']
-    check_nums(self, params, defaults, ints, int, soft.name)
+    check_nums(self, params, defaults, ints, int)
     ints2 = ['min_rep_ident', 'min_mob_ident', 'min_con_ident', 'min_rpp_ident',
              'min_rep_cov', 'min_mob_cov', 'min_rpp_cov', 'min_overlap']
-    check_nums(self, params, defaults, ints2, int, soft.name, 0, 100)
+    check_nums(self, params, defaults, ints2, int, 0, 100)
     floats = ['mash_genome_neighbor_threshold', 'min_rep_evalue',
               'min_mob_evalue', 'min_con_evalue', 'min_rpp_evalue',
               'primary_cluster_dist', 'secondary_cluster_dist']
-    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
-    check_default(self, params, defaults, soft.name, (
+    check_nums(self, params, defaults, floats, float, 0, 1)
+    check_default(self, params, defaults, (
             ints + ints2 + floats + ['db_dir', 'min_length', 'min_con_cov']))
     defaults['db_dir'] = '<Path to the MOB-suite database installed locally>'
     return defaults
 
 
-def check_yamb(self, params, soft):
+def check_yamb(self, params):
     defaults = {'l': 0, 'm': 0}
-    check_nums(self, params, defaults, ['l', 'm'], int, soft.name)
-    check_binary(self, soft.name, params, defaults, 'path')
+    check_nums(self, params, defaults, ['l', 'm'], int)
+    check_binary(self, params, defaults, 'path')
     defaults['path'] = '<Path to the YAMB folder>'
     return defaults
 
 
-def check_salmon(self, params, soft):
+def check_salmon(self, params):
     defaults = {
         'useAlignments': [True, False],
         'kmerLen': 31,
@@ -3368,18 +3363,18 @@ def check_salmon(self, params, soft):
             'kmerLen', 'filterSize', 'scoreExp', 'numErrorBins',
             'mappingCacheMemoryLimit', 'mismatchSeedSkip', 'ma', 'mp', 'go',
             'ge', 'bandwidth']
-    check_nums(self, params, defaults, ints, int, soft.name)
+    check_nums(self, params, defaults, ints, int)
     floats = ['vbPrior', 'minAlnProb', 'decoyThreshold', 'consensusSlack',
               'preMergeChainSubThresh', 'postMergeChainSubThresh',
               'orphanChainSubThresh', 'minScoreFraction', 'incompatPrior']
-    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
+    check_nums(self, params, defaults, floats, float, 0, 1)
     floats2 = ['forgettingFactor']
-    check_nums(self, params, defaults, floats2, float, soft.name, 0.5, 1)
-    check_default(self, params, defaults, soft.name, (ints + floats + floats2))
+    check_nums(self, params, defaults, floats2, float, 0.5, 1)
+    check_default(self, params, defaults, (ints + floats + floats2))
     return defaults
 
 
-def check_kallisto(self, params, soft):
+def check_kallisto(self, params):
     defaults = {
         'kmer_size': 31,
         'make_unique': [False, True],
@@ -3409,14 +3404,14 @@ def check_kallisto(self, params, soft):
         'technology': [None],
     }
     ints = ['kmer_size', 'bootstrap_samples', 'seed']
-    check_nums(self, params, defaults, ints, int, soft.name)
+    check_nums(self, params, defaults, ints, int)
     floats = []
-    check_nums(self, params, defaults, floats, float, soft.name)
-    check_default(self, params, defaults, soft.name, (ints + floats))
+    check_nums(self, params, defaults, floats, float)
+    check_default(self, params, defaults, (ints + floats))
     return defaults
 
 
-def check_metaclade2(self, params, soft):
+def check_metaclade2(self, params):
     defaults = {
         'arch': [False, True],
         'user_cfg': [None],
@@ -3428,16 +3423,16 @@ def check_metaclade2(self, params, soft):
         'sge': [False, True],
     }
     ints = ['overlappingAA', 'overlappingMaxDomain']
-    check_nums(self, params, defaults, ints, int, soft.name)
+    check_nums(self, params, defaults, ints, int)
     floats = ['evalue_cutoff', 'evalue_cutconf']
-    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
-    check_default(self, params, defaults, soft.name, (ints + floats))
-    check_binary(self, soft.name, params, defaults, 'path')
+    check_nums(self, params, defaults, floats, float, 0, 1)
+    check_default(self, params, defaults, (ints + floats))
+    check_binary(self, params, defaults, 'path')
     defaults['path'] = '<Path to the metaclade2 installation folder>'
     return defaults
 
 
-def check_mycc(self, params, soft):
+def check_mycc(self, params):
     defaults = {
         't': 1000,
         'lt': 0.7,
@@ -3449,16 +3444,16 @@ def check_mycc(self, params, soft):
         'keep': [False, True],
     }
     ints = ['pm', 'ct', 't']
-    check_nums(self, params, defaults, ints, int, soft.name)
+    check_nums(self, params, defaults, ints, int)
     ints2 = ['p']
-    check_nums(self, params, defaults, ints2, int, soft.name, 5, 50)
+    check_nums(self, params, defaults, ints2, int, 5, 50)
     floats = ['lt']
-    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
-    check_default(self, params, defaults, soft.name, (ints + ints2 + floats))
+    check_nums(self, params, defaults, floats, float, 0, 1)
+    check_default(self, params, defaults, (ints + ints2 + floats))
     return defaults
 
 
-def check_argsoap(self, params, soft):
+def check_argsoap(self, params):
     defaults = {
         'f': ['fq'],
         'q': [False, True],
@@ -3473,21 +3468,21 @@ def check_argsoap(self, params, soft):
         'r': [False, True]
     }
     ints = ['y', 'l']
-    check_nums(self, params, defaults, ints, int, soft.name)
+    check_nums(self, params, defaults, ints, int)
     ints2 = ['d']
-    check_nums(self, params, defaults, ints2, int, soft.name, 0, 100)
+    check_nums(self, params, defaults, ints2, int, 0, 100)
     floats = ['x', 'v', 'e']
-    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
-    check_default(self, params, defaults, soft.name, (ints + ints2 + floats))
+    check_nums(self, params, defaults, floats, float, 0, 1)
+    check_default(self, params, defaults, (ints + ints2 + floats))
     return defaults
 
 
-def check_deeptmhmm(self, params, soft):
+def check_deeptmhmm(self, params):
     defaults = {}
     return defaults
 
 
-def check_gtdbtk(self, params, soft):
+def check_gtdbtk(self, params):
     defaults = {
         'prot_model': ['WAG', 'JTT', 'LG'],
         'rnd_seed': 42,
@@ -3529,12 +3524,12 @@ def check_gtdbtk(self, params, soft):
             params['outgroup_taxon']['archaea'] = 'p__Undinarchaeota'
 
     ints = ['rnd_seed', 'cols_per_gene']
-    check_nums(self, params, defaults, ints, int, soft.name)
+    check_nums(self, params, defaults, ints, int)
     ints2 = ['min_perc_aa', 'min_consensus', 'max_consensus', 'min_perc_taxa']
-    check_nums(self, params, defaults, ints2, int, soft.name, 0, 100)
+    check_nums(self, params, defaults, ints2, int, 0, 100)
     floats = ['min_af']
-    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
-    check_default(self, params, defaults, soft.name,
+    check_nums(self, params, defaults, floats, float, 0, 1)
+    check_default(self, params, defaults,
                   (ints + ints2 + floats + ['outgroup_taxon']))
     defaults['outgroup_taxon'] = {'bacteria': 'p__Cyanobacteria',
                                   'archaea': 'p__Undinarchaeota'}
@@ -3589,7 +3584,7 @@ def check_gtdbtk(self, params, soft):
 #     return defaults
 #
 #
-def check_rundbcan(self, params, soft):
+def check_rundbcan(self, params):
     defaults = {
         'inputType': ['protein', 'prok', 'meta'],
         'AuxillaryFile': [None],
@@ -3616,17 +3611,17 @@ def check_rundbcan(self, params, soft):
     }
     ints = ['eCAMI_k_mer', 'eCAMI_jobs', 'eCAMI_important_k_mer_number',
             'eCAMI_beta']
-    check_nums(self, params, defaults, ints, int, soft.name)
+    check_nums(self, params, defaults, ints, int)
     ints2 = ['cgc_dis']
-    check_nums(self, params, defaults, ints2, int, soft.name, 2, 10)
+    check_nums(self, params, defaults, ints2, int, 2, 10)
     floats = ['hmm_cov', 'tf_cov', 'stp_cov', 'dia_eval',
               'hmm_eval', 'stp_eval', 'tf_eval']
-    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
-    check_default(self, params, defaults, soft.name, (ints + ints2 + floats))
+    check_nums(self, params, defaults, floats, float, 0, 1)
+    check_default(self, params, defaults, (ints + ints2 + floats))
     return defaults
 
 
-def check_ioncom(self, params, soft):
+def check_ioncom(self, params):
     defaults = {}
     return defaults
 
@@ -3655,7 +3650,7 @@ def check_ioncom(self, params, soft):
 #     return defaults
 #
 #
-def check_phyloflash(self, params, soft):
+def check_phyloflash(self, params):
     defaults = {
         'id': 70,
         'taxlevel': 4,
@@ -3682,19 +3677,18 @@ def check_phyloflash(self, params, soft):
         'almosteverything': [False, True]
     }
     ints = ['readlength', 'amplimit', 'taxlevel', 'ref_minlength']
-    check_nums(self, params, defaults, ints, int, soft.name)
+    check_nums(self, params, defaults, ints, int)
     ints2 = ['id']
-    check_nums(self, params, defaults, ints2, int, soft.name, 50, 98)
+    check_nums(self, params, defaults, ints2, int, 50, 98)
     ints3 = ['clusterid']
-    check_nums(self, params, defaults, ints3, int, soft.name, 50, 100)
+    check_nums(self, params, defaults, ints3, int, 50, 100)
     ints4 = ['maxinsert']
-    check_nums(self, params, defaults, ints4, int, soft.name, 0, 1200)
-    check_default(self, params, defaults, soft.name,
-                  (ints + ints2 + ints3 + ints4))
+    check_nums(self, params, defaults, ints4, int, 0, 1200)
+    check_default(self, params, defaults, (ints + ints2 + ints3 + ints4))
     return defaults
 
 
-def check_instrain(self, params, soft):
+def check_instrain(self, params):
     defaults = {
         'max_insert_relative': 3,
         'min_scaffold_reads': 1,
@@ -3741,57 +3735,41 @@ def check_instrain(self, params, soft):
     ints = ['max_insert_relative', 'min_scaffold_reads', 'group_length',
             'min_genome_coverag', 'rarefied_coverage', 'window_length',
             'min_insert', 'min_mapq', 'min_cov', 'min_snp', 'ani_threshold']
-    check_nums(self, params, defaults, ints, int, soft.name)
+    check_nums(self, params, defaults, ints, int)
     floats = ['min_read_ani', 'min_freq', 'fdr', 'breadth', 'ani_threshold',
               'coverage_treshold', 'breadth_cutoff', 'stringent_breadth_cutoff']
-    check_nums(self, params, defaults, floats, float, soft.name, 0, 1)
-    check_default(self, params, defaults, soft.name, (ints + floats))
+    check_nums(self, params, defaults, floats, float, 0, 1)
+    check_default(self, params, defaults, (ints + floats))
     return defaults
 
 
-def check_closedref(self, params, soft):
+def check_closedref(self, params):
     defaults = {}
     return defaults
 
 
-def check_threecac(self, params, soft):
+def check_threecac(self, params):
     defaults = {}
     return defaults
 
 
-def check_plasclass(self, params, soft):
-    defaults = {
-        'kmers': ['3', '4', '5', '6', '7'],
-        'lengths': ['1000', '10000', '100000', '500000']
-    }
-    if 'kmers' not in params:
-        params['kmers'] = defaults['kmers']
-    else:
-        k = [x for x in params['kmers'] if not str(x).isdigit()]
-        if len(k):
-            sys.exit('[threecac] "kmers" must be integers (%s)' % ','.join(k))
-
-    if 'lengths' not in params:
-        params['lengths'] = defaults['lengths']
-    else:
-        k = [x for x in params['lengths'] if not str(x).isdigit()]
-        if len(k):
-            sys.exit('[threecac] "lengths" must be integers (%s)' % ','.join(k))
+def check_plasclass(self, params):
+    defaults = {}
     return defaults
 
 
-def check_deepvirfinder(self, params, soft):
+def check_deepvirfinder(self, params):
     defaults = {'len': 1}
     if 'model_dir' not in params:
         sys.exit('[deepvirfinder] Params "model_dir" must exist')
     ints = ['len']
-    check_nums(self, params, defaults, ints, int, soft.name)
-    check_default(self, params, defaults, soft.name, ints)
+    check_nums(self, params, defaults, ints, int)
+    check_default(self, params, defaults, ints)
     defaults['model_dir'] = '<Path to the DeepVirFinder model directory>'
     return defaults
 
 
-def check_wish(self, params, soft):
+def check_wish(self, params):
     defaults = {
         'k': 8,
         'a': 16,
@@ -3802,12 +3780,12 @@ def check_wish(self, params, soft):
         'n': [None]
     }
     ints = ['k', 'a', 'b']
-    check_nums(self, params, defaults, ints, int, soft.name)
-    check_default(self, params, defaults, soft.name, ints)
+    check_nums(self, params, defaults, ints, int)
+    check_default(self, params, defaults, ints)
     return defaults
 
 
-def check_eggnogmapper(self, params, soft):
+def check_eggnogmapper(self, params):
     defaults = {
         'x': [False, True],
         'D': [False, True],
@@ -3906,16 +3884,15 @@ def check_eggnogmapper(self, params, soft):
 
     ints = ['start_sens', 'sens_steps', 'final_sens', 'port', 'end_port',
             'num_servers', 'num_workers', 'hmm_maxhits', 'hmm_maxseqlen', 'Z']
-    check_nums(self, params, defaults, ints, int, soft.name)
+    check_nums(self, params, defaults, ints, int)
     floats = ['overlap_tol', 'evalue', 'seed_ortholog_evalue']
-    check_nums(self, params, defaults, floats, float, soft.name)
-    check_default(self, params, defaults, soft.name,
-                  (ints + floats + ['data_dir']))
+    check_nums(self, params, defaults, floats, float)
+    check_default(self, params, defaults, (ints + floats + ['data_dir']))
     defaults['data_dir'] = '<Path to the "eggnog-mapper-data" database folder>'
     return defaults
 
 
-def check_ngless(self, params, soft):
+def check_ngless(self, params):
     defaults = {
         'script': [None],
         'validate_only': [False, True],
@@ -3935,11 +3912,11 @@ def check_ngless(self, params, soft):
         'color': ['auto', 'force', 'no'],
         'trace': [False, True],
     }
-    check_default(self, params, defaults, soft.name)
+    check_default(self, params, defaults)
     return defaults
 
 
-def check_motus(self, params, soft):
+def check_motus(self, params):
     defaults = {
         'B': [False, True],
         'v': ['3', '1', '2', '4'],
@@ -3965,35 +3942,35 @@ def check_motus(self, params, soft):
         'K': [False, True]
     }
     ints = ['g']
-    check_nums(self, params, defaults, ints, int, soft.name, 1, 10)
+    check_nums(self, params, defaults, ints, int, 1, 10)
     ints2 = ['l']
-    check_nums(self, params, defaults, ints, int, soft.name, 0, 100)
+    check_nums(self, params, defaults, ints, int, 0, 100)
     floats = ['fb', 'fd', 'fm']
-    check_nums(self, params, defaults, ints, int, soft.name, 1, 10)
+    check_nums(self, params, defaults, ints, int, 1, 10)
     floats2 = ['fp']
-    check_nums(self, params, defaults, floats2, float, soft.name, 0, 1)
+    check_nums(self, params, defaults, floats2, float, 0, 1)
     floats3 = ['fc']
-    check_nums(self, params, defaults, floats3, float, soft.name)
-    check_default(self, params, defaults, soft.name,
-                  (ints + ints2 + floats + floats2 + floats3))
+    check_nums(self, params, defaults, floats3, float)
+    check_default(
+        self, params, defaults, (ints + ints2 + floats + floats2 + floats3))
     return defaults
 
 
-def check_metacompare(self, params, soft):
+def check_metacompare(self, params):
     defaults = {}
-    check_binary(self, soft.name, params, defaults, 'path')
+    check_binary(self, params, defaults, 'path')
     defaults['path'] = '<Path to the metacompare installation folder>'
     return defaults
 
 
-def check_oritfinder(self, params, soft):
+def check_oritfinder(self, params):
     defaults = {}
-    check_binary(self, soft.name, params, defaults, 'path')
+    check_binary(self, params, defaults, 'path')
     defaults['path'] = '<Path to the oritfinder installation folder>'
     return defaults
 
 
-def check_diting(self, params, soft):
+def check_diting(self, params):
     defaults = {'noclean': [False, True]}
     if 'samples' not in params:
         params['samples'] = None
@@ -4001,12 +3978,12 @@ def check_diting(self, params, soft):
         if not isinstance(params['samples'], list):
             if params['samples'] not in ['all', None]:
                 sys.exit('[diting] Param "samples" not list, "all" or "null"')
-    check_default(self, params, defaults, soft.name)
+    check_default(self, params, defaults)
     defaults['samples'] = '<list of samples/co-assembly groups, "all" or null>'
     return defaults
 
 
-def check_abritamr(self, params, soft):
+def check_abritamr(self, params):
     defaults = {
         'identity': 0.9,
         'sop': ['general', 'plus'],
@@ -4025,13 +4002,13 @@ def check_abritamr(self, params, soft):
         if not isinstance(params['samples'], list):
             if params['samples'] not in ['all', None]:
                 sys.exit('[abritamr] Param "samples" not list, "all" or "null"')
-    check_nums(self, params, defaults, ['identity'], float, soft.name, 0, 1)
-    check_default(self, params, defaults, soft.name, ['identity'])
+    check_nums(self, params, defaults, ['identity'], float, 0, 1)
+    check_default(self, params, defaults, ['identity'])
     defaults['samples'] = '<list of samples/co-assembly groups, "all" or null>'
     return defaults
 
 
-def check_keggcharter(self, params, soft):
+def check_keggcharter(self, params):
     defaults = {
         'input': [None],
         'metabolic_maps': [
@@ -4147,13 +4124,13 @@ def check_keggcharter(self, params, soft):
             sys.exit('[keggcharter] maps not allowed: %s' % '", "'.join(diffs))
 
     ints = ['number_of_taxa', 'step']
-    check_nums(self, params, defaults, ints, int, soft.name)
-    check_default(self, params, defaults, soft.name, ints,
-                  ['metabolic_maps', 'taxonomic_levels'])
+    check_nums(self, params, defaults, ints, int)
+    check_default(
+        self, params, defaults, ints, ['metabolic_maps', 'taxonomic_levels'])
     return defaults
 
 
-def check_metamic(self, params, soft):
+def check_metamic(self, params):
     defaults = {
         'mlen': 5000,
         'st': 0.8,
@@ -4163,14 +4140,14 @@ def check_metamic(self, params, soft):
         'at': [None]
     }
     ints = ['mlen', 'slen']
-    check_nums(self, params, defaults, ints, int, soft.name)
+    check_nums(self, params, defaults, ints, int)
     floats = ['st']
-    check_nums(self, params, defaults, floats, float, soft.name)
-    check_default(self, params, defaults, soft.name, (ints + floats))
+    check_nums(self, params, defaults, floats, float)
+    check_default(self, params, defaults, (ints + floats))
     return defaults
 
 
-def check_trf(self, params, soft):
+def check_trf(self, params):
     defaults = {
         'match': 2,
         'mismatch': 7,
@@ -4187,16 +4164,16 @@ def check_trf(self, params, soft):
         'l': 10
     }
     ints = ['match', 'mismatch', 'delta', 'min_score', 'max_period', 'l']
-    check_nums(self, params, defaults, ints, int, soft.name)
+    check_nums(self, params, defaults, ints, int)
     probas = ['match_probability', 'indel_probability']
-    check_nums(self, params, defaults, probas, int, soft.name, 0, 100)
-    check_default(self, params, defaults, soft.name, (ints + probas))
-    check_binary(self, soft.name, params, defaults, 'path')
+    check_nums(self, params, defaults, probas, int, 0, 100)
+    check_default(self, params, defaults, (ints + probas))
+    check_binary(self, params, defaults, 'path')
     defaults['path'] = '<Path to the trf binary folder>'
     return defaults
 
 
-def check_kmerssr(self, params, soft):
+def check_kmerssr(self, params):
     defaults = {
         'a': 'A,C,G,T',
         'p': '4,5,6,7,8',
@@ -4231,14 +4208,14 @@ def check_kmerssr(self, params, soft):
             sys.exit('[kmerssr] Param "p" must be digits')
 
     ints = ['l', 'L', 'n', 'N', 'r', 'R', 'Q']
-    check_nums(self, params, defaults, ints, int, soft.name)
-    check_default(self, params, defaults, soft.name, (ints + ['a', 'p']))
-    check_binary(self, soft.name, params, defaults, 'path')
+    check_nums(self, params, defaults, ints, int)
+    check_default(self, params, defaults, (ints + ['a', 'p']))
+    check_binary(self, params, defaults, 'path')
     defaults['path'] = '<Path to the Kmer-SSR binary folder>'
     return defaults
 
 
-def check_divissr(self, params, soft):
+def check_divissr(self, params):
     defaults = {
         'min_motif_size': 1,
         'max_motif_size': 6,
@@ -4255,13 +4232,13 @@ def check_divissr(self, params, soft):
     }
     ints = ['min_motif_size', 'max_motif_size', 'min_length',
             'comp_dist', 'up_promoter', 'down_promoter']
-    check_nums(self, params, defaults, ints, int, soft.name)
-    check_default(self, params, defaults, soft.name, ints)
+    check_nums(self, params, defaults, ints, int)
+    check_default(self, params, defaults, ints)
     defaults[''] = '<>'
     return defaults
 
 
-def check_staramr(self, params, soft):
+def check_staramr(self, params):
     defaults = {
         'pointfinder_organism': [
             None, 'helicobacter_pylori', 'campylobacter', 'salmonella',
@@ -4294,25 +4271,66 @@ def check_staramr(self, params, soft):
     ints = ['genome_size_lower_bound', 'genome_size_upper_bound',
             'minimum_N50_value', 'minimum_contig_length',
             'unacceptable_number_contigs']
-    check_nums(self, params, defaults, ints, int, soft.name)
+    check_nums(self, params, defaults, ints, int)
     floats = ['pid_threshold', 'percent_length_overlap_resfinder',
               'percent_length_overlap_pointfinder',
               'percent_length_overlap_plasmidfinder']
-    check_nums(self, params, defaults, floats, float, soft.name)
-    check_default(self, params, defaults, soft.name,
-                  (ints + floats + ['exclude_genes_file']))
+    check_nums(self, params, defaults, floats, float)
+    check_default(
+        self, params, defaults, (ints + floats + ['exclude_genes_file']))
     return defaults
 
 
-def check_platon(self, params, soft):
+def check_platon(self, params):
     defaults = {
         'mode': ['accuracy', 'sensitivity', 'specificity'],
         'characterize': [False, True],
         'meta': [True, False],
     }
-    check_default(self, params, defaults, soft.name)
+    check_default(self, params, defaults)
     return defaults
 
+
+def check_genomad(self, params):
+    defaults = {
+        'presets': [None, 'conservative', 'relaxed'],
+        'cleanup': [False, True],
+        'restart': [False, True],
+        'disable_find_proviruses': [False, True],
+        'disable_nn_classification': [False, True],
+        'enable_score_calibration': [False, True],
+        'conservative_taxonomy': [False, True],
+        'sensitivity': 4.2,
+        'splits': 0,
+        'skip_integrase_identification': [False, True],
+        'skip_trna_identification': [False, True],
+        'composition': ['auto', 'metagenome', 'virome'],
+        'force_auto': [False, True],
+        'min_score': 0.7,
+        'max_fdr': 0.1,
+        'min_plasmid_marker_enrichment': 0.0,
+        'min_virus_marker_enrichment': 0.0,
+        'min_plasmid_hallmarks': 0,
+        'min_plasmid_hallmarks_short_seqs': 1,
+        'min_virus_hallmarks': 0,
+        'min_virus_hallmarks_short_seqs': 1,
+        'max_uscg': 4,
+    }
+    ints = [
+        'splits', 'min_plasmid_hallmarks', 'min_plasmid_hallmarks_short_seqs',
+        'min_virus_hallmarks', 'min_virus_hallmarks_short_seqs', 'max_uscg']
+    check_nums(self, params, defaults, ints, int)
+    floats = ['sensitivity', 'min_score', 'max_fdr',
+              'min_plasmid_marker_enrichment', 'min_virus_marker_enrichment']
+    check_nums(self, params, defaults, floats, float)
+    check_default(self, params, defaults, (ints + floats))
+    return defaults
+
+
+def check_hamronization(self, params):
+    defaults = {'format': ['tsv', 'json']}
+    check_default(self, params, defaults)
+    return defaults
 
 
 # def check_rosella(self, params, soft):
@@ -4327,7 +4345,6 @@ def check_platon(self, params, soft):
 #     return defaults
 
 
-
 # def check_skani(self, params, soft):
 #     defaults = {
 #     }
@@ -4340,7 +4357,6 @@ def check_platon(self, params, soft):
 #     return defaults
 
 
-
 # def check_ToolName(self, params, soft):
 #     defaults = {
 #     }
@@ -4351,20 +4367,6 @@ def check_platon(self, params, soft):
 #     check_default(self, params, defaults, soft.name, (ints + floats))
 #     defaults[''] = '<>'
 #     return defaults
-
-
-
-# def check_ToolName(self, params, soft):
-#     defaults = {
-#     }
-#     ints = []
-#     check_nums(self, params, defaults, ints, int, soft.name)
-#     floats = []
-#     check_nums(self, params, defaults, floats, float, soft.name)
-#     check_default(self, params, defaults, soft.name, (ints + floats))
-#     defaults[''] = '<>'
-#     return defaults
-
 
 
 # def check_ToolName(self, params, soft):
