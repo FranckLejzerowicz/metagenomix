@@ -352,6 +352,26 @@ class ReferenceDatabases(object):
             'split/backbone', 'split/class_level']
         self.check_tool_db(exp_files, exp_dirs)
 
+    def set_genomad(self):
+        exp_files = [
+            'genomad_db', 'genomad_db.dbtype', 'genomad_db.index',
+            'genomad_db.lookup', 'genomad_db.source', 'genomad_db_h',
+            'genomad_db_h.dbtype', 'genomad_db_h.index', 'genomad_db_mapping',
+            'genomad_db_taxonomy', 'genomad_integrase_db',
+            'genomad_integrase_db.dbtype', 'genomad_integrase_db.index',
+            'genomad_integrase_db.lookup', 'genomad_integrase_db.source',
+            'genomad_integrase_db_h', 'genomad_integrase_db_h.dbtype',
+            'genomad_integrase_db_h.index', 'genomad_marker_metadata.tsv',
+            'genomad_mini_db', 'genomad_mini_db.dbtype',
+            'genomad_mini_db.index', 'genomad_mini_db.lookup',
+            'genomad_mini_db.source', 'genomad_mini_db_h',
+            'genomad_mini_db_h.dbtype', 'genomad_mini_db_h.index',
+            'genomad_mini_db_mapping', 'genomad_mini_db_taxonomy',
+            'mini_set_ids', 'names.dmp', 'nodes.dmp',
+            'plasmid_hallmark_annotation.txt',  'version.txt',
+            'virus_hallmark_annotation.txt']
+        self.check_tool_db(exp_files)
+
     def set_uniref(self):
         exp_files = ['uniref90.fasta', 'uniref90.xml']
         self.check_tool_db(exp_files)
