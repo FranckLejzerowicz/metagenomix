@@ -782,10 +782,12 @@ def get_bams(
     bams : list
         Path(s) to BAMs files
     """
-    assembler = get_assembler(self)
+    adx, assembler = get_assembler(self)
     map_assembler = 'mapping_%s' % assembler
     if map_assembler in self.softs:
-        bams = self.softs[map_assembler].outputs[self.sam_pool][(tech, group)]
+        bams = self.softs[map_assembler][
+            self.hashes[tuple(self.path[:(adx + 1)])]
+        ].outputs[self.sam_pool][(tech, group)]
         sys.exit('[get_bams()] in progress...')
     elif self.config.dev:
         bams = ['/path/to/mapping1.bam', '/path/to/mapping2.bam']
@@ -1121,11 +1123,9 @@ def unbinned(
     if self.soft.name == 'checkm_unbinned' and self.sam_pool == '':
         sys.exit('[checkm_unbinned] Only per co-assembly (not after drep)')
 
-    assembler = get_assembler(self)
-    print(self.softs[assembler].outputs[self.sam_pool])
-    print(stoperror)
-    contigs = self.softs[assembler].outputs[self.sam_pool][(tech, group)][0]
-
+    adx, assembler = get_assembler(self)
+    contigs = self.softs[assembler][self.hashes[
+        tuple(self.path[:(adx + 1)])]].outputs[self.sam_pool][(tech, group)][0]
     for genome, dirs in folders.items():
         genomes_dir = dirs[0]
         unbinned_dir = genome_out_dir(self, tech, group, genome)
