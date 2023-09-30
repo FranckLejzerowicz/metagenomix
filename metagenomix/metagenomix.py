@@ -40,12 +40,14 @@ def metagenomix(**kwargs) -> tuple:
 
     # Read and validate the workflow of softwares to run as a pipeline
     workflow = Workflow(config, databases)
-    print('* Reading pipeline')
+    print('* Checking pipeline')
     workflow.visit()
-    print('* Setting up graph and output paths')
+    print('* Setting up pipeline graph')
     workflow.setup()
     print('* Checking parameters')
     workflow.parametrize()
+    print('* Preparing workflow')
+    workflow.prepare()
 
     if config.show_params:
         workflow.show_params()
