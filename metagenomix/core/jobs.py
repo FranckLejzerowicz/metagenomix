@@ -58,10 +58,12 @@ class Created(object):
         self.link_script = None
 
     def make_dirs(self):
-        for name, soft in self.commands.softs.items():
-            for directory in sorted(soft.dirs):
-                if not islink(directory) and not isdir(directory):
-                    os.makedirs(directory)
+        for name, hashes_softs in self.commands.softs.items():
+            print(name)
+            for hash, soft in hashes_softs.items():
+                for directory in sorted(soft.dirs):
+                    if not islink(directory) and not isdir(directory):
+                        os.makedirs(directory)
 
     def get_scheduler(self):
         if self.config.jobs:
@@ -92,10 +94,10 @@ class Created(object):
                 chunkey = '%s_%s' % (key[0], '-'.join(key[1]).replace('/', '_'))
                 self.chunks[chunkey] = [key]
 
-    def get_main_sh(self, name, soft=None, local='') -> None:
+    def get_main_sh(self, name, hashed='', soft=None, local='') -> None:
         if soft:
             n = 'software'
-            key = '%s%s' % (name, local)
+            key = '%s: %s%s' % (name, hashed, local)
             if self.cmds or local:
                 self.main_sh = '%s/run%s.sh' % (soft.dir, local)
                 self.run[n][key] = self.main_sh
@@ -116,9 +118,9 @@ class Created(object):
                     o.write('%s %s\n' % (self.scheduler, job_fp))
                 self.job_fps = []
 
-    def write_bash(self, name, soft) -> None:
+    def write_bash(self, name, hashed, soft) -> None:
         if soft.bash:
-            self.get_main_sh(name, soft, '_locally')
+            self.get_main_sh(name, hashed, soft, '_locally')
             if self.main_sh:
                 with open(self.main_sh, 'w') as o:
                     for cmd in soft.bash:
@@ -132,22 +134,22 @@ class Created(object):
         return fp
 
     def write_provenance(self, name, soft) -> None:
-        steps = self.graph.paths[soft.name][0]
-        step_max = max([len(x) for x in steps])
+        step_max = max([len(x) for x in soft.path])
         provenance_fp = self.get_provenance_fp(name, soft)
         with open(provenance_fp, 'w') as o:
             o.write("Pipeline steps to this output (and analysis type):\n")
-            for sdx, step in enumerate(steps):
+            for sdx, step in enumerate(soft.path):
                 o.write('%s\t%s%s\t: %s\n' % (
                     sdx, step, (' ' * (step_max-len(step))),
                     self.config.tools.get(step, '')))
             o.write("\nParameters for these steps' outputs:\n")
-            for sdx, step in enumerate(steps):
+            for sdx, step in enumerate(soft.path):
                 if step not in self.commands.softs:
                     o.write('\n ===== %s: %s (no param) =====\n' % (sdx, step))
                     continue
                 o.write('\n========== %s: %s ==========\n' % (sdx, step))
-                params_show = self.commands.softs[step].params.copy()
+                # params_show = self.commands.softs[step].params.copy()
+                params_show = soft.params.copy()
                 if step.startswith('search'):
                     databases = params_show['databases']
                     del params_show['databases']
@@ -245,10 +247,11 @@ class Created(object):
                 self.scratch(soft, sam_or_pool, cmds)
                 self.avail.setdefault(soft.name, []).append(sam_or_pool)
 
-    def print_status(self, m, sdx, name, soft):
-        gap = (m - len(name) - len(str(sdx))) + 1
-        print('\t%s [%s] %s%s' % (sdx, name, ('.' * gap), ('.' * 8)), end=' ')
+    def print_status(self, m, n, name, h, soft):
+        gap = (m - len(name) - len(str(n))) + 1
+        print('\t%s [%s: %s] %s%s' % (n, name, h, ('.'*gap), ('.'*8)), end=' ')
         print_status_table(soft, self.config.show_status)
+        return 1
 
     def write_logs(self):
         if not isdir(self.log_dir):
@@ -418,21 +421,23 @@ class Created(object):
 
     def software_cmds(self):
         m = max(len(x) for x in self.commands.softs) + 1
-        for sdx, (name, soft) in enumerate(self.commands.softs.items()):
-            self.print_status(m, sdx, name, soft)
-            self.write_bash(name, soft)
-            if not len(soft.cmds):
-                continue
-            self.hash += str(soft.hash)
-            self.get_links(soft)
-            self.get_modules(name)
-            self.get_cmds(soft)
-            self.get_main_sh(name, soft)
-            if self.cmds:
-                self.get_chunks(soft.params['chunks'])
-                self.write_jobs(name, soft)
-                self.write_main()
-            self.write_provenance(name, soft)
+        n = 0
+        for name, hashes_softs in self.commands.softs.items():
+            for hashed, soft in hashes_softs.items():
+                n += self.print_status(m, n, name, hashed, soft)
+                self.write_bash(name, hashed, soft)
+                if not len(soft.cmds):
+                    continue
+                self.hash += str(soft.hash)
+                self.get_links(soft)
+                self.get_modules(name)
+                self.get_cmds(soft)
+                self.get_main_sh(name, hashed, soft)
+                if self.cmds:
+                    self.get_chunks(soft.params['chunks'])
+                    self.write_jobs(name, soft)
+                    self.write_main()
+                self.write_provenance(name, soft)
 
     def get_links(self, soft):
         self.links_stats[soft.name] = len(soft.links)
