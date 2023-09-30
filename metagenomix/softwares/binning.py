@@ -1033,7 +1033,7 @@ def binning(self):
                 break
         else:
             sys.exit('[metawrap_bining] No "preprocessing" fastqs found')
-        h = self.hashes[tuple(self.path[(self.path.index(reads) + 1):])]
+        h = self.hashes[tuple(self.path[:(self.path.index(reads) + 1)])]
         fastqs = [fq for sam in self.pools[self.sam_pool][group] for fq in
                   self.softs[reads][h].outputs[sam].get(('illumina', sam), [])]
 
