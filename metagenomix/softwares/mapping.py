@@ -621,7 +621,7 @@ def pysam(self):
     target, func = get_pysam_target(self)
     if self.sam_pool in self.pools:
         pool_inputs = self.softs[target][
-            self.hashes[self.path[:(self.path.index(target) + 1)]]
+            self.hashes[tuple(self.path[:(self.path.index(target) + 1)])]
         ].outputs[self.sam_pool]
         for (tech, group), inputs in pool_inputs.items():
             references = group_inputs(self, inputs, target=target)
