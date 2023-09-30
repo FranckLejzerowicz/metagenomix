@@ -1028,13 +1028,14 @@ def binning(self):
     """
     for (tech, group), inputs in self.inputs[self.sam_pool].items():
 
-        for software in self.soft.path[::-1]:
-            if self.config.tools[software] == 'preprocessing':
+        for reads in self.soft.path[::-1]:
+            if self.config.tools[reads] == 'preprocessing':
                 break
         else:
             sys.exit('[metawrap_bining] No "preprocessing" fastqs found')
+        h = self.hashes[tuple(self.path[(self.path.index(reads) + 1):])]
         fastqs = [fq for sam in self.pools[self.sam_pool][group] for fq in
-                  self.softs[software].outputs[sam].get(('illumina', sam), [])]
+                  self.softs[reads][h].outputs[sam].get(('illumina', sam), [])]
 
         to_dos = []
         if not fastqs:
@@ -1226,7 +1227,8 @@ def yamb(self):
     reads = self.config.fastq_mv
     if '_' in self.soft.name:
         reads_tool = self.soft.name.split('_')[-1]
-        reads = self.softs[reads_tool].outputs
+        hashed = self.hashes[tuple(self.path[(self.path.index(reads_tool)+1)])]
+        reads = self.softs[reads_tool][hashed].outputs
 
     for (tech, group), inputs in self.inputs[self.sam_pool].items():
         fastxs = []
