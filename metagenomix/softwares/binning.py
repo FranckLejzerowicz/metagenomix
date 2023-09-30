@@ -206,16 +206,21 @@ def get_fastqs(
         Paths to fastqs files per sample
     """
 
-    for software in self.soft.path[::-1]:
-        if self.config.tools[software] == 'preprocessing':
+    print("self.path")
+    print(self.path)
+    print("self.soft.path")
+    print(self.soft.path)
+    for reads in self.path[::-1]:
+        if self.config.tools[reads] == 'preprocessing':
             break
     else:
         sys.exit('[metawrap_bining] No "preprocessing" fastqs found')
+    h = self.hashes[tuple(self.path[:(self.path.index(reads) + 1)])]
 
     fastqs = {}
     for sam in self.pools[self.sam_pool][group]:
-        if self.softs[software].outputs[sam].get(('illumina', sam), []):
-            fastqs[sam] = self.softs[software].outputs[sam][('illumina', sam)]
+        if self.softs[reads][h].outputs[sam].get(('illumina', sam), []):
+            fastqs[sam] = self.softs[reads][h].outputs[sam][('illumina', sam)]
     return fastqs
 
 
