@@ -23,7 +23,7 @@ def creator(**kwargs):
     kwargs['command'] = 'create'
     creating = Created(*metagenomix(**kwargs))
     # print('* Writing database formatting commands')
-    # scripting.database_cmds()  # build the databases
+    # creating.database_cmds()  # build the databases
     print('* Creating output folders')
     creating.make_dirs()
     print('* Writing pipeline command lines')
