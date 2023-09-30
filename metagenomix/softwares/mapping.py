@@ -620,6 +620,13 @@ def pysam(self):
         sys.exit("[%s] Only run after a mapping_* command" % self.soft.name)
     maps = self.softs[self.soft.prev][self.hashes[tuple(self.soft.path[:-1])]]
     target, func = get_pysam_target(self)
+    print()
+    print(target)
+    print("target")
+    print(func)
+    print("func")
+    print("self.path")
+    print(self.path)
     if self.sam_pool in self.pools:
         pool_inputs = self.softs[target][
             self.hashes[tuple(self.path[:(self.path.index(target) + 1)])]
