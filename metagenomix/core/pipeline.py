@@ -7,141 +7,12 @@
 # ----------------------------------------------------------------------------
 
 import re
-import sys
-
 import yaml
-from collections import defaultdict, Counter
+from collections import Counter
 from metagenomix.core import parameters
 from metagenomix.core.parameters import *
-
-
-class Soft(object):
-    """
-    This class is instantiated for very software of the pipeline and
-    will contain all the info about it, that can be looked up by finding this
-    class after it is registered as value in the `self.softs` dict, which key
-    is the software name itself.
-
-    It contains the following info:
-        self.config     : copy of all the config
-        self.name       : software name
-        self.hash       : text to hash (see `get_hash()` in "commands.py")
-        self.hashed     : hashed text (see `get_hash()` in "commands.py")
-        self.dir        : software output folder
-        self.prev       : previously-run software name
-        self.scratch    : scratch location where to run this software
-        self.params     : default -> user parameters for this software
-
-        # the following attributes are set when the software commands are made
-        self.io         : input/output for the movement to scratch
-        self.links      :
-        self.inputs     :
-        self.outputs    :
-        self.defaults   :
-        self.cmds       :
-        self.bash       :
-        self.path       :
-        self.status     :
-        self.tables     :
-        self.dirs       :
-        self.messages   :
-    """
-
-    def __init__(self, config):
-        self.config = config
-        self.name = ''
-        self.hash = ''
-        self.hashed = ''
-        self.dir = None
-        self.prev = None
-        self.scratch = None   # no use of the scratch file system by default
-        self.params = dict(config.params)  # init with default params
-        self.io = {}
-        self.links = {}
-        self.inputs = {}
-        self.outputs = {}
-        self.defaults = {}
-        self.cmds = {}
-        self.bash = []
-        self.path = []
-        self.status = []
-        self.tables = []
-        self.dirs = set()
-        self.messages = set()
-
-    def get_softs(self, softs):
-        if len(softs) == 1:
-            self.name = softs[0]
-        elif len(softs) > 2:
-            pipeline_tsv = self.config.pipeline_tsv
-            sys.exit('[config] Max 2 names per line in "%s"' % pipeline_tsv)
-        else:
-            self.prev, self.name = softs
-
-    def add_status(
-            self,
-            tech,
-            sam_pool,
-            dec=None,
-            group=None,
-            message=None,
-            genome=None
-    ):
-        """A "status" format consists of a list made of 6 elements:
-            - `tech`                    : technology
-            - `sam_pool`                : sample or pool assembly group
-            - `"Done/To do/<tuple>"`    : Done/To do/list
-            - `group`                   : co-assembly group (default to None)
-            - `message`                 : message to print (default to None)
-            - `genome`                  : name of the genome (default to None)
-        """
-        # 0 or 1 are given for the
-        if dec == 0:
-            val = 'Done'
-        elif dec == 1:
-            val = 'To do'
-        else:
-            if isinstance(dec, list):
-                val = tuple(dec)
-            elif isinstance(dec, str):
-                val = (dec,)
-        row = [tech, sam_pool, val]
-        row.extend([None if not x else x for x in [group, message, genome]])
-        self.status.append(row)
-
-    def add_soft_path(self, softs):
-        if self.prev is None:
-            self.path = ['fastq', self.name]
-        else:
-            self.path = softs[self.prev].path + [self.name]
-
-
-class Graph(object):
-    """https://www.geeksforgeeks.org/find-paths-given-source-destination/"""
-    def __init__(self, vertices):
-        self.V = vertices
-        self.graph = defaultdict(list)
-        self.paths = defaultdict(list)
-
-    def add_edge(self, u, v):
-        self.graph[u].append(v)
-
-    def print_paths_util(self, u, d, visited, path):
-        visited[u] = True
-        path.append(u)
-        if u == d:
-            self.paths[path[-1]].append(list(path))
-        else:
-            for i in self.graph[u]:
-                if not visited[i]:
-                    self.print_paths_util(i, d, visited, path)
-        path.pop()
-        visited[u] = False
-
-    def print_paths(self, s, d):
-        visited = [False] * self.V
-        path = []
-        self.print_paths_util(s, d, visited, path)
+from metagenomix.core.graph import Graph
+from metagenomix.core.software import Soft
 
 
 class Workflow(object):
@@ -149,15 +20,19 @@ class Workflow(object):
     """
     def __init__(self, config, databases) -> None:
         self.config = config
-        self.check_workflow()
         self.databases = databases
         self.graph = None
-        self.names = ['fastq']
+        self.names = ['None']
+        self.workflow = []
         self.softs = {}
+        self.hashes = {}
+        self.params = {}
+        self.defaults = {}
         self.names_idx = {}
         self.names_idx_rev = {}
         self.skip = {}
         self.tools = {}
+        self.name = None
 
     def check_workflow(self):
         counts = Counter([tuple(softs) for softs in self.config.pipeline])
@@ -169,58 +44,45 @@ class Workflow(object):
         if workflow_issue:
             sys.exit('[pipeline] Please fix duplicates... Exiting')
 
+    def fill_workflow(self, step):
+        if len(step) > 2:
+            pipeline_tsv = self.config.pipeline_tsv
+            sys.exit('[config] Max 2 names per step in "%s"' % pipeline_tsv)
+        if len(step) == 1:
+            self.workflow.append(('None', step[0]))
+        else:
+            self.workflow.append(tuple(step))
+
     def visit(self) -> None:
         """
         Parse the list of softwares, collect their sequence in the
         attribute `self.softs`, and collect all the paths of their
         sequences in the object `self.graph.paths`.
         """
-        for softs in self.config.pipeline:
-            self.collect_soft_name(softs)
-            soft = Soft(self.config)
-            soft.get_softs(softs)
-            self.validate_softs(softs)
-            self.softs[softs[-1]] = soft
+        self.check_workflow()
+        for step in self.config.pipeline:
+            self.collect_step_names(step)
+            self.fill_workflow(step)
 
     def setup(self) -> None:
         self.get_names_idx()
         self.make_graph()
         self.get_paths()
+        self.show_graph()
 
-    def validate_softs(self, softs: list):
-        """Verify that each software is run only once in the pipeline (yet,
-        a software can be used multiple times as input to another software).
-
-        Parameters
-        ----------
-        softs : list
-            One or two names of softwares that are run on
-            the fastq files or after one another, respectively.
-        """
-        if softs[-1] in self.softs:
-            already_used = self.softs[softs[-1]]
-            prev, name = already_used.prev, already_used.name
-            message = 'Error in workflow "%s":\n' % self.config.pipeline_tsv
-            message += "\tCan't run \"%s\" after \"%s\": " % tuple(softs[::-1])
-            message += '"%s" already planned to use after "%s"\n' % (name, prev)
-            message += "Each tool must yield a single output re-used as input\n"
-            message += '-> please re-run for each different workflow "graph"\n'
-            message += "Exiting\n"
-            sys.exit(message)
-
-    def collect_soft_name(self, softs: list) -> None:
+    def collect_step_names(self, step: list) -> None:
         """Collect the sequential list of softwares.
 
         Parameters
         ----------
-        softs : list
+        step : list
             One or two names of softwares that are run on
             the fastq files or after one another, respectively.
         """
-        if softs[-1] not in self.names:
-            if len(softs) > 1 and softs[0] not in self.names:
-                raise IOError('"%s" not planned before "%s"' % tuple(softs))
-            self.names.append(softs[-1])
+        if step[-1] not in self.names:
+            if len(step) > 1 and step[0] not in self.names:
+                raise IOError('"%s" not planned before "%s"' % tuple(step))
+            self.names.append(step[-1])
 
     def get_names_idx(self) -> None:
         """
@@ -236,12 +98,12 @@ class Workflow(object):
         list of softwares.
         """
         self.graph = Graph(len(self.names))
-        for idx, soft in self.softs.items():
-            if soft.prev:
-                self.graph.add_edge(self.names_idx[soft.prev],
-                                    self.names_idx[soft.name])
+        for prev, name in self.workflow:
+            if prev == 'None':
+                self.graph.add_edge(0, self.names_idx[name])
             else:
-                self.graph.add_edge(0, self.names_idx[soft.name])
+                self.graph.add_edge(self.names_idx[prev],
+                                    self.names_idx[name])
 
     def get_paths(self) -> None:
         """
@@ -254,42 +116,48 @@ class Workflow(object):
             [self.names_idx_rev[p] for p in path] for path in paths]
             for idx, paths in self.graph.paths.items()}
 
-    def check_basic_params(self, user_params, soft):
+    def show_graph(self):
+        # if self.config.verbose:
+        for i, js in self.graph.paths.items():
+            print('\t%s:' % i)
+            for j in js:
+                print('\t -', '->'.join(j))
+
+    def check_basic_params(self, user_params):
         ints = ['time', 'procs', 'mem', 'chunks']
         for param, value in user_params.items():
             if param in ints:
-                check_int(param, value, soft.name)
+                check_int(param, value, self.name)
             elif param == 'mem_dim':
-                check_mems(param, value, soft.name)
+                check_mems(param, value, self.name)
             elif param == 'env':
-                check_env(self.config, value, soft.name)
+                check_env(self.config, value, self.name)
             elif param == 'path':
-                check_path(self.config, value, soft.name)
+                check_path(self.config, value, self.name)
             elif param == 'scratch':
-                check_scratch(value, soft.name)
-            soft.params[param] = value
+                check_scratch(value, self.name)
+            self.params[self.name][param] = value
 
-    def ignored_params(self, user_params, soft):
+    def ignored_params(self, user_params):
         # take union of defaults params known from software check and run_params
-        valid_params = set(soft.defaults) | set(self.config.params)
+        valid_params = set(self.defaults[self.name]) | set(self.config.params)
         # then, for each if the user params
         for param in sorted(user_params):
             # if param never returned by checks (default) or in run_params
             if param not in valid_params:
                 # print that it is unknown and stop
-                name = soft.name
-                sys.exit('[%s] Param "%s" unknown and ignored' % (name, param))
+                sys.exit('[%s] Param "%s" unknown' % (self.name, param))
 
-    def set_scratch(self, soft):
+    def set_scratch(self):
         """scratch set on command line overrides per-software scratches"""
         if self.config.localscratch:
-            soft.params['scratch'] = self.config.localscratch
+            self.params[self.name]['scratch'] = self.config.localscratch
         elif self.config.scratch:
-            soft.params['scratch'] = 'scratch'
+            self.params[self.name]['scratch'] = 'scratch'
         elif self.config.userscratch:
-            soft.params['scratch'] = 'userscratch'
+            self.params[self.name]['scratch'] = 'userscratch'
 
-    def get_user_params(self, soft, name):
+    def get_user_params(self, name_, name):
         """The params set by user for a tool's subcommand take precedence over
         the params of the general tool. For example, if params are set both for:
          - `metawrap`
@@ -299,61 +167,55 @@ class Workflow(object):
         # params of the general tool
         user_params = dict(self.config.user_params.get(name, {}))
         # params of the specific tool subcommand/module
-        user_params.update(dict(self.config.user_params.get(soft.name, {})))
+        user_params.update(dict(self.config.user_params.get(name_, {})))
         return user_params
 
-    def set_user_params(self, soft):
+    def set_user_params(self):
         # get the name of the software ("metawrap_binning" would be "metawrap")
-        name = soft.name.split('_')[0]
+        nam = self.name.split('_')[0]
         # get the user parameters (looking up to class attribute value)
-        user_params = self.get_user_params(soft, name)
+        user_params = self.get_user_params(self.name, nam)
         # get the name of the parameter-checking function for the software
-        func = 'check_%s' % name
+        func = 'check_%s' % nam
         # if this parameter-checking function exists in the "parameters" module
         if hasattr(parameters, func) and callable(getattr(parameters, func)):
             # get the function as an object
             check_ = getattr(parameters, func)
             # run this function to check that all parameters are valid
             # and get the returned value as default (for --show-params etc)
-            soft.defaults = check_(self, user_params, soft)
+            self.defaults[self.name] = check_(self, user_params)
             # if here, params were valids, then check that the params are known
-            self.ignored_params(user_params, soft)
-        self.check_basic_params(user_params, soft)
-
-    def skip_params(self, soft) -> bool:
-        if '_' in soft.name:
-            if self.skip.get(soft.name.split('_')[0], False):
-                return True
-            self.skip[soft.name.split('_')[0]] = True
+            self.ignored_params(user_params)
+        self.check_basic_params(user_params)
 
     @staticmethod
-    def get_params_dict(soft, params_show):
-        if soft.name.startswith('search'):
+    def get_params_dict(name, params_show):
+        if name.startswith('search'):
             databases = params_show['databases']
             del params_show['databases']
-            params = {'search': {soft.name.split('_')[-1]: params_show,
+            params = {'search': {name.split('_')[-1]: params_show,
                                  'databases': databases}}
         else:
             params = params_show
         return params
 
     def print_params(self, soft):
-        params_show = dict(x for x in soft.params.items())
+        params_show = dict(x for x in self.params[self.name].items())
         if params_show:
-            x = '=' * (13 + len(soft.name))
-            print('\n%s\n[%s] Parameters\n%s' % (x, soft.name, x))
-            params = self.get_params_dict(soft, params_show)
+            x = '=' * (13 + len(self.name))
+            print('\n%s\n[%s] Parameters\n%s' % (x, self.name, x))
+            params = self.get_params_dict(self.name, params_show)
             print(yaml.dump(params))
             print('%s defaults %s' % ('-' * 10, '-' * 10))
-            print(yaml.dump(soft.defaults))
+            print(yaml.dump(self.defaults[self.name]))
             print('=' * 30)
 
-    def write_params(self, soft):
-        params_show = dict(x for x in soft.params.items())
-        params_dict = self.get_params_dict(soft, params_show)
-        params = {soft.name: params_dict}
+    def write_params(self):
+        params_show = dict(x for x in self.params[self.name].items())
+        params_dict = self.get_params_dict(self.name, params_show)
+        params = {self.name: params_dict}
         p = '/Users/franck/programs/metagenomix/metagenomix/resources/params'
-        with open('%s/%s.yml' % (p, soft.name), 'w') as o:
+        with open('%s/%s.yml' % (p, self.name), 'w') as o:
             yaml.dump(params, o)
 
     def parametrize(self) -> None:
@@ -361,10 +223,13 @@ class Workflow(object):
         Update the default params assigned to each software with the
         params passed by the user for each of the software.
         """
-        for _, soft in self.softs.items():
-            self.set_scratch(soft)
-            self.set_user_params(soft)
-            # self.write_params(soft)
+        for name in self.graph.paths.keys():
+            self.name = name
+            self.params[name] = {}
+            self.defaults[name] = {}
+            self.set_scratch()
+            self.set_user_params()
+            # self.write_params()
 
     def show_params(self) -> None:
         print('* Showing parameters (user-defined and defaults):')
@@ -376,3 +241,20 @@ class Workflow(object):
                     if re.search(s, soft.name):
                         self.print_params(soft)
                         break
+
+    def prepare(self) -> None:
+        """
+        Parse the list of softwares, collect their sequence in the
+        attribute `self.softs`, and collect all the paths of their
+        sequences in the object `self.graph.paths`.
+        """
+        softs = {}
+        for name, paths in self.graph.paths.items():
+            if name not in self.softs:
+                self.softs[name] = {}
+            for path in paths:
+                soft = Soft(self.config)
+                soft.set_soft(self.params, path)
+                soft.get_hash(self.params[name], softs)
+                self.softs[name][soft.hashed] = soft
+                self.hashes[tuple(path)] = soft.hashed
