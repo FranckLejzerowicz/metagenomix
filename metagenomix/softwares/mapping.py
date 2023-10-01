@@ -12,7 +12,9 @@ from metagenomix._io_utils import io_update, status_update
 from metagenomix.core.parameters import tech_params
 from metagenomix._io_utils import to_do
 from metagenomix._inputs import (
-    group_inputs, genome_key, genome_out_dir, get_reads, get_group_reads)
+    group_inputs, genome_key, genome_out_dir, get_reads, get_group_reads,
+    find_software_path
+)
 from metagenomix.softwares.alignment import (
     bowtie2_cmd,
     minimap2_cmd,
@@ -620,16 +622,10 @@ def pysam(self):
         sys.exit("[%s] Only run after a mapping_* command" % self.soft.name)
     maps = self.softs[self.soft.prev][self.hashes[tuple(self.soft.path[:-1])]]
     target, func = get_pysam_target(self)
-    print()
-    print(target)
-    print("target")
-    print(func)
-    print("func")
-    print("self.path")
-    print(self.path)
+    path = find_software_path(self, target)
     if self.sam_pool in self.pools:
         pool_inputs = self.softs[target][
-            self.hashes[tuple(self.path[:(self.path.index(target) + 1)])]
+            self.hashes[tuple(path)]
         ].outputs[self.sam_pool]
         for (tech, group), inputs in pool_inputs.items():
             references = group_inputs(self, inputs, target=target)
