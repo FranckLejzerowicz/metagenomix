@@ -9,9 +9,8 @@ import sys
 import glob
 import pkg_resources
 from os.path import basename, splitext
-from metagenomix._inputs import get_contigs_from_path
-from metagenomix._io_utils import (
-    caller, status_update, io_update, to_do, get_assembly, get_assembly_graph)
+from metagenomix._inputs import get_contigs_from_path, get_assembly_graph
+from metagenomix._io_utils import caller, status_update, io_update, to_do
 from metagenomix.core.parameters import tech_params
 
 SCRIPTS = pkg_resources.resource_filename("metagenomix", "resources/scripts")
@@ -1336,11 +1335,8 @@ def binspreader(self):
         Contains all the attributes needed for binning on the current sample
     """
     if self.config.tools[self.soft.prev] == 'binning':
-        assembly = get_assembly(self)
         for (tech, group), inputs in self.inputs[self.sam_pool].items():
-
-            graph = get_assembly_graph(self, tech, group, assembly)
-
+            graph = get_assembly_graph(self, tech, group)
             inp = inputs[0]
             to_dos = status_update(self, tech, [inp], group=group, folder=True)
             to_dos.extend(status_update(self, tech, [graph], group=group))
