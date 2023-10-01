@@ -9,10 +9,10 @@
 import sys
 from os.path import basename, dirname, splitext
 from metagenomix._inputs import (
-    sample_inputs, group_inputs, genome_key, genome_out_dir, get_contigs)
+    sample_inputs, group_inputs, genome_key, genome_out_dir,
+    get_contigs, get_contigs_from_path)
 from metagenomix._io_utils import (
-    caller, io_update, to_do, tech_specificity, not_paired,
-    status_update, get_assembly)
+    caller, io_update, to_do, tech_specificity, not_paired, status_update)
 from metagenomix.core.parameters import tech_params
 
 
@@ -1213,13 +1213,10 @@ def metacompare(self) -> None:
     """
     if self.soft.prev not in ['prodigal']:
         sys.exit('[metacompare] Only after protein predictions')
-
-    assembler, assembly = get_assembly(self)
-
     if self.sam_pool in self.pools:
         for (tech, group), inputs in self.inputs[self.sam_pool].items():
             proteins = group_inputs(self, inputs)
-            contigs = assembly[self.sam_pool][(tech, group)][0]
+            contigs = get_contigs_from_path(self, tech, group)
             get_metacompare(self, tech, proteins, contigs, group)
 
 
@@ -1516,6 +1513,51 @@ def staramr(self) -> None:
             get_staramr(self, tech, folders, group)
     else:
         sys.exit('[staramr] Only work after assembly')
+
+
+def hamronization(self) -> None:
+    """hAMRonization module and CLI parser tools combine the outputs of 18
+    (as of 2022-09-25) disparate antimicrobial resistance gene detection
+    tools into a single unified format.
+    This is an implementation of the hAMRonization AMR detection
+    specification scheme which supports gene presence/absence resistance and
+    mutational resistance (if supported by the underlying tool).
+
+    References
+    ----------
+    hAMRonization. Public Health Alliance for Genomic Epidemiology (pha4ge).
+    https://github.com/pha4ge/hAMRonization (2020).
+
+    Notes
+    -----
+    GitHub  : https://github.com/pha4ge/hAMRonization
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for AMRFinderPlus
+        .sam_pool : str
+            Sample of co-assembly group name
+        .pools : dict
+            Co-assembly pools and sample per group
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.name : str
+            Name of the current software in the pipeline
+        .soft.prev : str
+            Name of the previous software in the pipeline
+        .soft.status
+            Current status of the pipeline in terms of available outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    """
+    args_annotators = self.config.tools['annotation (ARGs)']
+    print(args_annotators)
 
 
 def amrfinderplus(self) -> None:
