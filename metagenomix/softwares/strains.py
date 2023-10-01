@@ -9,11 +9,10 @@
 import glob
 from os.path import dirname
 from metagenomix._io_utils import (
-    caller, io_update, tech_specificity, status_update, get_assembly,
-    to_do, get_assembly_contigs)
+    caller, io_update, tech_specificity, status_update, to_do)
 from metagenomix._inputs import (
     group_inputs, genome_key, genome_out_dir, get_extension, get_reads,
-    get_group_reads, add_folder)
+    get_group_reads, add_folder, get_contigs_from_path)
 
 
 def lorikeet_cmd(
@@ -332,10 +331,8 @@ def get_lorikeet(
             is_folder = False
         to_dos = status_update(self, tech, [fasta_folder], folder=is_folder)
 
-        assembly = get_assembly(self)
-        contigs = get_assembly_contigs(self, tech, group, assembly)
+        contigs = get_contigs_from_path(self, tech, group, True)
         to_dos.extend(status_update(self, tech, contigs))
-
         if self.config.force or not glob.glob('%s/*' % out_dir):
             cmd = lorikeet_cmd(self, is_folder, contigs, fasta_folder,
                                group_reads, out_dir, key, step)
