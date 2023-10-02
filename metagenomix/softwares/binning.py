@@ -942,6 +942,8 @@ def get_binners(
     """
     binners = []
     for binner, bins in binned.items():
+        print(binner)
+        print(bins)
         fastas = glob.glob('%s/*.fa' % bins.replace('${SCRATCH_FOLDER}', ''))
         if self.config.force or not fastas:
             binners.append(binner)
