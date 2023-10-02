@@ -853,10 +853,16 @@ def refine_cmd(
     """
     out = '%s/metawrap_%s_%s' % (out_dir, self.soft.params['min_completion'],
                                  self.soft.params['max_contamination'])
+
+    cmd, cmd_rm = '', ''
+    for folder in bin_folders:
+        cmd += 'mkdir -p %s\n' % folder
+        cmd += 'tar xpfz %s -C %s\n' % folder
+        cmd_rm += 'rm -rf %s\n' % folder
+
     bins = '%s_bins' % out
     names = '%s.names' % bins
     stats = '%s.stats' % bins
-    cmd = ''
     if to_do(bins) or to_do(stats):
 
         if self.soft.params['path']:
@@ -872,6 +878,8 @@ def refine_cmd(
         cmd += ' -x %s\n' % self.soft.params['max_contamination']
         cmd += 'rm -rf %s/work_files\n' % out_dir
         cmd += 'for i in %s/{ma,metab,c}*_bins; do rm -rf $i; done\n' % out_dir
+        cmd += cmd_rm
+
     return cmd, bins, names
 
 
@@ -904,7 +912,6 @@ def refine(self):
         cmd, bins, names = refine_cmd(self, out_dir, bin_dirs)
         if process_outputs(self, key, group, [bins]):
             continue
-        # self.outputs['dirs'].append(dirname(out_dir))
         self.outputs['dirs'].append(out_dir)
 
         stats = '%s.stats' % bins
@@ -942,8 +949,7 @@ def get_binners(
     """
     binners = []
     for binner, bins in binned.items():
-        bins_gz = '%s.tar.gz' % bins
-        if self.config.force or to_do(bins_gz):
+        if self.config.force or to_do(bins):
             binners.append(binner)
     return binners
 
@@ -1056,7 +1062,7 @@ def binning(self):
         out = '/'.join([self.dir, tech, self.sam_pool, group])
         self.outputs['dirs'].append(out)
 
-        binned = {binner: '%s/%s_bins' % (out, binner)
+        binned = {binner: '%s/%s_bins.tar.gz' % (out, binner)
                   for binner in self.soft.params['binners']}
         bin_dirs = sorted(binned.values())  # + ['%s/work_files' % out]
 
