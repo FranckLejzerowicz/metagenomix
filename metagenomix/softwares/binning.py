@@ -943,9 +943,7 @@ def get_binners(
     binners = []
     for binner, bins in binned.items():
         bins_gz = '%s.tar.gz' % bins
-        # fastas = glob.glob('%s/*.fa' % bins.replace('${SCRATCH_FOLDER}', ''))
-        if self.config.force or not isfile(bins_gz):
-        # if self.config.force or not fastas:
+        if self.config.force or to_do(bins_gz):
             binners.append(binner)
     return binners
 
