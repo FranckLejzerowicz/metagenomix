@@ -857,7 +857,7 @@ def refine_cmd(
     cmd, cmd_rm = '', ''
     for folder in bin_folders:
         cmd += 'mkdir -p %s\n' % folder
-        cmd += 'tar xpfz %s -C %s\n' % folder
+        cmd += 'tar xpfz %s -C %s\n' % (folder, folder.replace('.tar.gz', ''))
         cmd_rm += 'rm -rf %s\n' % folder
 
     bins = '%s_bins' % out
