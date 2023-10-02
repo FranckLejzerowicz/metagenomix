@@ -979,7 +979,7 @@ def binning_cmd(
         metaWRAP binning comand
     """
     binners = get_binners(self, binned)
-    cmd, cmd_rm = '', ''
+    cmd, cmd_rm, cmd_tar = '', '', ''
     if binners:
         if contigs.endswith('.gz'):
             cmd += 'gunzip -c %s > %s\n' % (contigs, contigs.rstrip('.gz'))
@@ -998,13 +998,16 @@ def binning_cmd(
         cmd += ' --universal'
         for binner in binners:
             cmd += ' --%s' % binner
+            cmd_tar += 'tar cpfz %s/%s_bins.tar.gz -C %s %s_bins\n' % (
+                out, binner, out, binner)
+
         cmd += ' %s\n' % ' '.join(fqs)
         if fqs_cmd:
             cmd = fqs_cmd + cmd
         if gz:
             cmd += 'rm %s\n' % ' '.join(fqs)
         cmd += cmd_rm
-        cmd += ''
+        cmd += cmd_tar
 
     return cmd
 
@@ -1063,8 +1066,6 @@ def binning(self):
         if process_outputs(self, key, group, bin_dirs):
             continue
 
-        print(out)
-        print(outfds)
         cmd = binning_cmd(self, fastqs, out, contigs, binned)
         if cmd:
             if to_dos:
