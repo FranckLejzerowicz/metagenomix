@@ -8,7 +8,7 @@
 import sys
 import glob
 import pkg_resources
-from os.path import basename, splitext
+from os.path import basename, isfile, splitext
 from metagenomix._inputs import get_contigs_from_path, get_assembly_graph
 from metagenomix._io_utils import caller, status_update, io_update, to_do
 from metagenomix.core.parameters import tech_params
@@ -942,10 +942,10 @@ def get_binners(
     """
     binners = []
     for binner, bins in binned.items():
-        print(binner)
-        print(bins)
-        fastas = glob.glob('%s/*.fa' % bins.replace('${SCRATCH_FOLDER}', ''))
-        if self.config.force or not fastas:
+        bins_gz = '%s.tar.gz' % bins
+        # fastas = glob.glob('%s/*.fa' % bins.replace('${SCRATCH_FOLDER}', ''))
+        if self.config.force or not isfile(bins_gz):
+        # if self.config.force or not fastas:
             binners.append(binner)
     return binners
 
@@ -1004,6 +1004,7 @@ def binning_cmd(
         if gz:
             cmd += 'rm %s\n' % ' '.join(fqs)
         cmd += cmd_rm
+        cmd += ''
 
     return cmd
 
@@ -1062,6 +1063,8 @@ def binning(self):
         if process_outputs(self, key, group, bin_dirs):
             continue
 
+        print(out)
+        print(outfds)
         cmd = binning_cmd(self, fastqs, out, contigs, binned)
         if cmd:
             if to_dos:
