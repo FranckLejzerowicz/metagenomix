@@ -814,6 +814,6 @@ def get_plasmids_fasta(self, fastas, contigs) -> tuple:
     subset = plasmids.replace('.gz', '.ref')
     fasta = plasmids.replace('.gz', '.fa')
     cmds = 'zcat %s | %s | cut -d" " -f 1 > %s\n' % (plasmids, cmd, subset)
-    cmds += 'python3 %s/subset_fasta.py -i %s -s %s -o %s\n' % (
+    cmds += 'python3 %s/scripts/subset_fasta.py -i %s -s %s -o %s\n' % (
         RESOURCES, contigs, subset, fasta)
     return cmds, plasmids, fasta
