@@ -1562,6 +1562,7 @@ def get_hamronization(self, tech, inputs, group):
     self.outputs['dirs'].append(out_dir)
     self.outputs['outs'][(tech, group)] = out_dir
     cmd, cmd_rm, module, reports = get_arg_inputs(self, inputs)
+    print(inputs)
     if self.soft.prev in ['abricate']:
         to_dos = status_update(self, tech, inputs, self.sam_pool, group=group)
     else:
