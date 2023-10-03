@@ -1511,7 +1511,7 @@ def staramr(self) -> None:
         sys.exit('[staramr] Only work after assembly')
 
 
-def hamronization_cmd(self, module, reports, out_dir):
+def hamronization_cmd(self, module, reports, out_dir, cmd_rm):
     cmd = ''
     for rep, out in reports.items():
         cmd += 'hamronize %s' % module
@@ -1535,6 +1535,7 @@ def hamronization_cmd(self, module, reports, out_dir):
                 cmd += ' --reference_database_name %s' % db_n
         cmd += ' %s\n' % rep
         cmd += 'gzip %s/%s\n' % (out_dir, out)
+    cmd += cmd_rm
     return cmd
 
 
@@ -1575,8 +1576,7 @@ def get_hamronization(self, tech, inputs, group):
         if to_dos:
             self.outputs['cmds'].setdefault(key, []).append(False)
         else:
-            cmd += hamronization_cmd(self, module, reports, out_dir)
-            cmd += cmd_rm
+            cmd += hamronization_cmd(self, module, reports, out_dir, cmd_rm)
             self.outputs['cmds'].setdefault(key, []).append(cmd)
         io_update(self, i_f=inputs, o_d=out_dir, key=key)
         self.soft.add_status(tech, self.sam_pool, 1, group=group)
