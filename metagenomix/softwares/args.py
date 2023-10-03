@@ -1566,8 +1566,10 @@ def get_hamronization(self, tech, inputs, group):
     self.outputs['outs'][(tech, group)] = out_dir
     cmd, cmd_rm, module, reports = get_arg_inputs(self, inputs)
     if self.soft.prev in ['abricate']:
+        i_f, i_d = inputs, None
         to_dos = status_update(self, tech, inputs, self.sam_pool, group=group)
     else:
+        i_f, i_d = None, inputs
         to_dos = status_update(self, tech, [inputs], self.sam_pool, group=group)
     key = genome_key(tech, group)
 
@@ -1578,7 +1580,7 @@ def get_hamronization(self, tech, inputs, group):
         else:
             cmd += hamronization_cmd(self, module, reports, out_dir, cmd_rm)
             self.outputs['cmds'].setdefault(key, []).append(cmd)
-        io_update(self, i_f=inputs, o_d=out_dir, key=key)
+        io_update(self, i_f=i_f, i_d=i_d, o_d=out_dir, key=key)
         self.soft.add_status(tech, self.sam_pool, 1, group=group)
     else:
         self.soft.add_status(tech, self.sam_pool, 0, group=group)
