@@ -1513,7 +1513,7 @@ def staramr(self) -> None:
 
 def hamronization_cmd(self, module, reports, out_dir, cmd_rm):
     cmd = ''
-    for rep, out in reports.items():
+    for rep, (out, inp_) in reports.items():
         cmd += 'hamronize %s' % module
         cmd += ' --format %s' % self.soft.params['format']
         cmd += ' --output %s/%s' % (out_dir, out)
@@ -1527,7 +1527,7 @@ def hamronization_cmd(self, module, reports, out_dir, cmd_rm):
                 'deeparg', 'fargene', 'groot', 'resfams', 'resfinder',
                 'pointfinder', 'rgi', 'srax', 'srst2', 'kmerresistance'
             ]:
-                inp = self.soft.params['input_file_name'][module]
+                inp = self.soft.params['input_file_name'].get(module, inp_)
                 cmd += ' --input_file_name %s' % inp
             if module in ['ariba', 'csstar', 'groot', 'srax']:
                 db_n = self.soft.params['reference_database_name'][module]
