@@ -10,7 +10,7 @@ import sys
 from os.path import basename, dirname, splitext
 from metagenomix._inputs import (
     sample_inputs, group_inputs, genome_key, genome_out_dir,
-    get_contigs, get_contigs_from_path)
+    get_contigs, get_contigs_from_path, get_arg_inputs)
 from metagenomix._io_utils import (
     caller, io_update, to_do, tech_specificity, not_paired, status_update)
 from metagenomix.core.parameters import tech_params
@@ -125,6 +125,7 @@ def get_predict(
 
         out_dir = genome_out_dir(self, tech, sam_group, genome)
         self.outputs['dirs'].append(out_dir)
+        self.outputs['outs'].setdefault((tech, sam_group), []).append(out_dir)
 
         typ_seqs = predict_inputs(self, fasta[0])
         for typ, seq in typ_seqs.items():
@@ -134,14 +135,11 @@ def get_predict(
                 self, tech, [seq], group=sam_group, genome=genome)
 
             base = splitext(basename(seq.rstrip('.gz')))[0]
-            prefix = '%s/%s' % (out_dir, base)
-            arg = '%s.mapping.ARG.gz' % prefix
-            pot_arg = '%s.mapping.potential.ARG.gz' % prefix
-            outs = [arg, pot_arg]
-            self.outputs['outs'].setdefault((tech, sam_group), []).append(outs)
+            prefix = out_dir + '/' + base
+            out = '%s.mapping.ARG.gz' % prefix
 
             # check if tool already run (or if --force) to allow getting command
-            if self.config.force or to_do(arg):
+            if self.config.force or to_do(out):
                 # collect the command line
                 cmd = predict_cmd(self, seq, prefix, typ)
                 if to_dos:
@@ -247,22 +245,19 @@ def short(self) -> None:
             continue
         to_dos = status_update(self, tech, fastqs)
 
-        out = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
-        self.outputs['dirs'].append(out)
+        out_dir = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
+        self.outputs['dirs'].append(out_dir)
+        self.outputs['outs'][(tech, self.sam_pool)] = out_dir
 
-        prefix = out + '/' + self.sam_pool
-        arg = '%s.mapping.ARG.gz' % prefix
-        pot_arg = '%s.potential.ARG.gz' % prefix
-        outs = [arg, pot_arg]
-        self.outputs['outs'].setdefault((tech, self.sam_pool), []).extend(outs)
-
-        if self.config.force or to_do(arg):
+        prefix = out_dir + '/' + self.sam_pool
+        out = '%s.mapping.ARG.gz' % prefix
+        if self.config.force or to_do(out):
             cmd = short_cmd(self, fastqs, prefix)
             if to_dos:
                 self.outputs['cmds'][(tech,)] = [False]
             else:
                 self.outputs['cmds'][(tech,)] = [cmd]
-            io_update(self, i_f=fastqs, o_d=out, key=tech)
+            io_update(self, i_f=fastqs, o_d=out_dir, key=tech)
             self.soft.add_status(tech, sam, 1)
         else:
             self.soft.add_status(tech, sam, 0)
@@ -863,11 +858,11 @@ def get_abricate(
 
         out_d = genome_out_dir(self, tech, sam_group, genome)
         self.outputs['dirs'].append(out_d)
-        self.outputs['outs'].setdefault((tech, sam_group), []).append(out_d)
         to_dos = status_update(
             self, tech, inputs, group=sam_group, genome=genome)
 
         o = ['%s/%s.txt.gz' % (out_d, x) for x in self.soft.params['databases']]
+        self.outputs['outs'][(tech, sam_group)] = o
         # check if tool already run (or if --force) to allow getting command
         if self.config.force or sum([to_do(x) for x in o]):
             # collect the command line
@@ -1224,7 +1219,7 @@ def abritamr_cmd(
         self,
         contigs: dict,
         out_dir: str,
-) -> str:
+) -> tuple:
     """Collect the command line for abriTAMR.
 
     Parameters
@@ -1237,8 +1232,10 @@ def abritamr_cmd(
 
     Returns
     -------
+    contig_paths : dict
+        Uncompressed contigs file per co-assembly group
     cmd : str
-        abriTAMR command
+        abritAMR command
     """
     cmd, cmd_rm = '', ''
     contig_paths = {}
@@ -1282,7 +1279,7 @@ def abritamr_cmd(
     cmd += 'gzip -q *.txt\n'
     cmd += 'gzip -q */amrfinder.out\n'
     cmd += cmd_rm
-    return cmd
+    return contig_paths, cmd
 
 
 def abritamr_all(self):
@@ -1292,19 +1289,20 @@ def abritamr_all(self):
     ----------
     self : Commands class instance
     """
-    for pool, group_sams in self.pools.items():
+    for pool, group in self.pools.items():
+        self.outputs['outs'][pool] = {}
         for tech in set([x[0] for x in self.inputs[pool]]):
             out_dir = '%s/%s/%s' % (self.dir, tech, pool)
             self.outputs['dirs'].append(out_dir)
-            self.outputs['outs'][pool] = out_dir
 
             contigs = get_contigs(self, tech, pool)
             contigs_list = list(contigs.values())
             to_dos = status_update(self, tech, contigs_list)
+            contig_paths, cmd = abritamr_cmd(self, contigs, out_dir)
+            for grp in contig_paths:
+                self.outputs['outs'][pool][(tech, grp)] = out_dir + '/' + grp
 
-            out = '%s/summary_matches.txt.gz' % out_dir
-            if self.config.force or to_do(out):
-                cmd = abritamr_cmd(self, contigs, out_dir)
+            if self.config.force or to_do('%s/summary_matches.txt.gz' % out_dir):
                 key = (tech, pool)
                 if to_dos:
                     self.outputs['cmds'].setdefault(key, []).append(False)
@@ -1326,14 +1324,13 @@ def abritamr_sample(self):
     for (tech, group), inputs in self.inputs[self.sam_pool].items():
         out_dir = '/'.join([self.dir, tech, self.sam_pool, group])
         self.outputs['dirs'].append(out_dir)
-        self.outputs['outs'][group] = out_dir
+        self.outputs['outs'][(tech, group)] = out_dir
 
         contigs = {group: inputs[0]}
         to_dos = status_update(self, tech, [inputs[0]], group=group)
+        contig_paths, cmd = abritamr_cmd(self, contigs, out_dir)
 
-        out = '%s/summary_matches.txt.gz' % out_dir
-        if self.config.force or to_do(out):
-            cmd = abritamr_cmd(self, contigs, out_dir)
+        if self.config.force or to_do('%s/summary_matches.txt.gz' % out_dir):
             key = (tech, group)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
@@ -1463,12 +1460,11 @@ def get_staramr(self, tech, folders, group):
     for genome, inputs in folders.items():
         out_dir = genome_out_dir(self, tech, group)
         self.outputs['dirs'].append(out_dir)
-        self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
+        self.outputs['outs'][(tech, group)] = out_dir
+
         to_dos = status_update(
             self, tech, [inputs[0]], self.sam_pool, group=group)
-
         key = genome_key(tech, group)
-
         out_fp = '%s/summary.tsv.gz' % out_dir
         if self.config.force or to_do(out_fp):
             if to_dos:
@@ -1515,6 +1511,74 @@ def staramr(self) -> None:
         sys.exit('[staramr] Only work after assembly')
 
 
+def hamronization_cmd(self, module, reports, out_dir):
+    cmd = 'hamronize %s' % module
+    cmd += ' --format %s' % self.soft.params['format']
+    cmd += ' --output %s/output.txt' % out_dir
+    if module not in ['mykrobe', 'tbprofiler']:
+        soft_v = self.soft.params['analysis_software_version'][module]
+        db_v = self.soft.params['reference_database_version'][module]
+        cmd += ' --analysis_software_version %s' % soft_v
+        cmd += ' --reference_database_version %s' % db_v
+        if module in [
+            # 'amrfinderplus',
+            'amrplusplus', 'ariba', 'csstar',
+            'deeparg', 'fargene', 'groot', 'resfams', 'resfinder',
+            'pointfinder', 'rgi', 'srax', 'srst2', 'kmerresistance'
+        ]:
+            inp = self.soft.params['input_file_name'][module]
+            cmd += ' --input_file_name %s' % inp
+        if module in ['ariba', 'csstar', 'groot', 'srax']:
+            db_n = self.soft.params['reference_database_name'][module]
+            cmd += ' --reference_database_name %s' % db_n
+    cmd += ' %s\n' % reports
+    cmd += 'gzip %s/output.txt\n' % out_dir
+    return cmd
+
+
+def get_hamronization(self, tech, inputs, group):
+    """Get the data structures for the hAMRonizer run.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .soft.status
+            Current status of the pipeline in terms of available outputs
+        .config
+            Configurations
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    inputs : dict
+        Paths to the input fasta files per genome/MAG
+    group : str
+        Name of the current sample or co-assembly group
+    """
+
+    out_dir = genome_out_dir(self, tech, group)
+    self.outputs['dirs'].append(out_dir)
+    self.outputs['outs'][(tech, group)] = out_dir
+    cmd, cmd_rm, module, reports = get_arg_inputs(self, inputs)
+    to_dos = status_update(self, tech, [inputs], self.sam_pool, group=group)
+    key = genome_key(tech, group)
+
+    out_fp = '%s/output.txt.gz' % out_dir
+    if self.config.force or to_do(out_fp):
+        if to_dos:
+            self.outputs['cmds'].setdefault(key, []).append(False)
+        else:
+            cmd += hamronization_cmd(self, module, reports, out_dir)
+            cmd += cmd_rm
+            self.outputs['cmds'].setdefault(key, []).append(cmd)
+        io_update(self, i_f=inputs[0], o_d=out_dir, key=key)
+        self.soft.add_status(tech, self.sam_pool, 1, group=group)
+    else:
+        self.soft.add_status(tech, self.sam_pool, 0, group=group)
+
+
 def hamronization(self) -> None:
     """hAMRonization module and CLI parser tools combine the outputs of 18
     (as of 2022-09-25) disparate antimicrobial resistance gene detection
@@ -1556,8 +1620,13 @@ def hamronization(self) -> None:
         .config
             Configurations
     """
-    args_annotators = self.config.tools['annotation (ARGs)']
-    print(args_annotators)
+    args = self.config.tools['annotation (ARGs)']
+    if self.soft.prev not in args:
+        sys.exit("[hamronization] Only after ARG annotator ('%s')" % "', '".join(args))
+
+    if self.sam_pool in self.pools:
+        for (tech, group), inputs in self.inputs[self.sam_pool].items():
+            get_hamronization(self, tech, inputs, group)
 
 
 def amrfinderplus(self) -> None:

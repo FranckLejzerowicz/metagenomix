@@ -4328,8 +4328,50 @@ def check_genomad(self, params):
 
 
 def check_hamronization(self, params):
-    defaults = {'format': ['tsv', 'json']}
-    check_default(self, params, defaults)
+    defaults = {
+        'format': ['tsv', 'json'],
+        'analysis_software_version': {
+            'deeparg': '0.20',
+            'staramr': '0.9.1',
+            'abricate': '1.0.0',
+            'amrfinderplus': '3.10.16'
+        },
+        'reference_database_version': {
+            'deeparg': '3.2.5',
+            'staramr': '2.0.2',
+            'abricate': '3.2.5',
+            'amrfinderplus': '2022-08-09.1'
+        },
+        'input_file_name': {
+            'deeparg': 'nucleotide.sequences.fasta'
+        },
+        'reference_database_name': {}
+    }
+    tools = ['deeparg', 'abricate', 'abritamr', 'amrplusplus', 'ariba',
+             'csstar', 'fargene', 'groot', 'kmerresistance', 'resfams',
+             'resfinder', 'mykrobe', 'kmerresistance', 'pointfinder', 'rgi',
+             'srax', 'srst2', 'staramr', 'tbprofiler']
+    versions = ['analysis_software_version', 'reference_database_version']
+    for version in versions:
+        if version not in params:
+            params[version] = defaults[version]
+        else:
+            if not isinstance(params[version], dict):
+                sys.exit('[%s] Param "%s" not a dict (version per tool)' % (
+                    self.name, version))
+            for tool, v in params[version].items():
+                if tool not in tools:
+                    sys.exit('[%s] Tool "%s" not recognized (param "%s")' % (
+                        self.name, tool, version))
+                if '.' not in v:
+                    sys.exit('[%s] Tool "%s" version invalid (no "."): "%s"' % (
+                        self.name, tool, v))
+
+    if 'input_file_name' not in params:
+        params['input_file_name'] = defaults['input_file_name']
+
+    exclude = versions + ['input_file_name', 'reference_database_name']
+    check_default(self, params, defaults, exclude)
     return defaults
 
 

@@ -817,3 +817,67 @@ def get_plasmids_fasta(self, fastas, contigs) -> tuple:
     cmds += 'python3 %s/scripts/subset_fasta.py -i %s -s %s -o %s\n' % (
         RESOURCES, contigs, subset, fasta)
     return cmds, plasmids, fasta
+
+
+def get_arg_inputs(self, inputs):
+    reports = []
+    cmd, cmd_rm = '', ''
+    module = self.soft.prev
+    if module.startswith('deeparg'):
+        module = 'deeparg'
+        inp = "%s/nucleotide.sequences.mapping.ARG.gz" % inputs
+        reports.append(splitext(inp)[0])
+        cmd += "gunzip -c %s > %s\n" % (inp, splitext(inp)[0])
+        cmd_rm += "rm %s\n" % splitext(inp)[0]
+    elif module == 'abricate':
+        for inp in inputs:
+            out = splitext(inp)[0]
+            cmd += 'gunzip -c %s > %s\n' % (inp, out)
+            cmd_rm += 'rm %s\n' % out
+            reports.append(out)
+    elif module == 'abritamr':
+        module = 'amrfinderplus'
+        inp = "%s/amrfinder.out.gz" % inputs
+        reports.append(splitext(inp)[0])
+        cmd += "gunzip -c %s > %s\n" % (inp, splitext(inp)[0])
+        cmd_rm += "rm %s\n" % splitext(inp)[0]
+    elif module == 'amrplusplus':
+        # out = "gene.tsv"
+        pass
+    elif module == 'ariba':
+        pass
+    elif module == 'csstar':
+        # out = "output.tsv"
+        pass
+    elif module == 'fargene':
+        pass
+    elif module == 'groot':
+        # out = "output.tsv"
+        pass
+    elif module == 'kmerresistance':
+        pass
+    elif module == 'resfams':
+        # out = "resfams.tblout"
+        pass
+    elif module == 'resfinder':
+        pass
+    elif module == 'mykrobe':
+        # out = "out.json"
+        pass
+    elif module == 'kmerresistance':
+        pass
+    elif module == 'pointfinder':
+        pass
+    elif module == 'rgi':
+        # out = "out.txt"
+        pass
+    elif module == 'srax':
+        pass
+    elif module == 'srst2':
+        pass
+    elif module == 'staramr':
+        pass
+        # fp = "resfinder.tsv"
+    elif module == 'tbprofiler':
+        pass
+    return cmd, cmd_rm, module, reports
