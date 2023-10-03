@@ -506,7 +506,7 @@ def get_integronfinder(
         self,
         tech: str,
         group: str,
-        fastas: dict,
+        inputs: dict,
         contigs: str
 ) -> None:
     """Get the integron_finder command and fill the pipeline data structures.
@@ -522,12 +522,12 @@ def get_integronfinder(
         Technology: 'illumina', 'pacbio', or 'nanopore'
     group : str
         Co-assembly group / Sample name
-    fastas : dict
+    inputs : dict
         Paths to the input fasta files per genome/MAG
     contigs : str
         Empty of not run after a plasmid-detection tool
     """
-    for genome, fastas in fastas.items():
+    for genome, fastas in inputs.items():
 
         key = genome_key(tech, group, genome)
         out = genome_out_dir(self, tech, group, genome)
