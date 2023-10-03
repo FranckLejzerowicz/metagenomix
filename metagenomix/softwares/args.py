@@ -1523,8 +1523,7 @@ def hamronization_cmd(self, module, reports, out_dir, cmd_rm):
             cmd += ' --analysis_software_version %s' % soft_v
             cmd += ' --reference_database_version %s' % db_v
             if module in [
-                # 'amrfinderplus',
-                'amrplusplus', 'ariba', 'csstar',
+                'amrfinderplus', 'amrplusplus', 'ariba', 'csstar',
                 'deeparg', 'fargene', 'groot', 'resfams', 'resfinder',
                 'pointfinder', 'rgi', 'srax', 'srst2', 'kmerresistance'
             ]:
