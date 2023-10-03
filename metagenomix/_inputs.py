@@ -835,8 +835,7 @@ def get_arg_inputs(self, inputs):
             rep = splitext(inp)[0]
             cmd += 'gunzip -c %s > %s\n' % (inp, rep)
             cmd_rm += 'rm %s\n' % rep
-            reports[rep] = '%s-%s.out' % (
-                (module, splitext(basename(rep))[0]), '')
+            reports[rep] = ('%s-%s.out' % (module, splitext(basename(rep))[0]), '')
     elif module == 'abritamr':
         module = 'amrfinderplus'
         inp = "%s/amrfinder.out.gz" % inputs
