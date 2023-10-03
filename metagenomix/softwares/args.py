@@ -1512,27 +1512,29 @@ def staramr(self) -> None:
 
 
 def hamronization_cmd(self, module, reports, out_dir):
-    cmd = 'hamronize %s' % module
-    cmd += ' --format %s' % self.soft.params['format']
-    cmd += ' --output %s/output.txt' % out_dir
-    if module not in ['mykrobe', 'tbprofiler']:
-        soft_v = self.soft.params['analysis_software_version'][module]
-        db_v = self.soft.params['reference_database_version'][module]
-        cmd += ' --analysis_software_version %s' % soft_v
-        cmd += ' --reference_database_version %s' % db_v
-        if module in [
-            # 'amrfinderplus',
-            'amrplusplus', 'ariba', 'csstar',
-            'deeparg', 'fargene', 'groot', 'resfams', 'resfinder',
-            'pointfinder', 'rgi', 'srax', 'srst2', 'kmerresistance'
-        ]:
-            inp = self.soft.params['input_file_name'][module]
-            cmd += ' --input_file_name %s' % inp
-        if module in ['ariba', 'csstar', 'groot', 'srax']:
-            db_n = self.soft.params['reference_database_name'][module]
-            cmd += ' --reference_database_name %s' % db_n
-    cmd += ' %s\n' % reports
-    cmd += 'gzip %s/output.txt\n' % out_dir
+    cmd = ''
+    for rep, out in reports.items():
+        cmd += 'hamronize %s' % module
+        cmd += ' --format %s' % self.soft.params['format']
+        cmd += ' --output %s/%s' % (out_dir, out)
+        if module not in ['mykrobe', 'tbprofiler']:
+            soft_v = self.soft.params['analysis_software_version'][module]
+            db_v = self.soft.params['reference_database_version'][module]
+            cmd += ' --analysis_software_version %s' % soft_v
+            cmd += ' --reference_database_version %s' % db_v
+            if module in [
+                # 'amrfinderplus',
+                'amrplusplus', 'ariba', 'csstar',
+                'deeparg', 'fargene', 'groot', 'resfams', 'resfinder',
+                'pointfinder', 'rgi', 'srax', 'srst2', 'kmerresistance'
+            ]:
+                inp = self.soft.params['input_file_name'][module]
+                cmd += ' --input_file_name %s' % inp
+            if module in ['ariba', 'csstar', 'groot', 'srax']:
+                db_n = self.soft.params['reference_database_name'][module]
+                cmd += ' --reference_database_name %s' % db_n
+        cmd += ' %s\n' % rep
+        cmd += 'gzip %s/%s\n' % (out_dir, out)
     return cmd
 
 
@@ -1562,7 +1564,6 @@ def get_hamronization(self, tech, inputs, group):
     self.outputs['dirs'].append(out_dir)
     self.outputs['outs'][(tech, group)] = out_dir
     cmd, cmd_rm, module, reports = get_arg_inputs(self, inputs)
-    print(inputs)
     if self.soft.prev in ['abricate']:
         to_dos = status_update(self, tech, inputs, self.sam_pool, group=group)
     else:

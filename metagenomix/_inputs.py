@@ -820,27 +820,30 @@ def get_plasmids_fasta(self, fastas, contigs) -> tuple:
 
 
 def get_arg_inputs(self, inputs):
-    reports = []
+    reports = {}
     cmd, cmd_rm = '', ''
     module = self.soft.prev
     if module.startswith('deeparg'):
         module = 'deeparg'
         inp = "%s/nucleotide.sequences.mapping.ARG.gz" % inputs
-        reports.append(splitext(inp)[0])
-        cmd += "gunzip -c %s > %s\n" % (inp, splitext(inp)[0])
-        cmd_rm += "rm %s\n" % splitext(inp)[0]
+        rep = splitext(inp)[0]
+        reports[rep].append('%s.out' % module)
+        cmd += "gunzip -c %s > %s\n" % (inp, rep)
+        cmd_rm += "rm %s\n" % rep
     elif module == 'abricate':
         for inp in inputs:
-            out = splitext(inp)[0]
-            cmd += 'gunzip -c %s > %s\n' % (inp, out)
-            cmd_rm += 'rm %s\n' % out
-            reports.append(out)
+            rep = splitext(inp)[0]
+            cmd += 'gunzip -c %s > %s\n' % (inp, rep)
+            cmd_rm += 'rm %s\n' % rep
+            reports[rep].append('%s-%s.out' % (
+                module, splitext(basename(rep))[0]))
     elif module == 'abritamr':
         module = 'amrfinderplus'
         inp = "%s/amrfinder.out.gz" % inputs
-        reports.append(splitext(inp)[0])
-        cmd += "gunzip -c %s > %s\n" % (inp, splitext(inp)[0])
-        cmd_rm += "rm %s\n" % splitext(inp)[0]
+        rep = splitext(inp)[0]
+        reports[rep].append('%s.out' % module)
+        cmd += "gunzip -c %s > %s\n" % (inp, rep)
+        cmd_rm += "rm %s\n" % rep
     elif module == 'amrplusplus':
         # out = "gene.tsv"
         pass
