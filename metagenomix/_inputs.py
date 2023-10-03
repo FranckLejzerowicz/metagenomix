@@ -827,7 +827,7 @@ def get_arg_inputs(self, inputs):
         module = 'deeparg'
         inp = "%s/nucleotide.sequences.mapping.ARG.gz" % inputs
         rep = splitext(inp)[0]
-        reports[rep] = ('%s.out' % module, '')
+        reports[rep] = ('%s.out' % module, 'nucleotide.sequences.mapping.ARG')
         cmd += "gunzip -c %s > %s\n" % (inp, rep)
         cmd_rm += "rm %s\n" % rep
     elif module == 'abricate':
