@@ -1527,7 +1527,10 @@ def hamronization_cmd(self, module, reports, out_dir, cmd_rm):
                 'deeparg', 'fargene', 'groot', 'resfams', 'resfinder',
                 'pointfinder', 'rgi', 'srax', 'srst2', 'kmerresistance'
             ]:
-                inp = self.soft.params['input_file_name'].get(module, inp_)
+                if inp_:
+                    inp = inp_
+                else:
+                    inp = self.soft.params['input_file_name'][module]
                 cmd += ' --input_file_name %s' % inp
             if module in ['ariba', 'csstar', 'groot', 'srax']:
                 db_n = self.soft.params['reference_database_name'][module]
