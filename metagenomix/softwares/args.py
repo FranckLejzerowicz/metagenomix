@@ -1566,7 +1566,7 @@ def get_hamronization(self, tech, inputs, group):
     if self.soft.prev in ['abricate']:
         to_dos = status_update(self, tech, inputs, self.sam_pool, group=group)
     else:
-        to_dos = status_update(self, tech, inputs, self.sam_pool, group=group)
+        to_dos = status_update(self, tech, [inputs], self.sam_pool, group=group)
     key = genome_key(tech, group)
 
     out_fp = '%s/output.txt.gz' % out_dir
