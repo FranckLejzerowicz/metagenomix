@@ -125,7 +125,7 @@ def get_predict(
 
         out_dir = genome_out_dir(self, tech, sam_group, genome)
         self.outputs['dirs'].append(out_dir)
-        self.outputs['outs'].setdefault((tech, sam_group), []).append(out_dir)
+        self.outputs['outs'][(tech, sam_group)] = out_dir
 
         typ_seqs = predict_inputs(self, fasta[0])
         for typ, seq in typ_seqs.items():
@@ -1566,7 +1566,7 @@ def get_hamronization(self, tech, inputs, group):
     if self.soft.prev in ['abricate']:
         to_dos = status_update(self, tech, inputs, self.sam_pool, group=group)
     else:
-        to_dos = status_update(self, tech, [inputs], self.sam_pool, group=group)
+        to_dos = status_update(self, tech, inputs, self.sam_pool, group=group)
     key = genome_key(tech, group)
 
     out_fp = '%s/output.txt.gz' % out_dir
