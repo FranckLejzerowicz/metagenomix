@@ -994,8 +994,8 @@ def genomad_end_to_end_cmd(
     cmd += ' %s' % out_dir
     cmd += ' %s\n' % self.databases.paths['genomad']
     for suffix in [
-        '_aggregated_classification', '_annotate', '_find_proviruses',
-        '_marker_classification', '_nn_classification', '_summary'
+        'aggregated_classification', 'annotate', 'find_proviruses',
+        'marker_classification', 'nn_classification', 'summary'
     ]:
         cmd += 'tar cpfz %s/%s_%s.tar.gz -C %s %s_%s\n' % (
             out_dir, prefix, suffix, out_dir, prefix, suffix)
