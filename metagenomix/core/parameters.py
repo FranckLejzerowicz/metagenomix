@@ -4306,6 +4306,8 @@ def check_genomad(self, params):
         'skip_trna_identification': [False, True],
         'composition': ['auto', 'metagenome', 'virome'],
         'force_auto': [False, True],
+        'single_window': [False, True],
+        'batch_size': 128,
         'min_score': 0.7,
         'max_fdr': 0.1,
         'min_plasmid_marker_enrichment': 0.0,
@@ -4327,7 +4329,7 @@ def check_genomad(self, params):
     ints = [
         'splits', 'min_plasmid_hallmarks', 'min_plasmid_hallmarks_short_seqs',
         'min_virus_hallmarks', 'min_virus_hallmarks_short_seqs', 'max_uscg',
-        'max_integrase_distance', 'max_trna_distance'
+        'max_integrase_distance', 'max_trna_distance', 'batch_size'
     ]
     check_nums(self, params, defaults, ints, int)
     floats1 = ['sensitivity', 'min_score', 'max_fdr', 'marker_threshold',
