@@ -37,6 +37,7 @@ pysam_spades_plasmid	alignment
 pysam_spades_metaviral	alignment
 pysam_spades_bio	alignment
 pysam_prodigal	alignment
+mmseqs2	annotation (protein prediction)
 prodigal	annotation (protein prediction)
 macsyfinder	annotation (macromolecular systems, pathways)
 integronfinder	annotation (integrons)
@@ -70,6 +71,7 @@ amrplusplus2	annotation (ARGs)
 amrfinderplus	annotation (ARGs)
 staramr	annotation (ARGs)
 argsoap	annotation (ARGs)
+hamronization	annotation (ARGs)
 pooling	coassembly setup
 quast	assembling (quality check)
 spades	assembling
@@ -99,7 +101,7 @@ groopm	binning
 vamb	binning
 mycc	binning
 drep	MAG (dereplication)
-skani	MAG (dereplication)
+skani	MAG (comparison)
 gtdbtk	MAG (quality check)
 checkm_tree	MAG (quality check)
 checkm_treeqa	MAG (quality check)
@@ -141,6 +143,7 @@ plasforest	annotation (plasmid)
 plasflow	annotation (plasmid)
 rfplasmid	annotation (plasmid)
 mobsuite	annotation (mobilome)
+genomad	annotation (mobilome)
 strainphlan	strain-level analysis
 lorikeet_call	strain-level analysis
 lorikeet_consensus	strain-level analysis
