@@ -4334,7 +4334,7 @@ def check_genomad(self, params):
                'marker_threshold_integrase', 'marker_threshold_edge',
                'min_plasmid_marker_enrichment', 'min_virus_marker_enrichment']
     check_nums(self, params, defaults, floats1, float)
-    floats2 = ['evalue', 'crf_threshold', '']
+    floats2 = ['evalue', 'crf_threshold']
     check_nums(self, params, defaults, floats2, float, 0, 1)
     check_default(self, params, defaults, (ints + floats1 + floats2))
     return defaults
