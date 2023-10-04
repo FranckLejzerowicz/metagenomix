@@ -224,9 +224,10 @@ def merge(self):
     self : Commands class instance
     """
     tech_step_samples = {}
-    for step, inputs in self.softs.items():
+    for step, hashes_inputs in self.softs.items():
         if step.startswith('midas2') and step != self.soft.name:
-            get_samples(self, inputs.outputs, tech_step_samples)
+            h = self.hashes[tuple(self.soft.path[:-1])]
+            get_samples(self, hashes_inputs[h].outputs, tech_step_samples)
 
     for (tech, step), samples in tech_step_samples.items():
         for (db, focus, spc_list), sams_dirs in samples.items():
