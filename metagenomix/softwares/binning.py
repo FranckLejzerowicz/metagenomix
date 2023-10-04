@@ -8,7 +8,7 @@
 import sys
 import glob
 import pkg_resources
-from os.path import basename, isfile, splitext
+from os.path import basename, splitext
 from metagenomix._inputs import get_contigs_from_path, get_assembly_graph
 from metagenomix._io_utils import caller, status_update, io_update, to_do
 from metagenomix.core.parameters import tech_params
@@ -244,8 +244,7 @@ def quantify(self):
         self.outputs['outs'][key] = {}
 
         bins = inputs[0]
-        assembler = self.softs['metawrap_binning'].prev
-        contigs = self.softs[assembler].outputs[self.sam_pool][key][0]
+        contigs = get_contigs_from_path(self, tech, group)
         fastqs = get_fastqs(self, group)
         if not fastqs:
             self.soft.add_status(

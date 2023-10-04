@@ -295,7 +295,8 @@ def check_input(
         if name in ['search_diamond', 'search_hmmer', 'macsyfinder']:
             typ = 'assemble'
         if not raw:
-            is_type = (self.softs['plass'].params['type'] != typ)
+            prev_h = self.hashes[tuple(self.soft.path[:-1])]
+            is_type = (self.softs['plass'][prev_h].params['type'] != typ)
             if prev == 'plass' and is_type:
                 message = 'Illumina annotation if plass type: %s' % typ
                 self.soft.messages.add(message)
