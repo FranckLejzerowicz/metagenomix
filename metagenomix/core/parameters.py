@@ -4315,15 +4315,28 @@ def check_genomad(self, params):
         'min_virus_hallmarks': 0,
         'min_virus_hallmarks_short_seqs': 1,
         'max_uscg': 4,
+        'evalue': 0.001,
+        'use_minimal_db': [False, True],
+        'crf_threshold': 0.4,
+        'marker_threshold': 12.0,
+        'marker_threshold_integrase': 8.0,
+        'marker_threshold_edge': 8.0,
+        'max_integrase_distance': 10000,
+        'max_trna_distance': 5000,
     }
     ints = [
         'splits', 'min_plasmid_hallmarks', 'min_plasmid_hallmarks_short_seqs',
-        'min_virus_hallmarks', 'min_virus_hallmarks_short_seqs', 'max_uscg']
+        'min_virus_hallmarks', 'min_virus_hallmarks_short_seqs', 'max_uscg',
+        'max_integrase_distance', 'max_trna_distance'
+    ]
     check_nums(self, params, defaults, ints, int)
-    floats = ['sensitivity', 'min_score', 'max_fdr',
-              'min_plasmid_marker_enrichment', 'min_virus_marker_enrichment']
-    check_nums(self, params, defaults, floats, float)
-    check_default(self, params, defaults, (ints + floats))
+    floats1 = ['sensitivity', 'min_score', 'max_fdr', 'marker_threshold',
+               'marker_threshold_integrase', 'marker_threshold_edge',
+               'min_plasmid_marker_enrichment', 'min_virus_marker_enrichment']
+    check_nums(self, params, defaults, floats1, float)
+    floats2 = ['evalue', 'crf_threshold', '']
+    check_nums(self, params, defaults, floats2, float, 0, 1)
+    check_default(self, params, defaults, (ints + floats1 + floats2))
     return defaults
 
 

@@ -8,7 +8,7 @@
 
 import sys
 import pkg_resources
-from os.path import dirname
+from os.path import basename, dirname, splitext
 
 from metagenomix._inputs import (
     sample_inputs, group_inputs, genome_key, get_contigs_from_path,
@@ -885,108 +885,216 @@ def oritfinder(self):
             get_oritfinder(self, tech, fastas, self.sam_pool)
 
 
-# def get_genomad(
-#         self,
-#         tech: str,
-#         fastas: list,
-#         group: str
-# ) -> None:
-#     """Get the geNomad command and fill the pipeline data structures.
-#
-#     Parameters
-#     ----------
-#     self : Commands class instance
-#         .databases : dict
-#             Databases
-#         .outputs : dict
-#             All outputs
-#     tech : str
-#         Technology: 'illumina', 'pacbio', or 'nanopore'
-#     fastas : dict
-#         Paths to the input fasta files per genome/MAG
-#     sam_group : str
-#         Sample name or group for the current co-assembly
-#     """
-#     for genome, fasta_ in fastas.items():
-#
-#         key = genome_key(tech, group, genome)
-#         out = genome_out_dir(self, tech, group, genome)
-#         self.outputs['dirs'].append(out)
-#         self.outputs['outs'].setdefault((tech, group), []).append(out)
-#
-#         fasta = fasta_[0]
-#         if self.soft.prev == 'prodigal':
-#             fasta = '%s/nucleotide.sequences.fasta.gz' % fasta_[0]
-#
-#         print(fasta)
-#         to_dos = status_update(
-#             self, tech, [fasta], group=group, genome=genome)
-#
-#         fpo = '%s/Results_Integron_Finder_mysequences/mysequences.summary' % out
-#         if self.config.force or to_do(fpo):
-#             # cmd = hmms_cmd + integronfinder_cmd(self, tech, fasta, out)
-#             cmd = genomad_cmd(self, tech, fasta, out)
-#             if to_dos:
-#                 self.outputs['cmds'].setdefault(key, []).append(False)
-#             else:
-#                 self.outputs['cmds'].setdefault(key, []).append(cmd)
-#             # io_update(self, i_f=[fasta, hmms_sh], o_d=out, key=key)
-#             io_update(self, i_f=fasta, o_d=out, key=key)
-#             self.soft.add_status(
-#                 tech, self.sam_pool, 1, group=group, genome=genome)
-#         else:
-#             self.soft.add_status(
-#                 tech, self.sam_pool, 0, group=group, genome=genome)
-#
-# def genomad_end_to_end_cmd():
-#
-#
-# def genomad_() -> list:
-#     """Collect the name of the functions to run for the geNomad analysis.
-#     """
-#     steps = [genomad_end_to_end_cmd]
-#     return steps
-#
-#
-# def genomad(self):
-#     """geNomad's primary goal is to identify viruses and plasmids in
-#     sequencing data (isolates, metagenomes, and metatranscriptomes). It also
-#     provides a couple of additional features that can help you in your analysis:
-#         - Taxonomic assignment of viral genomes.
-#         - Identification of viruses integrated in host genomes (proviruses).
-#         - Functional annotation of proteins.
-#
-#     References
-#     ----------
-#     Camargo, A.P., Roux, S., Schulz, F., Babinski, M., Xu, Y., Hu, B., Chain,
-#     P.S., Nayfach, S. and Kyrpides, N.C., 2023. Identification of mobile genetic
-#     elements with geNomad. Nature Biotechnology, pp.1-10.
-#
-#     Notes
-#     -----
-#     GitHub  : https://github.com/apcamargo/genomad
-#     Paper   : https://doi.org/10.1038/s41587-023-01953-y
-#     Docs    : https://portal.nersc.gov/genomad/index.html
-#
-#     Parameters
-#     ----------
-#     self
-#     """
-#     if 'genomad' not in self.databases.paths:
-#         sys.exit('[genomad] Path to "genomad" database folder needed')
-#
-#     gene_prediction = ['prodigal']
-#     if self.soft.name == 'genomad_' and self.soft.prev not in gene_prediction:
-#         sys.exit('[genomad_findproviruses] Only after MMseqs')
-#
-#     if self.sam_pool in self.pools:
-#         for (tech, group), inputs in self.inputs[self.sam_pool].items():
-#             fastas = group_inputs(self, inputs)
-#             get_genomad(self, tech, fastas, group)
-#     else:
-#         tech_fastas = sample_inputs(self)
-#         for tech, fastas in tech_fastas.items():
-#             get_genomad(self, tech, fastas, self.sam_pool)
+def get_genomad(
+        self,
+        tech: str,
+        fastas: list,
+        group: str
+) -> None:
+    """Get the geNomad command and fill the pipeline data structures.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .databases : dict
+            Databases
+        .outputs : dict
+            All outputs
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    fastas : dict
+        Paths to the input fasta files per genome/MAG
+    sam_group : str
+        Sample name or group for the current co-assembly
+    """
+    for genome, fasta_ in fastas.items():
+
+        key = genome_key(tech, group, genome)
+        out = genome_out_dir(self, tech, group, genome)
+        self.outputs['dirs'].append(out)
+        self.outputs['outs'].setdefault((tech, group), []).append(out)
+
+        fasta = fasta_[0]
+        if self.soft.prev == 'prodigal':
+            fasta = '%s/nucleotide.sequences.fasta.gz' % fasta_[0]
+
+        print(fasta)
+        to_dos = status_update(self, tech, [fasta], group=group, genome=genome)
+
+        fpo = '%s/Results_Integron_Finder_mysequences/mysequences.summary' % out
+        if self.config.force or to_do(fpo):
+            # cmd = hmms_cmd + integronfinder_cmd(self, tech, fasta, out)
+            cmd = genomad_cmd(self, tech, fasta, out)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
+            # io_update(self, i_f=[fasta, hmms_sh], o_d=out, key=key)
+            io_update(self, i_f=fasta, o_d=out, key=key)
+            self.soft.add_status(
+                tech, self.sam_pool, 1, group=group, genome=genome)
+        else:
+            self.soft.add_status(
+                tech, self.sam_pool, 0, group=group, genome=genome)
+
+
+def genomad_end_to_end_cmd(
+        self,
+        tech: str,
+        fasta: str,
+        out_dir: str,
+        prefix: str
+):
+    """
+
+    Parameters
+    ----------
+    self
+    tech : str
+    fasta : str
+    out_dir : str
+    prefix : str
+
+    Returns
+    -------
+    cmd : str
+        genomad end-to-end command
+    """
+    params = tech_params(self, tech)
+    cmd = 'genomad end-to-end'
+    cmd += ' --threads %s' % params['cpus']
+    if params['presets']:
+        cmd += ' --%s' % params['presets']
+    else:
+        for param in [
+            'min_score',
+            'max_fdr',
+            'min_plasmid_marker_enrichment',
+            'min_virus_marker_enrichment',
+            'min_plasmid_hallmarks',
+            'min_plasmid_hallmarks_short_seqs',
+            'min_virus_hallmarks',
+            'min_virus_hallmarks_short_seqs',
+            'max_uscg'
+        ]:
+            cmd += ' --%s %s' % (param.replace('_', '-'), params['sensitivity'])
+
+    for param in ['sensitivity', 'splits', 'composition']:
+        cmd += ' --%s %s' % (param, params['sensitivity'])
+
+    for boolean in [
+        'cleanup', 'restart', 'disable_find_proviruses',
+        'disable_nn_classification', 'enable_score_calibration',
+        'conservative_taxonomy', 'skip_integrase_identification',
+        'skip_trna_identification', 'force_auto'
+    ]:
+        if params[boolean]:
+            cmd += ' --%s' % boolean.replace('_', '-')
+    cmd += ' %s' % fasta
+    cmd += ' %s' % out_dir
+    cmd += ' %s\n' % self.databases.paths['genomad']
+    for suffix in [
+        '_aggregated_classification', '_annotate', '_find_proviruses',
+        '_marker_classification', '_nn_classification', '_summary'
+    ]:
+        cmd += 'tar cpfz %s/%s_%s.tar.gz -C %s %s_%s\n' % (
+            out_dir, prefix, suffix, out_dir, prefix, suffix)
+        cmd += 'rm -rf %s/%s_%s\n' % (out_dir, prefix, suffix)
+    return cmd
+
+
+def annotation():
+    gene_prediction = ['prodigal']
+    if self.soft.prev not in gene_prediction:
+        sys.exit('[genomad_findproviruses] Only after MMseqs')
+
+    if self.sam_pool in self.pools:
+        for (tech, group), inputs in self.inputs[self.sam_pool].items():
+            fastas = group_inputs(self, inputs)
+            get_genomad(self, tech, fastas, group)
+
+
+def get_genomad_end_to_end(
+        self,
+        tech: str,
+        folders: dict,
+        group: str
+):
+    """
+
+    Parameters
+    ----------
+    self
+    tech
+    folders
+    group
+    """
+    for genome, fastas in folders.items():
+        key = genome_key(tech, group, genome)
+        out_dir = genome_out_dir(self, tech, group, genome)
+        self.outputs['dirs'].append(out_dir)
+        self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
+
+        fasta = fastas[0]
+        to_dos = status_update(self, tech, [fasta], group=group, genome=genome)
+
+        prefix = splitext(basename(fasta.replace('.gz', '')))[0]
+        fpo = '%s/%s_summary.log' % (out_dir, prefix)
+        if self.config.force or to_do(fpo):
+            cmd = genomad_end_to_end_cmd(self, tech, fasta, out_dir, prefix)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
+            io_update(self, i_f=fasta, o_d=out_dir, key=key)
+            self.soft.add_status(
+                tech, self.sam_pool, 1, group=group, genome=genome)
+        else:
+            self.soft.add_status(
+                tech, self.sam_pool, 0, group=group, genome=genome)
+
+
+def genomad_(self) -> list:
+    """Collect the name of the functions to run end-to-end geNomad.
+
+    Parameters
+    ----------
+    self
+    """
+    if self.sam_pool in self.pools:
+        for (tech, group), inputs in self.inputs[self.sam_pool].items():
+            folders = group_inputs(self, inputs)
+            get_genomad_end_to_end(self, tech, folders, group)
+
+
+def genomad(self):
+    """geNomad's primary goal is to identify viruses and plasmids in
+    sequencing data (isolates, metagenomes, and metatranscriptomes). It also
+    provides a couple of additional features that can help you in your analysis:
+        - Taxonomic assignment of viral genomes.
+        - Identification of viruses integrated in host genomes (proviruses).
+        - Functional annotation of proteins.
+
+    References
+    ----------
+    Camargo, A.P., Roux, S., Schulz, F., Babinski, M., Xu, Y., Hu, B., Chain,
+    P.S., Nayfach, S. and Kyrpides, N.C., 2023. Identification of mobile genetic
+    elements with geNomad. Nature Biotechnology, pp.1-10.
+
+    Notes
+    -----
+    GitHub  : https://github.com/apcamargo/genomad
+    Paper   : https://doi.org/10.1038/s41587-023-01953-y
+    Docs    : https://portal.nersc.gov/genomad/index.html
+
+    Parameters
+    ----------
+    self
+    """
+    if 'genomad' not in self.databases.paths:
+        sys.exit('[genomad] Path to "genomad" database folder needed')
+    module_call = caller(self, __name__)
+    module_call(self)
 
 
 def rfplasmid(self):
