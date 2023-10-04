@@ -977,10 +977,10 @@ def genomad_end_to_end_cmd(
             'min_virus_hallmarks_short_seqs',
             'max_uscg'
         ]:
-            cmd += ' --%s %s' % (param.replace('_', '-'), params['sensitivity'])
+            cmd += ' --%s %s' % (param.replace('_', '-'), params[param])
 
     for param in ['sensitivity', 'splits', 'composition']:
-        cmd += ' --%s %s' % (param, params['sensitivity'])
+        cmd += ' --%s %s' % (param, params[param])
 
     for boolean in [
         'cleanup', 'restart', 'disable_find_proviruses',
@@ -1003,7 +1003,12 @@ def genomad_end_to_end_cmd(
     return cmd
 
 
-def annotation():
+def annotate_cmd(self):
+    cmd = 'genomad annotate'  # metagenome.fna genomad_output genomad_db
+    return cmd
+
+
+def annotate(self):
     gene_prediction = ['prodigal']
     if self.soft.prev not in gene_prediction:
         sys.exit('[genomad_findproviruses] Only after MMseqs')
@@ -1012,6 +1017,36 @@ def annotation():
         for (tech, group), inputs in self.inputs[self.sam_pool].items():
             fastas = group_inputs(self, inputs)
             get_genomad(self, tech, fastas, group)
+
+
+def find_proviruses_cmd(self):
+    cmd = 'genomad find-proviruses'  # metagenome.fna genomad_output genomad_db
+    return cmd
+
+
+def marker_classification_cmd(self):
+    cmd = 'genomad marker-classification'  # metagenome.fna genomad_output genomad_db
+    return cmd
+
+
+def nn_classification_cmd(self):
+    cmd = 'genomad nn-classification'  # metagenome.fna genomad_output
+    return cmd
+
+
+def aggregated_classification_cmd(self):
+    cmd = 'genomad aggregated-classification'  # metagenome.fna genomad_output
+    return cmd
+
+
+def score_calibration_cmd(self):
+    cmd = 'genomad score-calibration'  # metagenome.fna genomad_output
+    return cmd
+
+
+def summary_cmd(self):
+    cmd = 'genomad summary'  # metagenome.fna genomad_output
+    return cmd
 
 
 def get_genomad_end_to_end(
