@@ -1790,8 +1790,10 @@ def woltka_pairing(
         Pairing parameter used for Bowtie2
     """
     pairing = 'single'
-    if self.soft.prev == 'bowtie2' and self.softs['bowtie2'].params['paired']:
-        pairing = 'paired'
+    hash_value = self.hashes[tuple(self.soft.path[:-1])]
+    if self.soft.prev == 'bowtie2':
+        if self.softs['bowtie2'][hash_value].params['paired']:
+            pairing = 'paired'
     return pairing
 
 
