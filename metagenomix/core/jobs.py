@@ -144,12 +144,11 @@ class Created(object):
                     self.config.tools.get(step, '')))
             o.write("\nParameters for these steps' outputs:\n")
             for sdx, step in enumerate(soft.path):
-                if step not in self.commands.softs:
-                    o.write('\n ===== %s: %s (no param) =====\n' % (sdx, step))
+                if not sdx:
                     continue
                 o.write('\n========== %s: %s ==========\n' % (sdx, step))
-                # params_show = self.commands.softs[step].params.copy()
-                params_show = soft.params.copy()
+                params_show = self.commands.softs[step][self.commands.hashes[
+                    tuple(soft.path[:(sdx + 1)])]].params.copy()
                 if step.startswith('search'):
                     databases = params_show['databases']
                     del params_show['databases']
