@@ -1576,8 +1576,7 @@ def get_hamronization(self, tech, inputs, group):
         to_dos = status_update(self, tech, [inputs], self.sam_pool, group=group)
     key = genome_key(tech, group)
 
-    out_fp = '%s/output.txt.gz' % out_dir
-    if self.config.force or to_do(out_fp):
+    if self.config.force or sum([to_do(x[0]) for x in reports.values()]):
         if to_dos:
             self.outputs['cmds'].setdefault(key, []).append(False)
         else:
