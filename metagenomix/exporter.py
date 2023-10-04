@@ -108,33 +108,6 @@ class Exported(object):
 
         print('\t%s files %s will be exported' % (len(self.to_exports), m))
 
-    # def get_inputs(self):
-    #     print('\n* Getting files to export:')
-    #     m = ''
-    #     for root, dirs, files in os.walk(self.dir):
-    #         if root == self.dir:
-    #             continue
-    #         soft = root.split('%s/' % self.dir)[-1].split('/')[0]
-    #         if self.softs.names and soft not in self.softs.names:
-    #             continue
-    #         for fil in files:
-    #             ext = splitext(fil)[1]
-    #             if fil.endswith('gz'):
-    #                 ext = '%s.gz' % splitext(splitext(fil)[0])[1]
-    #             if self.exts:
-    #                 if ext in self.exts:
-    #                     m = '(with extensions "%s" )' % '", "'.join(self.exts)
-    #                     self.to_exports.append('%s/%s' % (root, fil))
-    #             else:
-    #                 self.to_exports.append('%s/%s' % (root, fil))
-    #
-    #     if self.regex:
-    #         regexes = r'%s' % '|'.join(list(self.regex))
-    #         rgx = re.compile(regexes, flags=re.IGNORECASE)
-    #         self.to_exports = [x for x in self.to_exports if re.search(rgx, x)]
-    #
-    #     print('\t%s files %swill be exported' % (len(self.to_exports), m))
-
     def get_output_name(self):
         if not self.output.endswith('.tar.gz'):
             if self.output.endswith('.gz'):
