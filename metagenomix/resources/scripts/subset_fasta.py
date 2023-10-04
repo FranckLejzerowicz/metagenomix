@@ -40,6 +40,7 @@ def subset_contigs(filin, filou, names):
                 if line[0] == '>':
                     write_seq(seq, seq_id, s, o)
                     seq_id = line[1:].strip().split()[0]
+                    seq = ''
                 else:
                     seq += line.strip()
         write_seq(seq, seq_id, s, o)
