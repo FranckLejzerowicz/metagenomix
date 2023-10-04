@@ -1563,7 +1563,6 @@ def get_hamronization(self, tech, inputs, group):
     group : str
         Name of the current sample or co-assembly group
     """
-
     out_dir = genome_out_dir(self, tech, group)
     self.outputs['dirs'].append(out_dir)
     self.outputs['outs'][(tech, group)] = out_dir
