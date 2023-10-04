@@ -831,16 +831,22 @@ def get_arg_inputs(self, inputs):
         cmd += "gunzip -c %s > %s\n" % (inp, rep)
         cmd_rm += "rm %s\n" % rep
     elif module == 'abricate':
-        for inp in inputs:
+        for db, inp in inputs.items():
             rep = splitext(inp)[0]
             cmd += 'gunzip -c %s > %s\n' % (inp, rep)
             cmd_rm += 'rm %s\n' % rep
-            reports[rep] = ('%s-%s.out' % (module, splitext(basename(rep))[0]), '')
+            reports[rep] = ('%s-%s.out' % (module, db), '')
     elif module == 'abritamr':
         module = 'amrfinderplus'
         inp = "%s/amrfinder.out.gz" % inputs
         rep = splitext(inp)[0]
         reports[rep] = ('%s.out' % module, inputs.split('/')[-1])
+        cmd += "gunzip -c %s > %s\n" % (inp, rep)
+        cmd_rm += "rm %s\n" % rep
+    elif module == 'staramr':
+        inp = "%s/resfinder.tsv.gz" % inputs
+        rep = splitext(inp)[0]
+        reports[rep] = ('%s.out' % module, '')
         cmd += "gunzip -c %s > %s\n" % (inp, rep)
         cmd_rm += "rm %s\n" % rep
     elif module == 'amrplusplus':
@@ -876,8 +882,6 @@ def get_arg_inputs(self, inputs):
     elif module == 'srax':
         pass
     elif module == 'srst2':
-        pass
-    elif module == 'staramr':
         pass
         # fp = "resfinder.tsv"
     elif module == 'tbprofiler':

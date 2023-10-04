@@ -854,6 +854,7 @@ def get_abricate(
     sam_group : str
         Name of the current sample or co-assembly group
     """
+    dbs = self.soft.params['databases']
     for genome, inputs in folders.items():
 
         out_d = genome_out_dir(self, tech, sam_group, genome)
@@ -861,10 +862,10 @@ def get_abricate(
         to_dos = status_update(
             self, tech, inputs, group=sam_group, genome=genome)
 
-        o = ['%s/%s.txt.gz' % (out_d, x) for x in self.soft.params['databases']]
-        self.outputs['outs'][(tech, sam_group)] = o
+        out_fps = {db: '%s/%s.txt.gz' % (out_d, db) for db in dbs}
+        self.outputs['outs'][(tech, sam_group)] = out_fps
         # check if tool already run (or if --force) to allow getting command
-        if self.config.force or sum([to_do(x) for x in o]):
+        if self.config.force or sum([to_do(x) for x in out_fps.values()]):
             # collect the command line
             cmd = abricate_cmd(self, tech, inputs, out_d)
             key = genome_key(tech, sam_group, genome)
