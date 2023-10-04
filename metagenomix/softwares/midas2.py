@@ -702,10 +702,11 @@ def midas2(self) -> None:
         merge(self)
     else:
         if self.soft.prev.startswith('midas2'):
+            # h = self.soft.hashed
             if 'midas2' in self.softs:
-                reads = self.softs[self.softs['midas2'].prev].outputs
+                reads = self.softs[self.softs['midas2'][needfix].prev].outputs
             elif 'midas2_species' in self.softs:
-                reads = self.softs[self.softs['midas2_species'].prev].outputs
+                reads = self.softs[self.softs['midas2_species'][needfix].prev].outputs
             else:
                 sys.exit('[%s] No reads found used for "midas2[_species]"' %
                          self.soft.name)
