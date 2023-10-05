@@ -117,11 +117,11 @@ class Workflow(object):
             for idx, paths in self.graph.paths.items()}
 
     def show_graph(self):
-        # if self.config.verbose:
-        for i, js in self.graph.paths.items():
-            print('\t%s:' % i)
-            for j in js:
-                print('\t -', '->'.join(j))
+        if self.config.verbose:
+            for i, js in self.graph.paths.items():
+                print('\t%s:' % i)
+                for j in js:
+                    print('\t -', '->'.join(j))
 
     def check_basic_params(self, user_params):
         ints = ['time', 'procs', 'mem', 'chunks']
@@ -199,7 +199,7 @@ class Workflow(object):
             params = params_show
         return params
 
-    def print_params(self, soft):
+    def print_params(self):
         params_show = dict(x for x in self.params[self.name].items())
         if params_show:
             x = '=' * (13 + len(self.name))
