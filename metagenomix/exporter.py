@@ -80,15 +80,12 @@ class Exported(object):
         m = ''
         for soft in self.softs.names:
             soft_dir = self.dir + '/' + soft
-            print(soft_dir)
             added, prov = 0, []
             for idx, (root, dirs, files) in enumerate(os.walk(soft_dir)):
-                print(idx, root)
                 if not idx:
                     prov = ['%s/%s/provenance.txt' % (root, d) for d in dirs]
                     continue
                 for fil in files:
-                    print('%s/%s' % (root, fil))
                     pref, ext = splitext(fil)
                     if fil.endswith('gz'):
                         ext = '%s.gz' % splitext(pref)[1]
