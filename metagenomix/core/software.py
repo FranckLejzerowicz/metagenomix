@@ -129,7 +129,12 @@ class Soft(object):
         # get all info to hash
         params_dict = dict(x for x in params.items() if x[0] not in avoid)
         hashes = []
+        print()
+        print()
+        print(self.path)
         for r in range(2, len(self.path)):
+            print(softs.keys())
+            print(self.path[1:r])
             hashes.append(softs[tuple(self.path[1:r])])
         self.hash = (params_dict, self.path, hashes)
         # hash all this info
