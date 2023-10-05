@@ -460,6 +460,9 @@ def check_integronfinder(self, params):
         'topology_file',
         'path_func_annot'
     ]
+    if 'path' not in params:
+        params['path'] = None
+
     nf = ['parallel_integron_finder.nf', 'nextflow.config']
     if 'path' in params and not self.config.dev:
         if sum([isfile('%s/%s' % (params['path'], x)) for x in nf]) != 2:
