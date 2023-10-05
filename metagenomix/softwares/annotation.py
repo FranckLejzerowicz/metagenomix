@@ -451,7 +451,7 @@ def integronfinder_cmd(
     cmd += ' -o %s' % fasta_out
     cmd += ' -t %s\n' % params['min_length']
 
-    if params['path'] is None:
+    if params.get('path'):
         cmd += 'integron_finder'
         cmd += ' --distance-thresh %s' % params['distance_threshold']
     else:

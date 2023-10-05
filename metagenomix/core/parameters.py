@@ -464,9 +464,6 @@ def check_integronfinder(self, params):
     if 'path' in params and not self.config.dev:
         if sum([isfile('%s/%s' % (params['path'], x)) for x in nf]) != 2:
             print('[integronfinder] Will run without using nextflow (slower)')
-            params['path'] = None
-    else:
-        params['path'] = None
 
     for p in paths:
         if p in params:
