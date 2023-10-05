@@ -187,7 +187,7 @@ class Commands(object):
         if name in globals():
             globals()[name](self)
         else:
-            raise ValueError('No method for software %s' % self.soft.name)
+            raise ValueError('No method for software "%s"' % self.soft.name)
 
     def register_command(self):
         self.softs[self.soft.name][self.soft.hashed].cmds = dict(self.cmds)
