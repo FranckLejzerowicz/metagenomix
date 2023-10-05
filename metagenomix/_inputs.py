@@ -606,9 +606,11 @@ def get_assembly_graph(
     elif assembler == 'megahit':
         graphs = '%s/*.contigs.fg.gz' % dirname(contigs)
     else:
-        sys.exit('[%s] Not avail for %s assembler' % (self.name, assembler))
-    if not glob.glob(graphs):
-        sys.exit('[%s] No assembly graph for "%s"' % (self.name, assembler))
+        sys.exit('[%s] Not avail for "%s" assembler' % (self.soft.name,
+                                                        assembler))
+    if not self.config.dev and not glob.glob(graphs):
+        sys.exit('[%s] No assembly graph for "%s"' % (self.soft.name,
+                                                      assembler))
     return graphs[-1]
 
 
