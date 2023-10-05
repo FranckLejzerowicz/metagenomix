@@ -452,11 +452,11 @@ def integronfinder_cmd(
     cmd += ' -t %s\n' % params['min_length']
 
     if params.get('path'):
-        cmd += 'integron_finder'
-        cmd += ' --distance-thresh %s' % params['distance_threshold']
-    else:
         cmd += '%s/parallel_integron_finder.nf' % params['path']
         cmd += ' --distance-threshold %s' % params['distance_threshold']
+    else:
+        cmd += 'integron_finder'
+        cmd += ' --distance-thresh %s' % params['distance_threshold']
     for boolean in [
         'pdf', 'gbk', 'keep_tmp', 'mute', 'gembase', 'local_max',
         'promoter_attI', 'union_integrases', 'keep_palindromes',
