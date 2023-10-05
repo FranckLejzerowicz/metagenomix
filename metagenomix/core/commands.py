@@ -74,7 +74,8 @@ class Commands(object):
                 self.path = path
                 hashed = self.hashes[tuple(path)]
                 self.soft = self.softs[name][hashed]
-                print('   %s > %s' % (' ' * len(str(sdx)), hashed))
+                if self.config.verbose:
+                    print('   %s > %s' % (' ' * len(str(sdx)), hashed))
                 self.get_inputs()  # Update self.inputs to previous output
                 self.get_dir()
                 self.make_holistic()
