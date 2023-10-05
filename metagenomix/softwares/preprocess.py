@@ -941,7 +941,7 @@ def filtering_cmd(
         db_path = self.databases.builds[db][aligner]
         bam = '%s/%s.bam' % (out_dir, db)
         cmd += globals()['%s_cmd' % aligner](
-            sam, inputs, db, db_path, out_dir, params)
+            sam, inputs, db, db_path, out_dir, params, False)
         cmd += ' | samtools view -b -f 12 -F 256 -'
         cmd += ' | samtools sort -@ %s -n - > %s\n' % (params['cpus'], bam)
         cmd += 'bedtools bamtofastq -i %s' % bam
