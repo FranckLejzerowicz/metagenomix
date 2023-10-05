@@ -136,16 +136,3 @@ class Soft(object):
         self.hashed = compute_hash(self.hash)
         # fill lookup dict with  hash of current path to re-use for next path
         softs[tuple(self.path[1:])] = (params_dict, self.path)
-
-    # def add_to_path(self, softs):
-    #     # if self.prev is None:
-    #     print()
-    #     print(self.prev)
-    #     print(self.name)
-    #     print(softs)
-    #     if self.prev == 'None':
-    #         self.path = ['fastq', self.name]
-    #     else:
-    #         self.path = softs[(self.prev)].path + [self.name]
-    #     print("self.path:", self.path)
-
