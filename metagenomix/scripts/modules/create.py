@@ -84,6 +84,9 @@ from metagenomix import __version__
     "--show-status/--no-show-status", default=False, show_default=False,
     help="Show status (needed inputs, done/to do outputs) for each software")
 @click.option(
+    "--show-paths/--no-show-paths", default=False, show_default=False,
+    help="Show the full pipeline paths along with each software script")
+@click.option(
     "--show-pfams/--no-show-pfams", default=False, show_default=False,
     help="Show terms for which Pfam HMM models were already extracted before")
 @click.option(
@@ -125,6 +128,7 @@ def create(
         userscratch,
         move_back,
         show_status,
+        show_paths,
         show_pfams,
         purge_pfams,
         verbose,
@@ -157,6 +161,7 @@ def create(
         userscratch=userscratch,
         move_back=move_back,
         show_status=show_status,
+        show_paths=show_paths,
         show_pfams=show_pfams,
         purge_pfams=purge_pfams,
         verbose=verbose,
