@@ -7,14 +7,13 @@
 # ----------------------------------------------------------------------------
 
 import glob
-import os
 import sys
 import pkg_resources
 from os.path import basename, dirname, isdir, splitext
 
 from metagenomix._inputs import (
     sample_inputs, group_inputs, genome_key, genome_out_dir, get_reads,
-    get_group_reads, get_contigs, get_contigs_from_path, get_plasmids_fasta)
+    get_group_reads, get_contigs, get_contigs_from_path, get_plasmids, get_args)
 from metagenomix._io_utils import caller, io_update, to_do, status_update
 from metagenomix.core.parameters import tech_params
 
@@ -412,7 +411,7 @@ def integronfinder_cmd(
         self,
         tech: str,
         fastx: str,
-        out: str,
+        out_dir: str,
 ) -> str:
     """Collect command for integron_finder.
 
@@ -425,7 +424,7 @@ def integronfinder_cmd(
         Technology: 'illumina', 'pacbio', or 'nanopore'
     fastx : str
         Path to the input fasta/fastq(.gz) file
-    out : str
+    out_dir : str
         Path to the output folder
 
     Returns
@@ -445,7 +444,7 @@ def integronfinder_cmd(
         fasta = '%s.fasta' % fastx.rsplit('.fastq', 1)[0]
         cmd += 'seqtk seq -a %s > %s\n' % (fastx, fasta)
 
-    fasta_out = '%s_min%snt.fasta' % (splitext(fasta)[0], params['min_length'])
+    fasta_out = '%s/out.fasta' % dirname(fasta)
     cmd += '\n%s/filter_on_length.py' % RESOURCES
     cmd += ' -i %s' % fasta
     cmd += ' -o %s' % fasta_out
@@ -470,7 +469,7 @@ def integronfinder_cmd(
                 cmd += ' --%s' % boolean.replace('_', '-')
 
     cmd += ' --verbose'
-    cmd += ' --outdir %s' % out
+    cmd += ' --outdir %s' % out_dir
     cmd += ' --cpu %s' % params['cpus']
 
     if params['no_proteins']:
@@ -498,6 +497,11 @@ def integronfinder_cmd(
         cmd += ' --replicons %s\n' % fasta_out
     else:
         cmd += ' %s\n' % fasta_out
+
+    out = 'Results_Integron_Finder_out'
+    cmd += 'tar cpfz %s/%s.tar.gz -C %s %s\n' % (out_dir, out, out_dir, out)
+    cmd += 'rm -rf %s/%s\n' % (out_dir, out)
+
     cmd += cmd_rm
     return cmd
 
@@ -530,21 +534,26 @@ def get_integronfinder(
     for genome, fastas in inputs.items():
 
         key = genome_key(tech, group, genome)
-        out = genome_out_dir(self, tech, group, genome)
-        self.outputs['dirs'].append(out)
-        self.outputs['outs'].setdefault((tech, group), []).append(out)
+        out_dir = genome_out_dir(self, tech, group, genome)
+        self.outputs['dirs'].append(out_dir)
+        self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
         if contigs:
-            cmds, plasmids, fasta = get_plasmids_fasta(self, fastas, contigs)
-            i_f = [plasmids, contigs]
+            if self.soft.prev == 'hamronization':
+                selection, fasta, cmds, rms = get_args(fastas, contigs)
+                i_f = [selection, contigs]
+            else:
+                plasmids, fasta, cmds, rms = get_plasmids(self, fastas, contigs)
+                i_f = [plasmids, contigs]
         else:
-            cmds, plasmids, fasta = '', '', fastas[0]
+            fasta, cmds, rms = fastas[0], '', ''
             i_f = [fasta]
         to_dos = status_update(self, tech, i_f, group=group, genome=genome)
 
-        fpo = '%s/Results_Integron_Finder_mysequences/mysequences.summary' % out
+        fpo = '%s/Results_Integron_Finder_out.tar.gz' % out_dir
         if self.config.force or to_do(fpo):
             # cmd = hmms_cmd + integronfinder_cmd(self, tech, fasta, out)
-            cmds += integronfinder_cmd(self, tech, fasta, out)
+            cmds += integronfinder_cmd(self, tech, fasta, out_dir)
+            cmds += rms
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
@@ -612,6 +621,8 @@ def integronfinder(self) -> None:
             fastas = group_inputs(self, inputs)
             contigs = ''
             if previous == 'annotation (plasmid)':
+                contigs = get_contigs_from_path(self, tech, group)
+            elif self.soft.prev == 'hamronization':
                 contigs = get_contigs_from_path(self, tech, group)
             get_integronfinder(self, tech, group, fastas, contigs)
 
@@ -2770,7 +2781,7 @@ def divissr(self):
 
 def size_cmd(fasta, out):
     if fasta.endswith('.gz'):
-        cmd = 'gzip %s | grep -c ">" > %s\n' % (fasta, out)
+        cmd = 'zcat %s | grep -c ">" > %s\n' % (fasta, out)
     else:
         cmd = 'grep -c ">" %s > %s\n' % (fasta, out)
     cmd += 'gzip %s\n' % out
@@ -2794,7 +2805,7 @@ def get_size(self, tech, folders, group):
 
         for fasta in inputs:
             base = splitext(basename(fasta.replace('.gz', '')))[0]
-            out = '%s/%s.tsv' % (out_dir, base)
+            out = '%s/%s.size.tsv' % (out_dir, base)
             if self.config.force or to_do('%s.gz' % out):
                 cmd = size_cmd(fasta, out)
                 key = genome_key(tech, group, genome)
