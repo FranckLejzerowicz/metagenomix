@@ -13,6 +13,15 @@ from metagenomix._io_utils import (io_update, tech_specificity,
                                    to_do, status_update)
 
 
+def get_lastest_count(self, sam, tech):
+    counts = {tuple(y.path[:-1]): x for x, y in self.softs['count'].items()}
+    for r in range(len(self.soft.path), 0, -1):
+        cur_path = tuple(self.soft.path[:r])
+        if tuple(self.soft.path[:r]) in counts:
+            count_h = counts[cur_path]
+            return self.softs['count'][count_h].outputs.get((sam, tech), [])
+
+
 def get_read_count(
         self,
         tech: str,
@@ -37,7 +46,7 @@ def get_read_count(
     """
     reads = ''
     if 'count' in self.softs:
-        reads_fps = self.softs['count'].outputs.get((sam, tech), [])
+        reads_fps = get_lastest_count(self, sam, tech)
         if reads_fps and not sum([to_do(x) for x in reads_fps]):
             reads_fp = reads_fps.replace('${SCRATCH_FOLDER}', '')
             with open(reads_fp) as f:
