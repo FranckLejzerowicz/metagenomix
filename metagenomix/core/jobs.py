@@ -96,7 +96,9 @@ class Created(object):
     def get_main_sh(self, name, hashed='', soft=None, local='') -> None:
         if soft:
             n = 'software'
-            key = '%s: %s%s\n%s' % (name, hashed, local, " -> ".join(soft.path))
+            key = '%s: %s%s' % (name, hashed, local)
+            if self.config.show_paths:
+                key += '\n%s' % " -> ".join(soft.path)
             if self.cmds or local:
                 self.main_sh = '%s/run%s.sh' % (soft.dir, local)
                 self.run[n][key] = self.main_sh
