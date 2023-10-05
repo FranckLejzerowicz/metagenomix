@@ -1235,8 +1235,8 @@ def yamb(self):
     reads = self.config.fastq_mv
     if '_' in self.soft.name:
         reads_tool = self.soft.name.split('_')[-1]
-        hashed = self.hashes[tuple(self.path[(self.path.index(reads_tool)+1)])]
-        reads = self.softs[reads_tool][hashed].outputs
+        path = tuple(self.soft.path[:(self.soft.path.index(reads_tool)+1)])
+        reads = self.softs[reads_tool][self.hashes[path]].outputs
 
     for (tech, group), inputs in self.inputs[self.sam_pool].items():
         fastxs = []
