@@ -2768,6 +2768,65 @@ def divissr(self):
             get_divissr(self, tech, folders, group)
 
 
+def size_cmd(fasta, out):
+    if fasta.endswith('.gz'):
+        cmd = 'gzip %s | grep -c ">" > %s\n' % (fasta, out)
+    else:
+        cmd = 'grep -c ">" %S > %s\n' % (fasta, out)
+    return cmd
+
+
+def get_size(self, tech, folders, group):
+    for genome, inputs_ in folders.items():
+
+        out_dir = genome_out_dir(self, tech, group, genome)
+        self.outputs['dirs'].append(out_dir)
+        self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
+
+        if self.soft.prev == 'prodigal':
+            fps = ['nucleotide.sequences', 'potential.starts',
+                   'protein.translations']
+            inputs = ['%s/%s.fasta.gz' % (inputs_[0], fp) for fp in fps]
+        else:
+            inputs = inputs_
+        to_dos = status_update(self, tech, inputs, group=group, genome=genome)
+
+        for fasta in inputs:
+            base = splitext(basename(fasta.replace('.gz', '')))[0]
+            out = '%s/%s.tsv.gz' % (out_dir, base)
+            if self.config.force or to_do(out):
+                cmd = size_cmd(fasta, out)
+                key = genome_key(tech, group, genome)
+                if to_dos:
+                    self.outputs['cmds'].setdefault(key, []).append(False)
+                else:
+                    self.outputs['cmds'].setdefault(key, []).append(cmd)
+                io_update(self, i_f=fasta, o_d=out_dir, key=key)
+                self.soft.add_status(
+                    tech, self.sam_pool, 1, group=group, genome=genome)
+            else:
+                self.soft.add_status(
+                    tech, self.sam_pool, 0, group=group, genome=genome)
+
+
+def size(self):
+    """Measure the size of each fasta entry.
+
+    Parameters
+    ----------
+    self : Commands class instance
+    """
+    predicting = self.config.tools['annotation (protein prediction)']
+    assembling = self.config.tools['assembling']
+    if self.soft.prev not in (predicting + assembling):
+        sys.exit("[size] Calculation only after an assembly/protein prediction")
+
+    if self.sam_pool in self.pools:
+        for (tech, group), inputs in self.inputs[self.sam_pool].items():
+            folders = group_inputs(self, inputs)
+            get_size(self, tech, folders, group)
+
+
 def metaclade2(self):
     """Novel profile-based domain annotation pipeline based on the multi-source
     domain annotation strategy. It provides a domain annotation realised
