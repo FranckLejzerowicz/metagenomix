@@ -477,10 +477,8 @@ def check_integronfinder(self, params):
     check_nums(self, params, defaults, ints, int)
     ints1 = ['evalue_attc']
     check_nums(self, params, defaults, ints1, float, 0, 100)
-    let_go = ints + ints1
+    let_go = ints + ints1 + ["path"]
     check_default(self, params, defaults, let_go)
-    if 'path' not in params:
-        params['path'] = None
     defaults['annot_parser'] = '<Parser to use to get info from protein file>'
     defaults['attc_model'] = '<Path to the attc model (Covariance Matrix)>'
     defaults['topology_file'] = '<Path to file with each replicon topology>'
