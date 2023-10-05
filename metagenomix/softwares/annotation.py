@@ -463,7 +463,7 @@ def integronfinder_cmd(
         'circ', 'linear'
     ]:
         if params[boolean]:
-            if params['path']:
+            if params.get('path'):
                 if boolean in ['gembase', 'mute']:
                     continue
             else:
@@ -494,7 +494,7 @@ def integronfinder_cmd(
         # this file is automatically created for contigs annotates as plasmids
         cmd += ' --topology-file %s' % params['topology_file']
 
-    if params['path']:
+    if params.get('path'):
         cmd += ' --replicons %s\n' % fasta_out
     else:
         cmd += ' %s\n' % fasta_out
