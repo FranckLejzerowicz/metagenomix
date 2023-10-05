@@ -2794,8 +2794,8 @@ def get_size(self, tech, folders, group):
 
         for fasta in inputs:
             base = splitext(basename(fasta.replace('.gz', '')))[0]
-            out = '%s/%s.tsv.gz' % (out_dir, base)
-            if self.config.force or to_do(out):
+            out = '%s/%s.tsv' % (out_dir, base)
+            if self.config.force or to_do('%s.gz' % out):
                 cmd = size_cmd(fasta, out)
                 key = genome_key(tech, group, genome)
                 if to_dos:
