@@ -72,6 +72,7 @@ amrfinderplus	annotation (ARGs)
 staramr	annotation (ARGs)
 argsoap	annotation (ARGs)
 hamronization	annotation (ARGs)
+size	annotation (length)
 pooling	coassembly setup
 quast	assembling (quality check)
 spades	assembling
