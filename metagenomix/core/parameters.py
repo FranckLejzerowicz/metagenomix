@@ -460,9 +460,6 @@ def check_integronfinder(self, params):
         'topology_file',
         'path_func_annot'
     ]
-    if 'path' not in params:
-        params['path'] = None
-
     nf = ['parallel_integron_finder.nf', 'nextflow.config']
     if 'path' in params and not self.config.dev:
         if sum([isfile('%s/%s' % (params['path'], x)) for x in nf]) != 2:
@@ -482,6 +479,8 @@ def check_integronfinder(self, params):
     check_nums(self, params, defaults, ints1, float, 0, 100)
     let_go = ints + ints1
     check_default(self, params, defaults, let_go)
+    if 'path' not in params:
+        params['path'] = None
     defaults['annot_parser'] = '<Parser to use to get info from protein file>'
     defaults['attc_model'] = '<Path to the attc model (Covariance Matrix)>'
     defaults['topology_file'] = '<Path to file with each replicon topology>'
