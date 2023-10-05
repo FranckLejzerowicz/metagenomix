@@ -86,6 +86,7 @@ class Exported(object):
                     prov = ['%s/%s/provenance.txt' % (root, d) for d in dirs]
                     continue
                 for fil in files:
+                    print('%s/%s' % (root, fil))
                     pref, ext = splitext(fil)
                     if fil.endswith('gz'):
                         ext = '%s.gz' % splitext(pref)[1]
