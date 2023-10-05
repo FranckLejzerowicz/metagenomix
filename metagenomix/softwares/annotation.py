@@ -2772,7 +2772,8 @@ def size_cmd(fasta, out):
     if fasta.endswith('.gz'):
         cmd = 'gzip %s | grep -c ">" > %s\n' % (fasta, out)
     else:
-        cmd = 'grep -c ">" %S > %s\n' % (fasta, out)
+        cmd = 'grep -c ">" %s > %s\n' % (fasta, out)
+    cmd += 'gzip %s\n' % out
     return cmd
 
 
