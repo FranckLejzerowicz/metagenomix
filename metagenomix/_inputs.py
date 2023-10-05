@@ -801,7 +801,16 @@ def add_folder(
     return out
 
 
-def get_plasmids_fasta(self, fastas, contigs) -> tuple:
+def get_args(fastas, contigs) -> tuple:
+    selection = fastas + '/selection.tsv.gz'
+    fasta = fastas + '/selection.fasta'
+    cmds = 'python3 %s/scripts/subset_fasta.py -i %s -s %s -o %s\n' % (
+        RESOURCES, contigs, selection, fasta)
+    cmd_rm = 'rm %s\n' % fasta
+    return selection, fasta, cmds, cmd_rm
+
+
+def get_plasmids(self, fastas, contigs) -> tuple:
     if self.soft.prev == 'plasmidfinder':
         plasmids = fastas + '/results_tab.tsv.gz'
         cmd = 'tail -n +2 | cut -f 5'
@@ -819,7 +828,8 @@ def get_plasmids_fasta(self, fastas, contigs) -> tuple:
     cmds = 'zcat %s | %s | cut -d" " -f 1 > %s\n' % (plasmids, cmd, subset)
     cmds += 'python3 %s/scripts/subset_fasta.py -i %s -s %s -o %s\n' % (
         RESOURCES, contigs, subset, fasta)
-    return cmds, plasmids, fasta
+    cmd_rm = 'rm %s %s\n' % (subset, fasta)
+    return plasmids, fasta, cmds, cmd_rm
 
 
 def get_arg_inputs(self, inputs):
