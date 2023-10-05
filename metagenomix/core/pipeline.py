@@ -133,6 +133,11 @@ class Workflow(object):
             elif param == 'env':
                 check_env(self.config, value, self.name)
             elif param == 'path':
+                print()
+                print(self.config)
+                print(value)
+                print(self.name)
+                print()
                 check_path(self.config, value, self.name)
             elif param == 'scratch':
                 check_scratch(value, self.name)
