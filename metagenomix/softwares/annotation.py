@@ -2780,10 +2780,7 @@ def divissr(self):
 
 
 def size_cmd(fasta, out):
-    if fasta.endswith('.gz'):
-        cmd = 'zcat %s | grep -c ">" > %s\n' % (fasta, out)
-    else:
-        cmd = 'grep -c ">" %s > %s\n' % (fasta, out)
+    cmd = 'python3 %s/length_fasta.py -i %s -o %s\n' % (RESOURCES, fasta, out)
     cmd += 'gzip %s\n' % out
     return cmd
 
