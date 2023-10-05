@@ -12,7 +12,7 @@ from os.path import basename, dirname, splitext
 
 from metagenomix._inputs import (
     sample_inputs, group_inputs, genome_key, get_contigs_from_path,
-    genome_out_dir, get_plasmids_fasta)
+    genome_out_dir, get_plasmids)
 from metagenomix._io_utils import caller, io_update, to_do, status_update
 from metagenomix.core.parameters import tech_params
 
@@ -708,10 +708,10 @@ def get_mobsuite(
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
         if contigs:
-            cmds, plasmids, fasta = get_plasmids_fasta(self, fastas, contigs)
+            plasmids, fasta, cmds, rms = get_plasmids(self, fastas, contigs)
             i_f = [plasmids, contigs]
         else:
-            cmds, plasmids, fasta = '', '', fastas[0]
+            fasta, cmds, rms = fastas[0], '', ''
             i_f = [fasta]
         to_dos = status_update(self, tech, i_f, group=group)
 
