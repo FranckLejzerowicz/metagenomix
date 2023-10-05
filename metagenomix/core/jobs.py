@@ -59,7 +59,6 @@ class Created(object):
 
     def make_dirs(self):
         for name, hashes_softs in self.commands.softs.items():
-            print(name)
             for hash, soft in hashes_softs.items():
                 for directory in sorted(soft.dirs):
                     if not islink(directory) and not isdir(directory):
@@ -97,7 +96,7 @@ class Created(object):
     def get_main_sh(self, name, hashed='', soft=None, local='') -> None:
         if soft:
             n = 'software'
-            key = '%s: %s%s' % (name, hashed, local)
+            key = '%s: %s%s\n%s' % (name, hashed, local, " -> ".join(soft.path))
             if self.cmds or local:
                 self.main_sh = '%s/run%s.sh' % (soft.dir, local)
                 self.run[n][key] = self.main_sh
@@ -579,7 +578,7 @@ class Created(object):
         for db_soft, name_main in self.run.items():
             if len(self.run[db_soft]):
                 print()
-                soft_print = '========== %s scripts ========== ' % db_soft
+                soft_print = '========== %s(s) scripts ========== ' % db_soft
                 print(soft_print)
                 self.scripts.append(soft_print)
             for name, main in name_main.items():
