@@ -622,7 +622,8 @@ def bowtie2_cmd(
         db: str,
         db_path: str,
         out_dir: str,
-        params: dict
+        params: dict,
+        no_unal: bool=True
 ) -> str:
     """Get the bowtie2 alignment command.
 
@@ -640,6 +641,8 @@ def bowtie2_cmd(
         Path to the output folder
     params : dict
         Run parameters
+    no_unal : bool
+        Whether to output the unaligned in the sam file
 
     Returns
     -------
@@ -720,6 +723,8 @@ def bowtie2_cmd(
         'soft_clipped_unmapped_tlen', 'sam_append_comment', 'reorder', 'mm',
         'qc_filter', 'non_deterministic']
     for boolean in booleans:
+        if boolean == 'no_unal' and no_unal:
+            continue
         if params[boolean]:
             if boolean == 't':
                 cmd += ' --time'
