@@ -906,24 +906,14 @@ def refine(self):
     for (tech, group), bin_dirs in self.inputs[self.sam_pool].items():
 
         key = (tech, group)
-
         out_dir = '/'.join([self.dir, tech, self.sam_pool, group])
-        print()
-        print()
-        print(tech)
-        print(group)
-        print(bin_dirs)
         to_dos = status_update(self, tech, bin_dirs, group=group, folder=True)
 
         cmd, bins, names = refine_cmd(self, out_dir, bin_dirs)
-        print(bins)
-        print(process_outputs(self, key, group, [bins]))
         if process_outputs(self, key, group, [bins]):
             continue
         self.outputs['dirs'].append(out_dir)
-
-        stats = '%s.stats' % bins
-        if self.config.force or to_do(bins) or to_do(stats):
+        if self.config.force or to_do(bins):
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
