@@ -45,7 +45,7 @@ def process_outputs(
         self.outputs['outs'][key] = []
         process = True
     else:
-        self.outputs['outs'][key] = [o.replace('.tar.gz', '') for o in out]
+        self.outputs['outs'][key] = out
         process = False
     return process
 
@@ -854,12 +854,12 @@ def refine_cmd(
                                  self.soft.params['max_contamination'])
 
     cmd, cmd_rm = '', ''
-    for folder in bin_folders:
-        cmd += 'mkdir -p %s\n' % folder
-        cmd += 'tar xpfz %s.tar.gz -C %s\n' % (folder, folder)
-        cmd_rm += 'rm -rf %s\n' % folder
+    for tar in bin_folders:
+        cmd += 'mkdir -p %s\n' % tar.replace('.tar.gz', '')
+        cmd += 'tar xpfz %s -C %s\n' % (tar, tar.replace('.tar.gz', ''))
+        cmd_rm += 'rm -rf %s*\n' % tar
 
-    bins = '%s_bins.tar.gz' % out
+    bins = '%s_bins' % out
     names = '%s.names' % bins
     stats = '%s.stats' % bins
     if to_do(bins) or to_do(stats):
@@ -870,8 +870,8 @@ def refine_cmd(
         cmd += 'rm -rf %s\n' % out_dir
         cmd += 'metawrap bin_refinement'
         cmd += ' -o %s' % out_dir
-        for fdx, folder in enumerate(bin_folders):
-            cmd += ' -%s %s' % (['A', 'B', 'C'][fdx], folder)
+        for fdx, tar in enumerate(bin_folders):
+            cmd += ' -%s %s' % (['A', 'B', 'C'][fdx], tar.replace('.tar.gz', ''))
         cmd += ' -t %s' % self.soft.params['cpus']
         cmd += ' -c %s' % self.soft.params['min_completion']
         cmd += ' -x %s\n' % self.soft.params['max_contamination']
@@ -906,20 +906,11 @@ def refine(self):
         key = (tech, group)
 
         out_dir = '/'.join([self.dir, tech, self.sam_pool, group])
-        print()
-        print()
-        print(tech)
-        print(group)
-        print(bin_dirs)
         to_dos = status_update(self, tech, bin_dirs, group=group, folder=True)
-        print(to_dos)
         cmd, bins, names = refine_cmd(self, out_dir, bin_dirs)
-        print(bins)
-        print(process_outputs(self, key, group, [bins]))
         if process_outputs(self, key, group, [bins]):
             continue
         self.outputs['dirs'].append(out_dir)
-        print(to_do(bins))
         if self.config.force or to_do(bins):
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
