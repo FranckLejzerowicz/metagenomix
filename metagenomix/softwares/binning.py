@@ -908,6 +908,11 @@ def refine(self):
         key = (tech, group)
 
         out_dir = '/'.join([self.dir, tech, self.sam_pool, group])
+        print()
+        print()
+        print(tech)
+        print(group)
+        print(bin_dirs)
         to_dos = status_update(self, tech, bin_dirs, group=group, folder=True)
 
         cmd, bins, names = refine_cmd(self, out_dir, bin_dirs)
