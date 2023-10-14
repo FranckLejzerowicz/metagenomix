@@ -916,6 +916,7 @@ def refine(self):
         to_dos = status_update(self, tech, bin_dirs, group=group, folder=True)
 
         cmd, bins, names = refine_cmd(self, out_dir, bin_dirs)
+        print(bins)
         print(process_outputs(self, key, group, [bins]))
         if process_outputs(self, key, group, [bins]):
             continue
