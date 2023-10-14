@@ -854,8 +854,7 @@ def refine_cmd(
                                  self.soft.params['max_contamination'])
 
     cmd, cmd_rm = '', ''
-    for folder_ in bin_folders:
-        folder = folder_.replace('.tar.gz', '')
+    for folder in bin_folders:
         cmd += 'mkdir -p %s\n' % folder
         cmd += 'tar xpfz %s.tar.gz -C %s\n' % (folder, folder)
         cmd_rm += 'rm -rf %s\n' % folder
@@ -871,8 +870,7 @@ def refine_cmd(
         cmd += 'rm -rf %s\n' % out_dir
         cmd += 'metawrap bin_refinement'
         cmd += ' -o %s' % out_dir
-        for fdx, folder_ in enumerate(bin_folders):
-            folder = folder_.replace('.tar.gz', '')
+        for fdx, folder in enumerate(bin_folders):
             cmd += ' -%s %s' % (['A', 'B', 'C'][fdx], folder)
         cmd += ' -t %s' % self.soft.params['cpus']
         cmd += ' -c %s' % self.soft.params['min_completion']
@@ -906,10 +904,18 @@ def refine(self):
     for (tech, group), bin_dirs in self.inputs[self.sam_pool].items():
 
         key = (tech, group)
+
         out_dir = '/'.join([self.dir, tech, self.sam_pool, group])
+        print()
+        print()
+        print(tech)
+        print(group)
+        print(bin_dirs)
         to_dos = status_update(self, tech, bin_dirs, group=group, folder=True)
 
         cmd, bins, names = refine_cmd(self, out_dir, bin_dirs)
+        print(bins)
+        print(process_outputs(self, key, group, [bins]))
         if process_outputs(self, key, group, [bins]):
             continue
         self.outputs['dirs'].append(out_dir)
