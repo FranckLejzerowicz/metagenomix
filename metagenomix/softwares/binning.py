@@ -45,7 +45,7 @@ def process_outputs(
         self.outputs['outs'][key] = []
         process = True
     else:
-        self.outputs['outs'][key] = out
+        self.outputs['outs'][key] = [o.replace('.tar.gz', '') for o in out]
         process = False
     return process
 
@@ -948,7 +948,7 @@ def get_binners(
     """
     binners = []
     for binner, bins in binned.items():
-        if self.config.force or to_do('%s.tar.gz' % bins):
+        if self.config.force or to_do(bins):
             binners.append(binner)
     return binners
 
@@ -1061,7 +1061,7 @@ def binning(self):
         out = '/'.join([self.dir, tech, self.sam_pool, group])
         self.outputs['dirs'].append(out)
 
-        binned = {binner: '%s/%s_bins' % (out, binner)
+        binned = {binner: '%s/%s_bins.tar.gz' % (out, binner)
                   for binner in self.soft.params['binners']}
         bin_dirs = sorted(binned.values())  # + ['%s/work_files' % out]
 
@@ -1075,7 +1075,7 @@ def binning(self):
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, i_f=([contigs] + fastqs), i_d=tmp,
-                      o_d=bin_dirs, key=key)
+                      o_f=bin_dirs, key=key)
             self.soft.add_status(tech, self.sam_pool, 1, group=group)
         else:
             self.soft.add_status(tech, self.sam_pool, 0, group=group)
