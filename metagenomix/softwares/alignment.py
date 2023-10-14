@@ -689,24 +689,41 @@ def bowtie2_cmd(
         cmd += ' -N %s' % params['N']
         cmd += ' -i %s' % params['i']
 
-    if params['end_to_end']:
-        cmd += ' --end-to-end'
-        if params['presets']:
-            cmd += ' --%s' % params['presets']
-    elif params['local']:
-        cmd += ' --local'
-        if params['presets']:
-            cmd += ' --%s-local' % params['presets']
+    end_or_local = 'end-to-end'
+    if params['local']:
+        end_or_local = 'local'
+    cmd += ' --%s' % end_or_local
+
+    if end_or_local == 'local':
+        cmd += ' --%s-local' % params['presets']
+        if params['ma'] != -1000:
+            cmd += ' --ma %s' % params['ma']
+        else:
+            cmd += ' --ma 2'
+        if params['score_min']:
+            cmd += ' --score-min %s' % params['score_min']
+        else:
+            cmd += ' --score-min G,20,8'
+    else:
+        cmd += ' --%s' % params['presets']
+        if params['ma'] != -1000:
+            cmd += ' --ma %s' % params['ma']
+        else:
+            cmd += ' --ma 0'
+        if params['score_min']:
+            cmd += ' --score-min %s' % params['score_min']
+        else:
+            cmd += ' --score-min L,-0.6,-0.6'
 
     if params['met']:
         cmd += ' --met-file %s/metrics.txt' % out_dir
         cmd += ' --met %s' % params['met']
 
     cmd += ' --%s' % params['fr']
-    for param in ['n_ceil', 'rdg', 'rfg', 'score_min']:
+    for param in ['n_ceil', 'rdg', 'rfg']:
         cmd += ' --%s %s' % (param.replace('_', '-'), params[param])
     for param in ['skip', 'upto', 'trim5', 'trim3', 'trim_to', 'dpad',
-                  'gbar', 'ma', 'np', 'mp', 'minins', 'maxins', 'seed']:
+                  'gbar', 'np', 'mp', 'minins', 'maxins', 'seed']:
         if params[param]:
             cmd += ' --%s %s' % (param.replace('-', '_'), params[param])
 

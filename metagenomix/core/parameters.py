@@ -677,7 +677,7 @@ def check_bowtie2(self, params, no_database=False):
         'n_ceil': 'L,0,0.15',
         'rdg': '5,3',
         'rfg': '5,3',
-        'score_min': 'L,0,-0.05',
+        'score_min': [None, 'G,20,8', 'L,0,-0.05'],
         'skip': 0,
         'upto': 0,
         'trim5': 0,
@@ -687,7 +687,7 @@ def check_bowtie2(self, params, no_database=False):
         'L': 22,
         'dpad': 15,
         'gbar': 4,
-        'ma': 0,
+        'ma': -1000,
         'k': 0,
         'np': 1,
         'mp': 6,
@@ -770,10 +770,13 @@ def check_bowtie2(self, params, no_database=False):
                     except ValueError:
                         sys.exit('[bowtie2] "%s" option invalid' % param)
         else:
-            params[param] = defaults[param]
+            if param == 'score_min':
+                params[param] = None
+            else:
+                params[param] = defaults[param]
 
-    ints = ['skip', 'upto', 'trim5', 'trim3', 'trim_to', 'dpad', 'gbar', 'ma',
-            'k', 'np', 'D', 'R', 'minins', 'maxins', 'met', 'seed']
+    ints = ['skip', 'upto', 'trim5', 'trim3', 'trim_to', 'dpad', 'gbar',
+            'k', 'np', 'D', 'R', 'minins', 'maxins', 'met', 'seed', 'ma']
     check_nums(self, params, defaults, ints, int)
     check_nums(self, params, defaults, ['N'], int, 0, 1)
     check_nums(self, params, defaults, ['L'], int, 4, 31)
@@ -4389,16 +4392,38 @@ def check_hamronization(self, params):
     return defaults
 
 
-# def check_rosella(self, params, soft):
-#     defaults = {
-#     }
-#     ints = []
-#     check_nums(self, params, defaults, ints, int, soft.name)
-#     floats = []
-#     check_nums(self, params, defaults, floats, float, soft.name)
-#     check_default(self, params, defaults, soft.name, (ints + floats))
-#     defaults[''] = '<>'
-#     return defaults
+def check_metadmg(self, params):
+    defaults = {
+        'names': [None],
+        'nodes': [None],
+        'acc2tax': [None],
+        'min_similarity_score': 0.0,
+        'max_similarity_score': 1.0,
+        'min_edit_dist': 0,
+        'max_edit_dist': 1,
+        'min_mapping_quality': 0,
+        'custom_database': [False, True],
+        'lca_rank': [None, 'family', 'genus', 'species'],
+        # 'metaDMG_cpp',
+        'max_position': 15,
+        'min_reads': 0,
+        'weight_type': 1,
+        'forward_only': [False, True],
+        'bayesian': [False, True],
+        'parallel_samples': 1,
+        'cores_per_sample': 1,
+        'long_name': [False, True],
+        'damage_mode': ['lca', 'local', 'global'],
+        'overwrite': [False, True]
+    }
+    ints = ['min_edit_dist', 'max_edit_dist', 'min_mapping_quality',
+            'max_position', 'min_reads', 'weight_type', 'parallel_samples',
+            'cores_per_sample']
+    check_nums(self, params, defaults, ints, int)
+    floats = ['min_similarity_score', 'max_similarity_score']
+    check_nums(self, params, defaults, floats, float, 0, 1)
+    check_default(self, params, defaults, (ints + floats))
+    return defaults
 
 
 # def check_skani(self, params, soft):
