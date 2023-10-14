@@ -948,7 +948,7 @@ def get_binners(
     """
     binners = []
     for binner, bins in binned.items():
-        if self.config.force or to_do(bins):
+        if self.config.force or to_do('%s.tar.gz' % bins):
             binners.append(binner)
     return binners
 
@@ -1061,14 +1061,13 @@ def binning(self):
         out = '/'.join([self.dir, tech, self.sam_pool, group])
         self.outputs['dirs'].append(out)
 
-        binned = {binner: '%s/%s_bins.tar.gz' % (out, binner)
+        binned = {binner: '%s/%s_bins' % (out, binner)
                   for binner in self.soft.params['binners']}
         bin_dirs = sorted(binned.values())  # + ['%s/work_files' % out]
 
         key = (tech, group)
         if process_outputs(self, key, group, bin_dirs):
             continue
-
         cmd = binning_cmd(self, fastqs, out, contigs, binned)
         if cmd:
             if to_dos:
