@@ -912,13 +912,14 @@ def refine(self):
         print(group)
         print(bin_dirs)
         to_dos = status_update(self, tech, bin_dirs, group=group, folder=True)
-
+        print(to_dos)
         cmd, bins, names = refine_cmd(self, out_dir, bin_dirs)
         print(bins)
         print(process_outputs(self, key, group, [bins]))
         if process_outputs(self, key, group, [bins]):
             continue
         self.outputs['dirs'].append(out_dir)
+        print(to_do(bins))
         if self.config.force or to_do(bins):
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
