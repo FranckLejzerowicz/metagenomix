@@ -860,7 +860,7 @@ def refine_cmd(
         cmd += 'tar xpfz %s.tar.gz -C %s\n' % (folder, folder)
         cmd_rm += 'rm -rf %s\n' % folder
 
-    bins = '%s_bins' % out
+    bins = '%s_bins.tar.gz' % out
     names = '%s.names' % bins
     stats = '%s.stats' % bins
     if to_do(bins) or to_do(stats):
