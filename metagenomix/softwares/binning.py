@@ -8,7 +8,7 @@
 import sys
 import glob
 import pkg_resources
-from os.path import basename, splitext
+from os.path import basename, dirname, splitext
 from metagenomix._inputs import get_contigs_from_path, get_assembly_graph
 from metagenomix._io_utils import caller, status_update, io_update, to_do
 from metagenomix.core.parameters import tech_params
@@ -855,7 +855,7 @@ def refine_cmd(
 
     cmd, cmd_rm = '', ''
     for tar in bin_folders:
-        cmd += 'tar xpfz %s -C %s\n' % (tar, tar.replace('.tar.gz', ''))
+        cmd += 'tar xpfz %s -C %s\n' % (tar, dirname(tar))
         cmd_rm += 'rm -rf %s*\n' % tar
 
     bins = '%s_bins' % out
