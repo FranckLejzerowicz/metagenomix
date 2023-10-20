@@ -1358,7 +1358,10 @@ def ccfind_cmd(
     cmd += 'rm -rf %s\n' % out_dir
     if self.soft.params['path']:
         cmd += 'export PATH=$PATH:%s\n' % self.soft.params['path']
-    cmd += 'ccfind'
+    if self.soft.params['binary']:
+        cmd += self.soft.params['binary']
+    else:
+        cmd += 'ccfind'
     cmd += ' %s' % fasta
     cmd += ' %s' % out_dir
     cmd += ' --terminal-fragment-size %s' % params['terminal_fragment_size']
