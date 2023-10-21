@@ -67,22 +67,22 @@ class Commands(object):
             'midas2_merge'
         }
 
-    def collect(self):
+    def collect(self, log):
         for sdx, (name, paths) in enumerate(self.graph.paths.items()):
-            print(' [%s] %s' % (sdx, name))
+            log.info(' [%s] %s' % (sdx, name))
             for path in paths:
                 self.path = path
                 hashed = self.hashes[tuple(path)]
                 self.soft = self.softs[name][hashed]
                 if self.config.verbose:
-                    print('   %s > %s' % (' ' * len(str(sdx)), hashed))
-                self.get_inputs()  # Update self.inputs to previous output
+                    log.info('   %s > %s' % (' ' * len(str(sdx)), hashed))
+                self.get_inputs(log)  # Update self.inputs to previous output
                 self.get_dir()
                 self.make_holistic()
                 self.generic_command()
-                self.show_messages()
+                self.show_messages(log)
 
-    def get_inputs(self):
+    def get_inputs(self, log):
         """Update the `inputs` attribute of the software object."""
         if self.soft.prev == 'None':
             # if running on raw data: use the fastq files (possibly on scratch)
@@ -93,7 +93,7 @@ class Commands(object):
             # if the previous software is not None (i.e., not on the raw data)
             prev_hash = self.hashes[tuple(self.path[:-1])]
             self.inputs = self.softs[self.soft.prev][prev_hash].outputs
-        show_inputs(self)
+        show_inputs(self, log)
 
     def get_dir(self):
         self.dir = abspath('%s/%s/after_%s_%s' % (
@@ -125,9 +125,9 @@ class Commands(object):
                 self.prep_job()
         self.register_command()
 
-    def show_messages(self):
+    def show_messages(self, log):
         for message in self.soft.messages:
-            print('[%s] %s' % (self.soft.name, message))
+            log.info('[%s] %s' % (self.soft.name, message))
 
     def update_dirs(self):
         self.soft.dirs.update(set([x.replace('${SCRATCH_FOLDER}/', '/')
