@@ -99,6 +99,12 @@ from metagenomix import __version__
     "--cleanup/--no-cleanup", default=False, show_default=True,
     help="Whether to cleanup the TMPDIR and SCRATCH_FOLDER (specific to NRIS)")
 @click.option(
+    "--config-email/--no-config-email", default=False, show_default=True,
+    help="Show current email and/or edit it")
+@click.option(
+    "--config-scratch/--no-config-scratch", default=False,
+    show_default=True, help="Show current scratch folders and/or edit them")
+@click.option(
     "--dev/--no-dev", default=False, show_default=True,
     help="For development...")
 @click.version_option(__version__, prog_name="metagenomix")
@@ -133,6 +139,8 @@ def create(
         purge_pfams,
         verbose,
         cleanup,
+        config_email,
+        config_scratch,
         dev
 ):
     """Write jobs for your pipeline configuration."""
@@ -166,5 +174,7 @@ def create(
         purge_pfams=purge_pfams,
         verbose=verbose,
         cleanup=cleanup,
+        config_email=config_email,
+        config_scratch=config_scratch,
         dev=dev
     )
