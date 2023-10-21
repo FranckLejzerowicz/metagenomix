@@ -49,18 +49,19 @@ class ReferenceDatabases(object):
         self.gtdb = {}
         self.wol = {}
 
-    def run(self) -> None:
+    def run(self, logging) -> None:
         self.get_formats()
         self.check_path()
-        self.check_no_default()
-        self.check_params_dbs()
+        self.check_no_default(logging)
+        self.check_params_dbs(logging)
         if len(self.config.databases):
-            print('  * Found databases config "%s"' % self.config.databases_yml)
+            config_path = self.config.databases_yml
+            logging.info('  * Found databases config "%s"' % config_path)
             self.get_length()
             self.print_formats()
             self.set_databases()
         else:
-            print('  * No database passed to option `-d`')
+            logging.info('  * No database passed to option `-d`')
 
     def get_formats(self):
         """
@@ -99,12 +100,12 @@ class ReferenceDatabases(object):
             if path[0] != '/':
                 sys.exit('[databases] Path to "%s" not absolute' % db)
 
-    def check_no_default(self):
+    def check_no_default(self, log):
         if 'default' in self.config.databases:
-            print('[databases] Database name "default" not allowed (ignored)')
+            log.info('[database] Database name "default" not allowed (ignored)')
             del self.config.databases['default']
 
-    def check_params_dbs(self):
+    def check_params_dbs(self, log):
         config_dbs = set(self.config.databases)
         tool_dbs = ['metaxa2']
         params_dbs = set([z for x, y in self.config.params_dbs.items()
@@ -112,10 +113,10 @@ class ReferenceDatabases(object):
         missing_dbs = params_dbs.difference(config_dbs)
         missing_dbs.discard('default')
         if missing_dbs:
-            print('[databases] %s databases not in "%s" (ignored):' % (
+            log.info('[databases] %s databases not in "%s" (ignored):' % (
                     len(missing_dbs), self.config.databases_yml))
             for ddx, db in enumerate(sorted(missing_dbs)):
-                print('[databases]  - %s\t: %s' % (ddx, db))
+                log.info('[databases]  - %s\t: %s' % (ddx, db))
 
     def get_length(self):
         for db, path in sorted(self.config.databases.items()):
