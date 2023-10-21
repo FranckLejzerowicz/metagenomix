@@ -45,19 +45,33 @@ class AnalysesConfig(object):
 
     def run(self):
         self.check_xhpc_install()
+        print(1)
         self.get_conda_envs()
+        print(2)
         self.set_metadata()
+        print(3)
         self.get_tools()
+        print(4)
         self.get_techs()
+        print(5)
         self.set_fastqs()
+        print(6)
         self.show_fastqs()
+        print(7)
         self.get_r()
+        print(8)
         self.set_output()
+        print(9)
         self.parse_yamls()
+        print(10)
         self.get_params_dbs()
+        print(11)
         self.set_coassembly()
+        print(12)
         self.update_metadata()
+        print(13)
         self.get_default_params()
+        print(14)
 
     def check_xhpc_install(self):
         """Try to get the install path of third party tool
