@@ -7,6 +7,7 @@
 # ----------------------------------------------------------------------------
 
 import sys
+
 from metagenomix.core.pipeline import Workflow
 from metagenomix.core.config import AnalysesConfig
 from metagenomix.core.databases import ReferenceDatabases
@@ -27,36 +28,36 @@ def metagenomix(**kwargs) -> tuple:
         Class instances for pipeline configuration, databases, workflow,
         and commands
     """
-
+    logging = kwargs['logging']
     # Parse the command line arguments and validate computing environment
     config = AnalysesConfig(**kwargs)
-    print('* Reading configurations')
-    config.run()
+    logging.info('* Reading configurations')
+    config.run(logging)
 
     # Validate and get commands to set up the passed databases if need be
     databases = ReferenceDatabases(config)
-    print('* Checking databases')
-    databases.run()
+    logging.info('* Checking databases')
+    databases.run(logging)
 
     # Read and validate the workflow of softwares to run as a pipeline
     workflow = Workflow(config, databases)
-    print('* Checking pipeline')
+    logging.info('* Checking pipeline')
     workflow.visit()
-    print('* Setting up pipeline graph')
+    logging.info('* Setting up pipeline graph')
     workflow.setup()
-    print('* Checking parameters')
+    logging.info('* Checking parameters')
     workflow.parametrize()
-    print('* Preparing workflow')
+    logging.info('* Preparing workflow')
     workflow.prepare()
 
     if config.show_params:
-        workflow.show_params()
+        workflow.show_params(logging)
         sys.exit('Do not use "-s"/"--show-params" to proceed with create')
 
     # Collect command line and workflow of softwares to run as a pipeline
     commands = Commands(config, databases, workflow)
-    print('* Collecting command lines')
-    commands.collect()
+    logging.info('* Collecting command lines')
+    commands.collect(logging)
 
     instances = (config, databases, workflow, commands)
     return instances
