@@ -911,3 +911,25 @@ def get_techs(tech: str):
     if tech.startswith('hybrid'):
         techs = tech[8:].split('_')
     return techs
+
+
+def get_first_line(path: str) -> str:
+    """Get the first line of a file.
+
+    Parameters
+    ----------
+    path : str
+        Path to a file
+
+    Returns
+    -------
+    ret: str
+        First line of the file
+    """
+    ret = ""
+    with open(path) as f:
+        for line in f:
+            ret = line.strip()
+            break
+    return ret
+
