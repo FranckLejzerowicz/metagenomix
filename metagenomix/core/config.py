@@ -6,14 +6,14 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-import os
 import re
 import sys
 import subprocess
 import pkg_resources
-from os.path import abspath, basename, isdir, isfile, splitext
+from os.path import abspath, basename, isdir, splitext
 from metagenomix._io_utils import read_yaml, get_fastq_files, get_fastq_paths
 from metagenomix._metadata import read_metadata
+from metagenomix._hpc import *
 import pandas as pd
 import numpy as np
 
@@ -38,55 +38,81 @@ class AnalysesConfig(object):
         self.params_dbs = {}
         self.read = []
         self.dir = ''
+        self.email = ''
+        self.home = '%s/.metagenomix' % os.environ['HOME']
+        self.scratchs = {'scratch': '', 'userscratch': ''}
+        self.directives = {'shebang': '#!/bin/bash'}
         self.r = {}
         # self.cazy_focus_dbs = {}  <---- see databases "self.cazys"
         self.instrain = {'refs': {}, 'bams': {}}
         self.merge = {'midas2'}
 
-    def run(self):
-        self.check_xhpc_install()
-        print(1)
+    def run(self, logging):
+        self.set_config_dir(logging)
+        self.set_config_email(logging)
+        self.set_config_scratches(logging)
+        self.get_directives()
         self.get_conda_envs()
-        print(2)
         self.set_metadata()
-        print(3)
         self.get_tools()
-        print(4)
         self.get_techs()
-        print(5)
         self.set_fastqs()
-        print(6)
-        self.show_fastqs()
-        print(7)
+        self.show_fastqs(logging)
         self.get_r()
-        print(8)
         self.set_output()
-        print(9)
         self.parse_yamls()
-        print(10)
         self.get_params_dbs()
-        print(11)
         self.set_coassembly()
-        print(12)
         self.update_metadata()
-        print(13)
         self.get_default_params()
-        print(14)
 
-    def check_xhpc_install(self):
-        """Try to get the install path of third party tool
-        [Xhpc](https://github.com/FranckLejzerowicz/Xhpc).
-            If it exists, nothing happens and the code proceeds.
-            Otherwise, the code ends and tells what to do.
+    def set_config_dir(self, log):
+        if not isdir(self.home):
+            log.info('Seems like this is your first use of metagenomix')
+            os.makedirs(self.home)
+
+    def set_config_email(self, log):
+        email_fp = '%s/email.txt' % self.home
+        if isfile(email_fp):
+            email = edit_config(self, log, email_fp)
+        else:
+            email = create_config(log, email_fp)
+        self.email = email
+
+    def set_config_scratches(self, log) -> None:
         """
-        if self.jobs and self.command == 'create':
-            ret, _ = subprocess.getstatusoutput('which Xhpc')
-            if ret:
-                raise IOError('Xhpc not installed')
+        Collect the scratch folder paths from the scratch config file.
+        """
+        for scratch in ['scratch', 'userscratch']:
+            scratch_fp = '%s/%s.txt' % (self.home, scratch)
+            if isfile(scratch_fp):
+                scratch_path = edit_scratch(self, log, scratch_fp, scratch)
             else:
-                xpbs_config = subprocess.getoutput('Xhpc --show-config')
-                if not xpbs_config.startswith('* email address config file'):
-                    raise IOError('Need to run Xhpc to setup config file')
+                scratch_path = create_scratch(self, log, scratch_fp, scratch)
+            self.scratchs[scratch] = scratch_path
+
+    def get_directives(self) -> None:
+        """Collect all the directives for the Torque or Slurm job.
+        This results in extending the `args` dictionary with the "directives"
+        key, pointing to the list of job directives.
+
+        Parameters
+        ----------
+        self
+            All config attributes
+        """
+        for set_directive in (
+            set_environment,
+            set_account,
+            set_partition,
+            set_job,
+            set_localscratch,
+            set_email,
+            set_stdout_stderr,
+            set_time,
+            set_memory
+        ):
+            set_directive(self)
 
     def get_conda_envs(self):
         """Get the names of the conda environments."""
@@ -217,19 +243,20 @@ class AnalysesConfig(object):
         if not sum([len(y) for _, x in self.fastq.items() for y in x.values()]):
             sys.exit('Input fastq folder(s) do not exist')
 
-    def show_fastqs(self):
+    def show_fastqs(self, log):
         if self.verbose:
             max_sam_len = max([len(x) for x in self.fastq])
-            print('\n========\n Inputs\n========\n')
-            print('sample%s %s' % (' '*(max_sam_len - 6), ' '.join(self.techs)))
+            log.info('\n========\n Inputs\n========\n')
+            log.info('sample%s %s' % (' '*(max_sam_len - 6),
+                                      ' '.join(self.techs)))
             for sam in self.fastq:
-                print('%s%s' % (sam, ' '*(max_sam_len - len(sam))), end='')
+                log.info('%s%s' % (sam, ' '*(max_sam_len - len(sam))), end='')
                 for tech in self.techs:
                     n = 0
                     if self.fastq[sam].get((tech, sam)):
                         n = len(self.fastq[sam][(tech, sam)])
-                    print(' %s%s' % (n, ' '*(len(tech) - len(str(n)))), end='')
-                print()
+                    log.info(' %s%s' % (n, ' '*(len(tech)-len(str(n)))), end='')
+                log.info()
 
     def get_r(self):
         self.r = {}
