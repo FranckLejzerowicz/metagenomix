@@ -909,13 +909,13 @@ def woltka_tax(
         cur_cmd += ' -i %s' % map
         cur_cmd += ' --map %s' % taxid
 
-        if params['nodes']:
-            cur_cmd += ' --nodes %s' % params['nodes']
+        if params['nodes_dmp']:
+            cur_cmd += ' --nodes %s' % params['nodes_dmp']
         else:
             cur_cmd += ' --nodes %s' % nodes
 
-        if params['names']:
-            cur_cmd += ' --names %s' % params['names']
+        if params['names_dmp']:
+            cur_cmd += ' --names %s' % params['names_dmp']
         else:
             cur_cmd += ' --names %s' % names
 
