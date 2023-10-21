@@ -125,13 +125,13 @@ def get_inputs_to_show(self) -> tuple:
     return inputs, techs, sams, col
 
 
-def show_inputs(self):
+def show_inputs(self, log):
     if self.config.verbose:
         inputs, techs, sams, c = get_inputs_to_show(self)
         mlen = max([len(x) for x in sams])
-        print('\n%s\n[%s] inputs (after %s)\n%s\n' % (
+        log.info('\n%s\n[%s] inputs (after %s)\n%s\n' % (
             ('-' * 30), self.soft.name, self.soft.prev, ('-' * 30)))
-        print('%s%s %s' % (c, ' ' * (mlen-len(c)), ' '.join(techs)))
+        log.info('%s%s %s' % (c, ' ' * (mlen-len(c)), ' '.join(techs)))
         for sam in sams:
             if sam not in inputs:
                 continue
@@ -143,11 +143,11 @@ def show_inputs(self):
                     sep = '%s └─' % sep.rstrip()[:-2]
                 for f in fs:
                     if show_sam:
-                        print('%s %s %s' % (s, sep.strip(), f))
+                        log.info('%s %s %s' % (s, sep.strip(), f))
                         show_sam = False
                     else:
-                        print('%s %s %s' % ((' ' * len(s)), sep.strip(), f))
-            print()
+                        log.info('%s %s %s' % ((' ' * len(s)), sep.strip(), f))
+            log.info()
 
 
 def get_post_prot_dir(
