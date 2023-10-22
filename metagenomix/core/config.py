@@ -88,7 +88,7 @@ class AnalysesConfig(object):
             if isfile(scratch_fp):
                 scratch_path = edit_scratch(self, log, scratch_fp, scratch)
             else:
-                scratch_path = create_scratch(self, log, scratch_fp, scratch)
+                scratch_path = create_scratch(self, scratch_fp, scratch)
             self.scratchs[scratch] = scratch_path
 
     def get_directives(self) -> None:
