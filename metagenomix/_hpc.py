@@ -411,6 +411,4 @@ def set_localscratch(self) -> None:
     """
     self.directives['localscratch'] = None
     if not self.torque and self.localscratch:
-        localscratch = '#SBATCH --gres=localscratch:'
-        self.directives['localscratch'] = localscratch
-        # args['localscratch'] = '/localscratch'
+        self.directives['localscratch'] = self.localscratch

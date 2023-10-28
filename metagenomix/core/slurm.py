@@ -168,8 +168,11 @@ def set_directives(self, params) -> list:
     else:
         dirs.append('%snormal' % d['partition'])
     dirs.append('%s%s' % (d['job'], self.job_name))
-    if d['localscratch']:
-        dirs.append('%s%sG' % (d['localscratch'], str(params['scratch'])))
+    localscratch = '#SBATCH --gres=localscratch:'
+    if isinstance(params['scratch'], int):
+        dirs.append('%s%sG' % (localscratch, params['scratch']))
+    elif d['localscratch']:
+        dirs.append('%s%sG' % (localscratch, d['localscratch']))
     dirs.append(d['email'])
     dirs.append(d['oe'])
     dirs.append('%s%s:00:00' % (d['time'], params['time']))

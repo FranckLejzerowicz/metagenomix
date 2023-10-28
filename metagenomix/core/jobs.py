@@ -11,7 +11,6 @@ import yaml
 import glob
 import shutil
 import random
-import subprocess
 import pkg_resources
 import numpy as np
 import datetime as dt
