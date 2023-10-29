@@ -1070,7 +1070,7 @@ def binning(self):
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
-            io_update(self, i_f=([contigs] + fastqs), i_d=tmp,
+            io_update(self, i_f=([contigs] + fastqs), i_d=[out, tmp],
                       o_f=bin_dirs, key=key)
             self.soft.add_status(tech, self.sam_pool, 1, group=group)
         else:
