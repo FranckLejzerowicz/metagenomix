@@ -270,7 +270,7 @@ def macsyfinder_cmd(
         cmd = cmd_header + cmd + cmd_rm
         cmd += 'tar cpf %s/hmmer_results.tar -C %s hmmer_results\n' % (
                model_out_dir, model_out_dir)
-        cmd += 'rm %s/hmmer_results\n' % model_out_dir
+        cmd += 'rm -rf %s/hmmer_results\n' % model_out_dir
         cmd += 'for i in %s/*; do gzip -q $i; done\n' % model_out_dir
     return cmd, outs
 
