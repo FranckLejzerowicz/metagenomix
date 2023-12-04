@@ -7,7 +7,7 @@
 # ----------------------------------------------------------------------------
 
 import os
-from os.path import isfile
+from os.path import isdir
 from metagenomix._io_utils import get_first_line
 
 
@@ -131,7 +131,7 @@ def get_scratch_area(scratch: str, default: str) -> str:
     if ret == 'y':
         scratch_folder = default
     else:
-        if not isfile(ret):
+        if not isdir(ret):
             raise IOError('Enter a valid "%s" folder path...' % scratch)
         scratch_folder = ret
     return scratch_folder
