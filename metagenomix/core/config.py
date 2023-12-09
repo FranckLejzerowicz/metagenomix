@@ -10,7 +10,7 @@ import re
 import sys
 import subprocess
 import pkg_resources
-from os.path import abspath, basename, isdir, splitext
+from os.path import abspath, basename, isfile, splitext
 from metagenomix._io_utils import read_yaml, get_fastq_files, get_fastq_paths
 from metagenomix._metadata import read_metadata
 from metagenomix._hpc import *
