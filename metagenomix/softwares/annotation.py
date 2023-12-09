@@ -268,11 +268,12 @@ def macsyfinder_cmd(
                 tech, self.sam_pool, 0, group=sam_group, genome=genome)
     if cmd:
         cmd = cmd_header + cmd + cmd_rm
-        cmd += 'for i in %s/*; do\n' % out_dir
-        cmd += '    tar cpf $i/hmmer_results.tar -C $i hmmer_results\n'
-        cmd += '    gzip -q $i/*\n'
-        cmd += 'done\n'
-        cmd += 'rm -rf %s/*/hmmer_results\n' % out_dir
+
+        cmd += 'for i in %s/*; do' % out_dir
+        cmd += ' tar cpfz $i/hmmer_results.tar.gz -C $i hmmer_results;\n'
+        cmd += ' rm -rf $i/hmmer_results;\n'
+        cmd += ' done\n'
+        cmd += 'for i in %s/*/*; do gzip -q $i; done\n' % out_dir
     return cmd, outs
 
 
