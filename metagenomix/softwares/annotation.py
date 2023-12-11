@@ -2841,6 +2841,161 @@ def size(self):
             get_size(self, tech, folders, group)
 
 
+def flanker_cmd(
+        self,
+        fasta: str,
+        out_dir: str
+) -> str:
+    """Collect the command line for flanker.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .soft.params : dict
+            Parameters
+        .soft.prev : str
+            Previous software
+    fasta : str
+        Path to the input genome fasta file
+    out_dir : str
+        Path to the output file
+
+    Returns
+    -------
+    cmd : str
+        flanker command
+    """
+    cmd, cmd_rm = '', ''
+    if fasta.endswith('.fa.gz') or fasta.endswith('.fasta.gz'):
+        cmd += 'gunzip -c %s > %s\n' % (fasta, fasta.rstrip('.gz'))
+        cmd_rm += 'rm %s\n' % fasta.rstrip('.gz')
+        fasta = fasta.rstrip('.gz')
+
+    cmd += '\ncd %s' % out_dir
+
+    cmd += '\nflanker'
+    cmd += ' --fasta_file %s\n' % fasta
+    cmd += ' --p %s' % self.soft.params['cpus']
+    for boolean in ['closest_match', 'circ', 'include_gene', 'cluster']:
+        if self.soft.params[boolean]:
+            cmd += ' --%s' % boolean.replace('_', '-')
+    cmd += ' --database %s' % self.soft.params['database']
+    for param in ['flank', 'mode']:
+        cmd += ' --%s %s' % (param, self.soft.params[param])
+    for param in ['flank', 'mode']:
+        cmd += ' --%s %s' % (param, self.soft.params[param])
+    for param in ['verbose', 'window', 'window_stop', 'window_step',
+                  'threshold', 'kmer_length', 'sketch_size']:
+        if param.startswith('window_') and self.soft.params[param] == 0:
+            continue
+        cmd += ' --%s %s' % (param, self.soft.params[param])
+    if self.soft.params['list_of_genes']:
+        cmd += ' --list_of_genes %s' % self.soft.params['list_of_genes']
+    elif self.soft.params['gene']:
+        cmd += ' --gene %s' % ' '.join(self.soft.params['gene'])
+    cmd += ' --outfile flanked'
+
+    cmd += 'tar cpfz %s/out.tar.gz -C %s flanked*\n' % (out_dir, out_dir)
+    cmd += 'rm %s/flanked*\n' % out_dir
+    cmd += cmd_rm
+    return cmd
+
+
+def get_flanker(
+        self,
+        fastas: dict,
+        tech: str,
+        sam_group: str
+) -> None:
+    """
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .outputs : dict
+            All outputs
+        .soft.params
+            Parameters
+        .config
+            Configurations
+    fastas : dict
+        Paths to the input fasta files per genome/MAG
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    sam_group : str
+        Sample name or name of a co-assembly pool's group
+    """
+    for genome, dirs in fastas.items():
+
+        fasta = dirs[0]
+        out_dir = genome_out_dir(self, tech, sam_group, genome)
+        self.outputs['dirs'].append(out_dir)
+        self.outputs['outs'].setdefault((tech, sam_group), []).append(
+            out_dir)
+        key = genome_key(tech, sam_group, genome)
+        to_dos = status_update(
+            self, tech, [fasta], group=sam_group, genome=genome)
+        out_fp = '%s/out.tar.gz' % out_dir
+        if self.config.force or to_do(out_fp):
+            cmd = flanker_cmd(self, fasta, out_dir)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
+            io_update(self, i_f=fasta, o_d=out_dir, o_f=out_fp, key=key)
+            self.soft.add_status(
+                tech, self.sam_pool, 1, group=sam_group, genome=genome)
+        else:
+            self.soft.add_status(
+                tech, self.sam_pool, 0, group=sam_group, genome=genome)
+
+
+def flanker(self) -> None:
+    """Flanker is a tool for studying the homology of gene-flanking
+    sequences. It will annotate FASTA/multi-FASTA files for specified genes,
+    then write the flanking sequences to new FASTA files. There is also an
+    optional step to cluster the flanks by sequence identity.
+
+    References
+    ----------
+    Matlock W, Lipworth S, Constantinides B, Peto TEA, Walker AS, Crook D,
+    Hopkins S, Shaw LP, Stoesser N. Flanker: a tool for comparative genomics
+    of gene flanking regions. Microbial Genomics. 2021.
+
+    Notes
+    -----
+    GitHub  : https://github.com/wtmatlock/flanker
+    Docs    : https://flanker.readthedocs.io/en/latest/
+    Paper   : https://doi.org/10.1099/mgen.0.000634
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder for flanker
+        .pool : str
+            Co-assembly pool name
+        .inputs : dict
+            Input files
+        .outputs : dict
+            All outputs
+        .soft.params : dict
+            Parameters
+        .soft.prev : str
+            Previous software
+        .config
+            Configurations
+    """
+    if self.sam_pool in self.pools:
+        for (tech, group), inputs in self.inputs[self.sam_pool].items():
+            fastas = group_inputs(self, inputs)
+            get_flanker(self, fastas, tech, group)
+    else:
+        tech_fastas = sample_inputs(self, ['pacbio', 'nanopore'])
+        for tech, fastas in tech_fastas.items():
+            get_flanker(self, fastas, tech, self.sam_pool)
+
+
 def metaclade2(self):
     """Novel profile-based domain annotation pipeline based on the multi-source
     domain annotation strategy. It provides a domain annotation realised

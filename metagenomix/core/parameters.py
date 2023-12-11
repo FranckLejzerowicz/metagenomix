@@ -4236,7 +4236,6 @@ def check_divissr(self, params):
             'comp_dist', 'up_promoter', 'down_promoter']
     check_nums(self, params, defaults, ints, int)
     check_default(self, params, defaults, ints)
-    defaults[''] = '<>'
     return defaults
 
 
@@ -4426,38 +4425,92 @@ def check_metadmg(self, params):
     return defaults
 
 
-# def check_skani(self, params, soft):
+def check_flanker(self, params):
+    defaults = {
+        'database': ['ncbi', 'argannot', 'card', 'ecoh', 'ecoli_vf', 'megares',
+                     'plasmidfinder', 'resfinder', 'vfdb'],
+        'closest_match': [False, True],
+        'flank': ['both', 'upstream', 'downstream'],
+        'mode': ['default', 'mm', 'sm'],
+        'circ': [False, True],
+        'include_gene': [False, True],
+        'verbose': 0,
+        'window': 1000,
+        'window_stop': 0,
+        'window_step': 0,
+        'cluster': [False, True],
+        'threshold': 0.001,
+        'kmer_length': 21,
+        'sketch_size': 1000,
+    }
+    int1 = ['verbose']
+    check_nums(self, params, defaults, int1, int, 0, 2)
+    int2 = ['window', 'window_stop', 'window_step',
+            'kmer_length', 'sketch_size']
+    check_nums(self, params, defaults, int2, int)
+    floats = ['threshold']
+    check_nums(self, params, defaults, floats, float, 0, 1)
+    check_default(self, params, defaults, (int1 + int2 + floats))
+    defaults[''] = '<>'
+    return defaults
+
+
+# def check_skani(self, params):
 #     defaults = {
 #     }
 #     ints = []
-#     check_nums(self, params, defaults, ints, int, soft.name)
+#     check_nums(self, params, defaults, ints, int)
 #     floats = []
-#     check_nums(self, params, defaults, floats, float, soft.name)
-#     check_default(self, params, defaults, soft.name, (ints + floats))
+#     check_nums(self, params, defaults, floats, float)
+#     check_default(self, params, defaults, (ints + floats))
 #     defaults[''] = '<>'
 #     return defaults
 
 
-# def check_ToolName(self, params, soft):
+# def check_skani(self, params):
 #     defaults = {
 #     }
 #     ints = []
-#     check_nums(self, params, defaults, ints, int, soft.name)
+#     check_nums(self, params, defaults, ints, int)
 #     floats = []
-#     check_nums(self, params, defaults, floats, float, soft.name)
-#     check_default(self, params, defaults, soft.name, (ints + floats))
+#     check_nums(self, params, defaults, floats, float)
+#     check_default(self, params, defaults, (ints + floats))
 #     defaults[''] = '<>'
 #     return defaults
 
 
-# def check_ToolName(self, params, soft):
+# def check_skani(self, params):
 #     defaults = {
 #     }
 #     ints = []
-#     check_nums(self, params, defaults, ints, int, soft.name)
+#     check_nums(self, params, defaults, ints, int)
 #     floats = []
-#     check_nums(self, params, defaults, floats, float, soft.name)
-#     check_default(self, params, defaults, soft.name, (ints + floats))
+#     check_nums(self, params, defaults, floats, float)
+#     check_default(self, params, defaults, (ints + floats))
+#     defaults[''] = '<>'
+#     return defaults
+
+
+# def check_skani(self, params):
+#     defaults = {
+#     }
+#     ints = []
+#     check_nums(self, params, defaults, ints, int)
+#     floats = []
+#     check_nums(self, params, defaults, floats, float)
+#     check_default(self, params, defaults, (ints + floats))
+#     defaults[''] = '<>'
+#     return defaults
+
+
+# def check_skani(self, params):
+#     defaults = {
+#     }
+#     ints = []
+#     check_nums(self, params, defaults, ints, int)
+#     floats = []
+#     check_nums(self, params, defaults, floats, float)
+#     check_default(self, params, defaults, (ints + floats))
 #     defaults[''] = '<>'
 #     return defaults
 
