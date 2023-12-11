@@ -38,3 +38,8 @@ class Graph(object):
         # Remove current vertex from path and mark it as unvisited
         path.pop()
         visited[u] = False
+
+    def print_paths(self, s, d):
+        visited = [False] * self.V
+        path = []
+        self.print_paths_util(s, d, visited, path)
