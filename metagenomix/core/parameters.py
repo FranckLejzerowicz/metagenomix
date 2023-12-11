@@ -4443,6 +4443,10 @@ def check_flanker(self, params):
         'kmer_length': 21,
         'sketch_size': 1000,
     }
+    if 'gene' not in params:
+        params['gene'] = []
+    if 'list_of_genes' not in params:
+        params['list_of_genes'] = ''
     int1 = ['verbose']
     check_nums(self, params, defaults, int1, int, 0, 2)
     int2 = ['window', 'window_stop', 'window_step',
