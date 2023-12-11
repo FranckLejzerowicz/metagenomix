@@ -2882,8 +2882,6 @@ def flanker_cmd(
     cmd += ' --database %s' % self.soft.params['database']
     for param in ['flank', 'mode']:
         cmd += ' --%s %s' % (param, self.soft.params[param])
-    for param in ['flank', 'mode']:
-        cmd += ' --%s %s' % (param, self.soft.params[param])
     for param in ['verbose', 'window', 'window_stop', 'window_step',
                   'threshold', 'kmer_length', 'sketch_size']:
         if param.startswith('window_') and self.soft.params[param] == 0:
