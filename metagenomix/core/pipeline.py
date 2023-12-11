@@ -111,8 +111,8 @@ class Workflow(object):
         Collect all the paths of their sequences in the
         object `self.graph.paths`.
         """
-        # for soft in self.names[1:]:
-        #     self.graph.print_paths(0, self.names_idx[soft])
+        for soft in self.names[1:]:
+            self.graph.print_paths(0, self.names_idx[soft])
         self.graph.paths = {self.names_idx_rev[idx]: [
             [self.names_idx_rev[p] for p in path] for path in paths]
             for idx, paths in self.graph.paths.items()}
