@@ -4451,7 +4451,8 @@ def check_flanker(self, params):
     floats = ['threshold']
     check_nums(self, params, defaults, floats, float, 0, 1)
     check_default(self, params, defaults, (int1 + int2 + floats))
-    defaults[''] = '<>'
+    defaults['gene'] = '<List of genes to target in the abricate db>'
+    defaults['list_of_genes'] = '<File of genes to target in the abricate db>'
     return defaults
 
 
