@@ -68,6 +68,7 @@ class Workflow(object):
         self.get_names_idx()
         self.make_graph()
         self.get_paths()
+        # self.sort_paths()
         self.show_graph()
 
     def collect_step_names(self, step: list) -> None:
@@ -110,11 +111,30 @@ class Workflow(object):
         Collect all the paths of their sequences in the
         object `self.graph.paths`.
         """
-        for soft in self.names[1:]:
-            self.graph.print_paths(0, self.names_idx[soft])
+        # for soft in self.names[1:]:
+        #     self.graph.print_paths(0, self.names_idx[soft])
         self.graph.paths = {self.names_idx_rev[idx]: [
             [self.names_idx_rev[p] for p in path] for path in paths]
             for idx, paths in self.graph.paths.items()}
+
+    def sort_paths(self) -> None:
+        """
+        Collect all the paths of their sequences in the
+        object `self.graph.paths`.
+        """
+        ordered_paths = []
+        prev_paths = {('None',)}
+        for name, paths in self.graph.paths.items():
+            # print()
+            # print(name)
+            for path in paths:
+                # print("path:", path)
+                prev_path = tuple(path[:-1])
+                # print("prev_path:", prev_path)
+                # print("prev_paths:", prev_paths)
+                # if prev_path not in prev_paths:
+                #     print(dkfjjkfdb)
+                prev_paths.add(tuple(path))
 
     def show_graph(self):
         # if self.config.verbose:
@@ -199,16 +219,16 @@ class Workflow(object):
             params = params_show
         return params
 
-    def print_params(self):
+    def print_params(self, log):
         params_show = dict(x for x in self.params[self.name].items())
         if params_show:
             x = '=' * (13 + len(self.name))
-            print('\n%s\n[%s] Parameters\n%s' % (x, self.name, x))
+            log.info('\n%s\n[%s] Parameters\n%s' % (x, self.name, x))
             params = self.get_params_dict(self.name, params_show)
-            print(yaml.dump(params))
-            print('%s defaults %s' % ('-' * 10, '-' * 10))
-            print(yaml.dump(self.defaults[self.name]))
-            print('=' * 30)
+            log.info(yaml.dump(params))
+            log.info('%s defaults %s' % ('-' * 10, '-' * 10))
+            log.info(yaml.dump(self.defaults[self.name]))
+            log.info('=' * 30)
 
     def write_params(self):
         params_show = dict(x for x in self.params[self.name].items())
@@ -231,15 +251,15 @@ class Workflow(object):
             self.set_user_params()
             # self.write_params()
 
-    def show_params(self) -> None:
+    def show_params(self, log) -> None:
         print('* Showing parameters (user-defined and defaults):')
         for _, soft in self.softs.items():
             if 'all' in self.config.show_params:
-                self.print_params(soft)
+                self.print_params(log)
             else:
                 for s in self.config.show_params:
                     if re.search(s, soft.name):
-                        self.print_params(soft)
+                        self.print_params(log)
                         break
 
     def prepare(self) -> None:
