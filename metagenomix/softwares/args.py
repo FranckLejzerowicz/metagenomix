@@ -1278,7 +1278,7 @@ def abritamr_cmd(
     # cmd += ' --sop_name %s\n'
 
     cmd += 'gzip -q *.txt\n'
-    cmd += 'gzip -q */amrfinder.out\n'
+    cmd += 'for i in %s/*/amrfinder.out; do gzip -q $i; done\n' % out_dir
     cmd += cmd_rm
     return contig_paths, cmd
 

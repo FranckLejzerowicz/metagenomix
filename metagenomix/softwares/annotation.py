@@ -2874,7 +2874,7 @@ def flanker_cmd(
     cmd += '\ncd %s' % out_dir
 
     cmd += '\nflanker'
-    cmd += ' --fasta_file %s\n' % fasta
+    cmd += ' --fasta_file %s' % fasta
     cmd += ' --p %s' % self.soft.params['cpus']
     for boolean in ['closest_match', 'circ', 'include_gene', 'cluster']:
         if self.soft.params[boolean]:
@@ -2891,7 +2891,7 @@ def flanker_cmd(
         cmd += ' --list_of_genes %s' % self.soft.params['list_of_genes']
     elif self.soft.params['gene']:
         cmd += ' --gene %s' % ' '.join(self.soft.params['gene'])
-    cmd += ' --outfile flanked'
+    cmd += ' --outfile flanked\n'
 
     cmd += 'tar cpfz %s/out.tar.gz -C %s flanked*\n' % (out_dir, out_dir)
     cmd += 'rm %s/flanked*\n' % out_dir
