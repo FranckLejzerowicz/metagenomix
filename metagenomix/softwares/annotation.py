@@ -2890,7 +2890,7 @@ def flanker_cmd(
     if self.soft.params['list_of_genes']:
         cmd += ' --list_of_genes %s' % self.soft.params['list_of_genes']
     elif self.soft.params['gene']:
-        cmd += ' --gene %s' % ' '.join(self.soft.params['gene'])
+        cmd += ' --gene "%s"' % '" "'.join(self.soft.params['gene'])
     cmd += ' --outfile flanked\n'
 
     cmd += 'tar cpfz %s/out.tar.gz -C %s flanked*\n' % (out_dir, out_dir)
