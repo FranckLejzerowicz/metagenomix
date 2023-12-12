@@ -2875,10 +2875,10 @@ def flanker_cmd(
 
     cmd += '\nflanker'
     cmd += ' --fasta_file %s' % fasta
-    cmd += ' --p %s' % self.soft.params['cpus']
+    cmd += ' --threads %s' % self.soft.params['cpus']
     for boolean in ['closest_match', 'circ', 'include_gene', 'cluster']:
         if self.soft.params[boolean]:
-            cmd += ' --%s' % boolean.replace('_', '-')
+            cmd += ' --%s' % boolean
     cmd += ' --database %s' % self.soft.params['database']
     for param in ['flank', 'mode']:
         cmd += ' --%s %s' % (param, self.soft.params[param])
