@@ -2576,6 +2576,7 @@ def kmerssr_cmd(
             cmd += ' -%s' % boolean
     cmd += ' -t %s\n' % params['cpus']
     cmd += cmd_rm
+    cmd += 'gzip -q %s\n' % out
     return cmd
 
 
@@ -2615,7 +2616,7 @@ def get_kmerssr(
         params = tech_params(self, tech)
         for fasta in inputs:
             out = '%s/output.tsv' % out_dir
-            if self.config.force or to_do(out):
+            if self.config.force or to_do('%s.gz' % out):
                 cmd = kmerssr_cmd(fasta, params, out)
                 key = genome_key(tech, group, genome)
                 if to_dos:
