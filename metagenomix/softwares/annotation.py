@@ -1032,6 +1032,10 @@ def prokka_cmd(
         cmd_rm += 'rm %s\n' % contigs.rstrip('.gz')
 
     cmd += 'prokka'
+    if contigs.endswith('.gz'):
+        cmd += ' %s' % contigs.rstrip('.gz')
+    else:
+        cmd += ' %s' % contigs
     cmd += ' --mincontiglen %s' % self.soft.params['mincontiglen']
     cmd += ' --cpus %s' % self.soft.params['cpus']
     for boolean in [
@@ -1054,16 +1058,12 @@ def prokka_cmd(
         if col and config[col]:
             cmd += ' --%s %s' % (col, config[col])
     cmd += ' --prefix %s' % prefix
-    cmd += ' --outdir %s' % out_dir
     for param in ['centre', 'gram']:
         if self.soft.params[param]:
             cmd += ' --%s %s' % (param, self.soft.params[param])
     for param in ['gffver', 'accver', 'rfam']:
         cmd += ' --%s %s' % (param, self.soft.params[param])
-    if contigs.endswith('.gz'):
-        cmd += ' %s\n' % contigs.rstrip('.gz')
-    else:
-        cmd += ' %s\n' % contigs
+    cmd += ' --outdir %s\n' % out_dir
     cmd += 'for i in %s/%s*; do gzip -q $i; done\n' % (out_dir, prefix)
     cmd += cmd_rm
     return cmd
