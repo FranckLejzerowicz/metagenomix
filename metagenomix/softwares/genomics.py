@@ -181,7 +181,10 @@ def drep_cmd(
     cmd : str
         dRep dereplicate command
     """
-    cmd = 'dRep dereplicate'
+    cmd = ''
+    if self.soft.params['fastANI']:
+        cmd += 'export PATH=$PATH:%s' % self.soft.params['fastANI']
+    cmd += 'dRep dereplicate'
     cmd += ' %s' % drep_out
     cmd += ' --S_algorithm %s' % algorithm
     cmd += ' --ignoreGenomeQuality'
@@ -968,9 +971,10 @@ def get_cov(
         Path to the coverage output file
     """
     cov = None
-    if self.soft.params['coverage'] and 'checkm_coverage' in self.softs:
-        cov_soft = self.softs['checkm_coverage']
-        run_on = (cov_soft.prev not in self.graph.paths[self.soft.name][0])
+    name = 'checkm_coverage'
+    if self.soft.params['coverage'] and name in self.softs:
+        cov_soft = self.softs[name][self.hashes[tuple(self.soft.path[:-1])]]
+        run_on = (cov_soft.prev not in self.soft.path)
         if run_on or self.sam_pool not in cov_soft.outputs:
             sys.exit('[%s] Run on "%s" genomes to use coverage"' % (
                 self.soft.name, cov_soft.prev))
