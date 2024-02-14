@@ -6,15 +6,16 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-import glob
 import sys
+import gzip
 import pkg_resources
 from os.path import basename, dirname, isdir, splitext
 
 from metagenomix._inputs import (
     sample_inputs, group_inputs, genome_key, genome_out_dir, get_reads,
     get_group_reads, get_contigs, get_contigs_from_path, get_plasmids, get_args)
-from metagenomix._io_utils import caller, io_update, to_do, status_update
+from metagenomix._io_utils import (
+    caller, io_update, to_do, status_update, rep, zread)
 from metagenomix.core.parameters import tech_params
 
 RESOURCES = pkg_resources.resource_filename("metagenomix", "resources/scripts")
@@ -34,7 +35,7 @@ def prodigal_cmd(
     out : str
         Path to the output folder
     params : dict
-        Paramters
+        Parameters
 
     Returns
     --------
@@ -52,9 +53,12 @@ def prodigal_cmd(
         contig_fa = fasta_fp.replace('fastq.gz', 'fasta')
         cmd += 'seqtk seq -a %s > %s\n' % (fasta_fp, contig_fa)
 
+    prots = '%s/protein.translations.fasta' % out
+    nums = '%s/protein.translations.nums' % out
+
     cmd += 'prodigal'
     cmd += ' -i %s' % contig_fa
-    cmd += ' -a %s/protein.translations.fasta' % out
+    cmd += ' -a %s' % prots
     cmd += ' -d %s/nucleotide.sequences.fasta' % out
     cmd += ' -s %s/potential.starts.fasta' % out
     cmd += ' -o %s/gene.coords.%s' % (out, params['f'])
@@ -63,6 +67,7 @@ def prodigal_cmd(
     for boolean in ['c', 'm', 'n', 'q']:
         if params[boolean]:
             cmd += ' -%s' % params[boolean]
+    cmd += 'grep -c ">" %s > %s\n' % (prots, nums)
     cmd += '\n' + cmd_rm
     cmd += 'for i in %s/*; do gzip -q $i; done\n' % out
     return cmd
@@ -110,7 +115,8 @@ def get_prodigal(
 
         coords = '%s/gene.coords.%s.gz' % (out, params['f'])
         proteins = '%s/protein.translations.fasta.gz' % out
-        if self.config.force or to_do(proteins) or to_do(coords):
+        nums = '%s/protein.translations.nums' % out
+        if self.config.force or to_do(proteins) or to_do(coords) or to_do(nums):
             cmd = prodigal_cmd(fasta[0], out, params)
             self.soft.add_status(
                 tech, self.sam_pool, 1, group=sam_group, genome=genome)
@@ -1844,7 +1850,7 @@ def concat_group_reads(
             if len(fastqs) < 2:
                 continue
             for r in [0, 1]:
-                fastq = fastqs[r].replace('${SCRATCH_FOLDER}', '')
+                fastq = rep(fastqs[r])
                 if fastq.endswith('.gz'):
                     fqs[r].append(fastq)
                 else:
@@ -2168,6 +2174,12 @@ def eggnogmapper_cmd(
     return cmd
 
 
+def get_prodigal_nums(proteins):
+    with gzip.open(rep(proteins.replace('fasta.gz', 'nums.gz'))) as f:
+        for line in f:
+            return int(line.decode())
+
+
 def get_eggnogmapper(
         self,
         tech: str,
@@ -2199,6 +2211,9 @@ def get_eggnogmapper(
         proteins = fasta[0]
         if self.soft.prev == 'prodigal':
             proteins = '%s/protein.translations.fasta.gz' % fasta[0]
+            nums = get_prodigal_nums(proteins)
+            print(nums)
+            print(numsfdsa)
 
         to_dos = status_update(
             self, tech, [proteins], group=sam_group, genome=genome)
@@ -2286,7 +2301,7 @@ def keggcharter_cmd(
     for tb in tables:
 
         cols = []
-        with open(tb.replace('${SCRATCH_FOLDER}', '')) as f:
+        with open(rep(tb)) as f:
             for line in f:
                 cols = line.strip().split('\t')[1:]
                 break
