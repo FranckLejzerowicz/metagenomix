@@ -10,6 +10,7 @@ import os
 import re
 import sys
 import yaml
+import gzip
 import glob
 import hashlib
 import itertools
@@ -207,7 +208,7 @@ def min_nlines(
         Whether the file contains at least one sequence.
     """
     ret = False
-    with open(input_fp.replace('${SCRATCH_FOLDER}', '')) as f:
+    with open(rep(input_fp)) as f:
         for ldx, line in enumerate(f):
             if ldx > 1:
                 ret = True
@@ -354,7 +355,7 @@ def get_to_dos(
             inps = inp
         else:
             inps = [inp]
-        inps = [x.replace('${SCRATCH_FOLDER}', '') for x in inps]
+        inps = [rep(x) for x in inps]
         if folder:
             links = {}
             for inp in inps:
@@ -380,10 +381,9 @@ def inputs_to_scratch(io) -> list:
     if ('I', 'd') in io:
         for folder_ in io[('I', 'd')]:
             folder = folder_.rstrip('/')
-            src = folder_.rstrip('/').replace('${SCRATCH_FOLDER}', '')
+            src = rep(folder_.rstrip('/'))
             mkdirs.add('mkdir -p %s' % folder)
-            rsyncs.add('rsync -lrtvDO %s/ %s' % (src,
-                                                                     folder))
+            rsyncs.add('rsync -lrtvDO %s/ %s' % (src, folder))
     # folders
     if ('O', 'd') in io:
         for folder in io[('O', 'd')]:
@@ -392,7 +392,7 @@ def inputs_to_scratch(io) -> list:
     if ('I', 'f') in io:
         for file in io[('I', 'f')]:
             folder = dirname(file)
-            src = file.replace('${SCRATCH_FOLDER}', '')
+            src = rep(file)
             mkdirs.add('mkdir -p %s' % folder)
             rsyncs.add('rsync -lrtvDO %s %s' % (src, file))
     return sorted(mkdirs) + sorted(rsyncs)
@@ -404,14 +404,14 @@ def outputs_back(io) -> list:
         # folders
         for folder_ in io[('O', 'd')]:
             folder = folder_.rstrip('/')
-            src = folder_.rstrip('/').replace('${SCRATCH_FOLDER}', '')
+            src = rep(folder_.rstrip('/'))
             cmd = 'mkdir -p %s; rsync -lrtvDO %s/ %s' % (src, folder, src)
             cmd = 'if [ -d %s ]; then %s; fi' % (folder, cmd)
             outbound.add(cmd)
     if ('O', 'f') in io:
         # files
         for file in io[('O', 'f')]:
-            src = file.replace('${SCRATCH_FOLDER}', '')
+            src = rep(file)
             folder = dirname(src)
             cmd = 'mkdir -p %s; rsync -lrtvDO %s %s' % (folder, file, src)
             cmd = 'if [ -f %s ]; then %s; fi' % (file, cmd)
@@ -497,10 +497,14 @@ def io_update(
             self.outputs['io'][IO_fd].setdefault(key, set()).add(val)
 
 
+def rep(path: str) -> str:
+    return path.replace('${SCRATCH_FOLDER}', '')
+
+
 def to_do(
         path: str,
 ) -> bool:
-    path = path.replace('${SCRATCH_FOLDER}', '')
+    path = rep(path)
     if isfile(path) or islink(path):
         return False
     if (isdir(path) or islink(path)) and glob.glob('%s/*' % path):
@@ -933,3 +937,11 @@ def get_first_line(path: str) -> str:
             break
     return ret
 
+
+def zread(fp):
+    lines = []
+    with gzip.open(fp) as f:
+        for line in f:
+            l = line.decode()
+            lines.append(l)
+    return lines
