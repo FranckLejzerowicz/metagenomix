@@ -14,6 +14,7 @@ import gzip
 import glob
 import hashlib
 import itertools
+import numpy as np
 import pandas as pd
 from tabulate import tabulate
 from os.path import basename, dirname, isdir, isfile, islink
@@ -499,6 +500,15 @@ def io_update(
 
 def rep(path: str) -> str:
     return path.replace('${SCRATCH_FOLDER}', '')
+
+
+def split_fasta(fasta: str, num: int, n: int) -> str:
+    rs = list(np.linspace(0, num, num=(num//n), dtype=int))
+    cmd = ''
+    for rdx, r in enumerate(rs[:-1]):
+        out = '%s.%s' % (fasta, (rdx+1))
+        cmd += 'seqkit range -r %s:%s -o %s\n' % ((r+1), (rs[rdx+1]), out)
+    return cmd
 
 
 def to_do(

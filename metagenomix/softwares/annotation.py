@@ -8,6 +8,7 @@
 
 import sys
 import gzip
+
 import pkg_resources
 from os.path import basename, dirname, isdir, splitext
 
@@ -15,7 +16,7 @@ from metagenomix._inputs import (
     sample_inputs, group_inputs, genome_key, genome_out_dir, get_reads,
     get_group_reads, get_contigs, get_contigs_from_path, get_plasmids, get_args)
 from metagenomix._io_utils import (
-    caller, io_update, to_do, status_update, rep, zread)
+    caller, io_update, to_do, status_update, rep, zread, split_fasta)
 from metagenomix.core.parameters import tech_params
 
 RESOURCES = pkg_resources.resource_filename("metagenomix", "resources/scripts")
@@ -2042,6 +2043,7 @@ def eggnogmapper_cmd(
         EggNOG-mapper command line
     """
     params = tech_params(self, tech)
+    nums = get_prodigal_nums(proteins)
 
     cmd, cmd_rm = '', ''
     if proteins.endswith('.fa.gz') or proteins.endswith('.fasta.gz'):
@@ -2049,11 +2051,22 @@ def eggnogmapper_cmd(
         cmd_rm += 'rm %s\n' % proteins.rstrip('.gz')
         proteins = proteins.rstrip('.gz')
 
+    n = 500000
+    array = 0
+    if nums > n:
+        array = 1
+        cmd += split_fasta(proteins, nums, n)
+
     if params['data_dir']:
         cmd += 'export EGGNOG_DATA_DIR=%s\n' % params['data_dir']
+
     cmd += 'emapper.py'
     cmd += ' -i %s' % proteins
+    if array:
+        cmd += '.$SLURM_ARRAY_TASK_ID'
     cmd += ' --output %s' % prefix
+    if array:
+        cmd += '.$SLURM_ARRAY_TASK_ID'
     cmd += ' --output_dir %s' % out_dir
     cmd += ' --temp_dir $TMPDIR'
     booleans = [
@@ -2211,9 +2224,6 @@ def get_eggnogmapper(
         proteins = fasta[0]
         if self.soft.prev == 'prodigal':
             proteins = '%s/protein.translations.fasta.gz' % fasta[0]
-            nums = get_prodigal_nums(proteins)
-            print(nums)
-            print(numsfdsa)
 
         to_dos = status_update(
             self, tech, [proteins], group=sam_group, genome=genome)
