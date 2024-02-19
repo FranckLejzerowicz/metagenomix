@@ -2042,21 +2042,21 @@ def eggnogmapper_cmd(
     cmd : str
         EggNOG-mapper command line
     """
+    params = tech_params(self, tech)
+    nums = get_prodigal_nums(proteins)
+
     cmd, cmd_rm = '', ''
     if proteins.endswith('.fa.gz') or proteins.endswith('.fasta.gz'):
         cmd += 'gunzip -c %s > %s\n' % (proteins, proteins.rstrip('.gz'))
         cmd_rm += 'rm %s\n' % proteins.rstrip('.gz')
         proteins = proteins.rstrip('.gz')
 
-    params = tech_params(self, tech)
-    nums = get_prodigal_nums(proteins)
+    if params['data_dir']:
+        cmd += 'export EGGNOG_DATA_DIR=%s\n' % params['data_dir']
 
     if nums > 500000:
         cmd += split_fasta(proteins, nums, 500000)
         params['array_jobs'] = True
-
-    if params['data_dir']:
-        cmd += 'export EGGNOG_DATA_DIR=%s\n' % params['data_dir']
 
     cmd += 'emapper.py'
     cmd += ' -i %s' % proteins
