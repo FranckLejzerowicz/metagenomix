@@ -2042,30 +2042,28 @@ def eggnogmapper_cmd(
     cmd : str
         EggNOG-mapper command line
     """
-    params = tech_params(self, tech)
-    nums = get_prodigal_nums(proteins)
-
     cmd, cmd_rm = '', ''
     if proteins.endswith('.fa.gz') or proteins.endswith('.fasta.gz'):
         cmd += 'gunzip -c %s > %s\n' % (proteins, proteins.rstrip('.gz'))
         cmd_rm += 'rm %s\n' % proteins.rstrip('.gz')
         proteins = proteins.rstrip('.gz')
 
-    n = 500000
-    array = 0
-    if nums > n:
-        array = 1
-        cmd += split_fasta(proteins, nums, n)
+    params = tech_params(self, tech)
+    nums = get_prodigal_nums(proteins)
+
+    if nums > 500000:
+        cmd += split_fasta(proteins, nums, 500000)
+        params['array_jobs'] = True
 
     if params['data_dir']:
         cmd += 'export EGGNOG_DATA_DIR=%s\n' % params['data_dir']
 
     cmd += 'emapper.py'
     cmd += ' -i %s' % proteins
-    if array:
+    if params['array_jobs']:
         cmd += '.$SLURM_ARRAY_TASK_ID'
     cmd += ' --output %s' % prefix
-    if array:
+    if params['array_jobs']:
         cmd += '.$SLURM_ARRAY_TASK_ID'
     cmd += ' --output_dir %s' % out_dir
     cmd += ' --temp_dir $TMPDIR'
@@ -2231,7 +2229,6 @@ def get_eggnogmapper(
         prefix = '-'.join([x for x in [sam_group, genome] if x])
         out = '%s/%s.emapper.hits.gz' % (out_dir, prefix)
         self.outputs['outs'].setdefault((tech, sam_group), []).append(out_dir)
-
         if self.config.force or to_do(out):
             cmd = eggnogmapper_cmd(self, tech, prefix, proteins, out_dir)
             if to_dos:
