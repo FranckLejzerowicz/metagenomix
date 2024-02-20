@@ -41,7 +41,7 @@ class AnalysesConfig(object):
         self.email = ''
         self.home = '%s/.metagenomix' % os.environ['HOME']
         self.scratchs = {'scratch': '', 'userscratch': ''}
-        self.directives = {'shebang': '#!/bin/bash', 'array_jobs': []}
+        self.directives = {'shebang': '#!/bin/bash', 'array_jobs': 0}
         self.r = {}
         # self.cazy_focus_dbs = {}  <---- see databases "self.cazys"
         self.instrain = {'refs': {}, 'bams': {}}

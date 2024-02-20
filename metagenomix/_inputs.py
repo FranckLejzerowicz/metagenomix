@@ -195,7 +195,8 @@ def get_post_prot_dir(
 def genome_key(
         tech: str,
         sam_group: str,
-        genome: str = ''
+        genome: str = '',
+        array: int = 0
 ) -> tuple:
     """Get a concatenation of the variables fields to split the commands as
     separate jobs later when writing out.
@@ -208,6 +209,8 @@ def genome_key(
         Sample name or group for the current co-assembly
     genome : str
         Name of the genome/MAG (or empty for single-file outputs)
+    array : int
+        Number of array jobs to spawn
 
     Returns
     -------
@@ -217,6 +220,8 @@ def genome_key(
     key = (tech, sam_group)
     if genome:
         key += (genome,)
+    if array:
+        key += (array,)
     return key
 
 

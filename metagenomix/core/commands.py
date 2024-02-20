@@ -150,6 +150,13 @@ class Commands(object):
 
     def unpack_cmds(self):
         for tech, cmds in self.outputs['cmds'].items():
+            if self.soft.name == 'eggnogmapper':
+                print()
+                print()
+                print()
+                print(tech)
+                print()
+                print(cmds)
             self.cmds[(self.sam_pool, tech)] = cmds
 
     def unpack_outputs(self):

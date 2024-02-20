@@ -10,6 +10,7 @@ import sys
 import gzip
 
 import pkg_resources
+import numpy as np
 from os.path import basename, dirname, isdir, splitext
 
 from metagenomix._inputs import (
@@ -2022,7 +2023,7 @@ def eggnogmapper_cmd(
         prefix: str,
         proteins: str,
         out_dir: str
-) -> str:
+) -> tuple:
     """Get EggNOG-mapper command line
 
     Parameters
@@ -2041,6 +2042,8 @@ def eggnogmapper_cmd(
     -------
     cmd : str
         EggNOG-mapper command line
+    js : int
+        Number of array jobs
     """
     params = tech_params(self, tech)
     nums = get_prodigal_nums(proteins)
@@ -2054,9 +2057,11 @@ def eggnogmapper_cmd(
     if params['data_dir']:
         cmd += 'export EGGNOG_DATA_DIR=%s\n' % params['data_dir']
 
+    js = 0
     if nums > 500000:
-        cmd += split_fasta(proteins, nums, 500000)
-        params['array_jobs'] = True
+        rs = list(np.linspace(0, nums, num=(nums // 500000), dtype=int))
+        cmd += split_fasta(proteins, rs)
+        js = len(rs)
 
     cmd += 'emapper.py'
     cmd += ' -i %s' % proteins
@@ -2182,7 +2187,7 @@ def eggnogmapper_cmd(
     cmd += ' --cpu %s\n' % params['cpus']
     cmd += cmd_rm
     cmd += 'for i in %s/*; do gzip -q $i; done\n' % out_dir
-    return cmd
+    return cmd, js
 
 
 def get_prodigal_nums(proteins):
@@ -2215,7 +2220,6 @@ def get_eggnogmapper(
     """
     for genome, fasta in fastas.items():
 
-        key = genome_key(tech, sam_group, genome)
         out_dir = genome_out_dir(self, tech, sam_group, genome)
         self.outputs['dirs'].append(out_dir)
 
@@ -2230,7 +2234,8 @@ def get_eggnogmapper(
         out = '%s/%s.emapper.hits.gz' % (out_dir, prefix)
         self.outputs['outs'].setdefault((tech, sam_group), []).append(out_dir)
         if self.config.force or to_do(out):
-            cmd = eggnogmapper_cmd(self, tech, prefix, proteins, out_dir)
+            cmd, js = eggnogmapper_cmd(self, tech, prefix, proteins, out_dir)
+            key = genome_key(tech, sam_group, genome, js)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
