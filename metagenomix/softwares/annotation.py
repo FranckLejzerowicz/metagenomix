@@ -2065,10 +2065,10 @@ def eggnogmapper_cmd(
 
     cmd += 'emapper.py'
     cmd += ' -i %s' % proteins
-    if params['array_jobs']:
+    if js:
         cmd += '.$SLURM_ARRAY_TASK_ID'
     cmd += ' --output %s' % prefix
-    if params['array_jobs']:
+    if js:
         cmd += '.$SLURM_ARRAY_TASK_ID'
     cmd += ' --output_dir %s' % out_dir
     cmd += ' --temp_dir $TMPDIR'

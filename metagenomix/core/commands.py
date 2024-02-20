@@ -153,10 +153,11 @@ class Commands(object):
             if self.soft.name == 'eggnogmapper':
                 print()
                 print()
-                print()
+                print('-----------------')
                 print(tech)
                 print()
                 print(cmds)
+                print('-----------------')
             self.cmds[(self.sam_pool, tech)] = cmds
 
     def unpack_outputs(self):
