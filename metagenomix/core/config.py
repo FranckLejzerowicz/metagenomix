@@ -312,6 +312,9 @@ class AnalysesConfig(object):
         for soft, params in self.user_params.items():
             if "databases" in params:
                 self.params_dbs[soft] = params.get("databases")
+        print()
+        print("self.params_dbs")
+        print(self.params_dbs)
 
     def get_default_params(self):
         """
