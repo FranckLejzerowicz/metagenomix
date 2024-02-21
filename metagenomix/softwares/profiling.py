@@ -9,7 +9,8 @@
 import sys
 import glob
 import pkg_resources
-from os.path import basename, dirname, isdir, isfile, splitext
+from os.path import basename, dirname, isfile, splitext
+from metagenomix._inputs import genome_key
 from metagenomix._io_utils import (
     min_nlines, io_update, to_do, tech_specificity, status_update)
 from metagenomix.softwares.alignment import get_alignment_cmd
@@ -61,7 +62,8 @@ def shogun_redistribute(
         db: str,
         aligner: str,
         tax_norm: str,
-        db_path: str
+        db_path: str,
+        key: tuple
 ) -> None:
     """Get the SHOGUN command to redistribute a taxonomic profile
     at various taxonomic levels.
@@ -83,6 +85,8 @@ def shogun_redistribute(
         Path to the input taxonomic table file
     db_path : str
         Path to the taxonomic database
+    key : tuple
+        ((Variables names for the current analytic level), number of arrays)
     """
     redist_cmds = []
     for level in ['phylum', 'genus', 'strain']:
@@ -95,7 +99,7 @@ def shogun_redistribute(
         redist_cmds.append(cmd)
         self.outputs['outs'][(tech, self.sam_pool)].setdefault(
             (db, aligner, tech), []).append(redist)
-        io_update(self, o_f=redist, key=tech)
+        io_update(self, o_f=redist, key=key)
     redist_out = '%s.redist.strain.tsv' % splitext(tax_norm)[0]
     shogun_append_cmd(self, tech, redist_cmds, redist_out)
 
@@ -247,7 +251,8 @@ def get_combine_cmd(
         tech: str,
         inputs: list,
         out: str,
-        combine_cmds: list
+        combine_cmds: list,
+        key: tuple
 ) -> list:
     """
 
@@ -268,6 +273,8 @@ def get_combine_cmd(
         Path to pipeline output folder for SHOGUN
     combine_cmds : list
         Commands to turn .fastq or .fastq.gz files into .fasta files
+    key : tuple
+        ((Variables names for the current analytic level), number of arrays)
 
     Returns
     -------
@@ -284,7 +291,7 @@ def get_combine_cmd(
             path = path_.replace('.fastq', '.fasta').replace('.gz', '')
             # Prepare the extraction command and collect it
             if to_do(path):
-                io_update(self, i_f=path_, o_f=path, key=tech)
+                io_update(self, i_f=path_, o_f=path, key=key)
                 to_fasta_cmd = 'seqtk seq -A %s > %s' % (path_, path)
                 combine_cmds.append(to_fasta_cmd)
                 self.soft.add_status(tech, self.sam_pool, 1)
@@ -308,7 +315,8 @@ def combine_inputs(
         tech: str,
         inputs: list,
         out: str,
-        combine_cmds: list
+        combine_cmds: list,
+        key: tuple
 ) -> str:
     """Combine the fastq/a of the sample to run shogun.
 
@@ -329,13 +337,15 @@ def combine_inputs(
         Path to pipeline output folder for SHOGUN
     combine_cmds : list
         Commands to turn .fastq or .fastq.gz files into .fasta files
+    key : tuple
+        ((Variables names for the current analytic level), number of arrays)
 
     Returns
     -------
     fasta : str
         Path to the combined sequences fasta file
     """
-    fastas = get_combine_cmd(self, tech, inputs, out, combine_cmds)
+    fastas = get_combine_cmd(self, tech, inputs, out, combine_cmds, key)
     fasta = '%s/combined.fasta' % out
     combine_cmds.extend([
         'cat %s > %s' % (' '.join(fastas), fasta), 'rm %s' % ' '.join(fastas)])
@@ -480,7 +490,8 @@ def get_paths(
         out: str,
         aligner: str,
         db: str,
-        tax_fun: str
+        tax_fun: str,
+        key: tuple
 ) -> tuple:
     """
 
@@ -499,6 +510,8 @@ def get_paths(
         Database name
     tax_fun : str
         "taxonomy" or "function"
+    key : tuple
+        ((Variables names for the current analytic level), number of arrays)
 
     Returns
     -------
@@ -514,7 +527,7 @@ def get_paths(
     norm = '%s/%s_norm.tsv' % (out_dir, tax_fun)
     self.outputs['outs'][(tech, self.sam_pool)].setdefault(
         (db, aligner), []).extend([tab, norm])
-    io_update(self, i_d=out_dir, o_f=[tab, norm], key=tech)
+    io_update(self, i_d=out_dir, o_f=[tab, norm], key=key)
     return tab, norm
 
 
@@ -554,13 +567,14 @@ def shogun_coverage_cmd(
     shogun_append_cmd(self, tech, list([cmd]), cov_tab)
 
 
-def shogun_coverage(
+def shogun_cov(
         self,
         tech: str,
         out: str,
         aligner: str,
         ali: str,
-        db: str
+        db: str,
+        key: tuple
 ) -> None:
     db_path = '%s/shogun' % self.databases.paths[db]
     if aligner == 'burst':
@@ -569,16 +583,17 @@ def shogun_coverage(
             (db, aligner), []).append(cov_tab)
         if self.config.force or to_do(cov_tab):
             shogun_coverage_cmd(self, tech, ali, db_path, 'strain', cov_tab)
-            io_update(self, o_f=cov_tab, key=tech)
+            io_update(self, o_f=cov_tab, key=key)
 
 
-def shogun_taxonomy(
+def shogun_tax(
         self,
         tech: str,
         out: str,
         aligner: str,
         ali: str,
-        db: str
+        db: str,
+        key: tuple
 ) -> str:
     """
 
@@ -599,6 +614,8 @@ def shogun_taxonomy(
         Path to the alignment
     db : str
         Database name
+    key : tuple
+        ((Variables names for the current analytic level), number of arrays)
 
     Returns
     -------
@@ -606,28 +623,29 @@ def shogun_taxonomy(
         Path to the normalized output table
     """
     db_path = '%s/shogun' % self.databases.paths[db]
-    tab, norm = get_paths(self, tech, out, aligner, db, 'taxonomy')
+    tab, norm = get_paths(self, tech, out, aligner, db, 'taxonomy', key)
     shogun_assign_normalize(self, tech, tab, aligner, ali, db_path, '')
-    shogun_redistribute(self, tech, db, aligner, norm, db_path)
+    shogun_redistribute(self, tech, db, aligner, norm, db_path, key)
     return norm
 
 
-def shogun_function(
+def shogun_func(
         self,
         tech: str,
         out: str,
         aligner: str,
         ali: str,
         db: str,
-        norm: str
+        norm: str,
+        key: tuple
 ) -> None:
     db_path = '%s/shogun' % self.databases.paths[db]
     for sub in ['kegg', 'refseq', 'uniprot']:
         fun, f_norm = get_paths(
-            self, tech, out, aligner, db, 'function-%s' % sub)
+            self, tech, out, aligner, db, 'function-%s' % sub, key)
         shogun_assign_normalize(
             self, tech, fun, aligner, ali, db_path, '/functions-%s' % sub)
-        shogun_redistribute(self, tech, db, aligner, f_norm, db_path)
+        shogun_redistribute(self, tech, db, aligner, f_norm, db_path, key)
 
     out_dir = out + '/functional'
     for level in ['genus', 'species']:
@@ -709,8 +727,8 @@ def shogun(self) -> None:
         .config
             Configurations
     """
-    for (tech, sam), inputs in self.inputs[self.sam_pool].items():
-        if tech_specificity(self, inputs, tech, sam):
+    for (tech, sample), inputs in self.inputs[self.sam_pool].items():
+        if tech_specificity(self, inputs, tech, sample):
             continue
 
         self.outputs['outs'][(tech, self.sam_pool)] = {}
@@ -721,33 +739,34 @@ def shogun(self) -> None:
         self.outputs['dirs'].append(out)
         io_update(self, o_d=out, key=tech)
 
+        key = genome_key(tech, sample)
         if self.soft.prev == 'bowtie2':
             to_dos = status_update(self, tech, list(inputs.values()))
             for (db, aligner), sam in inputs.items():
-                io_update(self, i_f=sam, key=tech)
+                io_update(self, i_f=sam, key=key)
                 ali = format_sam(sam, ali_cmds, self.sam_pool)
                 self.outputs['outs'][(tech, self.sam_pool)].setdefault(
                     (db, 'bowtie2'), []).append(ali)
-                shogun_taxonomy(self, tech, out, 'bowtie2', ali, db)
+                shogun_tax(self, tech, out, 'bowtie2', ali, db, key)
         elif params['databases']:
-            io_update(self, i_f=inputs, key=tech)
+            io_update(self, i_f=inputs, key=key)
             to_dos = status_update(self, tech, inputs)
-            fasta = combine_inputs(self, tech, inputs, out, combine_cmds)
+            fasta = combine_inputs(self, tech, inputs, out, combine_cmds, key)
             for db, aligners in params['databases'].items():
                 for aligner in aligners:
                     ali = align(self, tech, fasta, out, db, aligner, ali_cmds)
-                    norm = shogun_taxonomy(self, tech, out, aligner, ali, db)
-                    shogun_coverage(self, tech, out, aligner, ali, db)
-                    shogun_function(self, tech, out, aligner, ali, db, norm)
+                    norm = shogun_tax(self, tech, out, aligner, ali, db, key)
+                    shogun_cov(self, tech, out, aligner, ali, db, key)
+                    shogun_func(self, tech, out, aligner, ali, db, norm, key)
         if self.outputs['cmds']:
-            cmd = combine_cmds + ali_cmds + self.outputs['cmds'][(tech,)]
+            cmd = combine_cmds + ali_cmds + self.outputs['cmds'][key]
             if to_dos:
-                self.outputs['cmds'][(tech,)] = [False]
+                self.outputs['cmds'][key] = [False]
             else:
-                self.outputs['cmds'][(tech,)] = cmd
-            self.soft.add_status(tech, sam, 1)
+                self.outputs['cmds'][key] = cmd
+            self.soft.add_status(tech, sample, 1)
         else:
-            self.soft.add_status(tech, sam, 0)
+            self.soft.add_status(tech, sample, 0)
 
 
 def woltka_aligments(
@@ -787,7 +806,7 @@ def woltka_map(
         tech: str,
         pairing: str,
         aligner: str,
-        alis: dict
+        alis: dict,
 ) -> tuple:
     """Write the mapping file that servers as input to Woltka.
 
@@ -847,9 +866,10 @@ def woltka_tax(
         tech: str,
         pairing: str,
         aligner: str,
-        map: str,
+        map_fp: str,
         database: str,
-        params: dict
+        params: dict,
+        key: tuple
 ) -> tuple:
     """Get the taxonomic classification outputs and prepare the
     Woltka commands for this classification.
@@ -867,12 +887,14 @@ def woltka_tax(
         Type of reads pairing during alignment
     aligner : str
         Aligner used to create the input alignments
-    map : str
+    map_fp : str
         Path to the Woltka input file
     database : str
         Path to the WOL database
     params : dict
         Run parameters
+    key : tuple
+        ((Variables names for the current analytic level), number of arrays)
 
     Returns
     -------
@@ -881,7 +903,6 @@ def woltka_tax(
     tax_to_do : list
         Empty if nothing is to be done
     """
-    key = (tech, aligner)
     out = '/'.join([self.dir, tech, aligner, pairing])
     tax_out, tax_outmap = '%s/taxa' % out, '%s/taxmap' % out
     if params['outmap']:
@@ -890,7 +911,6 @@ def woltka_tax(
     taxa = params['taxa']
     for tdx, taxon in enumerate(taxa):
         out_dir = '%s/%s.tsv' % (tax_out, taxon)
-        # self.outputs['outs'].setdefault(key, []).append(out_dir)
         if to_do(out_dir):
             tax_to_do.append(taxon)
             io_update(self, o_f=out_dir, key=key)
@@ -906,7 +926,7 @@ def woltka_tax(
     if len(tax_to_do):
         cur_cmd = '\n# taxonomic\n'
         cur_cmd += 'woltka classify'
-        cur_cmd += ' -i %s' % map
+        cur_cmd += ' -i %s' % map_fp
         cur_cmd += ' --map %s' % taxid
 
         if params['nodes_dmp']:
@@ -952,10 +972,11 @@ def woltka_go(
         tech: str,
         pairing: str,
         aligner: str,
-        map: str,
+        map_fp: str,
         taxmap: str,
         database: str,
-        params: dict
+        params: dict,
+        key: tuple
 ) -> list:
     """Get the taxonomic classification outputs and prepare the Woltka
     commands for this classification.
@@ -973,7 +994,7 @@ def woltka_go(
         Type of reads pairing during alignment
     aligner : str
         Aligner used to create the input alignments
-    map : str
+    map_fp : str
         Path to the Woltka input file.
     taxmap : str
         Path to the folder containing the taxonomic maps.
@@ -981,6 +1002,8 @@ def woltka_go(
         WOL database path
     params : dict
         Run parameters
+    key : tuple
+        ((Variables names for the current analytic level), number of arrays)
 
     Returns
     -------
@@ -996,14 +1019,13 @@ def woltka_go(
     taxa = params['taxa']
     out_dir = '/'.join([self.dir, tech, aligner, pairing])
     go_dir = '%s/go' % out_dir
-    key = (tech, aligner)
     io_update(self, o_d=go_dir, key=key)
     for go in gos:
         cur_out = '%s/%s.tsv' % (go_dir, go)
         cur_map = '%s/%s.map.xz' % (go_rt, go)
         cmd = '\n# go: %s [no stratification]\n' % go
         cmd += 'woltka classify'
-        cmd += ' -i %s' % map
+        cmd += ' -i %s' % map_fp
         cmd += ' --coords %s' % coords
         if params['map_as_rank']:
             cmd += ' --map-as-rank'
@@ -1029,7 +1051,7 @@ def woltka_go(
             cur_map = '%s/%s.map.xz' % (go_rt, go)
             cmd = '\n# go: %s [%s]\n' % (go, stratif)
             cmd += 'woltka classify'
-            cmd += ' -i %s' % map
+            cmd += ' -i %s' % map_fp
             cmd += ' --coords %s' % coords
             if params['map_as_rank']:
                 cmd += ' --map-as-rank'
@@ -1059,7 +1081,8 @@ def woltka_genes(
         woltka_map: str,
         taxmap: str,
         database: str,
-        params: dict
+        params: dict,
+        key: tuple
 ) -> tuple:
     """Get the Woltka commands for the gene-level classification.
 
@@ -1084,6 +1107,8 @@ def woltka_genes(
         WOL database path
     params : dict
         Run parameters
+    key : tuple
+        ((Variables names for the current analytic level), number of arrays)
 
     Returns
     -------
@@ -1092,7 +1117,6 @@ def woltka_genes(
     genes_to_do : list
         Empty if nothing to be done
     """
-    key = (tech, aligner)
     coords = '%s/proteins/coords.txt.xz' % database
     out_dir = '/'.join([self.dir, tech, aligner, pairing])
     genes_out = '%s/genes' % out_dir
@@ -1147,7 +1171,8 @@ def woltka_uniref(
         aligner: str,
         genes_tax: dict,
         database: str,
-        params: dict
+        params: dict,
+        key: tuple
 ) -> dict:
     """Get the Woltka commands for the uniref-level classification.
 
@@ -1170,13 +1195,14 @@ def woltka_uniref(
         WOL database path
     params : dict
         Run parameters
+    key : tuple
+        ((Variables names for the current analytic level), number of arrays)
 
     Returns
     -------
     uniref_tax : dict
         Paths to the uniref classifications
     """
-    key = (tech, aligner)
     uniref_map = '%s/function/uniref/uniref.map.xz' % database
     uniref_names = '%s/function/uniref/uniref.name.xz' % database
     out_dir = '/'.join([self.dir, tech, aligner, pairing])
@@ -1234,7 +1260,8 @@ def woltka_eggnog(
         aligner: str,
         uniref_tax: dict,
         database: str,
-        params: dict
+        params: dict,
+        key: tuple
 ) -> None:
     """Get the Woltka commands for the eggnog-level classification.
 
@@ -1257,8 +1284,9 @@ def woltka_eggnog(
         WOL database path
     params : dict
         Run parameters
+    key : tuple
+        ((Variables names for the current analytic level), number of arrays)
     """
-    key = (tech, aligner)
     out_dir = '/'.join([self.dir, tech, aligner, pairing])
     eggnog_out = '%s/eggnog' % out_dir
     io_update(self, o_d=eggnog_out, key=key)
@@ -1419,7 +1447,8 @@ def woltka_metacyc(
         aligner: str,
         genes_tax: dict,
         database: str,
-        params: dict
+        params: dict,
+        key: tuple
 ) -> None:
     """Get the Woltka commands for the metacyc-level classification.
 
@@ -1442,6 +1471,8 @@ def woltka_metacyc(
         WOL database path
     params : dict
         Run parameters
+    key : tuple
+        ((Variables names for the current analytic level), number of arrays)
     """
     metacyc_dir = '%s/function/metacyc' % database
     metacyc = [('protein', 'protein_name.txt', 'protein.map.xz'),
@@ -1454,7 +1485,6 @@ def woltka_metacyc(
                ('ec', '', 'reaction-to-ec.txt')]
     files = {}
     files_tax = {}
-    key = (tech, aligner)
     out_dir = '/'.join([self.dir, tech, aligner, pairing])
     woltka_fun_out = '%s/metacyc' % out_dir
     io_update(self, o_d=woltka_fun_out, key=key)
@@ -1550,7 +1580,8 @@ def woltka_kegg(
         aligner: str,
         uniref_tax: dict,
         database: str,
-        params: dict
+        params: dict,
+        key: tuple
 ) -> None:
     """Get the Woltka commands for the kegg-level classification.
 
@@ -1573,6 +1604,8 @@ def woltka_kegg(
         WOL database path
     params : dict
         Run parameters
+    key : tuple
+        ((Variables names for the current analytic level), number of arrays)
     """
     ko_names_maps = [
         ('ko', 'ko.name', 'ko.map.xz', ''),
@@ -1614,8 +1647,6 @@ def woltka_kegg(
          'reaction-to-rclass.txt', 'ko-reaction'),
         ('ko-reaction-right_compound', 'compound_name.txt',
          'reaction-to-right_compound.txt', 'ko-reaction')]
-    files = []
-    key = (tech, aligner)
     out_dir = '/'.join([self.dir, tech, aligner, pairing])
     kegg_out = '%s/kegg' % out_dir
     kegg_maps = '%s/kegg_queried' % kegg_out
@@ -1767,7 +1798,6 @@ def woltka_kegg(
                     RESOURCES, kegg_maps_local, basename(tsv_))
                 cmd += 'rm %s/%s\n' % (kegg_maps_local, basename(tsv_))
                 self.outputs['bash'].append(cmd)
-    # self.outputs['outs'].setdefault((tech, aligner), []).extend(files)
 
 
 def woltka_pairing(
@@ -1841,7 +1871,7 @@ def woltka(self) -> None:
             continue
         classifs = params['classifications']
         for aligner, alis in alignments.items():
-            key = (tech, aligner)
+            key = genome_key(tech, aligner)
             to_dos = status_update(
                 self, tech, list(alis.values()), group=aligner)
             map_fp, cmds, rms = woltka_map(self, tech, pairing, aligner, alis)
@@ -1849,16 +1879,16 @@ def woltka(self) -> None:
             out = '/'.join([self.dir, tech, aligner, pairing])
             self.outputs['outs'].setdefault(key, []).append(out)
 
-            taxmap, tdo = woltka_tax(self, tech, pairing, aligner, map_fp,
-                                     db, params)
+            taxmap, tdo = woltka_tax(
+                self, tech, pairing, aligner, map_fp, db, params, key)
             if 'go' in classifs:
-                gdo = woltka_go(
-                    self, tech, pairing, aligner, map_fp, taxmap, db, params)
+                gdo = woltka_go(self, tech, pairing, aligner, map_fp,
+                                taxmap, db, params, key)
             else:
                 gdo = []
             if set(classifs) & {'eggnog', 'metacyc', 'kegg'}:
                 genes_tax, edo = woltka_genes(self, tech, pairing, aligner,
-                                              map_fp, taxmap, db, params)
+                                              map_fp, taxmap, db, params, key)
             if tdo or gdo or edo:
                 io_update(self, i_f=list(alis.values()), key=key)
                 if key in self.outputs['cmds']:
@@ -1870,20 +1900,20 @@ def woltka(self) -> None:
             if not to_dos:
                 if set(classifs) & {'eggnog', 'metacyc', 'kegg'}:
                     uniref_tax = woltka_uniref(self, tech, pairing, aligner,
-                                               genes_tax, db, params)
+                                               genes_tax, db, params, key)
                 if 'eggnog' in classifs:
                     woltka_eggnog(self, tech, pairing, aligner, uniref_tax,
-                                  db, params)
+                                  db, params, key)
                 # if 'cazy' in classifs:
                 #     woltka_cazy(
                 #         self, tech, pairing, aligner, genes, genes_tax, db,
                 #         params)
                 if 'metacyc' in classifs:
                     woltka_metacyc(self, tech, pairing, aligner, genes_tax,
-                                   db, params)
+                                   db, params, key)
                 if 'kegg' in classifs:
                     woltka_kegg(self, tech, pairing, aligner, uniref_tax, db,
-                                params)
+                                params, key)
 
 
 def get_midas_cmd(
@@ -1956,8 +1986,8 @@ def midas_species(
         tech: str,
         inputs: list,
         focus_dir: str,
-        analysis: str,
-        to_dos: list
+        to_dos: list,
+        key: tuple
 ) -> None:
     """Collect the MIDAS commands for the species level.
 
@@ -1974,39 +2004,39 @@ def midas_species(
         Paths to the input files
     focus_dir : str
         Path to the species output folder
-    analysis : str
-        Current analysis: 'species', 'genes', or 'snps'
     to_dos : list
         Paths to input file that need to be created (or whether they are links)
+    key : tuple
+        ((Variables names for the current analytic level), number of arrays)
     """
     spcs_out = '%s/species' % focus_dir
     spcs_profile = '%s/species_profile.txt' % spcs_out
     if not self.config.force and not to_do(spcs_profile):
-        io_update(self, i_d=spcs_out, key=tech)
+        io_update(self, i_d=spcs_out, key=key)
         self.soft.add_status(tech, self.sam_pool, 1, group='species')
     else:
-        cmd = get_midas_cmd(self, tech, inputs, focus_dir, analysis)
+        cmd = get_midas_cmd(self, tech, inputs, focus_dir, 'species')
         if to_dos:
-            self.outputs['cmds'].setdefault((tech,), []).append(False)
+            self.outputs['cmds'].setdefault(key, []).append(False)
         else:
-            self.outputs['cmds'].setdefault((tech,), []).append(cmd)
-        io_update(self, i_f=inputs, o_d=spcs_out, key=tech)
+            self.outputs['cmds'].setdefault(key, []).append(cmd)
+        io_update(self, i_f=inputs, o_d=spcs_out, key=key)
         self.soft.add_status(tech, self.sam_pool, 0, group='species')
     self.outputs['outs'].setdefault((tech, self.sam_pool), []).append(spcs_out)
     self.outputs['dirs'].append(spcs_out)
 
 
-def midas_genes(
+def midas_gene(
         self,
         tech: str,
         inputs: list,
         focus_dir: str,
         genes_out: str,
-        analysis: str,
         select: set,
-        to_dos: list
+        to_dos: list,
+        key: tuple
 ) -> None:
-    """Collect the MIDAS commands for the genes level.
+    """Collect the MIDAS commands for the gene level.
 
     Parameters
     ----------
@@ -2023,20 +2053,20 @@ def midas_genes(
         Path to the species output folder
     genes_out : str
         Path to the output folder
-    analysis : str
-        Current analysis: 'species', 'genes', or 'snps'
     select : set
         Set of taxa to focus
     to_dos : list
         Paths to input file that need to be created (or whether they are links)
+    key : tuple
+        ((Variables names for the current analytic level), number of arrays)
     """
     if self.config.force or to_do('%s/readme.txt' % genes_out):
-        cmd = get_midas_cmd(self, tech, inputs, focus_dir, analysis, select)
+        cmd = get_midas_cmd(self, tech, inputs, focus_dir, 'genes', select)
         if to_dos:
-            self.outputs['cmds'].setdefault((tech,), []).append(False)
+            self.outputs['cmds'].setdefault(key, []).append(False)
         else:
-            self.outputs['cmds'].setdefault((tech,), []).append(cmd)
-        io_update(self, o_d=genes_out, key=tech)
+            self.outputs['cmds'].setdefault(key, []).append(cmd)
+        io_update(self, o_d=genes_out, key=key)
         self.soft.add_status(tech, self.sam_pool, 1, group='genes')
     else:
         self.soft.add_status(tech, self.sam_pool, 0, group='genes')
@@ -2050,9 +2080,9 @@ def midas_snps(
         inputs: list,
         focus_dir: str,
         snps_out: str,
-        analysis: str,
         select: set,
-        to_dos: list
+        to_dos: list,
+        key: tuple
 ) -> None:
     """Collect the MIDAS commands for the species level.
 
@@ -2077,14 +2107,16 @@ def midas_snps(
         Set of taxa to focus
     to_dos : list
         Paths to input file that need to be created (or whether they are links)
+    key : tuple
+        ((Variables names for the current analytic level), number of arrays)
     """
     if self.config.force or to_do('%s/readme.txt' % snps_out):
-        cmd = get_midas_cmd(self, tech, inputs, focus_dir, analysis, select)
+        cmd = get_midas_cmd(self, tech, inputs, focus_dir, 'snps', select)
         if to_dos:
-            self.outputs['cmds'].setdefault((tech,), []).append(False)
+            self.outputs['cmds'].setdefault(key, []).append(False)
         else:
-            self.outputs['cmds'].setdefault((tech,), []).append(cmd)
-        io_update(self, o_d=snps_out, key=tech)
+            self.outputs['cmds'].setdefault(key, []).append(cmd)
+        io_update(self, o_d=snps_out, key=key)
         self.soft.add_status(tech, self.sam_pool, 1, group='snps')
     else:
         self.soft.add_status(tech, self.sam_pool, 0, group='snps')
@@ -2167,17 +2199,15 @@ def midas(self) -> None:
         to_dos = status_update(self, tech, inputs)
 
         params = tech_params(self, tech)
+        key = genome_key(tech, sam)
         for focus, species_list in params['focus'].items():
             focus_dir = '/'.join([self.dir, tech, focus, self.sam_pool])
-            midas_species(
-                self, tech, inputs, focus_dir, 'species', to_dos)
+            midas_species(self, tech, inputs, focus_dir, to_dos, key)
             select = set(get_species_select(self, species_list))
-            genes = '%s/genes' % focus_dir
-            midas_genes(
-                self, tech, inputs, focus_dir, genes, 'genes', select, to_dos)
+            gene = '%s/genes' % focus_dir
+            midas_gene(self, tech, inputs, focus_dir, gene, select, to_dos, key)
             snps = '%s/snps' % focus_dir
-            midas_snps(
-                self, tech, inputs, focus_dir, snps, 'snps', select, to_dos)
+            midas_snps(self, tech, inputs, focus_dir, snps, select, to_dos, key)
 
 
 def get_kraken2_db(
@@ -2334,6 +2364,7 @@ def kraken2(self) -> None:
         to_dos = status_update(self, tech, inputs)
 
         params = tech_params(self, tech)
+        key = genome_key(tech, sam)
         for db in params['databases']:
             out = '/'.join([self.dir, tech, self.sam_pool, db])
             self.outputs['dirs'].append(out)
@@ -2342,10 +2373,10 @@ def kraken2(self) -> None:
                 db_path = get_kraken2_db(self, db)
                 cmd = get_kraken2_cmd(self, tech, inputs, out, db_path)
                 if to_dos:
-                    self.outputs['cmds'].setdefault((tech,), []).append(False)
+                    self.outputs['cmds'].setdefault(key, []).append(False)
                 else:
-                    self.outputs['cmds'].setdefault((tech,), []).append(cmd)
-                io_update(self, i_f=inputs, o_d=out, key=tech)
+                    self.outputs['cmds'].setdefault(key, []).append(cmd)
+                io_update(self, i_f=inputs, o_d=out, key=key)
                 self.soft.add_status(tech, sam, 1, group=db)
             else:
                 self.soft.add_status(tech, sam, 0, group=db)
@@ -2504,6 +2535,7 @@ def bracken(self) -> None:
     for (tech, sam), inputs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, inputs, tech, sam):
             continue
+        key = genome_key(tech, sam)
         for (db, k2) in inputs:
             report = '%s/report.tsv.gz' % k2
             to_dos = status_update(self, tech, [report])
@@ -2515,10 +2547,10 @@ def bracken(self) -> None:
             if self.config.force or to_do('%s/results.tsv.gz' % out):
                 cmd = bracken_cmd(self, tech, db_path, report, out)
                 if to_dos:
-                    self.outputs['cmds'].setdefault((tech,), []).append(False)
+                    self.outputs['cmds'].setdefault(key, []).append(False)
                 else:
-                    self.outputs['cmds'].setdefault((tech,), []).append(cmd)
-                io_update(self, i_f=report, o_d=out, key=tech)
+                    self.outputs['cmds'].setdefault(key, []).append(cmd)
+                io_update(self, i_f=report, o_d=out, key=key)
                 self.soft.add_status(tech, sam, 1, group=(db + ' / ' + k2))
             else:
                 self.soft.add_status(tech, sam, 0, group=(db + ' / ' + k2))
@@ -2626,6 +2658,7 @@ def metaxa2(self) -> None:
         taxonomy = '%s.taxonomy.txt' % rad
         reltax = '%s.reltax.txt' % rad
         cmd = ''
+        key = genome_key(tech, sam, db)
         if self.config.force or to_do(summary):
             cmd += 'metaxa2'
             for idx, fastq in enumerate(self.inputs[self.sam_pool]):
@@ -2660,9 +2693,9 @@ def metaxa2(self) -> None:
             else:
                 cmd += ' --taxlevel 7'
             cmd += '\n'
-            io_update(self, o_d=dir_db)
+            io_update(self, o_d=dir_db, key=key)
         else:
-            io_update(self, i_f=taxonomy)
+            io_update(self, i_f=taxonomy, key=key)
         redist_rad = '%s.redist' % rad
         redist_tax = '%s.taxonomy.summary.txt' % redist_rad
         if self.config.force or to_do(redist_tax):
@@ -2671,9 +2704,9 @@ def metaxa2(self) -> None:
             cmd += ' -o %s' % redist_rad
             cmd += ' -r 0.8'
             cmd += ' -d 0.7'
-            io_update(self, o_f=redist_tax)
+            io_update(self, o_f=redist_tax, key=key)
         if cmd:
-            self.outputs['cmds'].setdfault((tech,), []).append(cmd)
+            self.outputs['cmds'].setdfault(key, []).append(cmd)
         self.outputs['outs'].setdefault((tech, self.sam_pool), []).extend(
             [summary, taxonomy, reltax, redist_tax])
 

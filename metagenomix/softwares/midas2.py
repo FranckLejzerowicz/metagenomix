@@ -7,8 +7,9 @@
 # ----------------------------------------------------------------------------
 
 import sys
-from os.path import dirname, isdir
+from os.path import isdir
 from metagenomix.core.parameters import tech_params
+from metagenomix._inputs import genome_key
 from metagenomix._io_utils import (caller, status_update, io_update,
                                    to_do, tech_specificity)
 
@@ -239,14 +240,15 @@ def merge(self):
                 self, tech, step, sam_fp, sams_dirs, db, focus)
             out = get_merge_outs(out_dir, step)
             if self.config.force or to_do(out):
+                key = genome_key(tech, step)
                 if to_dos:
-                    self.outputs['cmds'].setdefault((tech,), []).append(False)
+                    self.outputs['cmds'].setdefault(key, []).append(False)
                 else:
-                    cmd = get_merge_cmd(
-                        self, tech, step, db, spc_list, out_dir, sam_fp)
-                    c = cmd_sam + '\n' + cmd
-                    self.outputs['cmds'].setdefault((tech, step), []).append(c)
-                    io_update(self, i_d=i_d, o_d=out_dir, key=(tech, step))
+                    cmd = get_merge_cmd(self, tech, step, db, spc_list,
+                                        out_dir, sam_fp)
+                    cmd = cmd_sam + '\n' + cmd
+                    self.outputs['cmds'].setdefault(key, []).append(cmd)
+                    io_update(self, i_d=i_d, o_d=out_dir, key=key)
                 self.soft.add_status(tech, step, 1)
             else:
                 self.soft.add_status(tech, step, 0)
@@ -484,16 +486,17 @@ def get_midas2(
             if self.config.force or to_do(out_fp):
                 cmd = get_midas2_cmd(self, fastqs, focus_dir, db, db_path,
                                      spc_list, params, step)
+                key = genome_key(tech, sam)
                 if to_dos:
-                    self.outputs['cmds'].setdefault((tech,), []).append(False)
+                    self.outputs['cmds'].setdefault(key, []).append(False)
                 else:
-                    self.outputs['cmds'].setdefault((tech,), []).append(cmd)
+                    self.outputs['cmds'].setdefault(key, []).append(cmd)
                     i_f, i_d = fastqs, []
                     if not to_do(spc_list):
                         i_f += [spc_list]
                     if not to_do(spc_dir + '/species_profile.tsv'):
                         i_d.append(spc_dir)
-                    io_update(self, i_f=i_f, i_d=i_d, o_d=focus_dir, key=(tech,))
+                    io_update(self, i_f=i_f, i_d=i_d, o_d=focus_dir, key=key)
                 self.soft.add_status(tech, self.sam_pool, 1)
             else:
                 self.soft.add_status(tech, self.sam_pool, 0)
@@ -702,9 +705,23 @@ def midas2(self) -> None:
         merge(self)
     else:
         if self.soft.prev.startswith('midas2'):
-            # h = self.soft.hashed
             if 'midas2' in self.softs:
-                reads = self.softs[self.softs['midas2'][needfix].prev].outputs
+                m2 = self.softs['midas2']
+                m2_prev = {tuple(y.path[:-1]): x for x, y in m2.items()}
+                print("self.softs[self.soft.name]")
+                for h,v in self.softs[self.soft.name].items():
+                    print(h)
+                    # print(v.__dict__)
+
+                print()
+                print()
+                print("self.softs['midas2']")
+                for h,v in self.softs['midas2'].items():
+                    print(h)
+                    # print(v.__dict__)
+
+                print(self.softs['midas2'].path)
+                reads = self.softs[self.softs['midas2'][f].prev].outputs
             elif 'midas2_species' in self.softs:
                 reads = self.softs[self.softs['midas2_species'][needfix].prev].outputs
             else:

@@ -8,6 +8,7 @@
 
 import sys
 from metagenomix._io_utils import to_do, status_update
+from metagenomix._inputs import genome_key
 
 
 def pool_cmd(
@@ -42,10 +43,11 @@ def pool_cmd(
             else:
                 cmd += 'cat %s > %s\n' % (path, fasta)
         if cmd:
+            key = genome_key(tech, group)
             if to_dos:
-                self.cmds.setdefault((pool, (tech, group)), []).append(False)
+                self.cmds.setdefault((pool, key), []).append(False)
             else:
-                self.cmds.setdefault((pool, (tech, group)), []).append(cmd)
+                self.cmds.setdefault((pool, key), []).append(cmd)
 
 
 def extension_paths(
@@ -375,7 +377,7 @@ def add_to_pool_io(
         Paths to move to/from scratch for the pooling
     """
     # key = (tech, (pool, group))
-    key = (pool, (tech, group))
+    key = (pool, genome_key(tech, group))
     if key not in self.soft.io:
         self.soft.io[key] = {}
     self.soft.io[key].setdefault(io, set()).update(values)

@@ -324,7 +324,6 @@ def get_lorikeet(
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
 
-        key = genome_key(tech, group, genome)
         if genome:
             is_folder = True
         else:
@@ -334,6 +333,7 @@ def get_lorikeet(
         contigs = get_contigs_from_path(self, tech, group, True)
         to_dos.extend(status_update(self, tech, contigs))
         if self.config.force or not glob.glob('%s/*' % out_dir):
+            key = genome_key(tech, group, genome)
             cmd = lorikeet_cmd(self, is_folder, contigs, fasta_folder,
                                group_reads, out_dir, key, step)
             if to_dos:
@@ -460,7 +460,8 @@ def get_sample_to_marker(
         self,
         tech,
         sam_dir: str,
-        markers_dir: str
+        markers_dir: str,
+        key: tuple
 ) -> None:
     """
 
@@ -474,6 +475,8 @@ def get_sample_to_marker(
     tech : str
     sam_dir : str
     markers_dir : str
+    key : tuple
+        ((Variables names for the current analytic level), number of arrays)
     """
 
     sam_dir_ = sam_dir.replace('${SCRATCH_FOLDER}', '')
@@ -484,18 +487,18 @@ def get_sample_to_marker(
         cmd += ' -o %s' % markers_dir
         cmd += ' -n %s' % self.soft.params['cpus']
         if to_dos:
-            self.outputs['cmds'].setdefault((tech,), []).append(False)
+            self.outputs['cmds'].setdefault(key, []).append(False)
         else:
-            self.outputs['cmds'].setdefault((tech,), []).append(cmd)
+            self.outputs['cmds'].setdefault(key, []).append(cmd)
 
 
 def extract_markers(
         self,
         tech,
-        key,
         st: str,
         strain_dir: str,
-        db_dir: str
+        db_dir: str,
+        key: tuple
 ) -> None:
     """Extract markers for the current species strains
 
@@ -505,10 +508,11 @@ def extract_markers(
         .config
             Configurations
     tech
-    key
     st : str
     strain_dir : str
     db_dir : str
+    key : tuple
+        ((Variables names for the current analytic level), number of arrays)
     """
     to_dos = status_update(self, tech, [strain_dir], folder=True)
     if self.config.force or to_do('%s/%s.fna' % (strain_dir, st)):
@@ -531,38 +535,37 @@ def get_strainphlan(
     sam_dir = dirname(sam_fp)
     db_dir = '%s/db_markers' % self.dir
     meta_dir = '%s/metadata' % self.dir
-    markers_dir = '%s/consensus_markers' % self.dir
+    mark_dir = '%s/consensus_markers' % self.dir
     wol_pd = self.databases.paths['wol']['taxonomy']
 
     self.outputs['outs'] = dict({})
     self.outputs['dirs'].extend([db_dir, meta_dir])
-    get_sample_to_marker(self, tech, sam_dir, markers_dir)
+
+    key = genome_key(tech, sam)
+    get_sample_to_marker(self, tech, sam_dir, mark_dir, key)
 
     for strain_group, strains in self.config.strains.items():
 
         tmp = '$TMPDIR/strainphlan_%s' % strain_group
-        key = (tech, strain_group)
-        io_update(self, i_d=sam_dir, o_d=[markers_dir, db_dir, meta_dir],
-                  key=key)
+        io_update(self, i_d=sam_dir, o_d=[mark_dir, db_dir, meta_dir], key=key)
 
         strain_dir = '%s/%s' % (db_dir, strain_group)
         self.outputs['dirs'].append(strain_dir)
         for strain in [x.replace(' ', '_') for x in strains]:
             if strain[0] != 's':
                 continue
-            extract_markers(self, tech, key, strain, strain_dir, db_dir)
+            extract_markers(self, tech, strain, strain_dir, db_dir, key)
             odir = '%s/output/%s' % (self.dir, strain_group)
             self.outputs['dirs'].append(odir)
             self.outputs['outs'][(strain_group, strain)] = odir
             io_update(self, o_d=odir, key=key)
             tree = '%s/RAxML_bestTree.%s.StrainPhlAn3.tre' % (odir, strain)
-            to_dos = status_update(self, tech, [markers_dir, db_dir],
-                                   folder=True)
+            to_dos = status_update(self, tech, [mark_dir, db_dir], folder=True)
             if self.config.force or to_do(tree):
                 # cmd = strainphlan_cmd(self, markers_dir, db_dir, strain,
                 #                       wol_pd, key)
                 cmd = 'strainphlan'
-                cmd += ' -s %s/*.pkl' % markers_dir
+                cmd += ' -s %s/*.pkl' % mark_dir
                 cmd += ' -m %s/%s.fna' % (db_dir, strain)
                 if strain in wol_pd['species']:
                     fna = '%s/%s.fna.bz2' % (

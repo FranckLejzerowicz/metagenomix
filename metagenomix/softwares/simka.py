@@ -9,6 +9,7 @@
 import pkg_resources
 from os.path import isdir, isfile
 
+from metagenomix._inputs import genome_key
 from metagenomix._io_utils import io_update, to_do, status_update
 from metagenomix.core.parameters import tech_params
 
@@ -311,6 +312,7 @@ def simka(self) -> None:
         params = tech_params(self, tech)
         input_cmd, input_fastqs, input_file = get_simka_input(self, tech)
         to_dos = status_update(self, tech, input_fastqs)
+        key = genome_key(tech, '')
         cmds = ''
         for k in map(int, params['kmer']):
             for n in map(int, params['log_reads']):
@@ -319,9 +321,9 @@ def simka(self) -> None:
                 if cmd:
                     cmds += cmd
                     self.outputs['dirs'].append(out_dir)
-                    io_update(self, i_f=input_fastqs, o_d=out_dir, key=tech)
+                    io_update(self, i_f=input_fastqs, o_d=out_dir, key=key)
                 else:
-                    io_update(self, i_d=out_dir, key=tech)
+                    io_update(self, i_d=out_dir, key=key)
 
                 for met in ['abundance_braycurtis', 'presenceAbsence_jaccard']:
                     mat = '%s/mat_%s.csv.gz' % (out_dir, met)
@@ -329,13 +331,13 @@ def simka(self) -> None:
                     if cmd:
                         cmds += cmd
                         if isfile(mat):
-                            io_update(self, i_f=mat, o_d=out_dir, key=tech)
+                            io_update(self, i_f=mat, o_d=out_dir, key=key)
         if cmds:
             cmd = input_cmd + cmds
             if to_dos:
-                self.outputs['cmds'].setdefault((tech,), []).append(False)
+                self.outputs['cmds'].setdefault(key, []).append(False)
             else:
-                self.outputs['cmds'].setdefault((tech,), []).append(cmd)
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
             self.soft.add_status(tech, 'all samples', 1)
         else:
             self.soft.add_status(tech, 'all samples', 0)

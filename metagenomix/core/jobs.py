@@ -40,6 +40,7 @@ class Created(object):
         self.links_stats = {}
         self.avail = {}
         self.chunks = {}
+        self.n_arrays = 0
         self.soft = ''
         self.hash = ''
         self.sh = ''
@@ -177,14 +178,14 @@ class Created(object):
             extended_cmds = ['\n# Move to SCRATCH_FOLDER']
             extended_cmds += roundtrip['to']
             extended_cmds += ['\n# data: %s %s' % (key[0], ' '.join(key[1]))]
-            extended_cmds += cmds
+            extended_cmds += cmds[0]
             if self.config.move_back:
                 extended_cmds += ['\n# Move from SCRATCH_FOLDER']
                 extended_cmds += roundtrip['from']
         else:
             extended_cmds = ['\n# data: %s %s' % (key[0], ' '.join(key[1]))]
-            extended_cmds += cmds
-        self.cmds[key] = extended_cmds
+            extended_cmds += cmds[0]
+        self.cmds[key] = (extended_cmds, cmds[1])
         self.dummy_outputs(soft, key)
 
     def dummy_outputs(self, soft, key):
@@ -489,52 +490,10 @@ class Created(object):
             o.write('\necho "Done!"\n')
         os.remove(self.sh)
 
-
-    # def prep_script(self, params: dict) -> None:
-    #     # mandatory options
-    #     self.cmd = [
-    #         'Xhpc',
-    #         '-i', self.sh,
-    #         '-j', self.job_name,
-    #         '-t', str(params['time']),
-    #         '-c', str(params['cpus']),
-    #         '-M', str(params['mem']), params['mem_dim'],
-    #         '--no-stat', '--no-abspath']
-    #     # whether the cpus requests is per node
-    #     if params['nodes']:
-    #         self.cmd.extend(['-n', str(params['nodes'])])
-    #     # always provide an account
-    #     if self.config.account:
-    #         self.cmd.extend(['-a', self.config.account])
-    #     # get the job script file path and use it
-    #     job_script = '%s.slm' % splitext(self.sh)[0]
-    #     if self.config.torque:
-    #         self.cmd.append('--torque')
-    #         job_script = '%s.pbs' % splitext(self.sh)[0]
-    #     self.job_fps.append(job_script)
-    #     self.cmd.extend(['-o', job_script])
-    #     # machine-specific setup: env activating and slurm partition
-    #     if params['machine']:
-    #         self.cmd.append('--%s' % params['machine'])
-    #     if params['partition']:
-    #         self.cmd.append('--p-partition %s' % params['partition'])
-    #     # whether an environment must be used for the current software
-    #     if params['env']:
-    #         self.cmd.extend(['-e', params['env']])
-    #     # setup the scratch location to be used for the current software
-    #     if isinstance(params['scratch'], int):
-    #         self.cmd.extend(['--localscratch', str(params['scratch'])])
-    #     elif params['scratch'] == 'scratch':
-    #         self.cmd.append('--scratch')
-    #     elif params['scratch'] == 'userscratch':
-    #         self.cmd.append('--userscratch')
-    #     if not self.config.verbose:
-    #         self.cmd.append('--quiet')
-    #
-    # def call_cmd(self):
-    #     cmd = ' '.join(self.cmd)
-    #     subprocess.call(cmd.split())
-    #     os.remove(self.sh)
+    def update_n_arrays(self, chunk_key):
+        n_arrays = self.cmds[chunk_key][-1]
+        if n_arrays > self.n_arrays:
+            self.n_arrays = n_arrays
 
     def write_chunks(self, chunk_keys: list, soft):
         with open(self.sh, 'w') as sh:
@@ -548,7 +507,8 @@ class Created(object):
                     cleanup += ' ${SCRATCH_FOLDER}/*'
                 sh.write('%s\n' % cleanup)
             for chunk_key in chunk_keys:
-                for cmd in self.cmds[chunk_key]:
+                self.update_n_arrays(chunk_key)
+                for cmd in self.cmds[chunk_key][0]:
                     if soft.params['scratch'] and self.config.jobs:
                         sh.write('%s\n' % cmd)
                     else:
@@ -596,6 +556,7 @@ class Created(object):
 
     def write_jobs(self, name: str, soft=None):
         for chunk, chunk_keys in self.chunks.items():
+            self.n_arrays = 0
             self.get_sh(name, chunk, soft)
             self.write_chunks(chunk_keys, soft)
             self.get_job_name(name, chunk, soft)

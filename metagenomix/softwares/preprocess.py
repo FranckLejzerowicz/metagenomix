@@ -9,6 +9,7 @@
 from os.path import basename
 from metagenomix._io_utils import (io_update, to_do, tech_specificity,
                                    status_update)
+from metagenomix._inputs import genome_key
 from metagenomix.core.parameters import tech_params
 from metagenomix.softwares.alignment import (
     bowtie2_cmd,
@@ -94,14 +95,15 @@ def count(self) -> None:
         out = '%s/read_count.tsv' % out_dir
         outs[(tech, self.sam_pool)] = out
 
+        key = genome_key(tech, sam)
         if self.config.force or to_do(out):
             for idx, fastx in enumerate(fastxs):
                 cmd = count_cmd(self, idx, fastx, out)
                 if to_dos:
-                    self.outputs['cmds'].setdefault((tech,), []).append(False)
+                    self.outputs['cmds'].setdefault(key, []).append(False)
                 else:
-                    self.outputs['cmds'].setdefault((tech,), []).append(cmd)
-            io_update(self, i_f=fastxs, i_d=out_dir, o_f=out, key=tech)
+                    self.outputs['cmds'].setdefault(key, []).append(cmd)
+            io_update(self, i_f=fastxs, i_d=out_dir, o_f=out, key=key)
             self.soft.add_status(tech, sam, 1)
         else:
             self.soft.add_status(tech, sam, 0)
@@ -153,13 +155,14 @@ def fastqc(self) -> None:
             out_dir, basename(x).rsplit('.fastq', 1)[0]) for x in fastxs]
         outs[(tech, self.sam_pool)] = out
 
+        key = genome_key(tech, sam)
         if self.config.force or sum([to_do(x) for x in out]):
             cmd = 'fastqc %s -o %s' % (' '.join(fastxs), out_dir)
             if to_dos:
-                self.outputs['cmds'][(tech,)] = [False]
+                self.outputs['cmds'][key] = [False]
             else:
-                self.outputs['cmds'][(tech,)] = [cmd]
-            io_update(self, i_f=fastxs, o_d=out_dir, key=tech)
+                self.outputs['cmds'][key] = [cmd]
+            io_update(self, i_f=fastxs, o_d=out_dir, key=key)
             self.soft.add_status(tech, sam, 1)
         else:
             self.soft.add_status(tech, sam, 0)
@@ -393,12 +396,13 @@ def fastp(self) -> None:
         cmd, outs = fastp_cmd(self, tech, fastqs, out_dir)
         self.outputs['outs'].setdefault((tech, self.sam_pool), []).extend(outs)
 
+        key = genome_key(tech, sam)
         if self.config.force or sum([to_do(x) for x in outs]):
             if to_dos:
-                self.outputs['cmds'][(tech,)] = [False]
+                self.outputs['cmds'][key] = [False]
             else:
-                self.outputs['cmds'][(tech,)] = [cmd]
-            io_update(self, i_f=fastqs, o_d=out_dir, key=tech)
+                self.outputs['cmds'][key] = [cmd]
+            io_update(self, i_f=fastqs, o_d=out_dir, key=key)
             self.soft.add_status(tech, sam, 1)
         else:
             self.soft.add_status(tech, sam, 0)
@@ -515,12 +519,13 @@ def cutadapt(self) -> None:
         cmd, outs = cutadapt_cmd(self, tech, fastqs, out_dir)
         self.outputs['outs'].setdefault((tech, self.sam_pool), []).extend(outs)
 
+        key = genome_key(tech, sam)
         if self.config.force or sum([to_do(x) for x in outs]):
             if to_dos:
-                self.outputs['cmds'][(tech,)] = [False]
+                self.outputs['cmds'][key] = [False]
             else:
-                self.outputs['cmds'][(tech,)] = [cmd]
-            io_update(self, i_f=fastqs, o_f=outs, key=tech)
+                self.outputs['cmds'][key] = [cmd]
+            io_update(self, i_f=fastqs, o_f=outs, key=key)
             self.soft.add_status(tech, sam, 1)
         else:
             self.soft.add_status(tech, sam, 0)
@@ -658,13 +663,14 @@ def atropos(self) -> None:
         self.outputs['dirs'].append(out_dir)
         outs = atropos_outs(self, fastqs, out_dir)
 
+        key = genome_key(tech, sam)
         cmd = atropos_cmd(self, tech, fastqs, out_dir, outs)
         if self.config.force or sum([to_do(x) for x in outs]):
             if to_dos:
-                self.outputs['cmds'][(tech,)] = [False]
+                self.outputs['cmds'][key] = [False]
             else:
-                self.outputs['cmds'][(tech,)] = [cmd]
-            io_update(self, i_f=fastqs, o_f=outs, key=tech)
+                self.outputs['cmds'][key] = [cmd]
+            io_update(self, i_f=fastqs, o_f=outs, key=key)
             self.soft.add_status(tech, sam, 1)
         else:
             self.soft.add_status(tech, sam, 0)
@@ -765,9 +771,9 @@ def hifiadapterfilt(self) -> None:
         out = '%s/%s.filt.fastq.gz' % (out_dir, sam)
         self.outputs['outs'].setdefault((tech, self.sam_pool), []).append(out)
 
+        key = genome_key(tech, sam)
         if self.config.force or to_do(out):
             cmd = hifiadapterfilt_cmd(self, fastqs, out_dir, sam)
-            key = (tech, sam)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
@@ -890,12 +896,13 @@ def kneaddata(self) -> None:
 
         cmd, outputs = kneaddata_cmd(self, tech, fastqs, out_dir)
 
+        key = genome_key(tech, sam)
         if self.config.force or sum([to_do(x) for x in outputs]):
             if to_dos:
-                self.outputs['cmds'][(tech,)] = [False]
+                self.outputs['cmds'][key] = [False]
             else:
-                self.outputs['cmds'][(tech,)] = [cmd]
-            io_update(self, i_f=fastqs, o_d=out_dir, key=tech)
+                self.outputs['cmds'][key] = [cmd]
+            io_update(self, i_f=fastqs, o_d=out_dir, key=key)
             self.soft.add_status(tech, sam, 1)
         else:
             self.soft.add_status(tech, sam, 0)
@@ -997,13 +1004,14 @@ def filtering(self):
             outs = ['%s/%s_R1.fastq.gz' % (out_dir, self.sam_pool),
                     '%s/%s_R2.fastq.gz' % (out_dir, self.sam_pool)]
         self.outputs['outs'].setdefault((tech, self.sam_pool), []).extend(outs)
+        key = genome_key(tech, sam)
         if self.config.force or sum([to_do(x) for x in outs]):
             if to_dos:
-                self.outputs['cmds'][(tech,)] = [False]
+                self.outputs['cmds'][key] = [False]
             else:
                 cmd = filtering_cmd(self, sam, tech, fastqs, out_dir, outs)
-                self.outputs['cmds'][(tech,)] = [cmd]
-            io_update(self, i_f=fastqs, i_d=out_dir, o_d=out_dir, key=tech)
+                self.outputs['cmds'][key] = [cmd]
+            io_update(self, i_f=fastqs, i_d=out_dir, o_d=out_dir, key=key)
             self.soft.add_status(tech, sam, 1)
         else:
             self.soft.add_status(tech, sam, 0)

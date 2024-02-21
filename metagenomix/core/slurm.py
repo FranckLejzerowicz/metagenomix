@@ -167,8 +167,8 @@ def set_directives(self, params) -> list:
         dirs.append('%s%s' % (d['partition'], params['partition']))
     else:
         dirs.append('%snormal' % d['partition'])
-    if params['array_jobs']:
-        dirs.append('#SBATCH --array=1-%s:' % params['array_jobs'])
+    if self.n_arrays:
+        dirs.append('#SBATCH --array=1-%s:' % self.n_arrays)
     dirs.append('%s%s' % (d['job'], self.job_name))
     localscratch = '#SBATCH --gres=localscratch:'
     if isinstance(params['scratch'], int):

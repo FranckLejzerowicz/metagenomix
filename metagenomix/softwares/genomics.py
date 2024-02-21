@@ -269,7 +269,7 @@ def drep(self):
                 if not self.config.force and glob.glob(out_dereps):
                     self.soft.add_status(tech, pool, 0, group=bin_algo)
                     continue
-                key = (tech, bin_algo)
+                key = genome_key(tech, bin_algo)
                 cmd = drep_cmd(self, algo, drep_in, drep_out, bin_paths)
                 if not to_dos:
                     # self.outputs['cmds'].setdefault(key, []).append(False)
@@ -356,10 +356,10 @@ def tree(
         # self.outputs['outs'].setdefault((tech, group), []).extend(outs)
         self.outputs['outs'].setdefault((tech, group), {}).update(outs)
 
-        key = genome_key(tech, group, genome)
         to_dos = status_update(self, tech, [genome_dir], group=group,
                                genome=genome, folder=True, software='checkm')
 
+        key = genome_key(tech, group, genome)
         if self.config.force or to_do('%s/checkm.log' % out_dir):
             cmd = tree_cmd(self, genome_dir, out_dir)
             if to_dos:# and self.soft.name != 'checkm':
@@ -476,7 +476,7 @@ def treeqa(
         out = '%s/1_tree_placement_summary.txt' % qa_dir
         if self.config.force or to_do(out):
             cmd = treeqa_cmd(self, tree_dir, qa_dir)
-            if to_dos:# and self.soft.name != 'checkm':
+            if to_dos: # and self.soft.name != 'checkm':
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
@@ -578,10 +578,9 @@ def lineageset(
         lineage_ms = '%s/lineage.ms' % lineage_dir
         to_dos = status_update(self, tech, [tree_dir], group=group,
                                genome=genome, folder=True, software='checkm')
-
         if self.config.force or to_do(lineage_ms):
             cmd = lineageset_cmd(self, tree_dir, lineage_ms)
-            if to_dos:# and self.soft.name != 'checkm':
+            if to_dos: # and self.soft.name != 'checkm':
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
@@ -697,7 +696,7 @@ def analyze(
         out = '%s/storage/bin_stats.analyze.tsv' % analyze_dir
         if self.config.force or to_do(out):
             cmd = analyze_cmd(self, genomes_dir, lineage_dir, analyze_dir)
-            if to_dos:# and self.soft.name != 'checkm':
+            if to_dos: # and self.soft.name != 'checkm':
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
@@ -851,7 +850,7 @@ def coverage(
 
                 if self.config.force or to_do(cov):
                     cmd = coverage_cmd(self, genome_dir, cov, bams)
-                    if to_dos:# and self.soft.name != 'checkm':
+                    if to_dos: # and self.soft.name != 'checkm':
                         self.outputs['cmds'].setdefault(key, []).append(False)
                     else:
                         self.outputs['cmds'].setdefault(key, []).append(cmd)
@@ -1033,12 +1032,12 @@ def qa(
         outs = {genome: [qa_dir]}
         self.outputs['outs'].setdefault((tech, group), {}).update(outs)
 
-        key = genome_key(tech, group, genome)
         lineage_ms = '%s/lineage.ms' % lineage_dir
         to_dos = status_update(self, tech, [lineage_ms], group=group,
                                genome=genome, software='checkm')
 
         out = '%s/1_qa_completeness_contamination.txt' % qa_dir
+        key = genome_key(tech, group, genome)
         if self.config.force or to_do(out):
             cmd = qa_cmd(self, lineage_ms, analyze_dir, qa_dir, cov)
             if to_dos:# and self.soft.name != 'checkm':
@@ -1140,13 +1139,13 @@ def unbinned(
         outs = {genome: unbinned_dir}
         self.outputs['outs'].setdefault((tech, group), {}).update(outs)
 
-        key = genome_key(tech, group, genome)
         to_dos = status_update(self, tech, [genomes_dir], group=group,
                                genome=genome, folder=True, software='checkm')
 
         if self.config.force or to_do('%s/unbinned.fa' % unbinned_dir):
             cmd = unbinned_cmd(self, genomes_dir, contigs, unbinned_dir)
-            if to_dos:# and self.soft.name != 'checkm':
+            key = genome_key(tech, group, genome)
+            if to_dos: # and self.soft.name != 'checkm':
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
@@ -1231,12 +1230,12 @@ def tetra(
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
 
-        key = genome_key(tech, group)
         to_dos = status_update(self, tech, [contigs], group=group)
 
         out = '%s/tetra.txt' % out_dir
         if self.config.force or to_do(out):
             cmd = tetra_cmd(self, contigs, out)
+            key = genome_key(tech, group)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
@@ -1536,11 +1535,11 @@ def denovo(
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
 
-        key = genome_key(tech, group)
         to_dos = status_update(self, tech, [in_dir], group=group, folder=True)
 
         out = '%s/identify/gtdbtk.failed_genomes.tsv' % out_dir
         if self.config.force or to_do(out):
+            key = genome_key(tech, group)
             cmd = denovo_cmd(self, tech, key, in_dir, out_dir, classify_in)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
@@ -1594,12 +1593,12 @@ def classify(
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
 
-        key = genome_key(tech, group)
         to_dos = status_update(self, tech, [in_dir], group=group, folder=True)
 
         out = '%s/identify/gtdbtk.failed_genomes.tsv' % out_dir
         if self.config.force or to_do(out):
             cmd = classify_cmd(self, tech, in_dir, out_dir)
+            key = genome_key(tech, group)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
@@ -1769,13 +1768,13 @@ def get_checkm2(
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
 
-        key = genome_key(tech, group, genome)
         to_dos = status_update(self, tech, [folder], group=group,
                                genome=genome, folder=True)
 
         out = '%s/quality_report.tsv' % out_dir
         if self.config.force or to_do(out):
             cmd = checkm2_cmd(self, folder, out_dir)
+            key = genome_key(tech, group, genome)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:

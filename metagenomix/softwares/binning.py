@@ -9,7 +9,8 @@ import sys
 import glob
 import pkg_resources
 from os.path import basename, dirname, splitext
-from metagenomix._inputs import get_contigs_from_path, get_assembly_graph
+from metagenomix._inputs import (
+    get_contigs_from_path, get_assembly_graph, genome_key)
 from metagenomix._io_utils import caller, status_update, io_update, to_do
 from metagenomix.core.parameters import tech_params
 
@@ -18,7 +19,7 @@ SCRIPTS = pkg_resources.resource_filename("metagenomix", "resources/scripts")
 
 def process_outputs(
         self,
-        key: tuple,
+        tech: str,
         group: str,
         out: list,
 ) -> bool:
@@ -29,8 +30,8 @@ def process_outputs(
     self : Commands class instance
         .soft.params
             Parameters
-    key : tuple
-        (tech, group)
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
     group : str
         Current pool group
     out : list
@@ -42,10 +43,10 @@ def process_outputs(
         Whether to process the sample command or not
     """
     if group in self.soft.params['skip_samples']:
-        self.outputs['outs'][key] = []
+        self.outputs['outs'][(tech, group)] = []
         process = True
     else:
-        self.outputs['outs'][key] = out
+        self.outputs['outs'][(tech, group)] = out
         process = False
     return process
 
@@ -240,8 +241,7 @@ def quantify(self):
             Tool status
     """
     for (tech, group), inputs in self.inputs[self.sam_pool].items():
-        key = (tech, group)
-        self.outputs['outs'][key] = {}
+        self.outputs['outs'][(tech, group)] = {}
 
         bins = inputs[0]
         contigs = get_contigs_from_path(self, tech, group)
@@ -252,10 +252,11 @@ def quantify(self):
             print('[metawrap_blobology] No illumina reads for group %s' % group)
             continue
 
+        key = genome_key(tech, group)
         io_update(self, i_f=contigs, i_d=bins, key=key)
 
         for mode in self.soft.params['blobology']:
-            self.outputs['outs'][key][mode] = {}
+            self.outputs['outs'][(tech, group)][mode] = {}
 
             out_ = '%s/%s/%s/%s/%s' % (
                 self.dir, tech, self.sam_pool, group, mode)
@@ -271,7 +272,7 @@ def quantify(self):
                 self.outputs['dirs'].append(o)
                 cmd = quantify_cmd(self, bins, fastq, o, contigs)
                 if self.config.force or to_do('%s/bin_abundance_table.tab' % o):
-                    self.outputs['outs'][key][mode][sam] = o
+                    self.outputs['outs'][(tech, group)][mode][sam] = o
                     if to_dos:
                         self.outputs['cmds'].setdefault(key, []).append(False)
                     else:
@@ -427,8 +428,7 @@ def classify_or_annotate(
         "classify_bins" or "annotate_bins"
     """
     for (tech, group), inputs in self.inputs[self.sam_pool].items():
-        key = (tech, group)
-        self.outputs['outs'][key] = {}
+        self.outputs['outs'][(tech, group)] = {}
 
         for sam, bins_dir in classify_or_annotate_dirs(self, inputs).items():
             for bin_dir in bins_dir:
@@ -439,10 +439,11 @@ def classify_or_annotate(
                 to_dos = status_update(
                     self, tech, [bin_dir], group=group, genome=sam, folder=True)
                 cmd = classify_or_annotate_cmd(self, command, bin_dir, out)
-                self.outputs['outs'][key][sam] = [out]
+                self.outputs['outs'][(tech, group)][sam] = [out]
 
                 condition = classify_or_annotate_condition(command, out)
                 if self.config.force or condition:
+                    key = genome_key(tech, group)
                     if to_dos:
                         self.outputs['cmds'].setdefault(key, []).append(False)
                     else:
@@ -612,9 +613,8 @@ def blobology(self):
             Tool status
     """
     for (tech, group), inputs in self.inputs[self.sam_pool].items():
-        key = (tech, group)
 
-        self.outputs['outs'][key] = {}
+        self.outputs['outs'][(tech, group)] = {}
         bins = inputs[0]
 
         contigs = get_contigs_from_path(self, tech, group)
@@ -624,9 +624,11 @@ def blobology(self):
             print('[metawrap_blobology] No illumina reads for group %s' % group)
             continue
 
+        key = genome_key(tech, group)
         io_update(self, i_f=contigs, i_d=bins, key=key)
+
         for mode in self.soft.params['blobology']:
-            self.outputs['outs'][key][mode] = {}
+            self.outputs['outs'][(tech, group)][mode] = {}
             out_ = '/'.join([self.dir, tech, self.sam_pool, group, mode])
             sams_fastqs = get_sams_fastqs(mode, fastqs)
             for sam, fastq_fps in sams_fastqs.items():
@@ -644,7 +646,7 @@ def blobology(self):
                 self.outputs['dirs'].append(out)
                 base = basename(splitext(contigs.rstrip('.gz'))[0])
                 blobplot = '%s/%s.binned.blobplot' % (out, base)
-                self.outputs['outs'][key][mode][sam] = out
+                self.outputs['outs'][(tech, group)][mode][sam] = out
                 if self.config.force or to_do(blobplot):
                     cmd = blobology_cmd(self, fastq_fps, out, contigs, bins)
                     if to_dos:
@@ -742,7 +744,7 @@ def reassembly_cmd(
     out : str
         Path to the metaWRAP bin reassembly output folder
     key : tuple
-        (tech, group)
+        ((Variables names for the current analytic level), number of arrays)
 
     Returns
     -------
@@ -753,7 +755,7 @@ def reassembly_cmd(
     for mode in self.soft.params['reassembly']:
         mode_dir = '%s/reassembled_bins_%s' % (out, mode)
         self.outputs['dirs'].append(mode_dir)
-        self.outputs['outs'].setdefault(key, []).append(mode_dir)
+        self.outputs['outs'].setdefault((tech, group), []).append(mode_dir)
         io_update(self, i_d=mode_dir, key=key)
         if not self.config.force and not to_do(mode_dir):
             continue
@@ -789,7 +791,6 @@ def reassemble(self):
             Tool status
     """
     for (tech, group), inputs in self.inputs[self.sam_pool].items():
-        key = (tech, group)
 
         bins = inputs[0]
         # if to_do(folder=bins):
@@ -807,6 +808,7 @@ def reassemble(self):
             out = '/'.join([self.dir, tech, self.sam_pool, group, sam])
             self.outputs['dirs'].append(out)
 
+            key = genome_key(tech, group)
             cmd = reassembly_cmd(self, fastq, bins, tech, group, out, key)
             if cmd:
                 if to_dos:
@@ -902,15 +904,14 @@ def refine(self):
     """
     for (tech, group), bin_dirs in self.inputs[self.sam_pool].items():
 
-        key = (tech, group)
-
         out_dir = '/'.join([self.dir, tech, self.sam_pool, group])
         to_dos = status_update(self, tech, bin_dirs, group=group, folder=True)
         cmd, bins, names = refine_cmd(self, out_dir, bin_dirs)
-        if process_outputs(self, key, group, [bins]):
+        if process_outputs(self, tech, group, [bins]):
             continue
         self.outputs['dirs'].append(out_dir)
         if self.config.force or to_do(bins):
+            key = genome_key(tech, group)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
@@ -1061,11 +1062,11 @@ def binning(self):
                   for binner in self.soft.params['binners']}
         bin_dirs = sorted(binned.values())  # + ['%s/work_files' % out]
 
-        key = (tech, group)
-        if process_outputs(self, key, group, bin_dirs):
+        if process_outputs(self, tech, group, bin_dirs):
             continue
         cmd = binning_cmd(self, fastqs, out, contigs, binned)
         if cmd:
+            key = genome_key(tech, group)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
@@ -1186,13 +1187,13 @@ def get_yamb(self, tech, group, contigs, fastxs):
         to_dos.extend(status_update(self, tech, fastxs, group=group))
     to_dos.extend(status_update(self, tech, [contigs], group=group))
 
-    key = (tech, group)
     out_dir = '/'.join([self.dir, tech, self.sam_pool, group])
     self.outputs['dirs'].append(out_dir)
-    self.outputs['outs'][key] = [out_dir]
+    self.outputs['outs'][(tech, group)] = [out_dir]
 
     out = '%s/yamb-pp-*-hdbscan.csv.gz' % out_dir
     if self.config.force or not glob.glob(out):
+        key = genome_key(tech, group)
         if to_dos:
             self.outputs['cmds'].setdefault(key, []).append(False)
         else:
@@ -1345,12 +1346,12 @@ def binspreader(self):
             to_dos = status_update(self, tech, [inp], group=group, folder=True)
             to_dos.extend(status_update(self, tech, [graph], group=group))
 
-            key = (tech, group)
             out_dir = '/'.join([self.dir, tech, self.sam_pool, group])
             self.outputs['dirs'].append(out_dir)
-            self.outputs['outs'][key] = [out_dir]
+            self.outputs['outs'][(tech, group)] = [out_dir]
 
             if self.config.force or to_do('%s/binning.tsv' % out_dir):
+                key = genome_key(tech, group)
                 if to_dos:
                     self.outputs['cmds'].setdefault(key, []).append(False)
                 else:

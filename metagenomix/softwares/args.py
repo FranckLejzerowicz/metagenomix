@@ -130,7 +130,6 @@ def get_predict(
         typ_seqs = predict_inputs(self, fasta[0])
         for typ, seq in typ_seqs.items():
 
-            key = genome_key(tech, sam_group, genome)
             to_dos = status_update(
                 self, tech, [seq], group=sam_group, genome=genome)
 
@@ -142,6 +141,7 @@ def get_predict(
             if self.config.force or to_do(out):
                 # collect the command line
                 cmd = predict_cmd(self, seq, prefix, typ)
+                key = genome_key(tech, sam_group, genome)
                 if to_dos:
                     self.outputs['cmds'].setdefault(key, []).append(False)
                 else:
@@ -253,11 +253,12 @@ def short(self) -> None:
         out = '%s.mapping.ARG.gz' % prefix
         if self.config.force or to_do(out):
             cmd = short_cmd(self, fastqs, prefix)
+            key = genome_key(tech, sam)
             if to_dos:
-                self.outputs['cmds'][(tech,)] = [False]
+                self.outputs['cmds'][key] = [False]
             else:
-                self.outputs['cmds'][(tech,)] = [cmd]
-            io_update(self, i_f=fastqs, o_d=out_dir, key=tech)
+                self.outputs['cmds'][key] = [cmd]
+            io_update(self, i_f=fastqs, o_d=out_dir, key=key)
             self.soft.add_status(tech, sam, 1)
         else:
             self.soft.add_status(tech, sam, 0)
@@ -397,7 +398,6 @@ def get_metamarc(
             self, tech, inputs, self.sam_pool, group=sam_group, genome=genome)
 
         outs, cmd = [], ''
-        key = genome_key(tech, sam_group, genome)
         for level in self.soft.params['level']:
             out = '%s/model_level_%s' % (out_dir, level)
             self.outputs['dirs'].append(out_dir)
@@ -412,13 +412,13 @@ def get_metamarc(
             full_cmd = 'cd %s\n' % out_dir
             full_cmd += 'cp -r %s/bin %s/.\n' % (path, out_dir)
             full_cmd += 'cp -r %s/src %s/.\n' % (path, out_dir)
-            # full_cmd += 'cp -r %s/hmmer-3.1b2 %s/.\n' % (path, out_dir)
             full_cmd += 'cd bin\n'
             full_cmd += cmd
             full_cmd += '\ncd ..\n'
             full_cmd += 'rm -rf bin\n'
             full_cmd += 'rm -rf src\n'
-            # full_cmd += 'rm -rf hmmer-3.1b2\n'
+
+            key = genome_key(tech, sam_group, genome)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
@@ -1304,7 +1304,7 @@ def abritamr_all(self):
                 self.outputs['outs'][pool][(tech, grp)] = out_dir + '/' + grp
 
             if self.config.force or to_do('%s/summary_matches.txt.gz' % out_dir):
-                key = (tech, pool)
+                key = genome_key(tech, pool)
                 if to_dos:
                     self.outputs['cmds'].setdefault(key, []).append(False)
                 else:
@@ -1332,7 +1332,7 @@ def abritamr_sample(self):
         contig_paths, cmd = abritamr_cmd(self, contigs, out_dir)
 
         if self.config.force or to_do('%s/summary_matches.txt.gz' % out_dir):
-            key = (tech, group)
+            key = genome_key(tech, group)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
@@ -1465,9 +1465,9 @@ def get_staramr(self, tech, folders, group):
 
         to_dos = status_update(
             self, tech, [inputs[0]], self.sam_pool, group=group)
-        key = genome_key(tech, group)
         out_fp = '%s/summary.tsv.gz' % out_dir
         if self.config.force or to_do(out_fp):
+            key = genome_key(tech, group)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
@@ -1573,10 +1573,10 @@ def get_hamronization(self, tech, inputs, group):
     else:
         i_f, i_d = None, inputs
         to_dos = status_update(self, tech, [i_d], self.sam_pool, group=group)
-    key = genome_key(tech, group)
 
     to_do_list = [to_do('%s/%s.gz' % (out_dir, x[0])) for x in reports.values()]
     if self.config.force or sum(to_do_list):
+        key = genome_key(tech, group)
         if to_dos:
             self.outputs['cmds'].setdefault(key, []).append(False)
         else:

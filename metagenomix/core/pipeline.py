@@ -144,7 +144,7 @@ class Workflow(object):
                 print('\t -', '->'.join(j))
 
     def check_basic_params(self, user_params):
-        ints = ['time', 'procs', 'mem', 'chunks']
+        ints = ['time', 'procs', 'mem', 'chunks', 'narrays']
         for param, value in user_params.items():
             if param in ints:
                 check_int(param, value, self.name)
@@ -245,8 +245,10 @@ class Workflow(object):
         """
         for name in self.graph.paths.keys():
             self.name = name
-            self.params[name] = {}
-            self.defaults[name] = {}
+            # self.params[name] = {}
+            # self.defaults[name] = {}
+            self.params[name] = self.config.params
+            self.defaults[name] = self.config.params
             self.set_scratch()
             self.set_user_params()
             # self.write_params()

@@ -9,6 +9,7 @@
 import glob
 from os.path import dirname
 from metagenomix.core.parameters import tech_params
+from metagenomix._inputs import genome_key
 from metagenomix._io_utils import (io_update, tech_specificity,
                                    to_do, status_update)
 
@@ -110,7 +111,8 @@ def analyses(
         tech: str,
         sam: str,
         bowtie2out: str,
-        cmds: list
+        cmds: list,
+        key: tuple
 ) -> None:
     """Get the taxonomic analyses Metaphlan command.
 
@@ -135,11 +137,12 @@ def analyses(
         Input type was a bowtie2 output of the same tool
     cmds : list
         Commands per tech
+    key : tuple
+        ((Variables names for the current analytic level), number of arrays)
     """
     reads = get_read_count(self, tech, sam)
     params = tech_params(self, tech)
     tax_levs = get_tax_levs(params)
-
     for t in params['t']:
         out = get_out_fp(self, tech, t, reads)
         for tax_lev in tax_levs:
@@ -176,7 +179,7 @@ def analyses(
                         cms += ' --min_ab %s' % params['min_ab']
                     if self.config.force or to_do(clade_out):
                         cmds.append(cmd)
-                        io_update(self, o_f=clade_out, key=tech)
+                        io_update(self, o_f=clade_out, key=key)
                         self.soft.add_status(
                             tech, self.sam_pool, 1, message=t, genome='strain')
                     else:
@@ -187,7 +190,7 @@ def analyses(
                 cmd += ' --output_file %s' % ab_out
                 if self.config.force or to_do(ab_out):
                     cmds.append(cmd)
-                    io_update(self, o_f=ab_out, key=tech)
+                    io_update(self, o_f=ab_out, key=key)
                     self.soft.add_status(tech, self.sam_pool, 1, message=t)
                 else:
                     self.soft.add_status(tech, self.sam_pool, 0, message=t)
@@ -200,7 +203,8 @@ def profiling(
         inputs: list,
         bowtie2out: str,
         tmpdir: str,
-        cmds: list
+        cmds: list,
+        key: tuple
 ) -> tuple:
     """Get the taxonomic profiling metaphlan command.
 
@@ -233,6 +237,8 @@ def profiling(
         Path to a temporary directory
     cmds : list
         Commands per tech
+    key : tuple
+        ((Variables names for the current analytic level), number of arrays)
 
     Returns
     -------
@@ -246,18 +252,19 @@ def profiling(
     sam_out = '%s/%s/sams/%s.sam.bz2' % (self.dir, tech, sam)
     profile_out = '%s/%s/profiles/%s.tsv' % (self.dir, tech, sam)
 
+    key = genome_key(tech, sam)
     params = tech_params(self, tech)
     if to_do(profile_out):
-        io_update(self, o_f=profile_out, key=tech)
+        io_update(self, o_f=profile_out, key=key)
         cmd = 'metaphlan'
         if not to_do(bowtie2out):
             to_dos = status_update(self, tech, [bowtie2out])
-            io_update(self, i_f=bowtie2out, key=tech)
+            io_update(self, i_f=bowtie2out, key=key)
             cmd += ' %s' % bowtie2out
             cmd += ' --input_type bowtie2out'
         else:
             to_dos = status_update(self, tech, inputs)
-            io_update(self, i_f=inputs, key=tech)
+            io_update(self, i_f=inputs, key=key)
             cmd += ' %s' % ','.join(inputs)
             cmd += ' --input_type fastq'
             cmd += ' --samout %s' % sam_out
@@ -274,7 +281,7 @@ def profiling(
         self.soft.add_status(tech, self.sam_pool, 1)
     else:
         to_dos = []
-        io_update(self, i_f=bowtie2out, key=tech)
+        io_update(self, i_f=bowtie2out, key=key)
         self.soft.add_status(tech, self.sam_pool, 0)
     outs = [sam_out, profile_out]
     return outs, to_dos
@@ -341,24 +348,29 @@ def metaphlan(self) -> None:
         tmpdir = '$TMPDIR/metaphlan_%s_%s' % (tech, self.sam_pool)
         bowtie2out = '%s/%s/bowtie2/%s.bowtie2.bz2' % (self.dir, tech, sam)
 
+        key = genome_key(tech, sam)
+
         cmds = []
         outs, to_dos = profiling(
-            self, tech, sam, inputs, bowtie2out, tmpdir, cmds)
+            self, tech, sam, inputs, bowtie2out, tmpdir, cmds, key)
         self.outputs['outs'].setdefault(
             (tech, sam), []).extend([bowtie2out] + list(outs))
         self.outputs['dirs'] = [
             dirname(x) for x in self.outputs['outs'][(tech, sam)]]
 
-        analyses(self, tech, sam, bowtie2out, cmds)
+        analyses(self, tech, sam, bowtie2out, cmds, key)
         if cmds:
             _cmd = ['mkdir -p %s\n' % tmpdir]
             if to_dos:
-                self.outputs['cmds'][(tech,)] = [False]
+                self.outputs['cmds'][key] = [False]
             else:
-                self.outputs['cmds'][(tech,)] = _cmd + cmds
+                self.outputs['cmds'][key] = _cmd + cmds
 
 
-def get_profile(self) -> list:
+def get_profile(
+        self,
+        key: tuple
+) -> list:
     """Get the taxonomic profiles if there are some, for humann to only run
     of the taxa from these profiles.
 
@@ -396,7 +408,7 @@ def get_profile(self) -> list:
             profile_sams = {x.split('/')[-2]: x for x in glob.glob(profile_fp)}
             if self.sam_pool in profile_sams:
                 profiles.append(profile_sams[self.sam_pool])
-                io_update(self, i_f=profile_sams[self.sam_pool])
+                io_update(self, i_f=profile_sams[self.sam_pool], key=key)
                 dbs.append('')
                 outs.append(
                     self.dir + '/profile_%s_%s_id%s_e%s_qC%s_sC%s_bypss%s' % (
@@ -505,7 +517,8 @@ def renorm(
 
 def get_ali(
         self,
-        o: str
+        o: str,
+        key: tuple
 ) -> str:
     """
 
@@ -526,9 +539,9 @@ def get_ali(
     """
     ali = '%s/%s_tmp/%s_bowtie2_aligned.sam' % (o, self.sam_pool, self.sam_pool)
     if not self.config.force and not to_do(ali):
-        io_update(self, i_f=ali)
+        io_update(self, i_f=ali, key=key)
     else:
-        io_update(self, o_f=ali, o_d=o)
+        io_update(self, o_f=ali, o_d=o, key=key)
     return ali
 
 
@@ -590,7 +603,6 @@ def humann(self) -> None:
     References
     ----------
 
-
     Notes
     -----
     GitHub  :
@@ -615,9 +627,9 @@ def humann(self) -> None:
         .config
             Configurations
     """
-    for profile, db, out in zip(*get_profile(self)):
-        key = (tech, '_'.join(profile, db))
-        ali = get_ali(self, out)
+    key = genome_key(tech, sam)
+    for profile, db, out in zip(*get_profile(self, key)):
+        ali = get_ali(self, out, key)
         gen, pwy, cov = get_outputs(self, ali, profile, db, out, key)
         gen_relab = '%s/%s_genefamilies_relab.tsv' % (out, self.sam_pool)
         pwy_relab = '%s/%s_pathabundance_relab.tsv' % (out, self.sam_pool)

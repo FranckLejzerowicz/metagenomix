@@ -100,8 +100,8 @@ def get_plasforest(
                                genome=genome)
 
         if self.config.force or to_do(out_fp):
-            key = genome_key(tech, sam_group, genome)
             cmd = plasforest_cmd(self, fasta, out_dir)
+            key = genome_key(tech, sam_group, genome)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
@@ -703,7 +703,6 @@ def get_mobsuite(
     """
     for genome, fastas in inputs_dict.items():
 
-        key = (tech, group)
         out_dir = genome_out_dir(self, tech, group)
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
@@ -717,6 +716,7 @@ def get_mobsuite(
 
         typer_out = '%s/typer/mobtyper_results.txt.gz' % out_dir
         if self.config.force or to_do(typer_out):
+            key = genome_key(tech, group)
             cmds += mobsuite_cmds(self, tech, fasta, out_dir, key)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
@@ -818,7 +818,6 @@ def get_oritfinder(
 
         cmd = ''
         out = '%s/gene.coords_summary.txt.gz' % out_dir
-        key = (tech, group)
         if self.config.force or to_do(out):
             cmd += oritfinder_cmd(gbk)
 
@@ -838,7 +837,9 @@ def get_oritfinder(
             full_cmd += 'rm -rf tools\n'
             full_cmd += 'rm -rf scripts\n'
             full_cmd += 'rm oriTfinder_local.pl\n'
-            full_cmd += 'for i in %s/*; do gzip -q %s; done\n' % out_dir
+            full_cmd += 'for i in %s/*; do gzip -q $i; done\n' % out_dir
+
+            key = genome_key(tech, group)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
@@ -885,6 +886,31 @@ def oritfinder(self):
             get_oritfinder(self, tech, fastas, self.sam_pool)
 
 
+def genomad_cmd(
+        self,
+        tech: str,
+        fasta: str,
+        out_dir: str,
+        key: tuple
+) -> str:
+    """
+
+    Parameters
+    ----------
+    self
+    tech : str
+    fasta : str
+    out_dir : str
+    key : tuple
+
+    Returns
+    -------
+    cmd : str
+    """
+    cmd = ''
+    return cmd
+
+
 def get_genomad(
         self,
         tech: str,
@@ -909,7 +935,6 @@ def get_genomad(
     """
     for genome, fasta_ in fastas.items():
 
-        key = genome_key(tech, group, genome)
         out = genome_out_dir(self, tech, group, genome)
         self.outputs['dirs'].append(out)
         self.outputs['outs'].setdefault((tech, group), []).append(out)
@@ -923,8 +948,8 @@ def get_genomad(
 
         fpo = '%s/Results_Integron_Finder_mysequences/mysequences.summary' % out
         if self.config.force or to_do(fpo):
-            # cmd = hmms_cmd + integronfinder_cmd(self, tech, fasta, out)
-            cmd = genomad_cmd(self, tech, fasta, out)
+            key = genome_key(tech, group, genome)
+            cmd = genomad_cmd(self, tech, fasta, out, key)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
@@ -1065,7 +1090,6 @@ def get_genomad_end_to_end(
     group
     """
     for genome, fastas in folders.items():
-        key = genome_key(tech, group, genome)
         out_dir = genome_out_dir(self, tech, group, genome)
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
@@ -1077,6 +1101,7 @@ def get_genomad_end_to_end(
         fpo = '%s/%s_summary.log' % (out_dir, prefix)
         if self.config.force or to_do(fpo):
             cmd = genomad_end_to_end_cmd(self, tech, fasta, out_dir, prefix)
+            key = genome_key(tech, group, genome)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:

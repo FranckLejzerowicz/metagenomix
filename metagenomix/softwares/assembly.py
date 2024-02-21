@@ -216,7 +216,7 @@ def quast(self) -> None:
             if self.config.force or to_do('%s/report.html' % out_dir):
                 cmd, contigs, to_dos = quast_cmd(
                     self, tech, pool, group_sams, out_dir)
-                key = (tech, pool)
+                key = genome_key(tech, pool)
                 if to_dos:
                     self.outputs['cmds'].setdefault(key, []).append(False)
                 else:
@@ -424,7 +424,7 @@ def spades(self) -> None:
         if self.config.force or to_do(contigs):
             cmd, inputs, to_dos = spades_cmd(self, techs_inputs, techs, tmp,
                                              out, log, hybrid, group)
-            key = (hybrid, group)
+            key = genome_key(hybrid, group)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
@@ -465,6 +465,7 @@ def megahit_cmd(
     fastg : str
         Path to the longest k-mer contigs file (gzipped)
     key : tuple
+        ((Variables names for the current analytic level), number of arrays)
 
     Returns
     -------
@@ -704,11 +705,12 @@ def plass(self) -> None:
         if self.config.force or to_do(contigs):
             tmp_dir = '$TMPDIR/plass_%s' % self.sam_pool
             cmd = plass_cmd(self, fastqs, contigs, tmp_dir)
+            key = genome_key(tech, sam)
             if to_dos:
-                self.outputs['cmds'].setdefault((tech,), []).append(False)
+                self.outputs['cmds'].setdefault(key, []).append(False)
             else:
-                self.outputs['cmds'].setdefault((tech,), []).append(cmd)
-            io_update(self, i_f=fastqs, o_d=out, key=tech)
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
+            io_update(self, i_f=fastqs, o_d=out, key=key)
             self.soft.add_status(tech, sam, 1)
         else:
             self.soft.add_status(tech, sam, 0)
@@ -814,7 +816,7 @@ def flye(self) -> None:
             self.outputs['outs'][(tech, group)] = [contigs, info, gfa, gv]
 
             if self.config.force or to_do(contigs):
-                key = (tech, group)
+                key = genome_key(tech, group)
                 if to_dos:
                     self.outputs['cmds'].setdefault(key, []).append(False)
                 else:
@@ -945,7 +947,7 @@ def canu(self) -> None:
 
             if self.config.force or to_do(contigs):
                 cmd = canu_cmd(self, tech, inputs, group, out)
-                key = (tech, group)
+                key = genome_key(tech, group)
                 if to_dos:
                     self.outputs['cmds'].setdefault(key, []).append(False)
                 else:
@@ -1079,7 +1081,6 @@ def unicycler(self) -> None:
             techs += [self.soft.params['hybrid']]
 
         hybrid = '_'.join(techs)
-        key = (hybrid, sam_group)
         if len(techs) > 1:
             hybrid = 'hybrid__%s' % hybrid
 
@@ -1090,6 +1091,7 @@ def unicycler(self) -> None:
         self.outputs['dirs'].append(out)
         self.outputs['outs'][(hybrid, sam_group)] = [fasta, gfa, log]
 
+        key = genome_key(hybrid, sam_group)
         if self.config.force or to_do(fasta):
             cmd, inputs = unicycler_cmd(self, techs_inputs, key, out, techs)
             to_dos = status_update(self, hybrid, inputs, group=sam_group)
@@ -1307,7 +1309,7 @@ def necat(self) -> None:
         if self.config.force or to_do(contigs):
             cmd = necat_cmd(self, group, fastxs, out)
             # [machinery] Collect the command line
-            key = (tech, group)
+            key = genome_key(tech, group)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
@@ -1418,9 +1420,9 @@ def get_metamic(
     to_dos = status_update(
         self, tech, [bam, contigs_gz], self.sam_pool, group=group)
 
-    key = genome_key(tech, group, aligner)
     out_fp = '%s/output' % out_dir
     if self.config.force or to_do(out_fp):
+        key = genome_key(tech, group, aligner)
         if to_dos:
             self.outputs['cmds'].setdefault(key, []).append(False)
         else:

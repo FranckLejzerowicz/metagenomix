@@ -14,6 +14,7 @@ import gzip
 import glob
 import hashlib
 import itertools
+import numpy as np
 import pandas as pd
 from tabulate import tabulate
 from os.path import basename, dirname, isdir, isfile, islink
@@ -507,6 +508,30 @@ def split_fasta(fasta: str, rs: list) -> str:
         out = '%s.%s' % (fasta, (rdx+1))
         cmd += 'seqkit range -r %s:%s -o %s\n' % ((r+1), (rs[rdx+1]), out)
     return cmd
+
+
+def split_to_array(
+        nums,
+        narrays,
+        fasta
+) -> str:
+    rs = list(np.linspace(0, nums, num=narrays, dtype=int))
+    cmd = split_fasta(fasta, rs)
+    return cmd
+
+
+def get_n_arrays(
+        self,
+        nums,
+        params,
+) -> int:
+    n_arrays = 0
+    if self.config.jobs and (params['arraysplit'] or params['narrays']):
+        if params['arraysplit'] and nums > params['arraysplit']:
+            n_arrays = nums // params['arraysplit']
+        elif params['narrays']:
+            n_arrays = params['narrays']
+    return n_arrays
 
 
 def to_do(

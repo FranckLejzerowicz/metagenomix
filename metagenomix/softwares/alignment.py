@@ -8,6 +8,7 @@
 
 from os.path import splitext
 from metagenomix.core.parameters import tech_params
+from metagenomix._inputs import genome_key
 from metagenomix._io_utils import (io_update, to_do, tech_specificity,
                                    not_paired, status_update)
 
@@ -107,13 +108,14 @@ def flash(self) -> None:
         ext = '%s.extendedFrags.fastq.gz' % rad
         outs = [nc1, nc2, ext]
 
+        key = genome_key(tech, sam)
         if self.config.force or sum([to_do(x) for x in outs]):
             cmd = flash_cmd(self, tech, paired, out)
             if to_dos:
-                self.outputs['cmds'][(tech,)] = [False]
+                self.outputs['cmds'][key] = [False]
             else:
-                self.outputs['cmds'][(tech,)] = [cmd]
-            io_update(self, i_f=paired, o_d=out, key=tech)
+                self.outputs['cmds'][key] = [cmd]
+            io_update(self, i_f=paired, o_d=out, key=key)
             self.soft.add_status(tech, sam, 1)
         else:
             self.soft.add_status(tech, sam, 0)
@@ -239,13 +241,14 @@ def ngmerge(self) -> None:
         nc2 = '%s.notCombined_2.fastq.gz' % rad
         outs = [nc1, nc2, ext]
 
+        key = genome_key(tech, sam)
         if self.config.force or sum([to_do(x) for x in outs]):
             cmd = ngmerge_cmd(self, tech, paired, ext, log, fail)
             if to_dos:
-                self.outputs['cmds'][(tech,)] = [False]
+                self.outputs['cmds'][key] = [False]
             else:
-                self.outputs['cmds'][(tech,)] = [cmd]
-            io_update(self, i_f=paired, o_d=out, key=tech)
+                self.outputs['cmds'][key] = [cmd]
+            io_update(self, i_f=paired, o_d=out, key=key)
             self.soft.add_status(tech, sam, 1)
         else:
             self.soft.add_status(tech, sam, 0)
@@ -367,13 +370,14 @@ def pear(self) -> None:
         outs = [nc1, nc2, ext]
         na = '%s.discarded.fastq.gz' % rad
 
+        key = genome_key(tech, sam)
         if self.config.force or sum([to_do(x) for x in outs]):
             cmd = pear_cmd(self, tech, paired, rad, outs, outs_, na)
             if to_dos:
-                self.outputs['cmds'][(tech,)] = [False]
+                self.outputs['cmds'][key] = [False]
             else:
-                self.outputs['cmds'][(tech,)] = [cmd]
-            io_update(self, i_f=paired, o_d=out, key=tech)
+                self.outputs['cmds'][key] = [cmd]
+            io_update(self, i_f=paired, o_d=out, key=key)
             self.soft.add_status(tech, sam, 1)
         else:
             self.soft.add_status(tech, sam, 0)
@@ -515,16 +519,17 @@ def bbmerge(self) -> None:
         outs = [nc1, nc2, ext]
         outs_cmd = outs + [ins, kmer, ihist]
 
+        key = genome_key(tech, sam)
         # check if the tool already run (or if --force) to allow getting command
         if self.config.force or sum([to_do(x) for x in outs]):
             # collect the command line
             cmd = bbmerge_cmd(self, tech, paired, outs_cmd)
             # add is to the 'cmds'
             if to_dos:
-                self.outputs['cmds'][(tech,)] = [False]
+                self.outputs['cmds'][key] = [False]
             else:
-                self.outputs['cmds'][(tech,)] = [cmd]
-            io_update(self, i_f=paired, o_d=out, key=tech)
+                self.outputs['cmds'][key] = [cmd]
+            io_update(self, i_f=paired, o_d=out, key=key)
             self.soft.add_status(tech, sam, 1)
         else:
             self.soft.add_status(tech, sam, 0)
@@ -823,6 +828,7 @@ def bowtie2(self) -> None:
 
         out = '%s/%s/%s' % (self.dir, tech, sample)
         self.outputs['outs'][(tech, sample)] = dict()
+        key = genome_key(tech, sample)
         # update to lookup the `databases.yml`
         for db in params['databases']:
             if self.soft.params['paired'] and len(fastxs) == 2:
@@ -838,10 +844,10 @@ def bowtie2(self) -> None:
                 cmd += ' > %s.sam\n' % sam
                 cmd += 'samtools view -b %s | samtools sort -o %s' % (sam, bam)
                 if to_dos:
-                    self.outputs['cmds'].setdefault((tech,), []).append(False)
+                    self.outputs['cmds'].setdefault(key, []).append(False)
                 else:
-                    self.outputs['cmds'].setdefault((tech,), []).append(cmd)
-                io_update(self, i_f=fastxs, i_d=out_dir, o_d=out_dir, key=tech)
+                    self.outputs['cmds'].setdefault(key, []).append(cmd)
+                io_update(self, i_f=fastxs, i_d=out_dir, o_d=out_dir, key=key)
                 self.soft.add_status(tech, sample, 1)
             else:
                 self.soft.add_status(tech, sample, 0)
@@ -1078,6 +1084,7 @@ def minimap2(self) -> None:
         out = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
         self.outputs['outs'][(tech, self.sam_pool)] = dict()
 
+        key = genome_key(tech, sample)
         for db, db_path in self.soft.params['databases'].items():
 
             out_dir = '%s/%s' % (out, db)
@@ -1091,10 +1098,10 @@ def minimap2(self) -> None:
                 cmd += ' > %s.sam\n' % sam
                 cmd += 'samtools view -b %s | samtools sort -o %s' % (sam, bam)
                 if to_dos:
-                    self.outputs['cmds'].setdefault((tech,), []).append(False)
+                    self.outputs['cmds'].setdefault(key, []).append(False)
                 else:
-                    self.outputs['cmds'].setdefault((tech,), []).append(cmd)
-                io_update(self, i_f=fastxs, i_d=out_dir, o_d=out_dir, key=tech)
+                    self.outputs['cmds'].setdefault(key, []).append(cmd)
+                io_update(self, i_f=fastxs, i_d=out_dir, o_d=out_dir, key=key)
                 self.soft.add_status(tech, self.sam_pool, 1)
             else:
                 self.soft.add_status(tech, self.sam_pool, 0)

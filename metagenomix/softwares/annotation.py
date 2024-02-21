@@ -10,14 +10,14 @@ import sys
 import gzip
 
 import pkg_resources
-import numpy as np
 from os.path import basename, dirname, isdir, splitext
 
 from metagenomix._inputs import (
     sample_inputs, group_inputs, genome_key, genome_out_dir, get_reads,
     get_group_reads, get_contigs, get_contigs_from_path, get_plasmids, get_args)
 from metagenomix._io_utils import (
-    caller, io_update, to_do, status_update, rep, zread, split_fasta)
+    caller, io_update, to_do, status_update, rep, zread, get_n_arrays,
+    split_to_array)
 from metagenomix.core.parameters import tech_params
 
 RESOURCES = pkg_resources.resource_filename("metagenomix", "resources/scripts")
@@ -107,11 +107,10 @@ def get_prodigal(
             self, tech, [fasta[0]], group=sam_group, genome=genome)
 
         out = out_dir
-        key = (tech, sam_group)
         if genome:
             out += '/' + genome
-            key += (genome,)
 
+        key = genome_key(tech, sam_group, genome)
         self.outputs['dirs'].append(out)
         self.outputs['outs'].setdefault((tech, sam_group), []).append(out)
 
@@ -887,7 +886,7 @@ def hmmer(
     out_dir : str
         Path to the main output folder
     key : tuple
-        Variables names for the current analytic level
+        ((Variables names for the current analytic level), number of arrays)
 
     Returns
     -------
@@ -1223,7 +1222,7 @@ def get_prokka(
         to_dos = status_update(self, tech, fas[:1], group=group, genome=genome)
         cmd = prokka_configs(self, tech, group, fas, configs, cols, out_dir)
         if cmd:
-            key = (tech, group)
+            key = genome_key(tech, group)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
@@ -1474,7 +1473,6 @@ def get_barrnap(
     """
     for genome, fasta in fastas.items():
 
-        key = genome_key(tech, sam_group, genome)
 
         out_dir = genome_out_dir(self, tech, sam_group, genome)
         self.outputs['dirs'].append(out_dir)
@@ -1488,6 +1486,7 @@ def get_barrnap(
 
         if self.config.force or to_do(out):
             cmd = barrnap_cmd(self, tech, contigs, out)
+            key = genome_key(tech, sam_group, genome)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
@@ -1664,12 +1663,12 @@ def get_antismash(
         out_dir = genome_out_dir(self, tech, sam_group, genome)
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'].setdefault((tech, sam_group), []).append(out_dir)
-        key = genome_key(tech, sam_group, genome)
         to_dos = status_update(
             self, tech, [fasta], group=sam_group, genome=genome)
         out_fp = '%s.tar.gz' % out_dir
         if self.config.force or to_do(out_fp):
             cmd = antismash_cmd(self, fasta, out_dir)
+            key = genome_key(tech, sam_group, genome)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
@@ -1816,7 +1815,7 @@ def tiara(self) -> None:
         out_fp = '%s/classifications.txt' % out_dir
         if self.config.force or to_do('%s.gz' % out_fp):
             cmd = tiara_cmd(self, contig, out_dir, out_fp)
-            key = (tech, group)
+            key = genome_key(tech, group)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
@@ -1938,7 +1937,7 @@ def diting_sample(self, all_reads: dict):
         png = '%s/carbon_cycle_sketch.png' % out_dir
         if self.config.force or to_do(png):
             cmd = diting_cmd(self, tech, contigs, all_reads, out_dir)
-            key = (tech, group)
+            key = genome_key(tech, group)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
@@ -1970,7 +1969,7 @@ def diting_all(self, all_reads: dict):
             png = '%s/carbon_cycle_sketch.png' % out_dir
             if self.config.force or to_do(png):
                 cmd = diting_cmd(self, tech, contigs, all_reads, out_dir, pool)
-                key = (tech, pool)
+                key = genome_key(tech, pool)
                 if to_dos:
                     self.outputs['cmds'].setdefault(key, []).append(False)
                 else:
@@ -2057,18 +2056,16 @@ def eggnogmapper_cmd(
     if params['data_dir']:
         cmd += 'export EGGNOG_DATA_DIR=%s\n' % params['data_dir']
 
-    js = 0
-    if nums > 500000:
-        rs = list(np.linspace(0, nums, num=(nums // 500000), dtype=int))
-        cmd += split_fasta(proteins, rs)
-        js = len(rs)
+    n_arrays = get_n_arrays(self, nums, params)
+    if n_arrays:
+        cmd += split_to_array(nums, n_arrays, proteins)
 
     cmd += 'emapper.py'
     cmd += ' -i %s' % proteins
-    if js:
+    if n_arrays:
         cmd += '.$SLURM_ARRAY_TASK_ID'
     cmd += ' --output %s' % prefix
-    if js:
+    if n_arrays:
         cmd += '.$SLURM_ARRAY_TASK_ID'
     cmd += ' --output_dir %s' % out_dir
     cmd += ' --temp_dir $TMPDIR'
@@ -2187,7 +2184,7 @@ def eggnogmapper_cmd(
     cmd += ' --cpu %s\n' % params['cpus']
     cmd += cmd_rm
     cmd += 'for i in %s/*; do gzip -q $i; done\n' % out_dir
-    return cmd, js
+    return cmd, n_arrays
 
 
 def get_prodigal_nums(proteins):
@@ -2368,7 +2365,6 @@ def get_keggcharter(
     """
     for inp in inputs:
 
-        key = genome_key(tech, ali_group)
         out_dir = '/'.join([self.dir, tech, ali_group])
         self.outputs['dirs'].append(out_dir)
 
@@ -2386,6 +2382,7 @@ def get_keggcharter(
 
         if self.config.force or to_do(out):
             cmd = keggcharter_cmd(self, tech, tabs, out_dir)
+            key = genome_key(tech, ali_group)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
@@ -2806,7 +2803,6 @@ def divissr(self):
     self : Commands class instance
     """
     if self.sam_pool in self.pools:
-        # if 'prodigal' in self.softs and self.softs['prodigal'].prev == :
         for (tech, group), inputs in self.inputs[self.sam_pool].items():
             folders = group_inputs(self, inputs)
             get_divissr(self, tech, folders, group)
@@ -2958,12 +2954,12 @@ def get_flanker(
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'].setdefault((tech, sam_group), []).append(
             out_dir)
-        key = genome_key(tech, sam_group, genome)
         to_dos = status_update(
             self, tech, [fasta], group=sam_group, genome=genome)
         out_fp = '%s/out.tar.gz' % out_dir
         if self.config.force or to_do(out_fp):
             cmd = flanker_cmd(self, fasta, out_dir)
+            key = genome_key(tech, sam_group, genome)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:

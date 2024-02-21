@@ -109,9 +109,23 @@ class Soft(object):
             Names of parameters to be avoided when computing the hash value
         """
         # variables to not account for in the calculation of the hash value
-        avoid = {'time', 'nodes', 'mem', 'mem_dim', 'env', 'chunks',
-                 'scratch', 'machine', 'partition', 'cpus', 'skip_samples',
-                 'array_jobs', 'path', 'binary'}
+        avoid = {
+            'time',
+            'cpus',
+            'nodes',
+            'mem',
+            'mem_dim',
+            'env',
+            'chunks',
+            'scratch',
+            'machine',
+            'partition',
+            'narrays',
+            'arraysplit',
+            'skip_samples',
+            'path',
+            'binary'
+        }
         # do not account for 'databases' for specific softwares
         if self.name not in ['filtering', 'databases']:
             avoid.add('databases')

@@ -144,18 +144,14 @@ class Commands(object):
 
     def fill_soft_io(self):
         for i, j in itertools.product(*[['I', 'O'], ['d', 'f']]):
-            for key, io in self.outputs['io'].get((i, j), {}).items():
-                self.init_io((self.sam_pool, key))
-                self.soft.io[(self.sam_pool, key)][(i, j)] = io
+            for key_array, io in self.outputs['io'].get((i, j), {}).items():
+                self.init_io((self.sam_pool, key_array[0]))
+                self.soft.io[(self.sam_pool, key_array[0])][(i, j)] = io
 
     def unpack_cmds(self):
-        for key, cmds in self.outputs['cmds'].items():
-            print()
-            print('-----------------')
-            print(key)
-            print(cmds)
-            print('-----------------')
-            self.cmds[(self.sam_pool, key)] = cmds
+        for key_array, cmds in self.outputs['cmds'].items():
+            key, array = key_array
+            self.cmds[(self.sam_pool, key)] = (cmds, array)
 
     def unpack_outputs(self):
         if self.soft.name in self.holistics:

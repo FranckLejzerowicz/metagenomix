@@ -215,13 +215,12 @@ def genome_key(
     Returns
     -------
     key : tuple
-        Variables names for the current analytic level
+        ((Variables names for the current analytic level), number of arrays)
     """
     key = (tech, sam_group)
     if genome:
         key += (genome,)
-    if array:
-        key += (array,)
+    key = (key, array)
     return key
 
 

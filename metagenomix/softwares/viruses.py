@@ -8,6 +8,7 @@
 
 import sys
 from os.path import basename
+from metagenomix._inputs import genome_key
 from metagenomix._io_utils import io_update, to_do, status_update
 
 
@@ -128,8 +129,8 @@ def viralverify(self) -> None:
         self.outputs['outs'][(tech, group)] = out_fp
 
         if self.config.force or to_do(out_fp):
-            key = (tech, group)
             cmd = viralverify_cmd(self, contigs, out)
+            key = genome_key(tech, group)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
@@ -256,7 +257,7 @@ def coconet(self) -> None:
         if self.config.force or to_do(log_fp):
             contigs = inputs[0]
             cmd = coconet_cmd(self, contigs, bam, out_dir)
-            key = (tech, group)
+            key = genome_key(tech, group)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
