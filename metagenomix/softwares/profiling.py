@@ -2245,11 +2245,6 @@ def get_kraken2_db(
     str
         Path to the Kraken2 database
     """
-    print()
-    print("db")
-    print(db)
-    print("self.databases.paths")
-    print(self.databases.paths)
     if db in self.databases.paths:
         for subdir in ['', '/kraken2', '/databases', '/databases/kraken2']:
             db_path = '%s%s' % (self.databases.paths[db], subdir)
@@ -2260,7 +2255,8 @@ def get_kraken2_db(
             nested = glob.glob('%s/*/hash.k2d' % db_path)
             if nested:
                 return dirname(nested[0])
-    sys.exit('[kraken2] Database not found: %s' % db)
+    else:
+        sys.exit('[kraken2] Database not found: %s' % db)
 
 
 def get_kraken2_cmd(
@@ -2370,6 +2366,8 @@ def kraken2(self) -> None:
 
         params = tech_params(self, tech)
         key = genome_key(tech, sam)
+        print(params['databases'])
+        print(paramsfdsa)
         for db in params['databases']:
             out = '/'.join([self.dir, tech, self.sam_pool, db])
             self.outputs['dirs'].append(out)
