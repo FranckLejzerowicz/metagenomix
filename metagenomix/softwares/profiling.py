@@ -2245,6 +2245,11 @@ def get_kraken2_db(
     str
         Path to the Kraken2 database
     """
+    print()
+    print("db")
+    print(db)
+    print("self.databases.paths")
+    print(self.databases.paths)
     if db in self.databases.paths:
         for subdir in ['', '/kraken2', '/databases', '/databases/kraken2']:
             db_path = '%s%s' % (self.databases.paths[db], subdir)
