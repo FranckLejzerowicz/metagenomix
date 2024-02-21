@@ -149,16 +149,13 @@ class Commands(object):
                 self.soft.io[(self.sam_pool, key)][(i, j)] = io
 
     def unpack_cmds(self):
-        for tech, cmds in self.outputs['cmds'].items():
-            if self.soft.name == 'eggnogmapper':
-                print()
-                print()
-                print('-----------------')
-                print(tech)
-                print()
-                print(cmds)
-                print('-----------------')
-            self.cmds[(self.sam_pool, tech)] = cmds
+        for key, cmds in self.outputs['cmds'].items():
+            print()
+            print('-----------------')
+            print(key)
+            print(cmds)
+            print('-----------------')
+            self.cmds[(self.sam_pool, key)] = cmds
 
     def unpack_outputs(self):
         if self.soft.name in self.holistics:
