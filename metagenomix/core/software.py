@@ -66,7 +66,13 @@ class Soft(object):
     def set_soft(self, params, path):
         self.prev, self.name = path[-2:]
         self.path = path
+        print()
+        print('---------------------')
+        print(self.prev, self.name)
+        print(self.params)
         self.params.update(params[self.name])
+        print(self.params)
+        print('---------------------')
 
     def add_status(
             self,
