@@ -2366,8 +2366,6 @@ def kraken2(self) -> None:
 
         params = tech_params(self, tech)
         key = genome_key(tech, sam)
-        print(params['databases'])
-        print(paramsfdsa)
         for db in params['databases']:
             out = '/'.join([self.dir, tech, self.sam_pool, db])
             self.outputs['dirs'].append(out)
