@@ -10,4 +10,4 @@ default:
   machine:
   partition:
   narrays: 0
-  arraysplit: 500000
+  arraysplit: 0
