@@ -506,7 +506,9 @@ def split_fasta(fasta: str, rs: list) -> str:
     cmd = ''
     for rdx, r in enumerate(rs[:-1]):
         out = '%s.%s' % (fasta, (rdx+1))
-        cmd += 'seqkit range -r %s:%s -o %s\n' % ((r+1), (rs[rdx+1]), out)
+        start = (r + 1)
+        end = rs[rdx + 1]
+        cmd += 'seqkit range -r %s:%s %s -o %s\n' % (start, end, fasta, out)
     return cmd
 
 
