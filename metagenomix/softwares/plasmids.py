@@ -141,7 +141,7 @@ def plasmidfinder_cmd(
     cmd : str
         PlasmidFinder command
     """
-    tmp_dir = '$TMPDIR/plasmidfinder_%s' % '_'.join(key)
+    tmp_dir = '$TMPDIR/plasmidfinder_%s' % '_'.join(key[0])
     cmd_rm = ''
     cmd = 'mkdir -p %s\n' % tmp_dir
     if len(fasta) == 2:
@@ -245,7 +245,7 @@ def platon_cmd(
     cmd : str
         platon command
     """
-    tmp_dir = '$TMPDIR/platon_%s' % '_'.join(key)
+    tmp_dir = '$TMPDIR/platon_%s' % '_'.join(key[0])
     cmd_rm = ''
     cmd = 'mkdir -p %s\n' % tmp_dir
     if len(fasta) == 2:
@@ -468,7 +468,7 @@ def mob_typer_cmd(
         mob_typer command line
     """
     params = tech_params(self, tech)
-    tmp_dir = '$TMPDIR/mob_typer_%s' % '_'.join(key)
+    tmp_dir = '$TMPDIR/mob_typer_%s' % '_'.join(key[0])
 
     cmd, cmd_rm = '', ''
     if fasta.endswith('.fa.gz') or fasta.endswith('.fasta.gz'):
