@@ -245,10 +245,10 @@ class Workflow(object):
         """
         for name in self.graph.paths.keys():
             self.name = name
-            # self.params[name] = {}
-            # self.defaults[name] = {}
-            self.params[name] = self.config.params
-            self.defaults[name] = self.config.params
+            self.params[name] = {}
+            self.defaults[name] = {}
+            # self.params[name] = self.config.params
+            # self.defaults[name] = self.config.params
             self.set_scratch()
             self.set_user_params()
             # self.write_params()
