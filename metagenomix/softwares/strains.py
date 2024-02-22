@@ -52,7 +52,7 @@ def lorikeet_cmd(
     cmd : str
         lorikeet command
     """
-    tmp_dir = '$TMPDIR/lorikeet_%s_%s' % ('_'.join(key), step)
+    tmp_dir = '$TMPDIR/lorikeet_%s_%s' % ('_'.join(key[0]), step)
     cmd_rm, cmd = '', 'mkdir -p %s\n' % tmp_dir
     for contig in contigs:
         if contig.endswith('.gz'):
