@@ -66,18 +66,7 @@ class Soft(object):
     def set_soft(self, params, path):
         self.prev, self.name = path[-2:]
         self.path = path
-        if self.name == 'kraken2':
-            print()
-            print('---------------------')
-            print(self.prev, self.name)
-            print(params[self.name].get('databases', 'NONE'))
-            print(self.params)
-            self.params.update(params[self.name])
-            print(self.params['databases'])
-            for k,v in self.params.items():
-                print('   ', k, v)
-            print('---------------------')
-            print(dkfvjkb)
+        self.params.update(params[self.name])
 
     def add_status(
             self,
