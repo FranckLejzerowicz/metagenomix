@@ -71,9 +71,11 @@ class Soft(object):
             print('---------------------')
             print(self.prev, self.name)
             print(params[self.name].get('databases', 'NONE'))
-            print(self.params['databases'])
+            print(self.params)
             self.params.update(params[self.name])
             print(self.params['databases'])
+            for k,v in self.params.items():
+                print('   ', k, v)
             print('---------------------')
             print(dkfvjkb)
 

@@ -247,8 +247,6 @@ class Workflow(object):
             self.name = name
             self.params[name] = {}
             self.defaults[name] = {}
-            # self.params[name] = self.config.params
-            # self.defaults[name] = self.config.params
             self.set_scratch()
             self.set_user_params()
             # self.write_params()
