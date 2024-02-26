@@ -69,7 +69,7 @@ def prodigal_cmd(
     for boolean in ['c', 'm', 'n', 'q']:
         if params[boolean]:
             cmd += ' -%s' % params[boolean]
-    cmd += 'grep -c ">" %s > %s\n' % (prots, nums)
+    cmd += '\ngrep -c ">" %s > %s\n' % (prots, nums)
     cmd += '\n' + cmd_rm
     cmd += 'for i in %s/*; do gzip -q $i; done\n' % out
     return cmd
