@@ -58,18 +58,20 @@ def prodigal_cmd(
     prots = '%s/protein.translations.fasta' % out
     nums = '%s/protein.translations.nums' % out
 
-    cmd += 'prodigal'
-    cmd += ' -i %s' % contig_fa
-    cmd += ' -a %s' % prots
-    cmd += ' -d %s/nucleotide.sequences.fasta' % out
-    cmd += ' -s %s/potential.starts.fasta' % out
-    cmd += ' -o %s/gene.coords.%s' % (out, params['f'])
-    for param in ['f', 'p']:
-        cmd += ' -%s %s' % (param, params[param])
-    for boolean in ['c', 'm', 'n', 'q']:
-        if params[boolean]:
-            cmd += ' -%s' % params[boolean]
-    cmd += '\ngrep -c ">" %s > %s\n' % (prots, nums)
+    if to_do('%s.gz' % prots):
+        cmd += 'prodigal'
+        cmd += ' -i %s' % contig_fa
+        cmd += ' -a %s' % prots
+        cmd += ' -d %s/nucleotide.sequences.fasta' % out
+        cmd += ' -s %s/potential.starts.fasta' % out
+        cmd += ' -o %s/gene.coords.%s' % (out, params['f'])
+        for param in ['f', 'p']:
+            cmd += ' -%s %s' % (param, params[param])
+        for boolean in ['c', 'm', 'n', 'q']:
+            if params[boolean]:
+                cmd += ' -%s' % params[boolean]
+    if to_do('%s.gz' % nums):
+        cmd += '\ngrep -c ">" %s > %s\n' % (prots, nums)
     cmd += '\n' + cmd_rm
     cmd += 'for i in %s/*; do gzip -q $i; done\n' % out
     return cmd
