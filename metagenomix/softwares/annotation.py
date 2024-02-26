@@ -118,7 +118,7 @@ def get_prodigal(
 
         coords = '%s/gene.coords.%s.gz' % (out, params['f'])
         proteins = '%s/protein.translations.fasta.gz' % out
-        nums = '%s/protein.translations.nums' % out
+        nums = '%s/protein.translations.nums.gz' % out
         if self.config.force or to_do(proteins) or to_do(coords) or to_do(nums):
             cmd = prodigal_cmd(fasta[0], out, params)
             self.soft.add_status(
