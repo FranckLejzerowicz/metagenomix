@@ -1383,6 +1383,7 @@ def ccfind_cmd(
     cmd += ' --ncpus %s\n' % params['cpus']
     cmd += cmd_rm
     cmd += 'rm %s/log/*.success\n' % out_dir
+    cmd += 'rm -rf %s/batch\n' % out_dir
     cmd += 'for i in %s/result/*.list; do gzip -q $i; done\n' % out_dir
     cmd += 'for i in %s/result/*.fasta; do gzip -q $i; done\n' % out_dir
     cmd += 'for i in %s/result/intermediate/*; do gzip -q $i; done\n' % out_dir
