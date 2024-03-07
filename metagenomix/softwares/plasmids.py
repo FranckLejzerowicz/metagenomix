@@ -1158,6 +1158,7 @@ def genomad(self):
 def plasx_cmd(
         self,
         gff: str,
+        prot: str,
         contigs: str,
         out_dir: str,
         key: tuple
@@ -1173,6 +1174,8 @@ def plasx_cmd(
             platon parameters
     gff : str
         Path to the prodigal output GFF3 file
+    prot : str
+        Path to the prodigal output protein fasta file
     contigs : str
         Empty if not run after a plasmid-detection tool
     out_dir : str
@@ -1191,7 +1194,9 @@ def plasx_cmd(
 
     cmd += 'gunzip -c %s > %s\n' % (gff, gff.rstrip('.gz'))
     gff = gff.rstrip('.gz')
-    cmd_rm += 'rm %s\n' % gff
+    cmd += 'gunzip -c %s > %s\n' % (prot, prot.rstrip('.gz'))
+    prot = prot.rstrip('.gz')
+    cmd_rm += 'rm %s %s\n' % (gff, prot)
 
     if contigs.endswith('.fa.gz') or contigs.endswith('.fasta.gz'):
         cmd += 'gunzip -c %s > %s\n' % (contigs, contigs.rstrip('.gz'))
@@ -1201,7 +1206,7 @@ def plasx_cmd(
     gene = '%s/gene_call.txt' % out_dir
     cmd += 'python3 %s/prodigal_to_genecall.py' % RESOURCES
     cmd += ' -g %s' % gff
-    cmd += ' -f %s' % contigs
+    cmd += ' -f %s' % prot
     cmd += ' -o %s\n' % gene
 
     db = splitext(contigs)[0]
@@ -1285,13 +1290,14 @@ def get_plasx(
         self.outputs['outs'][(tech, sam_group)][genome] = out_dir
 
         gff = '%s/gene.coords.gff.gz' % folders[0]
+        prot = '%s/protein.translations.fasta.gz' % folders[0]
         to_dos = status_update(
-            self, tech, [contigs, gff], group=sam_group, genome=genome)
+            self, tech, [contigs, prot, gff], group=sam_group, genome=genome)
 
         scores = '%s/scores.txt.gz' % out_dir
         if self.config.force or to_do(scores):
             key = genome_key(tech, sam_group, genome)
-            cmd = plasx_cmd(self, gff, contigs, out_dir, key)
+            cmd = plasx_cmd(self, gff, prot, contigs, out_dir, key)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
@@ -1375,7 +1381,6 @@ def get_mobmess(
         group: str,
         input_dirs: dict,
         contigs: str,
-        previous: str
 ) -> None:
     """
 
@@ -1387,7 +1392,6 @@ def get_mobmess(
     input_dirs : dict
     contigs: str
         Empty of not run after a plasmid-detection tool
-    previous : str
     """
     for genome, input_dir in input_dirs.items():
         out_dir = genome_out_dir(self, tech, group)
@@ -1450,7 +1454,7 @@ def mobmess(self):
                 input_dirs = group_inputs(self, inputs)
             elif previous != 'assembling (plasmids)':
                 input_dirs = {'': group_inputs(self, inputs)[0]}
-            get_mobmess(self, tech, group, input_dirs, contigs, previous)
+            get_mobmess(self, tech, group, input_dirs, contigs)
 
 
 def rfplasmid(self):
