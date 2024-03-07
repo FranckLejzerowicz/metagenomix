@@ -824,6 +824,9 @@ def get_plasmids(self, input_dir, contigs) -> tuple:
     elif self.soft.prev == 'platon':
         plasmids = input_dir + '/output.tsv.gz'
         cmd = ' | cut -f1,6 | grep yes'
+    elif self.soft.prev == 'plasx':
+        plasmids = input_dir + '/scores.txt.gz'
+        cmd = " | awk '{if($2>0.5)print$1}'"
     elif self.soft.prev == 'viralverify':
         plasmids = input_dir + '/contigs_result_table.csv.gz'
         cmd = ' | cut -d "," -f 1,2 | grep Plasmid | cut -d"," -f 1'

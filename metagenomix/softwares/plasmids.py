@@ -1400,9 +1400,7 @@ def get_mobmess(
         else:
             fasta, cmds, rms = contigs, '', ''
             i_f = [fasta]
-        print("fasta:", fasta)
         to_dos = status_update(self, tech, i_f, group=group)
-
         if self.config.force or to_do('%s/out.tsv.gz' % out_dir):
             key = genome_key(tech, group)
             cmds += mobmess_cmd(self, tech, fasta, out_dir, key)
