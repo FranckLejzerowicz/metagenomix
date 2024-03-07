@@ -1444,9 +1444,6 @@ def mobmess(self):
 
     if self.sam_pool in self.pools:
         for (tech, group), inputs in self.inputs[self.sam_pool].items():
-            print()
-            print()
-            print('>>>', self.soft.prev)
             contigs = get_contigs_from_path(self, tech, group)
             input_dirs = {'': []}
             if previous == 'annotation (plasmid)':
