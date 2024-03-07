@@ -2200,7 +2200,6 @@ def get_prodigal_nums(proteins):
             return int(line.decode())
 
 
-
 def get_eggnogmapper(
         self,
         tech: str,
