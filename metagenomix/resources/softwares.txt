@@ -144,6 +144,8 @@ plasforest	annotation (plasmid)
 plasflow	annotation (plasmid)
 rfplasmid	annotation (plasmid)
 mobsuite	annotation (mobilome)
+plasx	annotation (plasmid)
+mobmess	annotation (plasmid)
 genomad	annotation (mobilome)
 strainphlan	strain-level analysis
 lorikeet_call	strain-level analysis
