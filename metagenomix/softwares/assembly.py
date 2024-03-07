@@ -579,7 +579,7 @@ def megahit(self) -> None:
         self.outputs['outs'][(tech, group)] = [contigs, out, fastg]
 
         if self.config.force or to_do(contigs) or to_do(fastg):
-            key = (tech, group)
+            key = genome_key(tech, group)
             cmd = megahit_cmd(
                 self, inputs, group, out, inter_dir, contigs, fastg, key)
             if to_dos:
