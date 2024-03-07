@@ -1302,7 +1302,7 @@ def get_plasx(
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
-            io_update(self, i_f=[contigs, gff], o_d=out_dir, key=key)
+            io_update(self, i_f=[contigs, prot, gff], o_d=out_dir, key=key)
             self.soft.add_status(
                 tech, self.sam_pool, 1, group=sam_group, genome=genome)
         else:
