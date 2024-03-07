@@ -63,9 +63,8 @@ def reformat(gff, fasta, filou):
 
 def load_seqs(fasta):
     fasta_d = {}
-    with read(fasta, format="fasta") as f:
-        for entry in f:
-            fasta_d[entry.metadata['id']] = str(entry)
+    for entry in read(fasta, format="fasta"):
+        fasta_d[entry.metadata['id']] = str(entry)
     return fasta_d
 
 
