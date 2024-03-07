@@ -7,7 +7,7 @@
 # ----------------------------------------------------------------------------
 
 import argparse
-import skbio.io import read
+from skbio.io import read
 
 
 def get_args():
