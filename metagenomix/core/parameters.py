@@ -4462,26 +4462,19 @@ def check_flanker(self, params):
 
 
 def check_plasx(self, params):
-    defaults = {
-        'splits': 1,
-        'anvio_annot': [False, True],
-    }
+    defaults = {'splits': 1, 'anvio_annot': [False, True]}
     ints = ['splits']
     check_nums(self, params, defaults, ints, int)
     check_default(self, params, defaults, ints)
     return defaults
 
 
-# def check_skani(self, params):
-#     defaults = {
-#     }
-#     ints = []
-#     check_nums(self, params, defaults, ints, int)
-#     floats = []
-#     check_nums(self, params, defaults, floats, float)
-#     check_default(self, params, defaults, (ints + floats))
-#     defaults[''] = '<>'
-#     return defaults
+def check_mobmess(self, params):
+    defaults = {'min_similarity': 0.9, 'min_coverage': 0.9}
+    floats = ['min_similarity', 'min_coverage']
+    check_nums(self, params, defaults, floats, float, 0, 1)
+    check_default(self, params, defaults, floats)
+    return defaults
 
 
 # def check_skani(self, params):
