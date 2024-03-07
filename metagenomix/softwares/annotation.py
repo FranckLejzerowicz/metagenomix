@@ -540,7 +540,7 @@ def get_integronfinder(
     inputs : dict
         Paths to the input fasta files per genome/MAG
     contigs : str
-        Empty of not run after a plasmid-detection tool
+        Empty if not run after a plasmid-detection tool
     """
     for genome, fastas in inputs.items():
 
@@ -2425,10 +2425,10 @@ def keggcharter(self):
 
     elif self.sam_pool in self.pools:
         for (tech, group), inputs in self.inputs[self.sam_pool].items():
-            print(tech)
-            print(group)
-            print(inputs)
-            print(inputscsa)
+            # print(tech)
+            # print(group)
+            # print(inputs)
+            # print(inputscsa)
             fastas = group_inputs(self, inputs)
             get_keggcharter(self, tech, fastas, group)
 
