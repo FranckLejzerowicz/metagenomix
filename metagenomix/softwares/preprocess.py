@@ -217,7 +217,7 @@ def get_fastp_cmd(
             i, o = 'i', 'o'
             out = '%s/%s.fastq.gz' % (out_dir, self.sam_pool)
         outs.append(out)
-        cmd += '  -%s %s -%s %s' % (i, fastq, o, out)
+        cmd += ' -%s %s -%s %s' % (i, fastq, o, out)
     cmd += ' --thread %s' % params['cpus']
     cmd += ' --report_title="%s"' % self.sam_pool
     cmd += ' --json=%s/%s.json' % (out_dir, self.sam_pool)
