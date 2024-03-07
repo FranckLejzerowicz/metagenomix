@@ -492,8 +492,6 @@ class Created(object):
 
     def update_n_arrays(self, chunk_key):
         n_arrays = self.cmds[chunk_key][-1]
-        print(n_arrays)
-        print(self.n_arrays)
         if n_arrays > self.n_arrays:
             self.n_arrays = n_arrays
 
