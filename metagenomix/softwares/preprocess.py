@@ -6,7 +6,7 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-from os.path import basename
+from os.path import basename, isfile
 from metagenomix._io_utils import (io_update, to_do, tech_specificity,
                                    status_update)
 from metagenomix._inputs import genome_key
@@ -98,10 +98,10 @@ def count(self) -> None:
         key = genome_key(tech, sam)
         if self.config.force or to_do(out):
             for idx, fastx in enumerate(fastxs):
-                cmd = count_cmd(self, idx, fastx, out)
-                if to_dos:
+                if to_dos or not isfile(fastx):
                     self.outputs['cmds'].setdefault(key, []).append(False)
                 else:
+                    cmd = count_cmd(self, idx, fastx, out)
                     self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, i_f=fastxs, i_d=out_dir, o_f=out, key=key)
             self.soft.add_status(tech, sam, 1)
