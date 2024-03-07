@@ -141,6 +141,7 @@ divissr	repeats
 eggnogmapper	annotation
 plasmidfinder	annotation (plasmid)
 plasforest	annotation (plasmid)
+platon	annotation (plasmid)
 plasflow	annotation (plasmid)
 rfplasmid	annotation (plasmid)
 mobsuite	annotation (mobilome)
