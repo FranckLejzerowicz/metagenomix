@@ -182,8 +182,8 @@ def drep_cmd(
         dRep dereplicate command
     """
     cmd = ''
-    if self.soft.params['fastANI']:
-        cmd += 'export PATH=$PATH:%s' % self.soft.params['fastANI']
+    # if self.soft.params['fastANI']:
+    #     cmd += 'export PATH=$PATH:%s' % self.soft.params['fastANI']
     cmd += 'dRep dereplicate'
     cmd += ' %s' % drep_out
     cmd += ' --S_algorithm %s' % algorithm
