@@ -4461,16 +4461,14 @@ def check_flanker(self, params):
     return defaults
 
 
-# def check_skani(self, params):
-#     defaults = {
-#     }
-#     ints = []
-#     check_nums(self, params, defaults, ints, int)
-#     floats = []
-#     check_nums(self, params, defaults, floats, float)
-#     check_default(self, params, defaults, (ints + floats))
-#     defaults[''] = '<>'
-#     return defaults
+def check_plasx(self, params):
+    defaults = {
+        'splits': 1,
+    }
+    ints = ['splits']
+    check_nums(self, params, defaults, ints, int)
+    check_default(self, params, defaults, ints)
+    return defaults
 
 
 # def check_skani(self, params):
