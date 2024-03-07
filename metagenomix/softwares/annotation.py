@@ -2193,9 +2193,12 @@ def eggnogmapper_cmd(
 
 def get_prodigal_nums(proteins):
     nums = proteins.replace('fasta.gz', 'nums.gz')
+    if to_do(nums):
+        return 0
     with gzip.open(rep(nums)) as f:
         for line in f:
             return int(line.decode())
+
 
 
 def get_eggnogmapper(
@@ -2228,10 +2231,9 @@ def get_eggnogmapper(
         proteins = fasta[0]
         if self.soft.prev == 'prodigal':
             proteins = '%s/protein.translations.fasta.gz' % fasta[0]
-            nums = proteins.replace('fasta.gz', 'nums.gz')
 
         to_dos = status_update(
-            self, tech, [proteins, nums], group=sam_group, genome=genome)
+            self, tech, [proteins], group=sam_group, genome=genome)
 
         prefix = '-'.join([x for x in [sam_group, genome] if x])
         out = '%s/%s.emapper.hits.gz' % (out_dir, prefix)
