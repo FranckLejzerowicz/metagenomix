@@ -943,9 +943,7 @@ def get_genomad(
         if self.soft.prev == 'prodigal':
             fasta = '%s/nucleotide.sequences.fasta.gz' % fasta_[0]
 
-        print(fasta)
         to_dos = status_update(self, tech, [fasta], group=group, genome=genome)
-
         fpo = '%s/Results_Integron_Finder_mysequences/mysequences.summary' % out
         if self.config.force or to_do(fpo):
             key = genome_key(tech, group, genome)
@@ -1155,6 +1153,152 @@ def genomad(self):
         sys.exit('[genomad] Path to "genomad" database folder needed')
     module_call = caller(self, __name__)
     module_call(self)
+
+
+def plasx_cmd(
+        self,
+        gff: str,
+        contigs: str,
+        out_dir: str,
+        key: tuple
+) -> str:
+    """Collect PlasX command.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .pool : str
+            Pool name.
+        .soft.params
+            platon parameters
+    gff : str
+        Path to the prodigal output GFF3 file
+    contigs : str
+        Empty if not run after a plasmid-detection tool
+    out_dir : str
+        Path to the output folder for the current sample/MAG
+    key : str
+        Technology and/or co-assembly pool group name
+
+    Returns
+    -------
+    cmd : str
+        PlasX command
+    """
+    tmp_dir = '$TMPDIR/plasx_%s' % '_'.join(key[0])
+    cmd_rm = ''
+    cmd = 'mkdir -p %s\n' % tmp_dir
+
+    cmd += 'gunzip -c %s > %s\n' % (gff, gff.rstrip('.gz'))
+    gff = gff.rstrip('.gz')
+    cmd_rm += 'rm %s\n' % gff
+
+    if contigs.endswith('.fa.gz') or contigs.endswith('.fasta.gz'):
+        cmd += 'gunzip -c %s > %s\n' % (contigs, contigs.rstrip('.gz'))
+        contigs = contigs.rstrip('.gz')
+        cmd_rm += 'rm %s\n' % contigs
+
+    gene = '%s/gene_call.txt' % out_dir
+    cmd += 'prodigal_to_genecall.py'
+    cmd += ' -g %s' % gff
+    cmd += ' -f %s' % contigs
+    cmd += ' -o %s\n' % gene
+
+    de_novo = '%s/de_novo_families.txt' % out_dir
+    cmd += 'plasx search_de_novo_families'
+    cmd += ' -g %s' % gene
+    cmd += ' -o %s' % de_novo
+    cmd += ' --tmp %s' % tmp_dir
+    cmd += ' --threads %s' % self.soft.params['cpus']
+    cmd += ' --splits %s' % self.soft.params['splits']
+    cmd += ' --overwrite\n'
+
+    scores = '%s/scores.txt' % out_dir
+    cmd += 'plasx predict'
+    cmd += ' -a %s' % ' '.join([de_novo])
+    cmd += ' -g %s' % gene
+    cmd += ' -o %s' % scores
+    cmd += ' --overwrite\n'
+
+    cmd += 'rm -rf %s\n' % tmp_dir
+    cmd += 'for i in %s/*; do gzip -q $i; done\n' % out_dir
+    cmd += cmd_rm
+    return cmd
+
+
+def get_plasx(
+        self,
+        tech: str,
+        sam_group: str,
+        inputs: dict,
+        contigs: str
+) -> None:
+    """
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .config
+            Configurations
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    sam_group : str
+        Sample or co-assembly name
+    inputs : dict
+        Paths to the input folders containings prodigal outputs files
+    contigs : str
+        Empty if not run after a plasmid-detection tool
+    """
+    for genome, folders in inputs.items():
+
+        out_dir = genome_out_dir(self, tech, sam_group, genome)
+        self.outputs['dirs'].append(out_dir)
+        self.outputs['outs'][(tech, sam_group)][genome] = out_dir
+
+        gff = '%s/gene.coords.gff.gz' % folders[0]
+        to_dos = status_update(
+            self, tech, [contigs, gff], group=sam_group, genome=genome)
+
+        scores = '%s/scores.txt.gz' % out_dir
+        if self.config.force or to_do(scores):
+            key = genome_key(tech, sam_group, genome)
+            cmd = plasx_cmd(self, gff, contigs, out_dir, key)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
+            io_update(self, i_f=[contigs, gff], o_d=out_dir, key=key)
+            self.soft.add_status(
+                tech, self.sam_pool, 1, group=sam_group, genome=genome)
+        else:
+            self.soft.add_status(
+                tech, self.sam_pool, 0, group=sam_group, genome=genome)
+
+
+def plasx(self):
+    """PlasX is a machine learning classifier for identifying plasmid
+    sequences based on genetic architecture.
+
+    References
+    ----------
+    .
+
+    Notes
+    -----
+    GitHub  : https://github.com/michaelkyu/PlasX
+    Paper   : https://doi.org/10.1038/s41564-024-01610-3
+
+    Parameters
+    ----------
+    self
+    """
+    name = self.soft.name
+    if self.soft.prev != 'prodigal':
+        sys.exit('[%s] Runs on protein data (plass, prodigal...)' % name)
+    for (tech, group), inputs in self.inputs[self.sam_pool].items():
+        self.outputs['outs'][(tech, group)] = {}
+        contigs = get_contigs_from_path(self, tech, group)
+        get_plasx(self, tech, group, group_inputs(self, inputs),  contigs)
 
 
 def rfplasmid(self):
