@@ -1204,6 +1204,32 @@ def plasx_cmd(
     cmd += ' -f %s' % contigs
     cmd += ' -o %s\n' % gene
 
+    db = splitext(contigs)[0]
+    if self.soft.params['anvio_annot']:
+        base = basename(db)
+        cmd += 'anvi-gen-contigs-database'
+        cmd += ' -L 0'
+        cmd += ' -T %s' % self.soft.params['cpus']
+        cmd += ' --project-name %s' % base
+        cmd += ' -f %s' % contigs
+        cmd += ' -o %s.db\n' % db
+
+        cmd += 'anvi-run-ncbi-cogs'
+        cmd += ' -T %s' % self.soft.params['cpus']
+        cmd += ' --cog-version COG14'
+        cmd += ' --cog-data-dir COG_2014'
+        cmd += ' -c %s.db\n' % db
+
+        cmd += ' anvi-run-pfams'
+        cmd += ' -T %s' % self.soft.params['cpus']
+        cmd += ' --pfam-data-dir Pfam_v32'
+        cmd += ' -c %s.db\n' % db
+
+        cmd += ' anvi-export-functions'
+        cmd += ' --annotation-sources COG14_FUNCTION,Pfam'
+        cmd += ' -c %s.db' % db
+        cmd += ' -o %s-cogs-and-pfams.txt\n' % db
+
     de_novo = '%s/de_novo_families.txt' % out_dir
     cmd += 'plasx search_de_novo_families'
     cmd += ' -g %s' % gene
@@ -1215,7 +1241,10 @@ def plasx_cmd(
 
     scores = '%s/scores.txt' % out_dir
     cmd += 'plasx predict'
-    cmd += ' -a %s' % ' '.join([de_novo])
+    if self.soft.params['anvio_annot']:
+        cmd += ' -a %s %s-cogs-and-pfams.txt' % (de_novo, db)
+    else:
+        cmd += ' -a %s' % de_novo
     cmd += ' -g %s' % gene
     cmd += ' -o %s' % scores
     cmd += ' --overwrite\n'
@@ -1299,6 +1328,50 @@ def plasx(self):
         self.outputs['outs'][(tech, group)] = {}
         contigs = get_contigs_from_path(self, tech, group)
         get_plasx(self, tech, group, group_inputs(self, inputs),  contigs)
+
+
+def mobmess(self):
+    """MobMess is a tool for inferring and visualizing evolutionary
+    relations among plasmid sequences.
+
+    References
+    ----------
+    Yu, M.K., Fogarty, E.C. & Eren, A.M. Diverse plasmid systems and their
+    ecology across human gut metagenomes revealed by PlasX and MobMess. Nat
+    Microbiol 9, 830–847 (2024)
+
+    Notes
+    -----
+    GitHub  : https://github.com/michaelkyu/MobMess
+    Paper   : https://doi.org/10.1038/s41564-024-01610-3
+
+    Parameters
+    ----------
+    self
+    """
+    invalid = True
+    previous = self.config.tools[self.soft.prev]
+    print()
+    print("previous")
+    print(previous)
+    print("self.soft.prev")
+    print(self.soft.prev)
+    if self.soft.prev in self.config.tools['assembling']:
+        invalid = False
+    elif previous in ['MAG (dereplication)', 'annotation (plasmid)']:
+        invalid = False
+    if invalid:
+        sys.exit('[integronfinder] Only on assembly, MAGs, plasmid annotations')
+
+    if self.sam_pool in self.pools:
+        for (tech, group), inputs in self.inputs[self.sam_pool].items():
+            fastas = group_inputs(self, inputs)
+            contigs = ''
+            if previous == 'annotation (plasmid)':
+                contigs = get_contigs_from_path(self, tech, group)
+            elif self.soft.prev == 'hamronization':
+                contigs = get_contigs_from_path(self, tech, group)
+            get_mobmess(self, tech, group, fastas, contigs)
 
 
 def rfplasmid(self):
