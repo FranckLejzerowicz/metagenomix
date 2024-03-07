@@ -4464,6 +4464,7 @@ def check_flanker(self, params):
 def check_plasx(self, params):
     defaults = {
         'splits': 1,
+        'anvio_annot': [False, True],
     }
     ints = ['splits']
     check_nums(self, params, defaults, ints, int)
