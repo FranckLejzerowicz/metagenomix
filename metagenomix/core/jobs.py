@@ -92,7 +92,7 @@ class Created(object):
                     self.chunks[str(cdx)] = [cmds_d[x] for x in chunk]
         else:
             for key in self.cmds:
-                chunkey = '%s_%s' % (key[0], '-'.join(key[1]).replace('/', '_'))
+                chunkey = key[0] + "_" + '-'.join(key[1]).replace('/', '_')
                 self.chunks[chunkey] = [key]
 
     def get_main_sh(self, name, hashed='', soft=None, local='') -> None:
@@ -550,7 +550,6 @@ class Created(object):
                 self.prep_script(soft.params)
             else:
                 self.prep_script(self.config.params)
-            # self.call_cmd()
         else:
             self.job_fps.append('%s.sh' % splitext(self.sh)[0])
 
