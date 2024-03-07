@@ -1199,7 +1199,7 @@ def plasx_cmd(
         cmd_rm += 'rm %s\n' % contigs
 
     gene = '%s/gene_call.txt' % out_dir
-    cmd += 'prodigal_to_genecall.py'
+    cmd += '%s/prodigal_to_genecall.py' % RESOURCES
     cmd += ' -g %s' % gff
     cmd += ' -f %s' % contigs
     cmd += ' -o %s\n' % gene
