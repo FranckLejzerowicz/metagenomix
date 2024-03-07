@@ -21,9 +21,9 @@ RESOURCES = pkg_resources.resource_filename('metagenomix', 'resources/scripts')
 
 def shogun_append_cmd(
         self,
-        tech: str,
+        key: tuple,
         cmds: list,
-        tab: str
+        tab: str,
 ) -> None:
     """Add or not the current SHOGUN command to the list of commands to run
     depending on whether the file already exists or exists but is only a header.
@@ -35,15 +35,15 @@ def shogun_append_cmd(
             All outputs
         .config
             Configurations
-    tech : str
-        Technology: 'illumina', 'pacbio', or 'nanopore'
+    key : tuple
+        ((Variables names for the current analytic level), number of arrays)
     cmds : list
         List of current SHOGUN command lines
     tab : str
         Path to the output table of the current command
     """
     if self.config.force:
-        self.outputs['cmds'].setdefault((tech,), []).extend(cmds)
+        self.outputs['cmds'].setdefault(key, []).extend(cmds)
     elif to_do(tab) or not min_nlines(tab):
         cmd = 'file="%s"\n' % tab
         cmd += 'if [ -f "$file" ]\n'
@@ -53,7 +53,7 @@ def shogun_append_cmd(
         cmd += 'then\n'
         cmd += '\n'.join(cmds)
         cmd += 'fi\n'
-        self.outputs['cmds'].setdefault((tech,), []).append(cmd)
+        self.outputs['cmds'].setdefault(key, []).append(cmd)
 
 
 def shogun_redistribute(
@@ -98,10 +98,10 @@ def shogun_redistribute(
         cmd += ' -o %s' % redist
         redist_cmds.append(cmd)
         self.outputs['outs'][(tech, self.sam_pool)].setdefault(
-            (db, aligner, tech), []).append(redist)
+            (db, aligner), []).append(redist)
         io_update(self, o_f=redist, key=key)
     redist_out = '%s.redist.strain.tsv' % splitext(tax_norm)[0]
-    shogun_append_cmd(self, tech, redist_cmds, redist_out)
+    shogun_append_cmd(self, key, redist_cmds, redist_out)
 
 
 def shogun_assign_taxonomy(
@@ -355,6 +355,7 @@ def combine_inputs(
 def align(
         self,
         tech: str,
+        key: tuple,
         fasta: str,
         out: str,
         db: str,
@@ -370,6 +371,8 @@ def align(
             All outputs
     tech : str
         Technology: 'illumina', 'pacbio', or 'nanopore'
+    key : tuple
+        ((Variables names for the current analytic level), number of arrays)
     fasta : str
         Path to the combined sequences fasta file
     out : str
@@ -394,10 +397,10 @@ def align(
     cmd = get_alignment_cmd([fasta], cmd, ali)
     ali_cmds.append(cmd)
     if not cmd.startswith('shogun'):
-        io_update(self, i_f=ali, key=tech)
+        io_update(self, i_f=ali, key=key)
     self.outputs['outs'][(tech, self.sam_pool)].setdefault(
         (db, aligner), []).append(ali)
-    io_update(self, o_d=out_dir, key=tech)
+    io_update(self, o_d=out_dir, key=key)
 
     return ali
 
@@ -444,7 +447,7 @@ def get_dir(
 
 def shogun_assign_normalize(
         self,
-        tech: str,
+        key: tuple,
         tab: str,
         aligner: str,
         ali: str,
@@ -461,8 +464,8 @@ def shogun_assign_normalize(
             All outputs
         .config
             Configurations
-    tech : str
-        Technology: 'illumina', 'pacbio', or 'nanopore'
+    key : tuple
+        ((Variables names for the current analytic level), number of arrays)
     tab : str
         Path to the output table
     aligner : str
@@ -481,7 +484,7 @@ def shogun_assign_normalize(
     if self.config.force or to_do(tab_norm):
         cmd += shogun_normalize(tab, tab_norm)
     if cmd:
-        shogun_append_cmd(self, tech, list([cmd]), tab_norm)
+        shogun_append_cmd(self, key, list([cmd]), tab_norm)
 
 
 def get_paths(
@@ -533,7 +536,7 @@ def get_paths(
 
 def shogun_coverage_cmd(
         self,
-        tech: str,
+        key: tuple,
         ali: str,
         db_path: str,
         level: str,
@@ -548,8 +551,8 @@ def shogun_coverage_cmd(
             All outputs
         .config
             Configurations
-    tech : str
-        Technology: 'illumina', 'pacbio', or 'nanopore'
+    key : tuple
+        ((Variables names for the current analytic level), number of arrays)
     ali : str
         Path to the alignment
     db_path : str
@@ -564,7 +567,7 @@ def shogun_coverage_cmd(
     cmd += ' -d %s' % db_path
     cmd += ' -l %s' % level
     cmd += ' -o %s' % cov_tab
-    shogun_append_cmd(self, tech, list([cmd]), cov_tab)
+    shogun_append_cmd(self, key, list([cmd]), cov_tab)
 
 
 def shogun_cov(
@@ -582,7 +585,7 @@ def shogun_cov(
         self.outputs['outs'][(tech, self.sam_pool)].setdefault(
             (db, aligner), []).append(cov_tab)
         if self.config.force or to_do(cov_tab):
-            shogun_coverage_cmd(self, tech, ali, db_path, 'strain', cov_tab)
+            shogun_coverage_cmd(self, key, ali, db_path, 'strain', cov_tab)
             io_update(self, o_f=cov_tab, key=key)
 
 
@@ -624,7 +627,7 @@ def shogun_tax(
     """
     db_path = '%s/shogun' % self.databases.paths[db]
     tab, norm = get_paths(self, tech, out, aligner, db, 'taxonomy', key)
-    shogun_assign_normalize(self, tech, tab, aligner, ali, db_path, '')
+    shogun_assign_normalize(self, key, tab, aligner, ali, db_path, '')
     shogun_redistribute(self, tech, db, aligner, norm, db_path, key)
     return norm
 
@@ -644,17 +647,17 @@ def shogun_func(
         fun, f_norm = get_paths(
             self, tech, out, aligner, db, 'function-%s' % sub, key)
         shogun_assign_normalize(
-            self, tech, fun, aligner, ali, db_path, '/functions-%s' % sub)
+            self, key, fun, aligner, ali, db_path, '/functions-%s' % sub)
         shogun_redistribute(self, tech, db, aligner, f_norm, db_path, key)
 
     out_dir = out + '/functional'
     for level in ['genus', 'species']:
-        shogun_functional(self, tech, norm, fun, out_dir, level)
+        shogun_functional(self, key, norm, fun, out_dir, level)
 
 
 def shogun_functional(
         self,
-        tech: str,
+        key: tuple,
         norm: str,
         db_path: str,
         out_dir: str,
@@ -669,8 +672,8 @@ def shogun_functional(
             All outputs
         .config
             Configurations
-    tech : str
-        Technology: 'illumina', 'pacbio', or 'nanopore'
+    key : tuple
+        ((Variables names for the current analytic level), number of arrays)
     norm : str
         Path to the input table file
     db_path : str
@@ -687,7 +690,7 @@ def shogun_functional(
     cmd += ' -l %s' % level
     base = splitext(basename(norm))[0]
     out = '%s/%s.%s.normalized.txt' % (out_dir, base, level)
-    shogun_append_cmd(self, tech, list([cmd]), out)
+    shogun_append_cmd(self, key, list([cmd]), out)
 
 
 def shogun(self) -> None:
@@ -731,20 +734,20 @@ def shogun(self) -> None:
         if tech_specificity(self, inputs, tech, sample):
             continue
 
+        key = genome_key(tech, self.sam_pool)
         self.outputs['outs'][(tech, self.sam_pool)] = {}
         params = tech_params(self, tech)
-        combine_cmds, ali_cmds = [], []
+        combine_cmds, acmds = [], []
 
         out = '/'.join([self.dir, tech, self.sam_pool])
         self.outputs['dirs'].append(out)
-        io_update(self, o_d=out, key=tech)
+        io_update(self, o_d=out, key=key)
 
-        key = genome_key(tech, sample)
         if self.soft.prev == 'bowtie2':
             to_dos = status_update(self, tech, list(inputs.values()))
             for (db, aligner), sam in inputs.items():
                 io_update(self, i_f=sam, key=key)
-                ali = format_sam(sam, ali_cmds, self.sam_pool)
+                ali = format_sam(sam, acmds, self.sam_pool)
                 self.outputs['outs'][(tech, self.sam_pool)].setdefault(
                     (db, 'bowtie2'), []).append(ali)
                 shogun_tax(self, tech, out, 'bowtie2', ali, db, key)
@@ -754,12 +757,12 @@ def shogun(self) -> None:
             fasta = combine_inputs(self, tech, inputs, out, combine_cmds, key)
             for db, aligners in params['databases'].items():
                 for aligner in aligners:
-                    ali = align(self, tech, fasta, out, db, aligner, ali_cmds)
+                    ali = align(self, tech, key, fasta, out, db, aligner, acmds)
                     norm = shogun_tax(self, tech, out, aligner, ali, db, key)
                     shogun_cov(self, tech, out, aligner, ali, db, key)
                     shogun_func(self, tech, out, aligner, ali, db, norm, key)
         if self.outputs['cmds']:
-            cmd = combine_cmds + ali_cmds + self.outputs['cmds'][key]
+            cmd = combine_cmds + acmds + self.outputs['cmds'][key]
             if to_dos:
                 self.outputs['cmds'][key] = [False]
             else:
@@ -793,6 +796,8 @@ def woltka_aligments(
     alignments = {}
     for sample, sam_inputs in self.inputs.items():
         if sam_inputs.get((tech, sample)):
+            print((tech, sample))
+            print(sam_inputs)
             for (db, aligner), bam in sam_inputs[(tech, sample)].items():
                 if bam and db == 'wol':
                     if aligner not in alignments:
@@ -841,6 +846,7 @@ def woltka_map(
     sam_cmds, rms = '', ''
     for idx, sample in enumerate(alis.keys()):
         bam = alis[sample]
+        print(bam)
         sam_cmds += 'samtools view %s > %s.sam\n' % (bam, bam.rstrip('.bam'))
         rms += 'rm %s.sam\n' % bam.rstrip('.bam')
 
