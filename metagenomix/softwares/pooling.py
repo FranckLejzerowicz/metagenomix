@@ -11,6 +11,42 @@ from metagenomix._io_utils import to_do, status_update
 from metagenomix._inputs import genome_key
 
 
+def fill_pool_cmds(
+        self,
+        tech: str,
+        pool: str,
+        group: str,
+        to_dos: list,
+        cmd: str
+) -> None:
+    """Write the pooling command and collect it in the cmds data structure.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .cmds
+            Command lines
+        .config
+            Configurations
+    tech: str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    pool : str
+        Name of the pool
+    group : str
+        Name of the samples group within the pool
+    to_dos : list¨
+    cmd : str
+        Concatenation command
+    """
+    key, array = genome_key(tech, group)
+    if (pool, key) not in self.cmds:
+        self.cmds[(pool, key)] = ([], array)
+    if to_dos:
+        self.cmds[(pool, key)][0].append(False)
+    else:
+        self.cmds[(pool, key)][0].append(cmd)
+
+
 def pool_cmd(
         self,
         tech: str,
@@ -20,7 +56,7 @@ def pool_cmd(
         group: str,
         to_dos: list
 ) -> None:
-    """Write the pooling command and collect the output and io for FLASh.
+    """Write the pooling command and collect it in the cmds data structure.
 
     Parameters
     ----------
@@ -29,10 +65,16 @@ def pool_cmd(
             Command lines
         .config
             Configurations
+    tech: str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    pool : str
+        Name of the pool
     paths : list
         Path the input fasta files
     fasta : str
         Path to an output fasta file
+    group : str
+        Name of the samples group within the pool
     to_dos : list
     """
     if self.config.force or to_do(fasta):
@@ -43,11 +85,7 @@ def pool_cmd(
             else:
                 cmd += 'cat %s > %s\n' % (path, fasta)
         if cmd:
-            key = genome_key(tech, group)
-            if to_dos:
-                self.cmds.setdefault((pool, key), []).append(False)
-            else:
-                self.cmds.setdefault((pool, key), []).append(cmd)
+            fill_pool_cmds(self, tech, pool, group, to_dos, cmd)
 
 
 def extension_paths(
@@ -169,11 +207,11 @@ def get_fasta_pools(
     out : str
         Path the output folder
     sams : list
-        Samples to pool
+        Samples to group together for the coassembly
     pool : str
         Name of the pool
     group : str
-        Name of the sample group within the pool
+        Name of the samples group within the pool
 
     Returns
     -------
@@ -243,7 +281,7 @@ def make_pool(
     pool : str
         Name of the pool
     group : str
-        Name of the sample group within the pool
+        Name of the samples group within the pool
     paths : list
         Path to the input files to merge
     fasta : str
@@ -288,7 +326,7 @@ def pool_fasta(
     pool : str
         Name of the pool
     group : str
-        Name of the sample group within the pool
+        Name of the samples group within the pool
     to_dos : list
 
     Returns
@@ -376,11 +414,10 @@ def add_to_pool_io(
     values: list
         Paths to move to/from scratch for the pooling
     """
-    # key = (tech, (pool, group))
-    key = (pool, genome_key(tech, group))
+    key, array = genome_key(tech, group)
     if key not in self.soft.io:
-        self.soft.io[key] = {}
-    self.soft.io[key].setdefault(io, set()).update(values)
+        self.soft.io[(pool, key)] = {}
+    self.soft.io[(pool, key)].setdefault(io, set()).update(values)
 
 
 def pooling(
