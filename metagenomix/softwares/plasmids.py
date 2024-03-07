@@ -688,7 +688,7 @@ def get_mobsuite(
         tech: str,
         group: str,
         inputs_dict: dict,
-        contigs: str
+        contigs: str,
 ) -> None:
     """
 
@@ -698,7 +698,7 @@ def get_mobsuite(
     tech : str
     group : str
     inputs_dict : dict
-    contigs: str
+    contigs : str
         Empty of not run after a plasmid-detection tool
     """
     for genome, fastas in inputs_dict.items():
@@ -1330,6 +1330,92 @@ def plasx(self):
         get_plasx(self, tech, group, group_inputs(self, inputs),  contigs)
 
 
+def mobmess_cmd(
+        self,
+        tech: str,
+        fasta: str,
+        out_dir: str,
+        key: tuple
+) -> str:
+    """Collect the mobmess command line.
+
+    Parameters
+    ----------
+    self
+    tech : str
+    fasta : str
+    out_dir : str
+    key : tuple
+
+    Returns
+    -------
+    cmd : str
+        mobmess command line
+    """
+    tmp_dir = '$TMPDIR/mobmess_%s' % '_'.join(key[0])
+    params = tech_params(self, tech)
+    plas = '%s.txt' % splitext(fasta)[0]
+    cmd = 'grep ">" %s | sed "s/>//" | sed "s/$/ 1/" > %s\n' % (fasta, plas)
+    cmd += 'mobmess'
+    cmd += ' --sequences %s' % fasta
+    cmd += ' --complete %s' % plas
+    cmd += ' --output %s/out' % out_dir
+    cmd += ' --threads %s' % params['cpus']
+    cmd += ' --min-similarity %s' % params['min_similarity']
+    cmd += ' --min-coverage %s' % params['min_coverage']
+    cmd += ' --min-coverage %s' % params['min_coverage']
+    cmd += ' --tmp %s\n' % tmp_dir
+    cmd += 'for i in %s/*; do gzip -q $i; done\n' % out_dir
+    return cmd
+
+
+def get_mobmess(
+        self,
+        tech: str,
+        group: str,
+        input_dirs: dict,
+        contigs: str,
+        previous: str
+) -> None:
+    """
+
+    Parameters
+    ----------
+    self
+    tech : str
+    group : str
+    input_dirs : dict
+    contigs: str
+        Empty of not run after a plasmid-detection tool
+    previous : str
+    """
+    for genome, input_dir in input_dirs.items():
+        out_dir = genome_out_dir(self, tech, group)
+        self.outputs['dirs'].append(out_dir)
+        self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
+
+        if input_dir:
+            plasmids, fasta, cmds, rms = get_plasmids(self, input_dir, contigs)
+            i_f = [plasmids, contigs]
+        else:
+            fasta, cmds, rms = contigs, '', ''
+            i_f = [fasta]
+        print("fasta:", fasta)
+        to_dos = status_update(self, tech, i_f, group=group)
+
+        if self.config.force or to_do('%s/out.tsv.gz' % out_dir):
+            key = genome_key(tech, group)
+            cmds += mobmess_cmd(self, tech, fasta, out_dir, key)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmds)
+            io_update(self, i_f=i_f, o_d=out_dir, key=key)
+            self.soft.add_status(tech, self.sam_pool, 1, group=group)
+        else:
+            self.soft.add_status(tech, self.sam_pool, 0, group=group)
+
+
 def mobmess(self):
     """MobMess is a tool for inferring and visualizing evolutionary
     relations among plasmid sequences.
@@ -1350,28 +1436,26 @@ def mobmess(self):
     self
     """
     invalid = True
-    previous = self.config.tools[self.soft.prev]
-    print()
-    print("previous")
-    print(previous)
-    print("self.soft.prev")
-    print(self.soft.prev)
-    if self.soft.prev in self.config.tools['assembling']:
+    previous = self.config.tools[self.soft.prev]  # e.g. "annotation (plasmid)"
+    if self.soft.prev in ['ccfind', 'spades_plasmid', 'viralverify']:
         invalid = False
-    elif previous in ['MAG (dereplication)', 'annotation (plasmid)']:
+    elif previous == 'annotation (plasmid)':
         invalid = False
     if invalid:
-        sys.exit('[integronfinder] Only on assembly, MAGs, plasmid annotations')
+        sys.exit('[mobmess] Only on plasmid assembly, annotation, circularity')
 
     if self.sam_pool in self.pools:
         for (tech, group), inputs in self.inputs[self.sam_pool].items():
-            fastas = group_inputs(self, inputs)
-            contigs = ''
+            print()
+            print()
+            print('>>>', self.soft.prev)
+            contigs = get_contigs_from_path(self, tech, group)
+            input_dirs = {'': []}
             if previous == 'annotation (plasmid)':
-                contigs = get_contigs_from_path(self, tech, group)
-            elif self.soft.prev == 'hamronization':
-                contigs = get_contigs_from_path(self, tech, group)
-            get_mobmess(self, tech, group, fastas, contigs)
+                input_dirs = group_inputs(self, inputs)
+            elif previous != 'assembling (plasmids)':
+                input_dirs = {'': group_inputs(self, inputs)[0]}
+            get_mobmess(self, tech, group, input_dirs, contigs, previous)
 
 
 def rfplasmid(self):

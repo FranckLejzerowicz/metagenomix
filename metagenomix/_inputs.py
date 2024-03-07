@@ -814,22 +814,28 @@ def get_args(fastas, contigs) -> tuple:
     return selection, fasta, cmds, cmd_rm
 
 
-def get_plasmids(self, fastas, contigs) -> tuple:
+def get_plasmids(self, input_dir, contigs) -> tuple:
     if self.soft.prev == 'plasmidfinder':
-        plasmids = fastas + '/results_tab.tsv.gz'
-        cmd = 'tail -n +2 | cut -f 5'
+        plasmids = input_dir + '/results_tab.tsv.gz'
+        cmd = ' | tail -n +2 | cut -f 5'
     elif self.soft.prev == 'plasforest':
-        plasmids = fastas + '/plasmids.csv.gz'
-        cmd = 'grep Plasmid | cut -d"," -f 1'
+        plasmids = input_dir + '/plasmids.csv.gz'
+        cmd = ' | grep Plasmid | cut -d"," -f 1'
+    elif self.soft.prev == 'platon':
+        plasmids = input_dir + '/output.tsv.gz'
+        cmd = ' | cut -f1,6 | grep yes'
     elif self.soft.prev == 'viralverify':
-        plasmids = fastas + '/contigs_result_table.csv.gz'
-        cmd = 'cut -d "," -f 1,2 | grep Plasmid | cut -d"," -f 1'
+        plasmids = input_dir + '/contigs_result_table.csv.gz'
+        cmd = ' | cut -d "," -f 1,2 | grep Plasmid | cut -d"," -f 1'
+    elif self.soft.prev == 'ccfind':
+        plasmids = input_dir + '/result/circ.detected.list.gz'
+        cmd = ''
     else:
         sys.exit('[%s] Cannot run after %s' % (self.soft.name, self.soft.prev))
 
     subset = plasmids.replace('.gz', '.ref')
-    fasta = plasmids.replace('.gz', '.fa')
-    cmds = 'zcat %s | %s | cut -d" " -f 1 > %s\n' % (plasmids, cmd, subset)
+    fasta = plasmids.replace('.gz', '.fasta')
+    cmds = 'zcat %s%s | cut -d" " -f 1 > %s\n' % (plasmids, cmd, subset)
     cmds += 'python3 %s/scripts/subset_fasta.py -i %s -s %s -o %s\n' % (
         RESOURCES, contigs, subset, fasta)
     cmd_rm = 'rm %s %s\n' % (subset, fasta)

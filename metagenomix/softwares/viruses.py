@@ -126,7 +126,7 @@ def viralverify(self) -> None:
 
         base = basename(contigs).rsplit('.', 2)[0]
         out_fp = '%s/%s_result_table.csv.gz' % (out, base)
-        self.outputs['outs'][(tech, group)] = out_fp
+        self.outputs['outs'].setdefault((tech, group), []).append(out)
 
         if self.config.force or to_do(out_fp):
             cmd = viralverify_cmd(self, contigs, out)
