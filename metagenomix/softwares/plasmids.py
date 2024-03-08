@@ -1381,6 +1381,10 @@ def mobmess_cmd(
     params = tech_params(self, tech)
     plas = '%s.txt' % splitext(fasta)[0]
     cmd = 'grep ">" %s | sed "s/>//" | sed "s/$/\\t1/" > %s\n' % (fasta, plas)
+    cmd += 'if [ -s %s ]\n' % plas
+    cmd += 'then\n'
+    cmd += 'echo "%s empty"\n' % plas
+    cmd += 'else\n'
     cmd += 'mobmess systems'
     cmd += ' --sequences %s' % fasta
     cmd += ' --complete %s' % plas
@@ -1390,7 +1394,8 @@ def mobmess_cmd(
     cmd += ' --min-coverage %s' % params['min_coverage']
     cmd += ' --min-coverage %s' % params['min_coverage']
     cmd += ' --tmp %s\n' % tmp_dir
-    cmd += 'for i in %s/*; do gzip -q $i; done\n' % out_dir
+    cmd += 'for i in %s/*; do gzip -q $i; done\n'
+    cmd += 'fi\n' % out_dir
     return cmd
 
 
