@@ -1394,8 +1394,8 @@ def mobmess_cmd(
     cmd += ' --min-coverage %s' % params['min_coverage']
     cmd += ' --min-coverage %s' % params['min_coverage']
     cmd += ' --tmp %s\n' % tmp_dir
-    cmd += 'for i in %s/*; do gzip -q $i; done\n'
-    cmd += 'fi\n' % out_dir
+    cmd += 'for i in %s/*; do gzip -q $i; done\n' % out_dir
+    cmd += 'fi\n'
     return cmd
 
 
