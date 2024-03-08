@@ -1380,7 +1380,7 @@ def mobmess_cmd(
     tmp_dir = '$TMPDIR/mobmess_%s' % '_'.join(key[0])
     params = tech_params(self, tech)
     plas = '%s.txt' % splitext(fasta)[0]
-    cmd = 'grep ">" %s | sed "s/>//" | sed "s/$/ 1/" > %s\n' % (fasta, plas)
+    cmd = 'grep ">" %s | sed "s/>//" | sed "s/$/\\t1/" > %s\n' % (fasta, plas)
     cmd += 'mobmess systems'
     cmd += ' --sequences %s' % fasta
     cmd += ' --complete %s' % plas
