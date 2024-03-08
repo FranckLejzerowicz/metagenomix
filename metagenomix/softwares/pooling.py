@@ -222,10 +222,10 @@ def get_fasta_pools(
     if self.soft.params['pool_single_and_merged']:
         combine_single(paths_to_merge)
     fasta_fps = []
-    for extension, paths in sorted(paths_to_merge.items()):
+    for ext, paths in sorted(paths_to_merge.items()):
         to_dos = status_update(self, tech, paths, group=group)
-        fasta = pool_fasta(
-            self, tech, out, extension, paths, pool, group, to_dos)
+        print(ext, paths)
+        fasta = pool_fasta(self, tech, out, ext, paths, pool, group, to_dos)
         fasta_fps.append(fasta)
     return fasta_fps
 
@@ -233,7 +233,7 @@ def get_fasta_pools(
 def fasta_fp(
         out: str,
         group: str,
-        extension: str
+        ext: str
 ) -> str:
     """Get the path to the fasta file that results from merging.
 
@@ -243,7 +243,7 @@ def fasta_fp(
         Path the output folder
     group : str
         Name of the sample group within the pool
-    extension : str
+    ext : str
         Extension to the files to merge
 
     Returns
@@ -251,7 +251,7 @@ def fasta_fp(
     fasta : str
         Fasta file name for the merging result
     """
-    fasta = '%s/%s.%s' % (out, group, extension)
+    fasta = '%s/%s.%s' % (out, group, ext)
     fasta = fasta.replace(' ', '_').replace('..', '.')
     return fasta
 
@@ -298,7 +298,7 @@ def pool_fasta(
         self,
         tech: str,
         out: str,
-        extension: str,
+        ext: str,
         paths: list,
         pool: str,
         group: str,
@@ -319,7 +319,7 @@ def pool_fasta(
         Technology: 'illumina', 'pacbio', or 'nanopore'
     out : str
         Path the output folder
-    extension : str
+    ext : str
         Extension to the files to merge
     paths : list
         Paths to the input files to merge
@@ -336,7 +336,7 @@ def pool_fasta(
     """
     # only pool if there is min 2 samples being merged
     if len(paths) > 1:
-        fasta = fasta_fp(out, group, extension)
+        fasta = fasta_fp(out, group, ext)
         make_pool(self, tech, pool, group, paths, fasta, to_dos)
     else:
         fasta = paths[0]
