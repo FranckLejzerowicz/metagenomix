@@ -55,10 +55,10 @@ def reformat(gff, fasta, filou):
             t, v = tv.split('_', 1)
             me = at.split(';')[0].split('_')[-1]
             pa = get_r(at.split(';')[1].split('=')[-1])
-            o.write('\t'.join([
-                i, na, str(int(st)-1), en, di, pa, '1',
+            o.write('\t'.join(map(str, [
+                i, na, int(st)-1, en, di, pa, '1',
                 t.lower(), v, d['%s_%s' % (na, me)]
-            ]))
+            ])))
 
 
 def load_seqs(fasta):
