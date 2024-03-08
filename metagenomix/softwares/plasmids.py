@@ -1198,7 +1198,7 @@ def plasx_cmd(
         cmd_rm += 'rm %s\n' % contigs
     db = splitext(contigs)[0]
     base = basename(db)
-    gene = '%s/gene_call.txt' % db
+    gene = '%s-gene_call.txt' % db
 
     db_loaded = False
     if gff and prot:
