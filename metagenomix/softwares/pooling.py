@@ -224,7 +224,6 @@ def get_fasta_pools(
     fasta_fps = []
     for ext, paths in sorted(paths_to_merge.items()):
         to_dos = status_update(self, tech, paths, group=group)
-        print(ext, paths)
         fasta = pool_fasta(self, tech, out, ext, paths, pool, group, to_dos)
         fasta_fps.append(fasta)
     return fasta_fps
@@ -415,7 +414,7 @@ def add_to_pool_io(
         Paths to move to/from scratch for the pooling
     """
     key, array = genome_key(tech, group)
-    if key not in self.soft.io:
+    if (pool, key) not in self.soft.io:
         self.soft.io[(pool, key)] = {}
     self.soft.io[(pool, key)].setdefault(io, set()).update(values)
 
@@ -449,9 +448,3 @@ def pooling(
         self.soft.outputs[pool][group] = {}
         # get the outputs for the current group and collect pooling commands
         get_pools(self, pool, group, sams)
-    for i in self.soft.io:
-        print()
-        print()
-        print(i)
-        print()
-        print(self.soft.io[('I', 'f')])
