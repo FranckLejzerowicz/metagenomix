@@ -1157,11 +1157,11 @@ def genomad(self):
 
 def plasx_cmd(
         self,
-        gff: str,
-        prot: str,
         contigs: str,
         out_dir: str,
-        key: tuple
+        key: tuple,
+        gff: str,
+        prot: str
 ) -> str:
     """Collect PlasX command.
 
@@ -1172,16 +1172,16 @@ def plasx_cmd(
             Pool name.
         .soft.params
             platon parameters
-    gff : str
-        Path to the prodigal output GFF3 file
-    prot : str
-        Path to the prodigal output protein fasta file
     contigs : str
         Empty if not run after a plasmid-detection tool
     out_dir : str
         Path to the output folder for the current sample/MAG
     key : str
         Technology and/or co-assembly pool group name
+    gff : str
+        Path to the prodigal output GFF3 file
+    prot : str
+        Path to the prodigal output protein fasta file
 
     Returns
     -------
@@ -1192,32 +1192,47 @@ def plasx_cmd(
     cmd_rm = ''
     cmd = 'mkdir -p %s\n' % tmp_dir
 
-    cmd += 'gunzip -c %s > %s\n' % (gff, gff.rstrip('.gz'))
-    gff = gff.rstrip('.gz')
-    cmd += 'gunzip -c %s > %s\n' % (prot, prot.rstrip('.gz'))
-    prot = prot.rstrip('.gz')
-    cmd_rm += 'rm %s %s\n' % (gff, prot)
-
     if contigs.endswith('.fa.gz') or contigs.endswith('.fasta.gz'):
         cmd += 'gunzip -c %s > %s\n' % (contigs, contigs.rstrip('.gz'))
         contigs = contigs.rstrip('.gz')
         cmd_rm += 'rm %s\n' % contigs
-
-    gene = '%s/gene_call.txt' % out_dir
-    cmd += 'python3 %s/prodigal_to_genecall.py' % RESOURCES
-    cmd += ' -g %s' % gff
-    cmd += ' -f %s' % prot
-    cmd += ' -o %s\n' % gene
-
     db = splitext(contigs)[0]
-    if self.soft.params['anvio_annot']:
-        base = basename(db)
+    base = basename(db)
+    gene = '%s/gene_call.txt' % db
+
+    db_loaded = False
+    if gff and prot:
+        cmd += 'gunzip -c %s > %s\n' % (gff, gff.rstrip('.gz'))
+        gff = gff.rstrip('.gz')
+        cmd += 'gunzip -c %s > %s\n' % (prot, prot.rstrip('.gz'))
+        prot = prot.rstrip('.gz')
+        cmd_rm += 'rm %s %s\n' % (gff, prot)
+        cmd += 'python3 %s/prodigal_to_genecall.py' % RESOURCES
+        cmd += ' -g %s' % gff
+        cmd += ' -f %s' % prot
+        cmd += ' -o %s\n' % gene
+    else:
+        db_loaded = True
         cmd += 'anvi-gen-contigs-database'
         cmd += ' -L 0'
         cmd += ' -T %s' % self.soft.params['cpus']
         cmd += ' --project-name %s' % base
         cmd += ' -f %s' % contigs
         cmd += ' -o %s.db\n' % db
+
+        cmd += 'anvi-export-gene-calls'
+        cmd += ' --gene-caller prodigal'
+        cmd += ' -c %s' % db
+        cmd += ' -o %s\n' % gene
+
+    if self.soft.params['anvio_annot']:
+        if not db_loaded:
+            cmd += 'anvi-gen-contigs-database'
+            cmd += ' -L 0'
+            cmd += ' -T %s' % self.soft.params['cpus']
+            cmd += ' --project-name %s' % base
+            cmd += ' -f %s' % contigs
+            cmd += ' -o %s.db\n' % db
 
         cmd += 'anvi-run-ncbi-cogs'
         cmd += ' -T %s' % self.soft.params['cpus']
@@ -1289,15 +1304,18 @@ def get_plasx(
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'][(tech, sam_group)][genome] = out_dir
 
-        gff = '%s/gene.coords.gff.gz' % folders[0]
-        prot = '%s/protein.translations.fasta.gz' % folders[0]
-        to_dos = status_update(
-            self, tech, [contigs, prot, gff], group=sam_group, genome=genome)
+        i_f = [contigs]
+        gff, prot = '', ''
+        if self.soft.prev == 'prodigal':
+            gff = '%s/gene.coords.gff.gz' % folders[0]
+            prot = '%s/protein.translations.fasta.gz' % folders[0]
+            i_f.extend([gff, prot])
+        to_dos = status_update(self, tech, i_f, group=sam_group, genome=genome)
 
         scores = '%s/scores.txt.gz' % out_dir
         if self.config.force or to_do(scores):
             key = genome_key(tech, sam_group, genome)
-            cmd = plasx_cmd(self, gff, prot, contigs, out_dir, key)
+            cmd = plasx_cmd(self, contigs, out_dir, key, gff, prot)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
@@ -1328,8 +1346,9 @@ def plasx(self):
     self
     """
     name = self.soft.name
-    if self.soft.prev != 'prodigal':
-        sys.exit('[%s] Runs on protein data (plass, prodigal...)' % name)
+    previous = self.config.tools[self.soft.prev]  # e.g. "annotation (plasmid)"
+    if self.soft.prev != 'prodigal' and previous != 'assembling':
+        sys.exit('[%s] Runs on assembly or (prodigal) gene prediction' % name)
     for (tech, group), inputs in self.inputs[self.sam_pool].items():
         self.outputs['outs'][(tech, group)] = {}
         contigs = get_contigs_from_path(self, tech, group)
