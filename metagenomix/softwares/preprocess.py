@@ -88,6 +88,7 @@ def count(self) -> None:
         if tech_specificity(self, fastxs, tech, sam):
             continue
         to_dos = status_update(self, tech, fastxs)
+        print('count to_do', to_dos)
 
         out_dir = '%s/%s/%s' % (self.dir, tech, sam)
         self.outputs['dirs'].append(out_dir)
