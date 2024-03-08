@@ -56,7 +56,7 @@ def reformat(gff, fasta, filou):
             me = at.split(';')[0].split('_')[-1]
             pa = get_r(at.split(';')[1].split('=')[-1])
             o.write('\t'.join([
-                i, na, int(st)-1, en, di, pa, '1',
+                i, na, int(int(st)-1), en, di, pa, '1',
                 t.lower(), v, d['%s_%s' % (na, me)]
             ]))
 
