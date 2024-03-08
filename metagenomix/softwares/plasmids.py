@@ -1240,12 +1240,12 @@ def plasx_cmd(
         cmd += ' --cog-data-dir COG_2014'
         cmd += ' -c %s.db\n' % db
 
-        cmd += ' anvi-run-pfams'
+        cmd += 'anvi-run-pfams'
         cmd += ' -T %s' % self.soft.params['cpus']
         cmd += ' --pfam-data-dir Pfam_v32'
         cmd += ' -c %s.db\n' % db
 
-        cmd += ' anvi-export-functions'
+        cmd += 'anvi-export-functions'
         cmd += ' --annotation-sources COG14_FUNCTION,Pfam'
         cmd += ' -c %s.db' % db
         cmd += ' -o %s-cogs-and-pfams.txt\n' % db
