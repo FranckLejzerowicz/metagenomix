@@ -449,3 +449,9 @@ def pooling(
         self.soft.outputs[pool][group] = {}
         # get the outputs for the current group and collect pooling commands
         get_pools(self, pool, group, sams)
+    for i in self.soft.io:
+        print()
+        print()
+        print(i)
+        print()
+        print(self.soft.io[('I', 'f')])
