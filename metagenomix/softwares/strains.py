@@ -9,7 +9,7 @@
 import glob
 from os.path import dirname
 from metagenomix._io_utils import (
-    caller, io_update, tech_specificity, status_update, to_do)
+    caller, io_update, tech_specificity, status_update, to_do, rep)
 from metagenomix._inputs import (
     group_inputs, genome_key, genome_out_dir, get_extension, get_reads,
     get_group_reads, add_folder, get_contigs_from_path)
@@ -334,7 +334,7 @@ def get_lorikeet(
         to_dos.extend(status_update(self, tech, contigs))
 
         outs = '%s/*/*_consensus_ani.tsv' % out_dir
-        if self.config.force or not glob.glob(outs):
+        if self.config.force or not glob.glob(rep(outs)):
             key = genome_key(tech, group, genome)
             cmd = lorikeet_cmd(self, is_folder, contigs, fasta_folder,
                                group_reads, out_dir, key, step)
