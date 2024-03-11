@@ -1224,7 +1224,7 @@ def plasx_cmd(
         cmd += ' -L 0'
         cmd += ' -T %s' % self.soft.params['cpus']
         cmd += ' --project-name %s' % base
-        cmd += ' -f %s' % contigs
+        cmd += ' -f %s' % contigs_reform
         cmd += ' -o %s.db\n' % db
 
         cmd += 'anvi-export-gene-calls'
@@ -1243,7 +1243,7 @@ def plasx_cmd(
             cmd += ' -L 0'
             cmd += ' -T %s' % self.soft.params['cpus']
             cmd += ' --project-name %s' % base
-            cmd += ' -f %s' % contigs
+            cmd += ' -f %s' % contigs_reform
             cmd += ' -o %s.db\n' % db
 
         cmd += 'anvi-run-ncbi-cogs'
