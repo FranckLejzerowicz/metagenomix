@@ -1216,8 +1216,8 @@ def plasx_cmd(
     else:
         db_loaded = True
         cmd += 'python3 %s/reformat_fasta.py' % RESOURCES
-        cmd += '-i %s' % contigs
-        cmd += '-o %s\n' % contigs_reform
+        cmd += ' -i %s' % contigs
+        cmd += ' -o %s\n' % contigs_reform
         cmd_rm += 'rm %s\n' % contigs_reform
 
         cmd += 'anvi-gen-contigs-database'
@@ -1235,8 +1235,8 @@ def plasx_cmd(
     if self.soft.params['anvio_annot']:
         if not db_loaded:
             cmd += 'python3 %s/reformat_fasta.py' % RESOURCES
-            cmd += '-i %s' % contigs
-            cmd += '-o %s\n' % contigs_reform
+            cmd += ' -i %s' % contigs
+            cmd += ' -o %s\n' % contigs_reform
             cmd_rm += 'rm %s\n' % contigs_reform
 
             cmd += 'anvi-gen-contigs-database'
