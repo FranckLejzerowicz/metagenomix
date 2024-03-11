@@ -332,7 +332,9 @@ def get_lorikeet(
 
         contigs = get_contigs_from_path(self, tech, group, True)
         to_dos.extend(status_update(self, tech, contigs))
-        if self.config.force or not glob.glob('%s/*' % out_dir):
+
+        outs = '%s/*/*_consensus_ani.tsv' % out_dir
+        if self.config.force or not glob.glob(outs):
             key = genome_key(tech, group, genome)
             cmd = lorikeet_cmd(self, is_folder, contigs, fasta_folder,
                                group_reads, out_dir, key, step)
