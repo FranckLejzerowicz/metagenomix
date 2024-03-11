@@ -1196,7 +1196,9 @@ def plasx_cmd(
         cmd += 'gunzip -c %s > %s\n' % (contigs, contigs.rstrip('.gz'))
         contigs = contigs.rstrip('.gz')
         cmd_rm += 'rm %s\n' % contigs
+
     db = splitext(contigs)[0]
+    contigs_reform = '%s_reform.fasta' % db
     base = basename(db)
     gene = '%s-gene_call.txt' % db
 
@@ -1213,6 +1215,11 @@ def plasx_cmd(
         cmd += ' -o %s\n' % gene
     else:
         db_loaded = True
+        cmd += 'python3 %s/reformat_fasta.py' % RESOURCES
+        cmd += '-i %s' % contigs
+        cmd += '-o %s\n' % contigs_reform
+        cmd_rm += 'rm %s\n' % contigs_reform
+
         cmd += 'anvi-gen-contigs-database'
         cmd += ' -L 0'
         cmd += ' -T %s' % self.soft.params['cpus']
@@ -1227,6 +1234,11 @@ def plasx_cmd(
 
     if self.soft.params['anvio_annot']:
         if not db_loaded:
+            cmd += 'python3 %s/reformat_fasta.py' % RESOURCES
+            cmd += '-i %s' % contigs
+            cmd += '-o %s\n' % contigs_reform
+            cmd_rm += 'rm %s\n' % contigs_reform
+
             cmd += 'anvi-gen-contigs-database'
             cmd += ' -L 0'
             cmd += ' -T %s' % self.soft.params['cpus']
