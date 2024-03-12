@@ -1494,11 +1494,6 @@ def get_mobmess(
     contigs : dict
     out_dir : str
     """
-    print()
-    print(tech)
-    print(pool)
-    print("inputs:", inputs)
-    print("contigs:", contigs)
     to_dos = status_update(self, tech, list(contigs.values()), group=pool)
     for genome, input_dirs in inputs.items():
         to_dos.extend(status_update(
