@@ -1159,7 +1159,6 @@ def plasx_cmd(
         self,
         contigs: str,
         out_dir: str,
-        key: tuple,
         gff: str,
         prot: str
 ) -> str:
@@ -1176,8 +1175,6 @@ def plasx_cmd(
         Empty if not run after a plasmid-detection tool
     out_dir : str
         Path to the output folder for the current sample/MAG
-    key : str
-        Technology and/or co-assembly pool group name
     gff : str
         Path to the prodigal output GFF3 file
     prot : str
@@ -1192,10 +1189,10 @@ def plasx_cmd(
         tmp_dir = '$TMPDIR/$PBS_JOBID'
     else:
         tmp_dir = '$TMPDIR/$SLURM_JOB_ID'
-    cmd_rm = ''
     cmd = 'export TMPDIR=%s\n' % tmp_dir
-    cmd += 'mkdir -p %s\n' % tmp_dir
+    cmd += 'mkdir -p $TMPDIR\n'
 
+    cmd_rm = ''
     if contigs.endswith('.fa.gz') or contigs.endswith('.fasta.gz'):
         cmd += 'gunzip -c %s > %s\n' % (contigs, contigs.rstrip('.gz'))
         contigs = contigs.rstrip('.gz')
@@ -1270,7 +1267,7 @@ def plasx_cmd(
     cmd += 'plasx search_de_novo_families'
     cmd += ' -g %s' % gene
     cmd += ' -o %s' % de_novo
-    cmd += ' --tmp %s' % tmp_dir
+    cmd += ' --tmp $TMPDIR'
     cmd += ' --threads %s' % self.soft.params['cpus']
     cmd += ' --splits %s' % self.soft.params['splits']
     cmd += ' --overwrite\n'
@@ -1285,7 +1282,6 @@ def plasx_cmd(
     cmd += ' -o %s' % scores
     cmd += ' --overwrite\n'
 
-    cmd += 'rm -rf %s\n' % tmp_dir
     cmd += 'for i in %s/*; do gzip -q $i; done\n' % out_dir
     cmd += cmd_rm
     return cmd
@@ -1432,7 +1428,6 @@ def mobmess_cmd(
         fastas: list,
         out_dir: str,
         empty_fp: str,
-        key: tuple
 ) -> str:
     """Collect the mobmess command line.
 
@@ -1443,7 +1438,6 @@ def mobmess_cmd(
     fastas : list
     out_dir : str
     empty_fp : str
-    key : tuple
 
     Returns
     -------
@@ -1459,7 +1453,7 @@ def mobmess_cmd(
     fasta = '%s/contigs.fasta' % out_dir
 
     cmd = 'export TMPDIR=%s\n' % tmp_dir
-    cmd += 'mkdir -p %s\n' % tmp_dir
+    cmd += 'mkdir -p $TMPDIR\n'
     cmd += 'cat %s > %s\n' % (' '.join(fastas), fasta)
     cmd += 'grep ">" %s | sed "s/>//" | sed "s/$/\\t1/" > %s\n' % (fasta, bools)
     cmd += 'if [ -s %s ]\n' % bools
@@ -1472,7 +1466,7 @@ def mobmess_cmd(
     cmd += ' --min-similarity %s' % params['min_similarity']
     cmd += ' --min-coverage %s' % params['min_coverage']
     cmd += ' --min-coverage %s' % params['min_coverage']
-    cmd += ' --tmp %s\n' % tmp_dir
+    cmd += ' --tmp $TMPDIR\n'
     cmd += 'for i in %s/*; do gzip -q $i; done\n' % out_dir
     cmd += 'else\n'
     cmd += 'echo "%s empty"\n' % bools
