@@ -1193,7 +1193,8 @@ def plasx_cmd(
     else:
         tmp_dir = '$TMPDIR/$SLURM_JOB_ID'
     cmd_rm = ''
-    cmd = 'mkdir -p %s\n' % tmp_dir
+    cmd = 'export TMPDIR=%s\n' % tmp_dir
+    cmd += 'mkdir -p %s\n' % tmp_dir
 
     if contigs.endswith('.fa.gz') or contigs.endswith('.fasta.gz'):
         cmd += 'gunzip -c %s > %s\n' % (contigs, contigs.rstrip('.gz'))
