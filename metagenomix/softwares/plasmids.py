@@ -1458,7 +1458,9 @@ def mobmess_cmd(
     bools = '%s/is_plasmids.txt' % out_dir
     fasta = '%s/contigs.fasta' % out_dir
 
-    cmd = 'cat %s > %s\n' % (' '.join(fastas), fasta)
+    cmd = 'export TMPDIR=%s\n' % tmp_dir
+    cmd += 'mkdir -p %s\n' % tmp_dir
+    cmd += 'cat %s > %s\n' % (' '.join(fastas), fasta)
     cmd += 'grep ">" %s | sed "s/>//" | sed "s/$/\\t1/" > %s\n' % (fasta, bools)
     cmd += 'if [ -s %s ]\n' % bools
     cmd += 'then\n'
