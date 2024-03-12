@@ -1427,6 +1427,7 @@ def mobmess_cmd(
         tech: str,
         fastas: list,
         out_dir: str,
+        empty_fp: str,
         key: tuple
 ) -> str:
     """Collect the mobmess command line.
@@ -1437,6 +1438,7 @@ def mobmess_cmd(
     tech : str
     fastas : list
     out_dir : str
+    empty_fp : str
     key : tuple
 
     Returns
@@ -1446,14 +1448,15 @@ def mobmess_cmd(
     """
     tmp_dir = '$TMPDIR/mobmess_%s' % '_'.join(key[0])
     params = tech_params(self, tech)
+
     bools = '%s/is_plasmids.txt' % out_dir
     fasta = '%s/contigs.fasta' % out_dir
+    empty = '%s/empty.txt' % out_dir
+
     cmd = 'cat %s > %s\n' % (' '.join(fastas), fasta)
     cmd += 'grep ">" %s | sed "s/>//" | sed "s/$/\\t1/" > %s\n' % (fasta, bools)
     cmd += 'if [ -s %s ]\n' % bools
     cmd += 'then\n'
-    cmd += 'echo "%s empty"\n' % bools
-    cmd += 'else\n'
     cmd += 'mobmess systems'
     cmd += ' --sequences %s' % fasta
     cmd += ' --complete %s' % bools
@@ -1464,6 +1467,9 @@ def mobmess_cmd(
     cmd += ' --min-coverage %s' % params['min_coverage']
     cmd += ' --tmp %s\n' % tmp_dir
     cmd += 'for i in %s/*; do gzip -q $i; done\n' % out_dir
+    cmd += 'else\n'
+    cmd += 'echo "%s empty"\n' % bools
+    cmd += 'echo "%s empty" > %s\n' % (bools, empty_fp)
     cmd += 'fi\n'
     return cmd
 
@@ -1498,9 +1504,16 @@ def get_mobmess(
             self, tech, list(input_dirs.values()), folder=True, group=pool))
         fas, i_f, cmds, rms = get_plas_fas(self, input_dirs, contigs)
         to_dos.extend(status_update(self, tech, i_f, group=pool))
-        if self.config.force or to_do('%s/out.tsv.gz' % out_dir):
+
+        empty_fp = '%s/empty.txt' % out_dir
+        if not to_do(empty_fp):
+            self.soft.add_status(
+                tech, self.sam_pool, 0, group=pool, message='no plasmid inputs')
+            continue
+        out_fp = '%s/out-mobmess_ani.txt' % out_dir
+        if self.config.force or to_do(out_fp):
             key = genome_key(tech, pool, genome)
-            cmds += mobmess_cmd(self, tech, fas, out_dir, key)
+            cmds += mobmess_cmd(self, tech, fas, out_dir, empty_fp, key)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
