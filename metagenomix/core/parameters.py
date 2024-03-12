@@ -4462,10 +4462,17 @@ def check_flanker(self, params):
 
 
 def check_plasx(self, params):
-    defaults = {'splits': 1, 'anvio_annot': [False, True]}
+    defaults = {
+        'splits': 1,
+        'anvio_annot': [False, True],
+        'databases': ['cog14', 'pfam32']
+    }
     ints = ['splits']
+    if 'databases' not in params:
+        params['databases'] = defaults['databases']
+    check_databases(self.name, params, self.databases)
     check_nums(self, params, defaults, ints, int)
-    check_default(self, params, defaults, ints)
+    check_default(self, params, defaults, (ints + ['databases']))
     return defaults
 
 

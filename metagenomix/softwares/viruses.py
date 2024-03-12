@@ -8,7 +8,7 @@
 
 import sys
 from os.path import basename
-from metagenomix._inputs import genome_key
+from metagenomix._inputs import genome_key, group_inputs, genome_out_dir
 from metagenomix._io_utils import io_update, to_do, status_update
 
 
@@ -58,6 +58,31 @@ def viralverify_cmd(
     cmd += 'gzip %s/Prediction_results_fasta/*fasta\n' % out
     cmd += cmd_rm
     return cmd
+
+
+def get_viralverify(self, tech, group, input_dirs):
+    for genome, inputs in input_dirs.items():
+
+        contigs = inputs[0]
+        to_dos = status_update(self, tech, [contigs], group=group)
+
+        out_dir = genome_out_dir(self, tech, group, genome)
+        self.outputs['dirs'].append(out_dir)
+        self.outputs['outs'][(tech, group)][genome] = out_dir
+
+        base = basename(contigs).rsplit('.', 2)[0]
+        out_fp = '%s/%s_result_table.csv.gz' % (out_dir, base)
+        if self.config.force or to_do(out_fp):
+            cmd = viralverify_cmd(self, contigs, out_dir)
+            key = genome_key(tech, group, genome)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
+            io_update(self, i_f=contigs, o_d=out_dir, key=key)
+            self.soft.add_status(tech, self.sam_pool, 1, group=group)
+        else:
+            self.soft.add_status(tech, self.sam_pool, 0, group=group)
 
 
 def viralverify(self) -> None:
@@ -111,34 +136,16 @@ def viralverify(self) -> None:
             Configurations
     """
     if self.soft.prev not in self.config.tools['assembling']:
-        sys.exit('[viralVerify] can only be run after assembly (on contigs)')
+        sys.exit('[viralVerify] can only be run on assembly or bins/MAGs')
 
     pfam = '%s/Pfam-A.hmm' % self.databases.paths.get('pfam')
     if not self.config.dev and to_do(pfam):
         sys.exit('[viralVerify] Needs the Pfam .hmm database in database yaml')
 
     for (tech, group), inputs in self.inputs[self.sam_pool].items():
-
-        contigs = inputs[0]
-        to_dos = status_update(self, tech, [contigs], group=group)
-        out = '/'.join([self.dir, tech, self.sam_pool, group])
-        self.outputs['dirs'].append(out)
-
-        base = basename(contigs).rsplit('.', 2)[0]
-        out_fp = '%s/%s_result_table.csv.gz' % (out, base)
-        self.outputs['outs'].setdefault((tech, group), []).append(out)
-
-        if self.config.force or to_do(out_fp):
-            cmd = viralverify_cmd(self, contigs, out)
-            key = genome_key(tech, group)
-            if to_dos:
-                self.outputs['cmds'].setdefault(key, []).append(False)
-            else:
-                self.outputs['cmds'].setdefault(key, []).append(cmd)
-            io_update(self, i_f=contigs, o_d=out, key=key)
-            self.soft.add_status(tech, self.sam_pool, 1, group=group)
-        else:
-            self.soft.add_status(tech, self.sam_pool, 0, group=group)
+        self.outputs['outs'][(tech, group)] = {}
+        input_dirs = group_inputs(self, inputs)
+        get_viralverify(self, tech, group, input_dirs)
 
 
 def coconet_cmd(

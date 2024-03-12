@@ -1249,12 +1249,12 @@ def plasx_cmd(
         cmd += 'anvi-run-ncbi-cogs'
         cmd += ' -T %s' % self.soft.params['cpus']
         cmd += ' --cog-version COG14'
-        cmd += ' --cog-data-dir COG_2014'
+        cmd += ' --cog-data-dir %s' % self.databases.paths['cog14']
         cmd += ' -c %s.db\n' % db
 
         cmd += 'anvi-run-pfams'
         cmd += ' -T %s' % self.soft.params['cpus']
-        cmd += ' --pfam-data-dir Pfam_v32'
+        cmd += ' --pfam-data-dir %s' % self.databases.paths['pfam32']
         cmd += ' -c %s.db\n' % db
 
         cmd += 'anvi-export-functions'
@@ -1367,10 +1367,65 @@ def plasx(self):
         get_plasx(self, tech, group, group_inputs(self, inputs),  contigs)
 
 
+def get_mobmess_inputs(
+        self,
+) -> dict:
+    """Fill dict with plasmids to be used as input to MobMess, which is used
+    here as a "holistic" tool including all per-sample plasmids at once.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .prev : str
+            Previous software in the pipeline
+        .pools : dict
+            Samples per group as dispatched according to the pooling design
+        .inputs : dict
+            Path to the input files per pool
+
+    Returns
+    -------
+    inputs : dict
+    """
+    inputs = {}
+    for pool in self.inputs:
+        for (tech, group), paths in self.inputs[pool].items():
+            key = (tech, pool)
+            if key not in inputs:
+                inputs[key] = {}
+            if self.soft.prev == 'spades_plasmid':
+                inputs[key].setdefault('', {}).update({(tech, group): paths[0]})
+            else:
+                for ge, path in paths.items():
+                    inputs[key].setdefault(ge, {}).update({(tech, group): path})
+    return inputs
+
+
+def get_plas_fas(
+        self,
+        input_dirs: dict,
+        contigs: dict
+) -> tuple:
+    cmds, rms = '', ''
+    fas, i_f = [], []
+    for tech_group, input_dir in input_dirs.items():
+        if contigs:
+            contig = contigs[tech_group]
+            pla, fa, cmd, rm = get_plasmids(self, input_dir, contig)
+            i_f.extend([pla, contig])
+            fas.append(fa)
+            cmds += cmd
+            rms += rm
+        else:
+            fas = sorted(contigs.values())
+            i_f.extend(fas)
+    return fas, i_f, cmds, rms
+
+
 def mobmess_cmd(
         self,
         tech: str,
-        fasta: str,
+        fastas: list,
         out_dir: str,
         key: tuple
 ) -> str:
@@ -1380,7 +1435,7 @@ def mobmess_cmd(
     ----------
     self
     tech : str
-    fasta : str
+    fastas : list
     out_dir : str
     key : tuple
 
@@ -1391,15 +1446,17 @@ def mobmess_cmd(
     """
     tmp_dir = '$TMPDIR/mobmess_%s' % '_'.join(key[0])
     params = tech_params(self, tech)
-    plas = '%s.txt' % splitext(fasta)[0]
-    cmd = 'grep ">" %s | sed "s/>//" | sed "s/$/\\t1/" > %s\n' % (fasta, plas)
-    cmd += 'if [ -s %s ]\n' % plas
+    bools = '%s/is_plasmids.txt' % out_dir
+    fasta = '%s/contigs.fasta' % out_dir
+    cmd = 'cat %s > %s\n' % (' '.join(fastas), fasta)
+    cmd += 'grep ">" %s | sed "s/>//" | sed "s/$/\\t1/" > %s\n' % (fasta, bools)
+    cmd += 'if [ -s %s ]\n' % bools
     cmd += 'then\n'
-    cmd += 'echo "%s empty"\n' % plas
+    cmd += 'echo "%s empty"\n' % bools
     cmd += 'else\n'
     cmd += 'mobmess systems'
     cmd += ' --sequences %s' % fasta
-    cmd += ' --complete %s' % plas
+    cmd += ' --complete %s' % bools
     cmd += ' --output %s/out' % out_dir
     cmd += ' --threads %s' % params['cpus']
     cmd += ' --min-similarity %s' % params['min_similarity']
@@ -1414,9 +1471,10 @@ def mobmess_cmd(
 def get_mobmess(
         self,
         tech: str,
-        group: str,
-        input_dirs: dict,
-        contigs: str,
+        pool: str,
+        inputs: dict,
+        contigs: dict,
+        out_dir: str
 ) -> None:
     """
 
@@ -1424,34 +1482,33 @@ def get_mobmess(
     ----------
     self
     tech : str
-    group : str
-    input_dirs : dict
-    contigs: str
-        Empty of not run after a plasmid-detection tool
+    pool : str
+    inputs : dict
+    contigs : dict
+    out_dir : str
     """
-    for genome, input_dir in input_dirs.items():
-        out_dir = genome_out_dir(self, tech, group)
-        self.outputs['dirs'].append(out_dir)
-        self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
-
-        if input_dir:
-            plasmids, fasta, cmds, rms = get_plasmids(self, input_dir, contigs)
-            i_f = [plasmids, contigs]
-        else:
-            fasta, cmds, rms = contigs, '', ''
-            i_f = [fasta]
-        to_dos = status_update(self, tech, i_f, group=group)
+    print()
+    print(tech)
+    print(pool)
+    print("inputs:", inputs)
+    print("contigs:", contigs)
+    to_dos = status_update(self, tech, list(contigs.values()), group=pool)
+    for genome, input_dirs in inputs.items():
+        to_dos.extend(status_update(
+            self, tech, list(input_dirs.values()), folder=True, group=pool))
+        fas, i_f, cmds, rms = get_plas_fas(self, input_dirs, contigs)
+        to_dos.extend(status_update(self, tech, i_f, group=pool))
         if self.config.force or to_do('%s/out.tsv.gz' % out_dir):
-            key = genome_key(tech, group)
-            cmds += mobmess_cmd(self, tech, fasta, out_dir, key)
+            key = genome_key(tech, pool, genome)
+            cmds += mobmess_cmd(self, tech, fas, out_dir, key)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmds)
             io_update(self, i_f=i_f, o_d=out_dir, key=key)
-            self.soft.add_status(tech, self.sam_pool, 1, group=group)
+            self.soft.add_status(tech, self.sam_pool, 1, group=pool)
         else:
-            self.soft.add_status(tech, self.sam_pool, 0, group=group)
+            self.soft.add_status(tech, self.sam_pool, 0, group=pool)
 
 
 def mobmess(self):
@@ -1482,15 +1539,15 @@ def mobmess(self):
     if invalid:
         sys.exit('[mobmess] Only on plasmid assembly, annotation, circularity')
 
-    if self.sam_pool in self.pools:
-        for (tech, group), inputs in self.inputs[self.sam_pool].items():
-            contigs = get_contigs_from_path(self, tech, group)
-            input_dirs = {'': []}
-            if previous == 'annotation (plasmid)':
-                input_dirs = group_inputs(self, inputs)
-            elif previous != 'assembling (plasmids)':
-                input_dirs = {'': group_inputs(self, inputs)[0]}
-            get_mobmess(self, tech, group, input_dirs, contigs)
+    mobmess_inputs = get_mobmess_inputs(self)
+    for (tech, pool), inputs in mobmess_inputs.items():
+        contigs = {}
+        if self.soft.prev != 'spades_plasmid':
+            contigs = get_contigs_from_path(self, tech, pool=pool)
+        out_dir = '/'.join([self.dir, tech, pool])
+        self.outputs['dirs'].append(out_dir)
+        self.outputs['outs'][pool] = {(tech,): [out_dir]}
+        get_mobmess(self, tech, pool, inputs, contigs, out_dir)
 
 
 def rfplasmid(self):

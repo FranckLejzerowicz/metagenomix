@@ -63,6 +63,7 @@ class Commands(object):
             'metamarker',
             'woltka',
             'drep',
+            'mobmess',
             'strainphlan',
             'midas2_merge'
         }
