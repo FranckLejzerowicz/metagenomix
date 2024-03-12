@@ -1327,7 +1327,7 @@ def get_plasx(
         scores = '%s/scores.txt.gz' % out_dir
         if self.config.force or to_do(scores):
             key = genome_key(tech, sam_group, genome)
-            cmd = plasx_cmd(self, contigs, out_dir, key, gff, prot)
+            cmd = plasx_cmd(self, contigs, out_dir, gff, prot)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
@@ -1514,7 +1514,7 @@ def get_mobmess(
         out_fp = '%s/out-mobmess_ani.txt' % out_dir
         if self.config.force or to_do(out_fp):
             key = genome_key(tech, pool, genome)
-            cmds += mobmess_cmd(self, tech, fas, out_dir, empty_fp, key)
+            cmds += mobmess_cmd(self, tech, fas, out_dir, empty_fp)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
