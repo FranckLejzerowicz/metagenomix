@@ -1446,12 +1446,13 @@ def mobmess_cmd(
     cmd : str
         mobmess command line
     """
-    tmp_dir = '$TMPDIR/mobmess_%s' % '_'.join(key[0])
+    if self.config.torque:
+        tmp_dir = '$TMPDIR/$PBS_JOBID'
+    else:
+        tmp_dir = '$TMPDIR/$SLURM_JOB_ID'
     params = tech_params(self, tech)
-
     bools = '%s/is_plasmids.txt' % out_dir
     fasta = '%s/contigs.fasta' % out_dir
-    empty = '%s/empty.txt' % out_dir
 
     cmd = 'cat %s > %s\n' % (' '.join(fastas), fasta)
     cmd += 'grep ">" %s | sed "s/>//" | sed "s/$/\\t1/" > %s\n' % (fasta, bools)
