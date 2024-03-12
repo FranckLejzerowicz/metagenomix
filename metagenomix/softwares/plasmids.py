@@ -1188,7 +1188,10 @@ def plasx_cmd(
     cmd : str
         PlasX command
     """
-    tmp_dir = '$TMPDIR/plasx_%s' % '_'.join(key[0])
+    if self.config.torque:
+        tmp_dir = '$TMPDIR/$PBS_JOBID'
+    else:
+        tmp_dir = '$TMPDIR/$SLURM_JOB_ID'
     cmd_rm = ''
     cmd = 'mkdir -p %s\n' % tmp_dir
 
