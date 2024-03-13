@@ -1158,9 +1158,7 @@ def genomad(self):
 def plasx_cmd(
         self,
         contigs: str,
-        out_dir: str,
-        gff: str,
-        prot: str
+        out_dir: str
 ) -> str:
     """Collect PlasX command.
 
@@ -1175,10 +1173,6 @@ def plasx_cmd(
         Empty if not run after a plasmid-detection tool
     out_dir : str
         Path to the output folder for the current sample/MAG
-    gff : str
-        Path to the prodigal output GFF3 file
-    prot : str
-        Path to the prodigal output protein fasta file
 
     Returns
     -------
@@ -1203,50 +1197,24 @@ def plasx_cmd(
     base = basename(db)
     gene = '%s-gene_call.txt' % db
 
-    db_loaded = False
-    if gff and prot:
-        cmd += 'gunzip -c %s > %s\n' % (gff, gff.rstrip('.gz'))
-        gff = gff.rstrip('.gz')
-        cmd += 'gunzip -c %s > %s\n' % (prot, prot.rstrip('.gz'))
-        prot = prot.rstrip('.gz')
-        cmd_rm += 'rm %s %s\n' % (gff, prot)
-        cmd += 'python3 %s/prodigal_to_genecall.py' % RESOURCES
-        cmd += ' -g %s' % gff
-        cmd += ' -f %s' % prot
-        cmd += ' -o %s\n' % gene
-    else:
-        db_loaded = True
-        cmd += 'python3 %s/reformat_fasta.py' % RESOURCES
-        cmd += ' -i %s' % contigs
-        cmd += ' -o %s\n' % contigs_reform
-        cmd_rm += 'rm %s\n' % contigs_reform
+    cmd += 'python3 %s/reformat_fasta.py' % RESOURCES
+    cmd += ' -i %s' % contigs
+    cmd += ' -o %s\n' % contigs_reform
+    cmd_rm += 'rm %s\n' % contigs_reform
 
-        cmd += 'anvi-gen-contigs-database'
-        cmd += ' -L 0'
-        cmd += ' -T %s' % self.soft.params['cpus']
-        cmd += ' --project-name %s' % base
-        cmd += ' -f %s' % contigs_reform
-        cmd += ' -o %s.db\n' % db
+    cmd += 'anvi-gen-contigs-database'
+    cmd += ' -L 0'
+    cmd += ' -T %s' % self.soft.params['cpus']
+    cmd += ' --project-name %s' % base
+    cmd += ' -f %s' % contigs_reform
+    cmd += ' -o %s.db\n' % db
 
-        cmd += 'anvi-export-gene-calls'
-        cmd += ' --gene-caller prodigal'
-        cmd += ' -c %s' % db
-        cmd += ' -o %s\n' % gene
+    cmd += 'anvi-export-gene-calls'
+    cmd += ' --gene-caller prodigal'
+    cmd += ' -c %s' % db
+    cmd += ' -o %s\n' % gene
 
     if self.soft.params['anvio_annot']:
-        if not db_loaded:
-            cmd += 'python3 %s/reformat_fasta.py' % RESOURCES
-            cmd += ' -i %s' % contigs
-            cmd += ' -o %s\n' % contigs_reform
-            cmd_rm += 'rm %s\n' % contigs_reform
-
-            cmd += 'anvi-gen-contigs-database'
-            cmd += ' -L 0'
-            cmd += ' -T %s' % self.soft.params['cpus']
-            cmd += ' --skip-gene-calling'
-            cmd += ' --project-name %s' % base
-            cmd += ' -f %s' % contigs_reform
-            cmd += ' -o %s.db\n' % db
 
         cmd += 'anvi-run-ncbi-cogs'
         cmd += ' -T %s' % self.soft.params['cpus']
@@ -1317,23 +1285,18 @@ def get_plasx(
         self.outputs['dirs'].append(out_dir)
         self.outputs['outs'][(tech, sam_group)][genome] = out_dir
 
-        i_f = [contigs]
-        gff, prot = '', ''
-        if self.soft.prev == 'prodigal':
-            gff = '%s/gene.coords.gff.gz' % folders[0]
-            prot = '%s/protein.translations.fasta.gz' % folders[0]
-            i_f.extend([gff, prot])
-        to_dos = status_update(self, tech, i_f, group=sam_group, genome=genome)
+        to_dos = status_update(self, tech, [contigs],
+                               group=sam_group, genome=genome)
 
         scores = '%s/scores.txt.gz' % out_dir
         if self.config.force or to_do(scores):
             key = genome_key(tech, sam_group, genome)
-            cmd = plasx_cmd(self, contigs, out_dir, gff, prot)
+            cmd = plasx_cmd(self, contigs, out_dir)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
-            io_update(self, i_f=[contigs, prot, gff], o_d=out_dir, key=key)
+            io_update(self, i_f=contigs, o_d=out_dir, key=key)
             self.soft.add_status(
                 tech, self.sam_pool, 1, group=sam_group, genome=genome)
         else:
@@ -1347,7 +1310,8 @@ def plasx(self):
 
     References
     ----------
-    .
+    Yu, M.K., Fogarty, E.C. and Eren, A.M., 2020. The genetic and ecological
+    landscape of plasmids in the human gut. biorxiv, pp.2020-11.
 
     Notes
     -----
@@ -1359,9 +1323,8 @@ def plasx(self):
     self
     """
     name = self.soft.name
-    previous = self.config.tools[self.soft.prev]  # e.g. "annotation (plasmid)"
-    if self.soft.prev != 'prodigal' and previous != 'assembling':
-        sys.exit('[%s] Runs on assembly or (prodigal) gene prediction' % name)
+    if self.config.tools[self.soft.prev] != 'assembling':
+        sys.exit('[%s] Runs on assembly only' % name)
     for (tech, group), inputs in self.inputs[self.sam_pool].items():
         self.outputs['outs'][(tech, group)] = {}
         contigs = get_contigs_from_path(self, tech, group)
