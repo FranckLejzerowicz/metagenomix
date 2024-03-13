@@ -1243,6 +1243,7 @@ def plasx_cmd(
             cmd += 'anvi-gen-contigs-database'
             cmd += ' -L 0'
             cmd += ' -T %s' % self.soft.params['cpus']
+            cmd += ' --skip-gene-calling'
             cmd += ' --project-name %s' % base
             cmd += ' -f %s' % contigs_reform
             cmd += ' -o %s.db\n' % db
