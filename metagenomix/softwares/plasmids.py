@@ -1185,11 +1185,11 @@ def plasx_cmd(
     cmd : str
         PlasX command
     """
+    tmp_id = '$SLURM_JOB_ID'
     if self.config.torque:
-        tmp_dir = '$TMPDIR/$PBS_JOBID'
-    else:
-        tmp_dir = '$TMPDIR/$SLURM_JOB_ID'
-    cmd = 'export TMPDIR=%s\n' % tmp_dir
+        tmp_id = '$PBS_JOBID'
+    cmd = 'TMPDIR="$(dirname $TMPDIR)"\n'
+    cmd += 'export TMPDIR="$TMPDIR/%s"\n' % tmp_id
     cmd += 'mkdir -p $TMPDIR\n'
 
     cmd_rm = ''
@@ -1444,15 +1444,15 @@ def mobmess_cmd(
     cmd : str
         mobmess command line
     """
+    tmp_id = '$SLURM_JOB_ID'
     if self.config.torque:
-        tmp_dir = '$TMPDIR/$PBS_JOBID'
-    else:
-        tmp_dir = '$TMPDIR/$SLURM_JOB_ID'
+        tmp_id = '$PBS_JOBID'
     params = tech_params(self, tech)
     bools = '%s/is_plasmids.txt' % out_dir
     fasta = '%s/contigs.fasta' % out_dir
 
-    cmd = 'export TMPDIR=%s\n' % tmp_dir
+    cmd = 'TMPDIR="$(dirname $TMPDIR)"\n'
+    cmd += 'export TMPDIR="$TMPDIR/%s"\n' % tmp_id
     cmd += 'mkdir -p $TMPDIR\n'
     cmd += 'cat %s > %s\n' % (' '.join(fastas), fasta)
     cmd += 'grep ">" %s | sed "s/>//" | sed "s/$/\\t1/" > %s\n' % (fasta, bools)
