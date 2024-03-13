@@ -1211,11 +1211,10 @@ def plasx_cmd(
 
     cmd += 'anvi-export-gene-calls'
     cmd += ' --gene-caller prodigal'
-    cmd += ' -c %s' % db
+    cmd += ' -c %s.db' % db
     cmd += ' -o %s\n' % gene
 
     if self.soft.params['anvio_annot']:
-
         cmd += 'anvi-run-ncbi-cogs'
         cmd += ' -T %s' % self.soft.params['cpus']
         cmd += ' --cog-version COG14'
