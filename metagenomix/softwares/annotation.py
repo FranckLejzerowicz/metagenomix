@@ -427,6 +427,7 @@ def integronfinder_cmd(
         tech: str,
         fastx: str,
         out_dir: str,
+        previous: list
 ) -> str:
     """Collect command for integron_finder.
 
@@ -441,6 +442,7 @@ def integronfinder_cmd(
         Path to the input fasta/fastq(.gz) file
     out_dir : str
         Path to the output folder
+    previous : list
 
     Returns
     -------
@@ -471,10 +473,18 @@ def integronfinder_cmd(
     else:
         cmd += 'integron_finder'
         cmd += ' --distance-thresh %s' % params['distance_threshold']
+
+    if previous == 'annotation (plasmid)' or params['circ']:
+        cmd += ' --circ'
+    elif params['linear']:
+        cmd += ' --linear'
+    if params['topology_file']:
+        # this file is automatically created for contigs annotates as plasmids
+        cmd += ' --topology-file %s' % params['topology_file']
+
     for boolean in [
         'pdf', 'gbk', 'keep_tmp', 'mute', 'gembase', 'local_max',
         'promoter_attI', 'union_integrases', 'keep_palindromes',
-        'circ', 'linear'
     ]:
         if params[boolean]:
             if params.get('path'):
@@ -500,14 +510,6 @@ def integronfinder_cmd(
         cmd += ' --max-attc-size %s' % params['max_attc_size']
         cmd += ' --min-attc-size %s' % params['min_attc_size']
 
-    if params['linear']:
-        cmd += ' --linear'
-    if params['circ']:
-        cmd += ' --circ'
-    if params['topology_file']:
-        # this file is automatically created for contigs annotates as plasmids
-        cmd += ' --topology-file %s' % params['topology_file']
-
     if params.get('path'):
         cmd += ' --replicons %s\n' % fasta_out
     else:
@@ -526,7 +528,8 @@ def get_integronfinder(
         tech: str,
         group: str,
         inputs: dict,
-        contigs: str
+        contigs: str,
+        previous: list
 ) -> None:
     """Get the integron_finder command and fill the pipeline data structures.
 
@@ -545,6 +548,7 @@ def get_integronfinder(
         Paths to the input fasta files per genome/MAG
     contigs : str
         Empty if not run after a plasmid-detection tool
+    previous : list
     """
     for genome, fastas in inputs.items():
 
@@ -567,7 +571,7 @@ def get_integronfinder(
         fpo = '%s/Results_Integron_Finder_out.tar.gz' % out_dir
         if self.config.force or to_do(fpo):
             # cmd = hmms_cmd + integronfinder_cmd(self, tech, fasta, out)
-            cmds += integronfinder_cmd(self, tech, fasta, out_dir)
+            cmds += integronfinder_cmd(self, tech, fasta, out_dir, previous)
             cmds += rms
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
@@ -639,7 +643,7 @@ def integronfinder(self) -> None:
                 contigs = get_contigs_from_path(self, tech, group)
             elif self.soft.prev == 'hamronization':
                 contigs = get_contigs_from_path(self, tech, group)
-            get_integronfinder(self, tech, group, fastas, contigs)
+            get_integronfinder(self, tech, group, fastas, contigs, previous)
 
 
 # def custom_cmd(
