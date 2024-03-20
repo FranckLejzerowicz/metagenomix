@@ -62,7 +62,6 @@ setup(
         "pandas",
         "tabulate",
         "pyyaml",
-        "seaborn",
     ],
     classifiers=classifiers,
     entry_points={'console_scripts': standalone},

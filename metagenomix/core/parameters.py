@@ -4465,6 +4465,7 @@ def check_plasx(self, params):
     defaults = {
         'splits': 1,
         'anvio_annot': [False, True],
+        'save_tmp': [False, True],
         'databases': ['cog14', 'pfam32']
     }
     ints = ['splits']

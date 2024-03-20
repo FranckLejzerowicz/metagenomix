@@ -1238,6 +1238,8 @@ def plasx_cmd(
     cmd += ' --tmp $TMPDIR'
     cmd += ' --threads %s' % self.soft.params['cpus']
     cmd += ' --splits %s' % self.soft.params['splits']
+    if self.soft.params['save_tmp']:
+        cmd += ' --save-tmp'
     cmd += ' --overwrite\n'
 
     scores = '%s/scores.txt' % out_dir
