@@ -1276,7 +1276,7 @@ def get_plasx(
     sam_group : str
         Sample or co-assembly name
     inputs : dict
-        Paths to the input folders containings prodigal outputs files
+        Paths to the input folders containing prodigal outputs files
     contigs : str
         Empty if not run after a plasmid-detection tool
     """
@@ -1334,6 +1334,7 @@ def plasx(self):
 
 def get_mobmess_inputs(
         self,
+        previous
 ) -> dict:
     """Fill dict with plasmids to be used as input to MobMess, which is used
     here as a "holistic" tool including all per-sample plasmids at once.
@@ -1351,6 +1352,7 @@ def get_mobmess_inputs(
     Returns
     -------
     inputs : dict
+    previous : list
     """
     inputs = {}
     for pool in self.inputs:
@@ -1358,7 +1360,7 @@ def get_mobmess_inputs(
             key = (tech, pool)
             if key not in inputs:
                 inputs[key] = {}
-            if self.soft.prev == 'spades_plasmid':
+            if previous in ['annotation (plasmid)', 'assembling']:
                 inputs[key].setdefault('', {}).update({(tech, group): paths[0]})
             else:
                 for ge, path in paths.items():
@@ -1412,15 +1414,23 @@ def mobmess_cmd(
     tmp_id = '$SLURM_JOB_ID'
     if self.config.torque:
         tmp_id = '$PBS_JOBID'
+
     params = tech_params(self, tech)
-    bools = '%s/is_plasmids.txt' % out_dir
+
     fasta = '%s/contigs.fasta' % out_dir
+    bools = '%s/is_plasmids.txt' % out_dir
 
     cmd = 'TMPDIR="$(dirname $TMPDIR)"\n'
     cmd += 'export TMPDIR="$TMPDIR/%s"\n' % tmp_id
     cmd += 'mkdir -p $TMPDIR\n'
     cmd += 'cat %s > %s\n' % (' '.join(fastas), fasta)
-    cmd += 'grep ">" %s | sed "s/>//" | sed "s/$/\\t1/" > %s\n' % (fasta, bools)
+
+    cmd += 'python3 %s/mobmess_complete.py' % RESOURCES
+    cmd += ' -f %s' % fasta
+    if params['contigs_names']:
+        cmd += ' -n %s' % bools
+    cmd += ' -o %s\n' % bools
+
     cmd += 'if [ -s %s ]\n' % bools
     cmd += 'then\n'
     cmd += 'mobmess systems'
@@ -1508,15 +1518,15 @@ def mobmess(self):
     previous = self.config.tools[self.soft.prev]  # e.g. "annotation (plasmid)"
     if self.soft.prev in ['ccfind', 'spades_plasmid', 'viralverify']:
         invalid = False
-    elif previous == 'annotation (plasmid)':
+    elif previous in ['annotation (plasmid)', 'assembling']:
         invalid = False
     if invalid:
-        sys.exit('[mobmess] Only on plasmid assembly, annotation, circularity')
+        sys.exit('[mobmess] Only on assembly, annotation, plasmid, circularity')
 
-    mobmess_inputs = get_mobmess_inputs(self)
+    mobmess_inputs = get_mobmess_inputs(self, previous)
     for (tech, pool), inputs in mobmess_inputs.items():
         contigs = {}
-        if self.soft.prev != 'spades_plasmid':
+        if previous not in ['annotation (plasmid)', 'assembling']:
             contigs = get_contigs_from_path(self, tech, pool=pool)
         out_dir = '/'.join([self.dir, tech, pool])
         self.outputs['dirs'].append(out_dir)
