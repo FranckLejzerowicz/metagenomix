@@ -26,7 +26,7 @@ def make_complete(filin, filou, names):
     contigs = set()
     if names:
         contigs.update([
-            x.split()[0].strip() for x in open(names[0]).readlines()])
+            x.strip().split()[0] for x in open(names[0]).readlines()])
     with open(filou, 'w') as o, open(filin) as f:
         for line in f:
             if line[0] == ">":
