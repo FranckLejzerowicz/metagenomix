@@ -1374,25 +1374,25 @@ def get_plas_fas(
         contigs: dict
 ) -> tuple:
     cmds, rms = '', ''
-    fas, i_f = [], []
+    fastas, i_f = {}, []
     for tech_group, input_dir in input_dirs.items():
         if contigs:
             contig = contigs[tech_group]
             pla, fa, cmd, rm = get_plasmids(self, input_dir, contig)
             i_f.extend([pla, contig])
-            fas.append(fa)
+            fastas[tech_group] = fa
             cmds += cmd
             rms += rm
         else:
-            fas = sorted(contigs.values())
-            i_f.extend(fas)
-    return fas, i_f, cmds, rms
+            fastas[tech_group] = input_dir
+            i_f.extend(fastas)
+    return fastas, i_f, cmds, rms
 
 
 def mobmess_cmd(
         self,
         tech: str,
-        fastas: list,
+        fastas: dict,
         out_dir: str,
         empty_fp: str,
 ) -> str:
@@ -1402,7 +1402,7 @@ def mobmess_cmd(
     ----------
     self
     tech : str
-    fastas : list
+    fastas : dict
     out_dir : str
     empty_fp : str
 
@@ -1418,22 +1418,27 @@ def mobmess_cmd(
     params = tech_params(self, tech)
 
     fasta = '%s/contigs.fasta' % out_dir
+    fasta_tsv = '%s/fastas.tsv' % out_dir
     bools = '%s/is_plasmids.txt' % out_dir
 
     cmd = 'TMPDIR="$(dirname $TMPDIR)"\n'
     cmd += 'export TMPDIR="$TMPDIR/%s"\n' % tmp_id
     cmd += 'mkdir -p $TMPDIR\n'
-    cmd += 'cat %s > %s\n' % (' '.join(fastas), fasta)
 
-    cmd += 'python3 %s/mobmess_complete.py' % RESOURCES
-    cmd += ' -f %s' % fasta
+    cmd += '\necho "tech,group,filepath" > %s\n' % fasta_tsv
+    for (tech, group), filepath in fastas.items():
+        cmd += '\necho "%s,%s,%s" >> %s\n' % (tech, group, filepath, fasta_tsv)
+
+    cmd += '\npython3 %s/mobmess_complete.py' % RESOURCES
+    cmd += ' -f %s' % fasta_tsv
     if params['contigs_names']:
-        cmd += ' -n %s' % bools
+        cmd += ' -n %s' % params['contigs_names']
+    cmd += ' -c %s' % bools
     cmd += ' -o %s\n' % bools
 
     cmd += 'if [ -s %s ]\n' % bools
-    cmd += 'then\n'
-    cmd += 'mobmess systems'
+    cmd += '\tthen\n'
+    cmd += '\t\tmobmess systems'
     cmd += ' --sequences %s' % fasta
     cmd += ' --complete %s' % bools
     cmd += ' --output %s/out' % out_dir
@@ -1442,10 +1447,10 @@ def mobmess_cmd(
     cmd += ' --min-coverage %s' % params['min_coverage']
     cmd += ' --min-coverage %s' % params['min_coverage']
     cmd += ' --tmp $TMPDIR\n'
-    cmd += 'for i in %s/*; do gzip -q $i; done\n' % out_dir
+    cmd += '\t\tfor i in %s/*; do gzip -q $i; done\n' % out_dir
     cmd += 'else\n'
-    cmd += 'echo "%s empty"\n' % bools
-    cmd += 'echo "%s empty" > %s\n' % (bools, empty_fp)
+    cmd += '\techo "%s empty"\n' % bools
+    cmd += '\techo "%s empty" > %s\n' % (bools, empty_fp)
     cmd += 'fi\n'
     return cmd
 
@@ -1473,7 +1478,7 @@ def get_mobmess(
     for genome, input_dirs in inputs.items():
         to_dos.extend(status_update(
             self, tech, list(input_dirs.values()), folder=True, group=pool))
-        fas, i_f, cmds, rms = get_plas_fas(self, input_dirs, contigs)
+        fastas, i_f, cmds, rms = get_plas_fas(self, input_dirs, contigs)
         to_dos.extend(status_update(self, tech, i_f, group=pool))
 
         empty_fp = '%s/empty.txt' % out_dir
@@ -1484,7 +1489,7 @@ def get_mobmess(
         out_fp = '%s/out-mobmess_ani.txt' % out_dir
         if self.config.force or to_do(out_fp):
             key = genome_key(tech, pool, genome)
-            cmds += mobmess_cmd(self, tech, fas, out_dir, empty_fp)
+            cmds += mobmess_cmd(self, tech, fastas, out_dir, empty_fp)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
