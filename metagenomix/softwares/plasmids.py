@@ -1434,7 +1434,7 @@ def mobmess_cmd(
     if params['contigs_names']:
         cmd += ' -n %s' % params['contigs_names']
     cmd += ' -c %s' % bools
-    cmd += ' -o %s\n' % bools
+    cmd += ' -o %s\n' % fasta
 
     cmd += 'if [ -s %s ]\n' % bools
     cmd += '\tthen\n'
