@@ -98,7 +98,7 @@ def count(self) -> None:
         key = genome_key(tech, sam)
         if self.config.force or to_do(out):
             for idx, fastx in enumerate(fastxs):
-                if to_dos or not isfile(fastx):
+                if to_dos:
                     self.outputs['cmds'].setdefault(key, []).append(False)
                 else:
                     cmd = count_cmd(self, idx, fastx, out)
