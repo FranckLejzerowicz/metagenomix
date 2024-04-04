@@ -49,6 +49,9 @@ def count_cmd(
     if fastx.endswith('fastq.gz'):
         cmd = "n%s=`zcat %s | wc -l | " % (idx, fastx)
         cmd += "sed 's/ //g' | awk '{x=$1/4; print x}'`\n"
+    elif fastx.endswith('fa.gz') or fastx.endswith('fasta.gz'):
+        cmd = "n%s=`zcat %s | wc -l | " % (idx, fastx)
+        cmd += "sed 's/ //g' | awk '{x=$1/2; print x}'`\n"
     elif fastx.endswith('fasta'):
         cmd = "n%s=`wc -l %s | " % (idx, fastx)
         cmd += "sed 's/ //g' | awk '{x=$1/2; print x}'`\n"
@@ -91,7 +94,6 @@ def count(self) -> None:
 
         out_dir = '%s/%s/%s' % (self.dir, tech, sam)
         self.outputs['dirs'].append(out_dir)
-
         out = '%s/read_count.tsv' % out_dir
         outs[(tech, self.sam_pool)] = out
 
