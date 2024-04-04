@@ -97,6 +97,8 @@ def count(self) -> None:
         out = '%s/read_count.tsv' % out_dir
         outs[(tech, self.sam_pool)] = out
 
+        print(fastxs)
+
         key = genome_key(tech, sam)
         if self.config.force or to_do(out):
             for idx, fastx in enumerate(fastxs):
