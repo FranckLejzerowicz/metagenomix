@@ -1375,17 +1375,17 @@ def get_plas_fas(
 ) -> tuple:
     cmds, rms = '', ''
     fastas, i_f = {}, []
-    for tech_group, input_dir in input_dirs.items():
+    for tech_group, inp in input_dirs.items():
         if contigs:
             contig = contigs[tech_group]
-            pla, fa, cmd, rm = get_plasmids(self, input_dir, contig)
+            pla, fa, cmd, rm = get_plasmids(self, inp, contig)
             i_f.extend([pla, contig])
             fastas[tech_group] = fa
             cmds += cmd
             rms += rm
         else:
-            fastas[tech_group] = input_dir
-            i_f.extend(fastas)
+            fastas[tech_group] = inp
+            i_f.append(inp)
     return fastas, i_f, cmds, rms
 
 
