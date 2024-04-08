@@ -796,8 +796,6 @@ def woltka_aligments(
     alignments = {}
     for sample, sam_inputs in self.inputs.items():
         if sam_inputs.get((tech, sample)):
-            print((tech, sample))
-            print(sam_inputs)
             for (db, aligner), bam in sam_inputs[(tech, sample)].items():
                 if bam and db == 'wol':
                     if aligner not in alignments:
@@ -846,7 +844,6 @@ def woltka_map(
     sam_cmds, rms = '', ''
     for idx, sample in enumerate(alis.keys()):
         bam = alis[sample]
-        print(bam)
         sam_cmds += 'samtools view %s > %s.sam\n' % (bam, bam.rstrip('.bam'))
         rms += 'rm %s.sam\n' % bam.rstrip('.bam')
 
