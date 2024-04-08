@@ -826,12 +826,18 @@ def bowtie2(self) -> None:
         if tech_specificity(self, fastxs, tech, sample):
             continue
         to_dos = status_update(self, tech, fastxs)
+        print()
+        print("to_dos")
+        print(to_dos)
         params = tech_params(self, tech)
 
         out = '%s/%s/%s' % (self.dir, tech, sample)
         self.outputs['outs'][(tech, sample)] = dict()
         key = genome_key(tech, sample)
         # update to lookup the `databases.yml`
+        print()
+        print("params['databases']")
+        print(params['databases'])
         for db in params['databases']:
             print()
             print("db")
