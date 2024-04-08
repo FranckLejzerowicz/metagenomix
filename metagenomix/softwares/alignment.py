@@ -821,6 +821,8 @@ def bowtie2(self) -> None:
             Configurations
     """
     for (tech, sample), fastxs in self.inputs[self.sam_pool].items():
+        print("fastxs, tech, sample")
+        print(fastxs, tech, sample)
         if tech_specificity(self, fastxs, tech, sample):
             continue
         to_dos = status_update(self, tech, fastxs)
