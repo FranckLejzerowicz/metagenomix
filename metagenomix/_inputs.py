@@ -710,7 +710,6 @@ def get_contigs(
         Paths to the contigs assembly files per co-assembly group
     """
     contigs = {}
-    print(self.inputs[pool])
     for group, assembly_outputs in sorted(self.inputs[pool].items()):
         if group[0] != tech:
             continue
