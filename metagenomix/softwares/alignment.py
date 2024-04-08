@@ -831,18 +831,27 @@ def bowtie2(self) -> None:
         key = genome_key(tech, sample)
         # update to lookup the `databases.yml`
         for db in params['databases']:
+            print()
+            print("db")
+            print(db)
             if self.soft.params['paired'] and len(fastxs) == 2:
                 out_dir = '%s/%s/paired' % (out, db)
             else:
                 out_dir = '%s/%s/unpaired' % (out, db)
+            print("out_dir")
+            print(out_dir)
             sam = '%s/alignment.bowtie2.sam' % out_dir
             bam = '%s/alignment.bowtie2.bam' % out_dir
             self.outputs['outs'][(tech, sample)][(db, 'bowtie2')] = bam
+            print("to_do(bam)")
+            print(to_do(bam))
             if self.config.force or to_do(bam):
                 db_path = self.databases.builds[db]['bowtie2']
                 cmd = bowtie2_cmd(sample, fastxs, db, db_path, out_dir, params)
                 cmd += ' > %s.sam\n' % sam
                 cmd += 'samtools view -b %s | samtools sort -o %s' % (sam, bam)
+                print("to_dos")
+                print(to_dos)
                 if to_dos:
                     self.outputs['cmds'].setdefault(key, []).append(False)
                 else:
