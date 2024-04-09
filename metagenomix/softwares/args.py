@@ -1431,8 +1431,8 @@ def staramr_cmd(
     cmd += ' %s\n' % contigs
 
     cmd += cmd_rm
+    cmd += 'rm -rf %s/hits\n' % out_dir
     cmd += 'for i in %s/*; do gzip -q $i; done\n' % out_dir
-    cmd += 'for i in %s/*/hits/*; do gzip -q $i; done\n' % out_dir
 
     return cmd
 
