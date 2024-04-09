@@ -841,7 +841,7 @@ def bowtie2(self) -> None:
             if self.config.force or to_do(bam):
                 db_path = self.databases.builds[db]['bowtie2']
                 cmd = bowtie2_cmd(sample, fastxs, db, db_path, out_dir, params)
-                cmd += ' > %s.sam\n' % sam
+                cmd += ' > %s\n' % sam
                 cmd += 'samtools view -b %s | samtools sort -o %s' % (sam, bam)
                 if to_dos:
                     self.outputs['cmds'].setdefault(key, []).append(False)
