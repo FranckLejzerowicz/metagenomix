@@ -155,35 +155,41 @@ class Exported(object):
                 o.write('%s\n' % command)
         return job_sh
 
-    def run_xhpc(self, sh):
-        if self.torque:
-            hpc = '%s.pbs' % splitext(sh)[0]
-            pbs = ' --torque'
+    def write_xhpc(self, sh):
+        if self.config.torque:
+            hpc_out = '%s.pbs' % splitext(sh)[0]
         else:
-            hpc = '%s.slm' % splitext(sh)[0]
-            pbs = ''
-        cmd = 'Xhpc -i %s -o %s -j xpt_%s -t 2%s' % (sh, hpc, self.time, pbs)
-        if self.account:
-            cmd += ' -a %s' % self.account
-        cmd += ' --quiet'
-        cmd += ' --no-abspath'
-        subprocess.call(cmd.split())
-        # os.remove(sh)
-        return hpc
+            hpc_out = '%s.slm' % splitext(sh)[0]
+        with open(hpc_out, 'w') as o:
+            o.write('#!/bin/bash\n')
+            if self.config.account:
+                o.write('#SBATCH --account=%s\n' % self.config.account)
+            o.write('#SBATCH --job-name=xp_%s\n' % self.time)
+            o.write('#SBATCH --job-name=xp_%s\n' % self.time)
+            o.write('#SBATCH -o slurm-%x_%j.o\n')
+            o.write('#SBATCH -e slurm-%x_%j.e\n')
+            o.write('#SBATCH --time=24:00:00\n')
+            o.write('#SBATCH --mem=1GB\n')
+            o.write('#SBATCH --ntasks=1\n')
+            o.write('#SBATCH --cpus-per-task=1\n\n')
+            for command in self.commands:
+                o.write('%s\n' % command)
+            o.write('echo "Done transferring!"\n')
+        return hpc_out
 
     def write_job(self):
         sh = self.write_sh()
         print('\n* To export, run one of the following:')
         if self.jobs:
-            hpc = self.run_xhpc(sh)
+            hpc_out = self.write_xhpc(sh)
             run = '%s_job.sh' % splitext(sh)[0]
             with open(run, 'w') as o:
                 o.write('mkdir -p %s/jobs/output\n' % self.export_dir)
                 o.write('cd %s/jobs/output\n' % self.export_dir)
                 if self.torque:
-                    o.write('squeue %s\n' % hpc)
+                    o.write('squeue %s\n' % hpc_out)
                 else:
-                    o.write('sbatch %s\n' % hpc)
+                    o.write('sbatch %s\n' % hpc_out)
         print('[jobs: NIRD files unreachable] sh %s' % run)
         print('[no job: NIRD files reachable] sh %s\n' % sh)
 
