@@ -156,14 +156,14 @@ class Exported(object):
         return job_sh
 
     def write_xhpc(self, sh):
-        if self.config.torque:
+        if self.torque:
             hpc_out = '%s.pbs' % splitext(sh)[0]
         else:
             hpc_out = '%s.slm' % splitext(sh)[0]
         with open(hpc_out, 'w') as o:
             o.write('#!/bin/bash\n')
-            if self.config.account:
-                o.write('#SBATCH --account=%s\n' % self.config.account)
+            if self.account:
+                o.write('#SBATCH --account=%s\n' % self.account)
             o.write('#SBATCH --job-name=xp_%s\n' % self.time)
             o.write('#SBATCH --job-name=xp_%s\n' % self.time)
             o.write('#SBATCH -o slurm-%x_%j.o\n')
