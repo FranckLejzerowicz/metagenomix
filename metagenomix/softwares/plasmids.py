@@ -1487,8 +1487,8 @@ def get_mobmess(
             self.soft.add_status(
                 tech, self.sam_pool, 0, group=pool, message='no plasmid inputs')
             continue
-        out_fp = '%s/out-mobmess_ani.txt' % out_dir
-        if self.config.force or to_do(out_fp):
+        out_fp = '%s/out_systems.txt' % out_dir
+        if self.config.force or to_do('%s.gz' % out_fp):
             key = genome_key(tech, pool, genome)
             cmds += mobmess_cmd(self, tech, fastas, out_dir, empty_fp)
             if to_dos:
