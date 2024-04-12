@@ -1452,6 +1452,7 @@ def mobmess_cmd(
     cmd += '\techo "%s empty"\n' % bools
     cmd += '\techo "%s empty" > %s\n' % (bools, empty_fp)
     cmd += 'fi\n'
+    cmd += 'rm %s %s %s\n' % (fasta, fasta_tsv, bools)
     return cmd
 
 
