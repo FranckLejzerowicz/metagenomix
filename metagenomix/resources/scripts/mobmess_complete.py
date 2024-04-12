@@ -50,10 +50,10 @@ def make_complete(filin, fastou, filou, names_fp):
                         if names_fp:
                             if contig in contigs_per_group.get(group, {}):
                                 write = True
-                                o2.write('%s\t1\n' % contig)
+                                o2.write('%s__%s\t1\n' % (group, contig))
                         else:
                             write = True
-                            o2.write('%s\t1\n' % contig)
+                            o2.write('%s__%s\t1\n' % (group, contig))
                     if write:
                         o1.write(line)
 
