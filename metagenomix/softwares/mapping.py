@@ -297,7 +297,10 @@ def mapping(self):
     if self.sam_pool in self.pools:
         for (ref_tech, ref_group), inputs in self.inputs[self.sam_pool].items():
             refs = group_inputs(self, inputs)
-            reads = get_group_reads(self, ref_tech, ref_group, all_reads)
+            if self.soft.params['all_reads']:
+                reads = all_reads
+            else:
+                reads = get_group_reads(self, ref_tech, ref_group, all_reads)
             get_mapping(self, func, source, ref_tech, ref_group, reads, refs)
 
 

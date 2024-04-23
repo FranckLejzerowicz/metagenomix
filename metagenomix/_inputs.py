@@ -717,7 +717,11 @@ def get_contigs(
     return contigs
 
 
-def get_sams(self, group: str, pool: str = None) -> list:
+def get_sams(
+        self,
+        group: str,
+        pool: str = None,
+) -> list:
     """Get the sample name(s).
 
     Parameters
@@ -749,7 +753,7 @@ def get_group_reads(
         tech: str,
         group: str,
         reads: dict,
-        pool: str = None
+        pool: str = None,
 ) -> dict:
     """Subset to the path(s) of input fastq file(s) per sample and
     tech/sample for the samples in the current co-assembly group(s).
