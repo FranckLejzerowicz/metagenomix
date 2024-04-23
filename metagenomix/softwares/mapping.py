@@ -305,7 +305,6 @@ def mapping(self):
 
 
 def get_pysam_target(self) -> tuple:
-
     if self.soft.name.startswith('pysam_'):
         target = self.soft.name.split('_', 1)[1]
         if target not in self.softs:
