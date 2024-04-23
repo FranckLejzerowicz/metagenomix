@@ -804,7 +804,8 @@ def check_bowtie2(self, params, no_database=False):
 def check_mapping(self, params):
     defaults = {
         'aligners': ['minimap2', 'bowtie2', 'bwa', 'bbmap'],
-        'per_tech': [False, True]
+        'per_tech': [False, True],
+        'all_reads': [False, True]
     }
     for aligner in defaults['aligners']:
         aligner_params = dict(params.get(aligner, {}))
