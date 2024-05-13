@@ -31,7 +31,7 @@ def get_args():
 def get_circles(circs_fp=''):
     circles_per_group = {}
     if circs_fp:
-        circs_pd = pd.read_table(circs_fp)
+        circs_pd = pd.read_csv(circs_fp)
         circles_per_group = circs_pd.groupby('group').apply(
             lambda x: x['contig'].tolist()).to_dict()
     return circles_per_group
@@ -40,7 +40,7 @@ def get_circles(circs_fp=''):
 def get_contigs(names_fp=''):
     contigs_per_group = {}
     if names_fp:
-        names_pd = pd.read_table(names_fp)
+        names_pd = pd.read_csv(names_fp)
         contigs_per_group = names_pd.groupby('group').apply(
             lambda x: x['contig'].tolist()).to_dict()
     return contigs_per_group
