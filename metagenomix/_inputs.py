@@ -844,6 +844,7 @@ def get_circular(self, group, circ, circ_dir) -> tuple:
     cmd = 'zcat %s%s | cut -d" " -f 1 > %s.tmp\n' % (circ_fp, awk_cmd, circ_out)
     cmd += "awk -F'\\t' '{print $0 \"\\t\" \"%s\"}' %s.tmp > %s\n" % (
         group, circ_out, circ_out)
+    cmd += 'rm %s.tmp\n' % circ_out
     cmd_rm = 'rm %s\n' % circ_out
     return circ_fp, circ_out, cmd, cmd_rm
 

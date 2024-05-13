@@ -1452,14 +1452,14 @@ def mobmess_cmd(
     cmd += 'export TMPDIR="$TMPDIR/%s"\n' % tmp_id
     cmd += 'mkdir -p $TMPDIR\n'
 
-    cmd += '\necho "tech,group,filepath" > %s\n' % fasta_tsv
+    cmd += 'echo "tech,group,filepath" > %s\n' % fasta_tsv
     for (tech, group), fp in fastas.items():
-        cmd += '\necho "%s,%s,%s" >> %s\n' % (tech, group, fp, fasta_tsv)
+        cmd += 'echo "%s,%s,%s" >> %s\n' % (tech, group, fp, fasta_tsv)
 
     if circs:
-        cmd += '\necho "tech,group,filepath" > %s\n' % circ_tsv
+        cmd += 'echo "tech,group,filepath" > %s\n' % circ_tsv
         for (tech, group), fp in circs.items():
-            cmd += '\necho "%s,%s,%s >> %s"\n' % (tech, group, fp, circ_tsv)
+            cmd += 'echo "%s,%s,%s" >> %s\n' % (tech, group, fp, circ_tsv)
 
     cmd += '\npython3 %s/mobmess_complete.py' % RESOURCES
     cmd += ' -f %s' % fasta_tsv
