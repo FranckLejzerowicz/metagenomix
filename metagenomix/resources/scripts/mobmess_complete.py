@@ -29,17 +29,13 @@ def get_args():
 
 
 def get_circles(circs_fp=''):
-    circles_per_group = {}
+    circles = {}
     if circs_fp:
         circs_pd = pd.read_csv(circs_fp)
-        ref_pds = []
         for group, group_pd in circs_pd.groupby('group'):
-            ref = group_pd['filepath'].item()
-            ref_pds.append(pd.read_table(ref))
-        ref_pd = pd.concat(ref_pds)
-        circles_per_group = ref_pd.groupby('group').apply(
-            lambda x: x['contig'].tolist()).to_dict()
-    return circles_per_group
+            group_fp = group_pd['filepath'].item()
+            circles[group] = [x.strip() for x in open(group_fp).readlines()]
+    return circles
 
 
 def get_contigs(names_fp=''):
