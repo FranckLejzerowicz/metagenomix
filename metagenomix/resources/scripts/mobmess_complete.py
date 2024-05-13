@@ -28,24 +28,20 @@ def get_args():
     return args
 
 
-def get_circles(
-        circs_fp=''
-):
+def get_circles(circs_fp=''):
     circles_per_group = {}
     if circs_fp:
         circs_pd = pd.read_table(circs_fp)
-        circles_per_group = circs_pd.groupby('sample_group').apply(
+        circles_per_group = circs_pd.groupby('group').apply(
             lambda x: x['contig'].tolist()).to_dict()
     return circles_per_group
 
 
-def get_contigs(
-        names_fp=''
-):
+def get_contigs(names_fp=''):
     contigs_per_group = {}
     if names_fp:
         names_pd = pd.read_table(names_fp)
-        contigs_per_group = names_pd.groupby('sample_group').apply(
+        contigs_per_group = names_pd.groupby('group').apply(
             lambda x: x['contig'].tolist()).to_dict()
     return contigs_per_group
 
@@ -67,8 +63,7 @@ def make_complete(
         circs_fp: str,
         names_fp: str
 ):
-    circles = get_circles(circs_fp)
-    contigs = get_contigs(names_fp)
+    circles, contigs = get_circles(circs_fp), get_contigs(names_fp)
     fastas_pd = pd.read_csv(filin)
     with open(fastou, 'w') as o1, open(filou, 'w') as o2:
         for grp, grp_pd in fastas_pd.groupby('group'):
@@ -97,5 +92,4 @@ if __name__ == '__main__':
         args['o'][0],
         args['c'][0],
         args['p'],
-        args['n']
-    )
+        args['n'])
