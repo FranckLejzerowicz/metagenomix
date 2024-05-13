@@ -1459,7 +1459,7 @@ def mobmess_cmd(
     if circs:
         cmd += 'echo "contig,group,filepath" > %s\n' % circ_tsv
         for (tech, group), fp in circs.items():
-            cmd += 'cat "%s,%s,%s" >> %s\n' % (tech, group, fp, circ_tsv)
+            cmd += 'echo "%s,%s,%s" >> %s\n' % (tech, group, fp, circ_tsv)
 
     cmd += '\npython3 %s/mobmess_complete.py' % RESOURCES
     cmd += ' -f %s' % fasta_tsv
