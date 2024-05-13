@@ -1373,10 +1373,8 @@ def get_circs(
         input_dirs: dict,
         circ: str,
         circulars: dict,
-        cmds: str,
-        rms: str,
-        i_f: list
-) -> dict:
+) -> tuple:
+    cmds, rms, i_f = '', '', []
     circ_names = {}
     for (tech, group), inp in input_dirs.items():
         if circulars:
@@ -1389,18 +1387,16 @@ def get_circs(
         else:
             circ_names[(tech, group)] = inp
             i_f.append(inp)
-    return circ_names
+    return circ_names, cmds, rms, i_f
 
 
 def get_plas_fas(
         self,
         input_dirs: dict,
-        contigs: dict,
-        cmds: str,
-        rms: str,
-        i_f: list
-) -> dict:
+        contigs: dict
+) -> tuple:
     fastas = {}
+    i_f, cmds, rms = [], '', ''
     for tech_group, inp in input_dirs.items():
         if contigs:
             contig = contigs[tech_group]
@@ -1412,7 +1408,7 @@ def get_plas_fas(
         else:
             fastas[tech_group] = inp
             i_f.append(inp)
-    return fastas
+    return fastas, cmds, rms, i_f
 
 
 def mobmess_cmd(
@@ -1522,9 +1518,11 @@ def get_mobmess(
     for genome, inp in inputs.items():
         to_dos.extend(status_update(self, tech, list(inp.values()),
                                     folder=True, group=pool))
-        cmd, rms, i_f = '', '', []
-        fasts = get_plas_fas(self, inp, contigs, cmd, rms, i_f)
-        circs = get_circs(self, inp, circ, circulars, cmd, rms, i_f)
+        fasts, cmd_pla, rm_pla, i_f_pla = get_plas_fas(self, inp, contigs)
+        circs, cmd_cir, rm_cir, i_f_cir = get_circs(self, inp, circ, circulars)
+        i_f = i_f_pla + i_f_cir
+        cmd = cmd_pla + cmd_cir
+        rms = rm_pla + rm_cir
         to_dos.extend(status_update(self, tech, i_f, group=pool))
         empty_fp = '%s/empty.txt' % out_dir
         if not to_do(empty_fp):
