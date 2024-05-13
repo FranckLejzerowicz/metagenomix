@@ -845,6 +845,10 @@ def get_circular(self, group, circ, circ_dir) -> tuple:
     cmd += "awk -F'\\t' '{print $0 \"\\t\" \"%s\"}' %s.tmp > %s\n" % (
         group, circ_out, circ_out)
     cmd_rm = 'rm %s\n' % circ_out
+    print("cmd")
+    print(cmd)
+    print("cmd_rm")
+    print(cmd_rm)
     return circ_fp, circ_out, cmd, cmd_rm
 
 
