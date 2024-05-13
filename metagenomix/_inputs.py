@@ -830,7 +830,7 @@ def get_args(fastas, contigs) -> tuple:
     return selection, fasta, cmds, cmd_rm
 
 
-def get_circular(self, group, circ, circ_dir) -> tuple:
+def get_circular(self, circ, circ_dir) -> tuple:
     awk_cmd = ''
     if circ == 'platon':
         circ_fp = circ_dir[''] + '/output.tsv.gz'
@@ -841,10 +841,7 @@ def get_circular(self, group, circ, circ_dir) -> tuple:
     else:
         sys.exit('[%s] Cannot run for %s' % (self.soft.name, circ))
     circ_out = '%s.ref' % circ_fp.replace('.gz', '')
-    cmd = 'zcat %s%s | cut -d" " -f 1 > %s.tmp\n' % (circ_fp, awk_cmd, circ_out)
-    cmd += "awk -F'\\t' '{print $0 \"\\t\" \"%s\"}' %s.tmp > %s\n" % (
-        group, circ_out, circ_out)
-    cmd += 'rm %s.tmp\n' % circ_out
+    cmd = 'zcat %s%s | cut -d" " -f 1 > %s\n' % (circ_fp, awk_cmd, circ_out)
     cmd_rm = 'rm %s\n' % circ_out
     return circ_fp, circ_out, cmd, cmd_rm
 

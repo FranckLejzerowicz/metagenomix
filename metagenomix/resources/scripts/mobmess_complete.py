@@ -32,7 +32,12 @@ def get_circles(circs_fp=''):
     circles_per_group = {}
     if circs_fp:
         circs_pd = pd.read_csv(circs_fp)
-        circles_per_group = circs_pd.groupby('group').apply(
+        ref_pds = []
+        for group, group_pd in circs_pd.groupby('group'):
+            ref = group_pd['filepath'].item()
+            ref_pds.append(pd.read_table(ref))
+        ref_pd = pd.concat(ref_pds)
+        circles_per_group = ref_pd.groupby('group').apply(
             lambda x: x['contig'].tolist()).to_dict()
     return circles_per_group
 
@@ -46,14 +51,14 @@ def get_contigs(names_fp=''):
     return contigs_per_group
 
 
-def write_seq(circs_fp, circles, seq, grp, o2):
+def write_seq(circs_fp, circles, seq, group, o2):
     if circs_fp:
-        if seq in circles.get(grp, {}):
-            o2.write('%s__%s\t1\n' % (grp, seq))
+        if seq in circles.get(group, {}):
+            o2.write('%s__%s\t1\n' % (group, seq))
         else:
-            o2.write('%s__%s\t0\n' % (grp, seq))
+            o2.write('%s__%s\t0\n' % (group, seq))
     else:
-        o2.write('%s__%s\t1\n' % (grp, seq))
+        o2.write('%s__%s\t1\n' % (group, seq))
 
 
 def make_complete(
@@ -63,11 +68,12 @@ def make_complete(
         circs_fp: str,
         names_fp: str
 ):
-    circles, contigs = get_circles(circs_fp), get_contigs(names_fp)
+    circles = get_circles(circs_fp)
+    contigs = get_contigs(names_fp)
     fastas_pd = pd.read_csv(filin)
     with open(fastou, 'w') as o1, open(filou, 'w') as o2:
-        for grp, grp_pd in fastas_pd.groupby('group'):
-            fas = grp_pd['filepath'].item()
+        for group, group_pd in fastas_pd.groupby('group'):
+            fas = group_pd['filepath'].item()
             with gzip.open(fas) as f:
                 for line_ in f:
                     line = line_.decode()
@@ -75,12 +81,12 @@ def make_complete(
                         write = False
                         seq = line[1:].strip().split()[0]
                         if names_fp:
-                            if seq in contigs.get(grp, {}):
+                            if seq in contigs.get(group, {}):
                                 write = True
-                                write_seq(circs_fp, circles, seq, grp, o2)
+                                write_seq(circs_fp, circles, seq, group, o2)
                         else:
                             write = True
-                            write_seq(circs_fp, circles, seq, grp, o2)
+                            write_seq(circs_fp, circles, seq, group, o2)
                     if write:
                         o1.write(line)
 
