@@ -39,12 +39,12 @@ def get_circles(circs_fp=''):
 
 
 def get_contigs(names_fp=''):
-    contigs_per_group = {}
+    contigs = {}
     if names_fp:
         names_pd = pd.read_table(names_fp)
-        contigs_per_group = names_pd.groupby('group').apply(
+        contigs = names_pd.groupby('sample_name').apply(
             lambda x: x['contig'].tolist()).to_dict()
-    return contigs_per_group
+    return contigs
 
 
 def write_seq(circs_fp, circles, seq, group, o2):
@@ -69,8 +69,8 @@ def make_complete(
     fastas_pd = pd.read_csv(filin)
     with open(fastou, 'w') as o1, open(filou, 'w') as o2:
         for group, group_pd in fastas_pd.groupby('group'):
-            fas = group_pd['filepath'].item()
-            with gzip.open(fas) as f:
+            fasta = group_pd['filepath'].item()
+            with gzip.open(fasta) as f:
                 for line_ in f:
                     line = line_.decode()
                     if line[0] == ">":

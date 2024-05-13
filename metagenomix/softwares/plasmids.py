@@ -1455,9 +1455,8 @@ def mobmess_cmd(
     cmd += 'echo "tech,group,filepath" > %s\n' % fasta_tsv
     for (tech, group), fp in fastas.items():
         cmd += 'echo "%s,%s,%s" >> %s\n' % (tech, group, fp, fasta_tsv)
-
     if circs:
-        cmd += 'echo "contig,group,filepath" > %s\n' % circ_tsv
+        cmd += 'echo "tech,group,filepath" > %s\n' % circ_tsv
         for (tech, group), fp in circs.items():
             cmd += 'echo "%s,%s,%s" >> %s\n' % (tech, group, fp, circ_tsv)
 
