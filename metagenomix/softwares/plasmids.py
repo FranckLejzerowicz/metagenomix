@@ -1378,16 +1378,16 @@ def get_circs(
         i_f: list
 ) -> dict:
     circ_names = {}
-    for tech_group, inp in input_dirs.items():
+    for (tech, group), inp in input_dirs.items():
         if circulars:
-            circ_dir = circulars[tech_group]
-            circ_fp, circ_out, cmd, cmd_rm = get_circular(self, circ, circ_dir)
+            circ_dir = circulars[(tech, group)]
+            fp, out, cmd, cmd_rm = get_circular(self, group, circ, circ_dir)
             cmds += cmd
             rms += cmd_rm
-            i_f.append(circ_fp)
-            circ_names[tech_group] = circ_out
+            i_f.append(fp)
+            circ_names[(tech, group)] = out
         else:
-            circ_names[tech_group] = inp
+            circ_names[(tech, group)] = inp
             i_f.append(inp)
     return circ_names
 
