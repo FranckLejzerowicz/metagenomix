@@ -4483,6 +4483,8 @@ def check_mobmess(self, params):
 
     if 'contigs_intersection' not in params:
         params['contigs_intersection'] = []
+    if 'circularity_tool' not in params:
+        params['circularity_tool'] = None
     if 'contigs_names' not in params:
         params['contigs_names'] = None
     else:
@@ -4495,6 +4497,7 @@ def check_mobmess(self, params):
                   (floats + ['contigs_intersection', 'contigs_names']))
     defaults['contigs_intersection'] = '<Plasmid-detection tool for which to ' \
                                        'take the contigs intersection>'
+    defaults['circularity_tool'] = '<Tool that yielded contig circularity info>'
     defaults['contigs_names'] = '<Path to a file containing contigs to use>'
     return defaults
 

@@ -830,6 +830,22 @@ def get_args(fastas, contigs) -> tuple:
     return selection, fasta, cmds, cmd_rm
 
 
+def get_circular(self, circ, circ_dir) -> tuple:
+    awk_cmd = ''
+    if circ == 'platon':
+        circ_fp = circ_dir[''] + '/output.tsv.gz'
+        awk_cmd += " | awk -F\'\\t\' -v col_num=6 -v value='yes'"
+        awk_cmd += " '$col_num == value' | cut -f1"
+    elif circ == 'ccfind':
+        circ_fp = circ_dir[0] + '/result/circ.detected.list.gz'
+    else:
+        sys.exit('[%s] Cannot run for %s' % (self.soft.name, circ))
+    circ_out = '%s.ref' % circ_fp.replace('.gz', '')
+    cmd = 'zcat %s%s | cut -d" " -f 1 > %s\n' % (circ_fp, awk_cmd, circ_out)
+    cmd_rm = 'rm %s\n' % circ_out
+    return circ_fp, circ_out, cmd, cmd_rm
+
+
 def get_plasmids(self, input_dir, contigs) -> tuple:
     if self.soft.prev == 'plasmidfinder':
         plasmid = input_dir + '/results_tab.tsv.gz'
