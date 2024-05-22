@@ -7,7 +7,6 @@
 # ----------------------------------------------------------------------------
 
 import sys
-import gzip
 
 import pkg_resources
 from os.path import basename, dirname, isdir, splitext
@@ -16,8 +15,8 @@ from metagenomix._inputs import (
     sample_inputs, group_inputs, genome_key, genome_out_dir, get_reads,
     get_group_reads, get_contigs, get_contigs_from_path, get_plasmids, get_args)
 from metagenomix._io_utils import (
-    caller, io_update, to_do, status_update, rep, zread, get_n_arrays,
-    split_to_array)
+    caller, io_update, to_do, status_update, rep, get_n_arrays,
+    split_to_array, get_prodigal_nums)
 from metagenomix.core.parameters import tech_params
 
 RESOURCES = pkg_resources.resource_filename("metagenomix", "resources/scripts")
@@ -2197,15 +2196,6 @@ def eggnogmapper_cmd(
     cmd += cmd_rm
     cmd += 'for i in %s/*; do gzip -q $i; done\n' % out_dir
     return cmd, n_arrays
-
-
-def get_prodigal_nums(proteins):
-    nums = proteins.replace('fasta.gz', 'nums.gz')
-    if to_do(nums):
-        return 0
-    with gzip.open(rep(nums)) as f:
-        for line in f:
-            return int(line.decode())
 
 
 def get_eggnogmapper(

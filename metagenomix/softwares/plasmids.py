@@ -13,7 +13,9 @@ from os.path import basename, dirname, splitext
 from metagenomix._inputs import (
     sample_inputs, group_inputs, genome_key, get_contigs_from_path,
     genome_out_dir, get_plasmids, get_circular, find_software_path)
-from metagenomix._io_utils import caller, io_update, to_do, status_update
+from metagenomix._io_utils import (
+    caller, io_update, to_do, status_update, get_n_arrays, split_to_array,
+    get_contigs_nums)
 from metagenomix.core.parameters import tech_params
 
 RESOURCES = pkg_resources.resource_filename("metagenomix", "resources/scripts")
@@ -220,10 +222,10 @@ def get_plasmidfinder(
 
 def platon_cmd(
         self,
+        tech: str,
         fasta: str,
         out_dir: str,
-        key: tuple
-) -> str:
+) -> tuple:
     """Collect PlasmidFinder command.
 
     Parameters
@@ -233,32 +235,38 @@ def platon_cmd(
             Pool name.
         .soft.params
             platon parameters
+    tech : str
     fasta : str
         Path to the input file
     out_dir : str
         Path to the output folder for the current sample/MAG
-    key : str
-        Technology and/or co-assembly pool group name
 
     Returns
     -------
     cmd : str
         platon command
     """
-    tmp_dir = '$TMPDIR/platon_%s' % '_'.join(key[0])
+    params = tech_params(self, tech)
+
+    tmp_dir = '$TMPDIR/platon_%s' % '_'.join([tech, self.sam_pool])
     cmd_rm = ''
     cmd = 'mkdir -p %s\n' % tmp_dir
-    if len(fasta) == 2:
-        infile = ' '.join(fasta)
-    elif fasta[0].endswith('.fa.gz') or fasta[0].endswith('.fasta.gz'):
+    if fasta[0].endswith('.fa.gz') or fasta[0].endswith('.fasta.gz'):
         cmd += 'gunzip -c %s > %s\n' % (fasta[0], fasta[0].rstrip('.gz'))
         infile = fasta[0].rstrip('.gz')
         cmd_rm += 'rm %s\n' % infile
     else:
         infile = fasta[0]
 
+    nums = get_contigs_nums('%s.gz' % infile)
+    n_arrays = get_n_arrays(self, nums, params)
+    if n_arrays:
+        cmd += split_to_array(nums, n_arrays, infile)
+
     cmd += 'platon'
     cmd += ' --prefix output'
+    if n_arrays:
+        cmd += '.$SLURM_ARRAY_TASK_ID'
     cmd += ' --db %s' % self.databases.paths['platon']
     for boolean in ['characterize', 'meta']:
         if self.soft.params[boolean]:
@@ -266,12 +274,15 @@ def platon_cmd(
     cmd += ' --mode %s' % self.soft.params['mode']
     cmd += ' --output %s' % out_dir
     cmd += ' --threads %s' % self.soft.params['cpus']
-    cmd += ' %s\n' % infile
+    cmd += ' %s' % infile
+    if n_arrays:
+        cmd += '.$SLURM_ARRAY_TASK_ID'
+    cmd += '\n'
 
     cmd += 'rm -rf %s\n' % tmp_dir
     cmd += 'for i in %s/*; do gzip -q $i; done\n' % out_dir
     cmd += cmd_rm
-    return cmd
+    return cmd, n_arrays
 
 
 def get_platon(
@@ -304,8 +315,8 @@ def get_platon(
 
         out_fp = '%s/output.tsv.gz' % out_dir
         if self.config.force or to_do(out_fp):
-            key = genome_key(tech, sam_group, genome)
-            cmd = platon_cmd(self, fasta, out_dir, key)
+            cmd, js = platon_cmd(self, tech, fasta, out_dir)
+            key = genome_key(tech, sam_group, genome, js)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:

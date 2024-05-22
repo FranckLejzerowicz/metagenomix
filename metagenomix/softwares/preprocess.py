@@ -6,10 +6,10 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-from os.path import basename, isfile
+from os.path import basename, dirname
 from metagenomix._io_utils import (io_update, to_do, tech_specificity,
                                    status_update)
-from metagenomix._inputs import genome_key
+from metagenomix._inputs import genome_key, group_inputs
 from metagenomix.core.parameters import tech_params
 from metagenomix.softwares.alignment import (
     bowtie2_cmd,
@@ -49,15 +49,13 @@ def count_cmd(
     if fastx.endswith('fastq.gz'):
         cmd = "n%s=`zcat %s | wc -l | " % (idx, fastx)
         cmd += "sed 's/ //g' | awk '{x=$1/4; print x}'`\n"
-    elif fastx.endswith('fa.gz') or fastx.endswith('fasta.gz'):
-        cmd = "n%s=`zcat %s | wc -l | " % (idx, fastx)
-        cmd += "sed 's/ //g' | awk '{x=$1/2; print x}'`\n"
-    elif fastx.endswith('fasta'):
-        cmd = "n%s=`wc -l %s | " % (idx, fastx)
-        cmd += "sed 's/ //g' | awk '{x=$1/2; print x}'`\n"
     elif fastx.endswith('fastq'):
         cmd = "n%s=`wc -l %s | " % (idx, fastx)
         cmd += "sed 's/ //g' | awk '{x=$1/4; print x}'`\n"
+    elif fastx.endswith('fa.gz') or fastx.endswith('fasta.gz'):
+        cmd = "n%s=`zcat %s | grep '>' -c`\n" % (idx, fastx)
+    elif fastx.endswith('fasta'):
+        cmd = "n%s=`grep '>' -c %s`\n" % (idx, fastx)
     else:
         raise IOError("Input sequence file invalid %s" % fastx)
     if idx:
@@ -67,7 +65,12 @@ def count_cmd(
     return cmd
 
 
-def count(self) -> None:
+def get_count(
+        self,
+        tech: str,
+        sam_group: str,
+        fastxs: dict
+) -> None:
     """Create command lines for counting the reads.
 
     Parameters
@@ -85,31 +88,52 @@ def count(self) -> None:
             Parameters
         .config
             Configurations
+    tech : str
+    sam_group : str
+        Sample name of co-assembly group
+    fastxs : dict
     """
     outs = {}
-    for (tech, sam), fastxs in self.inputs[self.sam_pool].items():
-        if tech_specificity(self, fastxs, tech, sam):
-            continue
-        to_dos = status_update(self, tech, fastxs)
+    for genome, fastx in fastxs.items():
 
-        out_dir = '%s/%s/%s' % (self.dir, tech, sam)
-        self.outputs['dirs'].append(out_dir)
-        out = '%s/read_count.tsv' % out_dir
+        to_dos = status_update(self, tech, fastx)
+        if self.soft.prev in self.config.tools['preprocessing']:
+            out_dir = '%s/%s/%s' % (self.dir, tech, sam_group)
+            self.outputs['dirs'].append(out_dir)
+            out = '%s/read_count.tsv' % out_dir
+        else:
+            out_dir = dirname(fastx[0])
+            out = '%s.num' % fastx[0].replace('.gz', '')
         outs[(tech, self.sam_pool)] = out
 
-        key = genome_key(tech, sam)
+        key = genome_key(tech, sam_group)
         if self.config.force or to_do(out):
-            for idx, fastx in enumerate(fastxs):
+            for idx, fp in enumerate(fastx):
                 if to_dos:
                     self.outputs['cmds'].setdefault(key, []).append(False)
                 else:
-                    cmd = count_cmd(self, idx, fastx, out)
+                    cmd = count_cmd(self, idx, fp, out)
                     self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, i_f=fastxs, i_d=out_dir, o_f=out, key=key)
-            self.soft.add_status(tech, sam, 1)
+            self.soft.add_status(tech, sam_group, 1)
         else:
-            self.soft.add_status(tech, sam, 0)
+            self.soft.add_status(tech, sam_group, 0)
     self.outputs['outs'] = outs
+
+
+def count(self):
+    """Simply count the number of reads, or contigs, or proteins.
+
+    Parameters
+    ----------
+    self
+    """
+    for (tech, group), inputs in self.inputs[self.sam_pool].items():
+        if self.sam_pool in self.pools:
+            fastxs = group_inputs(self, inputs)
+        else:
+            fastxs = {'': inputs}
+        get_count(self, tech, group, fastxs)
 
 
 def fastqc(self) -> None:

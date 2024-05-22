@@ -536,6 +536,24 @@ def get_n_arrays(
     return n_arrays
 
 
+def get_prodigal_nums(proteins):
+    nums = proteins.replace('fasta.gz', 'nums.gz')
+    if to_do(nums):
+        return 0
+    with gzip.open(rep(nums)) as f:
+        for line in f:
+            return int(line.decode())
+
+
+def get_contigs_nums(contigs):
+    nums = contigs.replace('.gz', '.nums')
+    if to_do(nums):
+        return 0
+    with gzip.open(rep(nums)) as f:
+        for line in f:
+            return int(line.decode())
+
+
 def to_do(
         path: str,
 ) -> bool:
