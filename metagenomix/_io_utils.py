@@ -551,7 +551,7 @@ def get_contigs_nums(contigs):
         return 0
     with open(rep(nums)) as f:
         for line in f:
-            return int(line.decode().split(',')[-1])
+            return int(line.split(',')[-1])
 
 
 def to_do(
