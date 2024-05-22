@@ -102,7 +102,7 @@ def get_count(
             self.outputs['dirs'].append(out_dir)
             out = '%s/read_count.tsv' % out_dir
         else:
-            out_dir = dirname(fastx[0])
+            out_dir = None
             out = '%s.num' % fastx[0].replace('.gz', '')
         outs[(tech, self.sam_pool)] = out
 
