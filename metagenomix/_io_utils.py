@@ -549,7 +549,7 @@ def get_contigs_nums(contigs):
     nums = contigs.replace('.gz', '.num')
     if to_do(nums):
         return 0
-    with gzip.open(rep(nums)) as f:
+    with open(rep(nums)) as f:
         for line in f:
             return int(line.decode().split(',')[-1])
 
