@@ -546,12 +546,12 @@ def get_prodigal_nums(proteins):
 
 
 def get_contigs_nums(contigs):
-    nums = contigs.replace('.gz', '.nums')
+    nums = contigs.replace('.gz', '.num')
     if to_do(nums):
         return 0
     with gzip.open(rep(nums)) as f:
         for line in f:
-            return int(line.decode())
+            return int(line.decode().split(',')[-1])
 
 
 def to_do(
