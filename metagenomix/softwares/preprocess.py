@@ -114,7 +114,7 @@ def get_count(
                 else:
                     cmd = count_cmd(self, idx, fp, out)
                     self.outputs['cmds'].setdefault(key, []).append(cmd)
-            io_update(self, i_f=fastxs, i_d=out_dir, o_f=out, key=key)
+            io_update(self, i_f=fastx, i_d=out_dir, o_f=out, key=key)
             self.soft.add_status(tech, sam_group, 1)
         else:
             self.soft.add_status(tech, sam_group, 0)
