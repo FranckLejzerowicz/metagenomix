@@ -58,7 +58,7 @@ def writer(circ_fp, circs, name, group, seq, o1, o2):
             o2.write('%s\t0\n' % new_name)
     else:
         o2.write('%s\t1\n' % new_name)
-    o1.write('%s\n%s\n' % (new_name, seq))
+    o1.write('>%s\n%s\n' % (new_name, seq))
 
 
 def check_circ(contigs, name, group, name_fp):
