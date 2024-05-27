@@ -1471,8 +1471,9 @@ def mobmess_cmd(
         for (tech, group), fp in circs.items():
             cmd += 'echo "%s,%s,%s" >> %s\n' % (tech, group, fp, circ_tsv)
 
-    cmd += '\npython3 %s/mobmess_complete.py' % RESOURCES
+    cmd += '\npython3 %s/prep_mobmess.py' % RESOURCES
     cmd += ' -f %s' % fasta_tsv
+    cmd += ' -s %s' % params['min_length']
     if params['contigs_names']:
         cmd += ' -n %s' % params['contigs_names']
     if circs:

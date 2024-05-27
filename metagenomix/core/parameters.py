@@ -4479,8 +4479,7 @@ def check_plasx(self, params):
 
 
 def check_mobmess(self, params):
-    defaults = {'min_similarity': 0.9, 'min_coverage': 0.9}
-
+    defaults = {'min_similarity': 0.9, 'min_coverage': 0.9, 'min_length': 2000}
     if 'contigs_intersection' not in params:
         params['contigs_intersection'] = []
     if 'circularity_tool' not in params:
@@ -4491,10 +4490,12 @@ def check_mobmess(self, params):
         if not isfile(params['contigs_names']):
             sys.exit('[mobmess] Param "contigs_names" is not a file')
 
+    ints = ['min_length']
+    check_nums(self, params, defaults, ints, int)
     floats = ['min_similarity', 'min_coverage']
     check_nums(self, params, defaults, floats, float, 0, 1)
     check_default(self, params, defaults,
-                  (floats + ['contigs_intersection', 'contigs_names']))
+                  (floats + ints + ['contigs_intersection', 'contigs_names']))
     defaults['contigs_intersection'] = '<Plasmid-detection tool for which to ' \
                                        'take the contigs intersection>'
     defaults['circularity_tool'] = '<Tool that yielded contig circularity info>'

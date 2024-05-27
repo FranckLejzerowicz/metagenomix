@@ -20,6 +20,8 @@ def get_args():
     parser.add_argument(
         '-c', nargs=1, required=True, help='plasmid boolean (mobmess complete)')
     parser.add_argument(
+        '-s', nargs=1, required=False, type=int, help='Minimum contig length')
+    parser.add_argument(
         '-p', nargs="?", required=False, help='File with circular contig names')
     parser.add_argument(
         '-n', nargs="?", required=False, help='File with target contig names')
@@ -47,51 +49,67 @@ def get_contigs(names_fp=''):
     return contigs
 
 
-def write_seq(circs_fp, circles, seq, group, o2):
-    if circs_fp:
-        if seq in circles.get(group, {}):
-            o2.write('%s__%s\t1\n' % (group, seq))
+def write_seq(circ_fp, circs, name, group, seq, o1, o2):
+    new_name = '%s__%s' % (group, name)
+    if circ_fp:
+        if name in circs.get(group, {}):
+            o2.write('%s\t1\n' % new_name)
         else:
-            o2.write('%s__%s\t0\n' % (group, seq))
+            o2.write('%s\t0\n' % new_name)
     else:
-        o2.write('%s__%s\t1\n' % (group, seq))
+        o2.write('%s\t1\n' % new_name)
+    o1.write('%s\n%s\n' % (new_name, seq))
 
 
-def make_complete(
+def check_circ(contigs, name, group, name_fp):
+    if name_fp:
+        if name in contigs.get(group, {}):
+            return True
+        else:
+            return False
+    else:
+        return True
+
+
+def prep(
         filin: str,
         fastou: str,
         filou: str,
-        circs_fp: str,
-        names_fp: str
+        minlen: int,
+        circ_fp: str,
+        name_fp: str
 ):
-    circles = get_circles(circs_fp)
-    contigs = get_contigs(names_fp)
+    circs = get_circles(circ_fp)
+    contigs = get_contigs(name_fp)
     fastas_pd = pd.read_csv(filin)
     with open(fastou, 'w') as o1, open(filou, 'w') as o2:
         for group, group_pd in fastas_pd.groupby('group'):
             fasta = group_pd['filepath'].item()
+            seq = ''
             with gzip.open(fasta) as f:
                 for line_ in f:
-                    line = line_.decode()
+                    line = line_.decode().strip()
                     if line[0] == ">":
                         write = False
-                        seq = line[1:].strip().split()[0]
-                        if names_fp:
-                            if seq in contigs.get(group, {}):
-                                write = True
-                                write_seq(circs_fp, circles, seq, group, o2)
-                        else:
-                            write = True
-                            write_seq(circs_fp, circles, seq, group, o2)
-                    if write:
-                        o1.write(line)
+                        name = line[1:].split()[0]
+                        if not (seq and len(seq) >= minlen):
+                            continue
+                        write = check_circ(contigs, name, group, name_fp)
+                        if write:
+                            write_seq(circ_fp, circs, name, group, seq, o1, o2)
+                        seq = ''
+                    else:
+                        seq += line
+            if write:
+                write_seq(circ_fp, circs, name, group, seq, o1, o2)
 
 
 if __name__ == '__main__':
     args = get_args()
-    make_complete(
+    prep(
         args['f'][0],
         args['o'][0],
         args['c'][0],
+        args['s'][0],
         args['p'],
         args['n'])
