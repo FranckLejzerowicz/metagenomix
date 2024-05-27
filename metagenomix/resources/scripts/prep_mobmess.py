@@ -49,7 +49,7 @@ def get_contigs(names_fp=''):
     return contigs
 
 
-def write_seq(circ_fp, circs, name, group, seq, o1, o2):
+def writer(circ_fp, circs, name, group, seq, o1, o2):
     new_name = '%s__%s' % (group, name)
     if circ_fp:
         if name in circs.get(group, {}):
@@ -90,18 +90,17 @@ def prep(
                 for line_ in f:
                     line = line_.decode().strip()
                     if line[0] == ">":
-                        write = False
+                        ok = False
+                        if seq and len(seq) >= minlen:
+                            ok = check_circ(contigs, name, group, name_fp)
+                            if ok:
+                                writer(circ_fp, circs, name, group, seq, o1, o2)
                         name = line[1:].split()[0]
-                        if not (seq and len(seq) >= minlen):
-                            continue
-                        write = check_circ(contigs, name, group, name_fp)
-                        if write:
-                            write_seq(circ_fp, circs, name, group, seq, o1, o2)
                         seq = ''
                     else:
                         seq += line
-            if write:
-                write_seq(circ_fp, circs, name, group, seq, o1, o2)
+            if ok:
+                writer(circ_fp, circs, name, group, seq, o1, o2)
 
 
 if __name__ == '__main__':
