@@ -3332,6 +3332,31 @@ def mummer2circos(self):
     pass
 
 
+def circlemap(self):
+    """A method for circular DNA detection based on probabilistic mapping of
+    ultrashort reads.
+
+    References
+    ----------
+    Prada-Luengo, I., Krogh, A., Maretty, L. and Regenberg, B.,
+    2019. Sensitive detection of circular DNAs at single-nucleotide
+    resolution using guided realignment of partially aligned reads. BMC
+    bioinformatics, 20, pp.1-9.
+
+    Notes
+    -----
+    GitHub  : https://github.com/iprada/Circle-Map
+    Paper   : https://doi.org/10.1186/s12859-019-3160-3
+
+    Parameters
+    ----------
+    self
+    """
+    pass
+
+
+
+
 
 # def write_dbcan_subset(
 #         self,

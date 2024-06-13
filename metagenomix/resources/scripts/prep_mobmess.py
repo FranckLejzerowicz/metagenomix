@@ -24,13 +24,15 @@ def get_args():
     parser.add_argument(
         '-p', nargs="?", required=False, help='File with circular contig names')
     parser.add_argument(
+        '-P', nargs="?", required=False, help='File with circular contig files')
+    parser.add_argument(
         '-n', nargs="?", required=False, help='File with target contig names')
     parse = parser.parse_args()
     args = vars(parse)
     return args
 
 
-def get_circles(circs_fp=''):
+def get_circles_parse(circs_fp=''):
     circles = {}
     if circs_fp:
         circs_pd = pd.read_csv(circs_fp)
@@ -39,6 +41,21 @@ def get_circles(circs_fp=''):
             circles[group] = [x.strip() for x in open(group_fp).readlines()]
         print('Number of circular contigs per group')
         print('(as per "%s")' % circs_fp)
+        for group, L in circles.items():
+            print(group, '\t:', len(L))
+    else:
+        print('No circular contigs info provided!')
+    return circles
+
+
+def get_circles_names(c_fp=''):
+    circles = {}
+    if c_fp:
+        circs_pd = pd.read_csv(c_fp)
+        for group, group_pd in circs_pd.groupby('group'):
+            circles[group] = set(group_pd['contig']).tolist()
+        print('Number of circular contigs per group')
+        print('(as per "%s")' % c_fp)
         for group, L in circles.items():
             print(group, '\t:', len(L))
     else:
@@ -88,11 +105,15 @@ def prep(
         fastou: str,
         filou: str,
         minlen: int,
+        c_fp: str,
         circ_fp: str,
         name_fp: str
 ):
     res = {}
-    circs = get_circles(circ_fp)
+    if c_fp:
+        circs = get_circles_names(c_fp)
+    else:
+        circs = get_circles_parse(circ_fp)
     contigs = get_contigs(name_fp)
     fastas_pd = pd.read_csv(filin)
     s, n, m = 0, 0, 0
@@ -136,4 +157,5 @@ if __name__ == '__main__':
         args['c'][0],
         args['s'][0],
         args['p'],
+        args['P'],
         args['n'])

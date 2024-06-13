@@ -1384,21 +1384,22 @@ def get_circs(
         input_dirs: dict,
         circ: str,
         circulars: dict,
-) -> tuple:
-    cmds, rms, i_f = '', '', []
-    circ_names = {}
+        circs: dict,
+        cmd_cir: str,
+        rm_cir: str,
+        i_f_cir: list
+) -> None:
     for (tech, group), inp in input_dirs.items():
         if circulars:
             circ_dir = circulars[(tech, group)]
             fp, out, cmd, cmd_rm = get_circular(self, circ, circ_dir)
-            cmds += cmd
-            rms += cmd_rm
-            i_f.append(fp)
-            circ_names[(tech, group)] = out
+            cmd_cir += cmd
+            rm_cir += cmd_rm
+            i_f_cir.append(fp)
+            circs[(tech, group)] = out
         else:
-            circ_names[(tech, group)] = inp
-            i_f.append(inp)
-    return circ_names, cmds, rms, i_f
+            circs[(tech, group)] = inp
+            i_f_cir.append(inp)
 
 
 def get_plas_fas(
@@ -1427,6 +1428,7 @@ def mobmess_cmd(
         tech: str,
         fastas: dict,
         circs: dict,
+        c_fp: str,
         out_dir: str,
         empty_fp: str,
         rms: str
@@ -1439,6 +1441,7 @@ def mobmess_cmd(
     tech : str
     fastas : dict
     circs: dict
+    c_fp: str
     out_dir : str
     empty_fp : str
     rms: str
@@ -1476,8 +1479,10 @@ def mobmess_cmd(
     cmd += ' -s %s' % params['min_length']
     if params['contigs_names']:
         cmd += ' -n %s' % params['contigs_names']
-    if circs:
-        cmd += ' -p %s' % circ_tsv
+    if c_fp:
+        cmd += ' -p1 %s' % c_fp
+    elif circs:
+        cmd += ' -p2 %s' % circ_tsv
     cmd += ' -c %s' % bools
     cmd += ' -o %s\n' % fasta
 
@@ -1509,8 +1514,9 @@ def get_mobmess(
         inputs: dict,
         contigs: dict,
         circ: str,
-        circulars: dict,
-        out_dir: str
+        c_out: dict,
+        c_fp: str,
+        out: str
 ) -> None:
     """
 
@@ -1521,34 +1527,40 @@ def get_mobmess(
     pool : str
     inputs : dict
     contigs : dict
-    circ: str,
-    circulars: dict
-    out_dir : str
+    circ: str
+    c_out: dict
+    c_fp: str
+    out : str
     """
     to_dos = status_update(self, tech, list(contigs.values()), group=pool)
     for genome, inp in inputs.items():
         to_dos.extend(status_update(self, tech, list(inp.values()),
                                     folder=True, group=pool))
         fasts, cmd_pla, rm_pla, i_f_pla = get_plas_fas(self, inp, contigs)
-        circs, cmd_cir, rm_cir, i_f_cir = get_circs(self, inp, circ, circulars)
+        circs, cmd_cir, rm_cir, i_f_cir = {}, '', '', []
+        if c_fp:
+            i_f_cir.append(c_fp)
+        else:
+            get_circs(self, inp, circ, c_out, circs, cmd_cir, rm_cir, i_f_cir)
+
         i_f = i_f_pla + i_f_cir
         cmd = cmd_pla + cmd_cir
         rms = rm_pla + rm_cir
         to_dos.extend(status_update(self, tech, i_f, group=pool))
-        empty_fp = '%s/empty.txt' % out_dir
-        if not to_do(empty_fp):
+        _fp = '%s/empty.txt' % out
+        if not to_do(_fp):
             self.soft.add_status(
                 tech, self.sam_pool, 0, group=pool, message='no plasmid inputs')
             continue
-        out_fp = '%s/out_systems.txt' % out_dir
+        out_fp = '%s/out_systems.txt' % out
         if self.config.force or to_do('%s.gz' % out_fp):
             key = genome_key(tech, pool, genome)
-            cmd += mobmess_cmd(self, tech, fasts, circs, out_dir, empty_fp, rms)
+            cmd += mobmess_cmd(self, tech, fasts, circs, c_fp, out, _fp, rms)
             if to_dos:
                 self.outputs['cmds'].setdefault(key, []).append(False)
             else:
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
-            io_update(self, i_f=i_f, o_d=out_dir, key=key)
+            io_update(self, i_f=i_f, o_d=out, key=key)
             self.soft.add_status(tech, self.sam_pool, 1, group=pool)
         else:
             self.soft.add_status(tech, self.sam_pool, 0, group=pool)
@@ -1582,21 +1594,24 @@ def mobmess(self):
     if invalid:
         sys.exit('[mobmess] Only on assembly, annotation, plasmid, circularity')
 
-    circ = self.soft.params.get("circularity_tool")
+    circ = self.soft.params.get("circularity")
     mobmess_inputs = get_mobmess_inputs(self, previous)
     for (tech, pool), inputs in mobmess_inputs.items():
         contigs = {}
-        circulars = {}
+        c_out = {}
+        c_fp = ''
         if previous not in ['annotation (plasmid)', 'assembling']:
             contigs = get_contigs_from_path(self, tech, pool=pool)
-        if circ:
-            circulars = self.softs[circ][
+        if circ in self.softs:
+            c_out = self.softs[circ][
                 self.hashes[tuple(find_software_path(self, circ))]
             ].outputs[pool]
-        out_dir = '/'.join([self.dir, tech, pool])
-        self.outputs['dirs'].append(out_dir)
-        self.outputs['outs'][pool] = {(tech,): [out_dir]}
-        get_mobmess(self, tech, pool, inputs, contigs, circ, circulars, out_dir)
+        elif not to_do(circ):
+            c_fp = circ
+        out_d = '/'.join([self.dir, tech, pool])
+        self.outputs['dirs'].append(out_d)
+        self.outputs['outs'][pool] = {(tech,): [out_d]}
+        get_mobmess(self, tech, pool, inputs, contigs, circ, c_out, c_fp, out_d)
 
 
 def rfplasmid(self):
