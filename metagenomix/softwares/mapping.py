@@ -231,6 +231,7 @@ def raw(
                 self.outputs['dirs'].extend(bam_dirs)
                 self.outputs['outs'].update(fastas_bams)
                 to_do_list = [to_do(x) for x in fastas_bams.keys()]
+                print(to_do_list)
                 if self.config.force or sum(to_do_list):
                     if to_dos or reads_to_dos:
                         self.outputs['cmds'].setdefault(key, []).append(False)
