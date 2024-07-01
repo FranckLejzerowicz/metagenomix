@@ -1359,11 +1359,11 @@ def get_mobmess_inputs(
             Samples per group as dispatched according to the pooling design
         .inputs : dict
             Path to the input files per pool
+    previous : list
 
     Returns
     -------
     inputs : dict
-    previous : list
     """
     inputs = {}
     for pool in self.inputs:
@@ -1595,6 +1595,15 @@ def mobmess(self):
         sys.exit('[mobmess] Only on assembly, annotation, plasmid, circularity')
 
     circ = self.soft.params.get("circularity")
+    print("circ")
+    print("circ")
+    print("circ")
+    print("circ")
+    print(circ)
+    print("circ")
+    print("circ")
+    print("circ")
+    print("circ")
     mobmess_inputs = get_mobmess_inputs(self, previous)
     for (tech, pool), inputs in mobmess_inputs.items():
         contigs = {}
