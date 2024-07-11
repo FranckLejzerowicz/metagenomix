@@ -20,7 +20,7 @@ def get_args():
     parser.add_argument(
         '-c', nargs=1, required=True, help='plasmid boolean (mobmess complete)')
     parser.add_argument(
-        '-s', nargs=1, required=False, type=int, help='Minimum contig length')
+        '-s', nargs="?", default=0, type=int, help='Minimum contig length')
     parser.add_argument(
         '-p', nargs="?", required=False, help='File with circular contig names')
     parser.add_argument(
@@ -53,7 +53,7 @@ def get_circles_names(c_fp=''):
     if c_fp:
         circs_pd = pd.read_csv(c_fp)
         for group, group_pd in circs_pd.groupby('group'):
-            circles[group] = set(group_pd['contig']).tolist()
+            circles[group] = list(set(group_pd['contig']))
         print('Number of circular contigs per group')
         print('(as per "%s")' % c_fp)
         for group, L in circles.items():
@@ -155,7 +155,7 @@ if __name__ == '__main__':
         args['f'][0],
         args['o'][0],
         args['c'][0],
-        args['s'][0],
+        args['s'],
         args['p'],
         args['P'],
         args['n'])

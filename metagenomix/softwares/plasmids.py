@@ -1594,23 +1594,26 @@ def mobmess(self):
     if invalid:
         sys.exit('[mobmess] Only on assembly, annotation, plasmid, circularity')
 
-    circ = self.soft.params.get("circularity")
-    print("circ")
-    print("circ")
-    print("circ")
-    print("circ")
-    print(circ)
-    print("circ")
-    print("circ")
-    print("circ")
-    print("circ")
+    circ = self.soft.params.get("circularity_tool")
     mobmess_inputs = get_mobmess_inputs(self, previous)
     for (tech, pool), inputs in mobmess_inputs.items():
+        print()
+        print()
+        print()
+        print("tech, pool")
+        print(tech, pool)
+        print()
+        print("inputs")
+        print(inputs)
+        print()
         contigs = {}
         c_out = {}
         c_fp = ''
         if previous not in ['annotation (plasmid)', 'assembling']:
             contigs = get_contigs_from_path(self, tech, pool=pool)
+        print()
+        print("contigs")
+        print(contigs)
         if circ in self.softs:
             c_out = self.softs[circ][
                 self.hashes[tuple(find_software_path(self, circ))]
