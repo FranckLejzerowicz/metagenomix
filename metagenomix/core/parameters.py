@@ -4408,12 +4408,12 @@ def check_metadmg(self, params):
         'max_position': 15,
         'min_reads': 0,
         'weight_type': 1,
-        'forward_only': [False, True],
-        'bayesian': [False, True],
         'parallel_samples': 1,
         'cores_per_sample': 1,
-        'long_name': [False, True],
         'damage_mode': ['lca', 'local', 'global'],
+        'forward_only': [False, True],
+        'bayesian': [False, True],
+        'long_name': [False, True],
         'overwrite': [False, True]
     }
     ints = ['min_edit_dist', 'max_edit_dist', 'min_mapping_quality',
@@ -4503,16 +4503,72 @@ def check_mobmess(self, params):
     return defaults
 
 
-# def check_skani(self, params):
-#     defaults = {
-#     }
-#     ints = []
-#     check_nums(self, params, defaults, ints, int)
-#     floats = []
-#     check_nums(self, params, defaults, floats, float)
-#     check_default(self, params, defaults, (ints + floats))
-#     defaults[''] = '<>'
-#     return defaults
+def check_coverm(self, params):
+    defaults = {
+        'genome_fasta_extension': ['fna'],
+        'separator': [None],
+        'single_genome': [False, True],
+        'use_full_contig_names': [False, True],
+        'dereplicate': [False, True],
+        'min_completeness': [None],
+        'max_contamination': [None],
+        'dereplication_ani': 95,
+        'dereplication_aligned_fraction': 15,
+        'dereplication_fragment_length': 3000,
+        'dereplication_quality_formula': [
+            'Parks2020_reduced', 'completeness-4contamination',
+            'completeness-5contamination', 'dRep'],
+        'dereplication_prethreshold_ani': 90,
+        'dereplication_precluster_method': ['skani', 'dashing', 'finch'],
+        'dereplication_cluster_method': ['skani', 'fastani'],
+        'exclude_genomes_from_deshard': [False, True],
+        'sharded': [False, True],
+        'mapper': ['minimap2-sr', 'bwa-mem', 'bwa-mem2', 'minimap2-ont',
+                   'minimap2-pb', 'minimap2-hifi', 'minimap2-no-preset'],
+        'minimap2_params': [None],
+        'minimap2_reference_is_index': [False, True],
+        'bwa_params': [None],
+        'strobealign_params': [None],
+        'strobealign_use_index': [False, True],
+        'min_read_aligned_length': 0,
+        'min_read_percent_identity': 0,
+        'min_read_aligned_percent': 0,
+        'min_read_aligned_length_pair': 0,
+        'min_read_percent_identity_pair': 0,
+        'min_read_aligned_percent_pair': 0,
+        'proper_pairs_only': [False, True],
+        'exclude_supplementary': [False, True],
+        'include_secondary': [False, True],
+        'methods': ['relative_abundance', 'mean', 'trimmed_mean', 'tpm',
+                    'coverage_histogram', 'covered_bases', 'variance',
+                    'length', 'count', 'metabat', 'reads_per_base', 'rpkm'],
+        'min_covered_fraction': 0,
+        'contig_end_exclusion': 75,
+        'trim_min': 5,
+        'trim_max': 95,
+        'output_format': ['sparse', 'dense'],
+        'no_zeros': [False, True],
+        'discard_unmapped': [False, True]
+    }
+    ints1 = ['min_covered_fraction', 'contig_end_exclusion', 'trim_min',
+             'trim_max', 'min_read_percent_identity',
+             'min_read_aligned_percent', 'min_read_percent_identity_pair',
+             'min_read_aligned_percent_pair', 'dereplication_prethreshold_ani',
+             'dereplication_aligned_fraction', 'dereplication_ani']
+    check_nums(self, params, defaults, ints1, int, 0, 100)
+    ints2 = ['min_read_aligned_length', 'min_read_aligned_length_pair',
+             'dereplication_fragment_length']
+    check_nums(self, params, defaults, ints2, int)
+    check_default(self, params, defaults, (ints1 + ints2))
+    defaults['genome_fasta_files'] = '<Path(s) to FASTA files of each genome>'
+    defaults['genome_fasta_directory'] = '<Directory of genome FASTA files>'
+    defaults['genome_fasta_list'] = '<FASTA file paths (one per line)>'
+    defaults['reference'] = '<FASTA file of contigs>'
+    defaults['genome_definition'] = '<list of "genome_name<tab>contig" lines>'
+    defaults['checkm2_quality_report'] = '<CheckM version 2 quality_report.tsv>'
+    defaults['checkm_tab_table'] = "<CheckM tab table (checkm's --tab_table)>"
+    defaults['genome_info'] = '<dRep style genome info table defining quality>'
+    return defaults
 
 
 # def check_skani(self, params):

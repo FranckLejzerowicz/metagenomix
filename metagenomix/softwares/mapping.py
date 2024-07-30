@@ -641,7 +641,6 @@ def get_salmon_reads_cmd(
         fastx: str,
         fastqs: list,
         out_dir: str,
-        key: tuple
 ) -> str:
     """Get the Salmon quant command (using reads).
 
@@ -652,7 +651,6 @@ def get_salmon_reads_cmd(
     fastx : str
     fastqs : list
     out_dir : str
-    key: tuple
 
     Returns
     -------
@@ -1001,6 +999,7 @@ def get_metadmg(
 
     key = genome_key(tech, group, aligner)
     out = '%s/out.pdf' % out_dir
+
     if self.config.force or to_do(out):
         if to_dos:
             self.outputs['cmds'].setdefault(key, []).append(False)
@@ -1052,6 +1051,13 @@ def metadmg(self) -> None:
         sys.exit("[%s] Only run after a mapping_* command" % self.soft.name)
     if self.sam_pool in self.pools:
         for bam, bam_infos in self.inputs[self.sam_pool].items():
+            print()
+            print()
+            print()
+            print(bam)
+            print('---------------')
+            print(bam_infos)
+            print('---------------')
             get_metadmg(self, bam, bam_infos)
 
 
