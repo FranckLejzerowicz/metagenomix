@@ -940,13 +940,7 @@ def metadmg_cmd(
         metaDMG commands
     """
     params = tech_params(self, tech)
-    cmd, cmd_rm = '', ''
-    if contigs.endswith('.fa.gz') or contigs.endswith('.fasta.gz'):
-        cmd += 'gunzip -c %s > %s\n' % (contigs, contigs.rstrip('.gz'))
-        cmd_rm += 'rm %s\n' % contigs.rstrip('.gz')
-        contigs = contigs.rstrip('.gz')
-
-    cmd += '\n'
+    cmd = ''
     cmd += '\nmetaDMG config %s' % bam
     cmd += ' --names %s' % params['taxnames']
     cmd += ' --nodes %s' % params['taxnodes']
@@ -969,8 +963,7 @@ def metadmg_cmd(
     ]:
         if params[boolean]:
             cmd += ' --%s' % boolean.replace('_', '-')
-
-    cmd += '\n%s\n' % cmd_rm
+    cmd += '\nmetaDMG compute %s/config.yaml\n' % out_dir
     return cmd
 
 
