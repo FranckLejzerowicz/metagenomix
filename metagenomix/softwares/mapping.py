@@ -948,8 +948,8 @@ def metadmg_cmd(
 
     cmd += '\n'
     cmd += '\nmetaDMG config %s' % bam
-    cmd += ' --names %s' % params['names']
-    cmd += ' --nodes %s' % params['nodes']
+    cmd += ' --names %s' % params['taxnames']
+    cmd += ' --nodes %s' % params['taxnodes']
     cmd += ' --acc2tax %s' % params['acc2tax']
     cmd += ' --damage-mode %s' % params['damage_mode']
     cmd += ' --parallel-samples %s' % params['cpus']
