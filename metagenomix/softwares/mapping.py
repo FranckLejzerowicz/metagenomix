@@ -947,11 +947,12 @@ def metadmg_cmd(
         contigs = contigs.rstrip('.gz')
 
     cmd += '\n'
-
     cmd += '\nmetaDMG config %s' % bam
-    cmd += ' --names %s' % names
-    cmd += ' --nodes %s' % nodes
-    cmd += ' --acc2tax %s' % acc2tax
+    cmd += ' --names %s' % params['names']
+    cmd += ' --nodes %s' % params['nodes']
+    cmd += ' --acc2tax %s' % params['acc2tax']
+    cmd += ' --damage-mode %s' % params['damage_mode']
+    cmd += ' --parallel-samples %s' % params['cpus']
     cmd += ' --sample-prefix %s' % group
     cmd += ' --output-dir %s' % out_dir
     for param in [

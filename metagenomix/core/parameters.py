@@ -4394,9 +4394,6 @@ def check_hamronization(self, params):
 
 def check_metadmg(self, params):
     defaults = {
-        'names': [None],
-        'nodes': [None],
-        'acc2tax': [None],
         'min_similarity_score': 0.0,
         'max_similarity_score': 1.0,
         'min_edit_dist': 0,
