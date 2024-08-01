@@ -258,7 +258,10 @@ def platon_cmd(
     else:
         infile = fasta[0]
 
-    nums = get_contigs_nums('%s.gz' % infile)
+    if self.config.dev:
+        nums = 1
+    else:
+        nums = get_contigs_nums('%s.gz' % infile)
     n_arrays = get_n_arrays(self, nums, params)
     if n_arrays:
         cmd += split_to_array(nums, n_arrays, infile)
@@ -1597,23 +1600,11 @@ def mobmess(self):
     circ = self.soft.params.get("circularity_tool")
     mobmess_inputs = get_mobmess_inputs(self, previous)
     for (tech, pool), inputs in mobmess_inputs.items():
-        print()
-        print()
-        print()
-        print("tech, pool")
-        print(tech, pool)
-        print()
-        print("inputs")
-        print(inputs)
-        print()
         contigs = {}
         c_out = {}
         c_fp = ''
         if previous not in ['annotation (plasmid)', 'assembling']:
             contigs = get_contigs_from_path(self, tech, pool=pool)
-        print()
-        print("contigs")
-        print(contigs)
         if circ in self.softs:
             c_out = self.softs[circ][
                 self.hashes[tuple(find_software_path(self, circ))]

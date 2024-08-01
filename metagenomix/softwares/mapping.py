@@ -226,12 +226,11 @@ def raw(
                 params = tech_params(self, reads_tech, ali)
                 out = '/'.join([out_dir, sam, reads_tech, ali])
                 cmd, bams, bam_dirs, fastas_bams = get_cmds(
-                    self, ref_group, reads_tech, sam, out, fastqs, fastas,
-                    ali, params)
+                    self, ref_group, reads_tech, sam, out,
+                    fastqs, fastas, ali, params)
                 self.outputs['dirs'].extend(bam_dirs)
                 self.outputs['outs'].update(fastas_bams)
                 to_do_list = [to_do(x) for x in fastas_bams.keys()]
-                print(to_do_list)
                 if self.config.force or sum(to_do_list):
                     if to_dos or reads_to_dos:
                         self.outputs['cmds'].setdefault(key, []).append(False)
@@ -913,7 +912,6 @@ def metadmg_cmd(
         self,
         tech: str,
         bam: str,
-        contigs: str,
         out_dir: str,
         group: str
 ) -> str:
@@ -928,8 +926,6 @@ def metadmg_cmd(
         Technology: 'illumina', 'pacbio', or 'nanopore'
     bam : str
         Path to the input mapping alignment
-    contigs : str
-        Path to the input contigs fasta.(gz) file
     out_dir : str
         Path to the output folder
     group : str
@@ -940,8 +936,7 @@ def metadmg_cmd(
         metaDMG commands
     """
     params = tech_params(self, tech)
-    cmd = ''
-    cmd += '\nmetaDMG config %s' % bam
+    cmd = '\nmetaDMG config %s' % bam
     cmd += ' --names %s' % params['taxnames']
     cmd += ' --nodes %s' % params['taxnodes']
     cmd += ' --acc2tax %s' % params['acc2tax']
@@ -982,15 +977,12 @@ def get_metadmg(
     bam_infos : list
         [tech, sample, aligner, coassembly, coassembly group, contig path]
     """
-    tech, sample, aligner, _, group, contigs = bam_infos
+    tech, sample, aligner, _, group, __ = bam_infos
     out_dir = genome_out_dir(self, tech, group) + '/' + aligner
     self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
     self.outputs['dirs'].append(out_dir)
 
-    contigs_gz = contigs + '.gz'
-    i_f = [bam, contigs_gz]
-    to_dos = status_update(self, tech, i_f, self.sam_pool, group=group)
-
+    to_dos = status_update(self, tech, [bam], self.sam_pool, group=group)
     key = genome_key(tech, group, aligner)
     out = '%s/out.pdf' % out_dir
 
@@ -998,9 +990,9 @@ def get_metadmg(
         if to_dos:
             self.outputs['cmds'].setdefault(key, []).append(False)
         else:
-            cmd = metadmg_cmd(self, tech, bam, contigs_gz, out_dir, group)
+            cmd = metadmg_cmd(self, tech, bam, out_dir, group)
             self.outputs['cmds'].setdefault(key, []).append(cmd)
-        io_update(self, i_f=i_f, o_d=out_dir, key=key)
+        io_update(self, i_f=bam, o_d=out_dir, key=key)
         self.soft.add_status(tech, self.sam_pool, 1, group=group)
     else:
         self.soft.add_status(tech, self.sam_pool, 0, group=group)
@@ -1043,15 +1035,13 @@ def metadmg(self) -> None:
     """
     if not self.soft.prev.startswith('mapping'):
         sys.exit("[%s] Only run after a mapping_* command" % self.soft.name)
+    params = self.soft.params['all_reads']
+    meta = self.config.meta
     if self.sam_pool in self.pools:
         for bam, bam_infos in self.inputs[self.sam_pool].items():
-            print()
-            print()
-            print()
-            print(bam)
-            print('---------------')
-            print(bam_infos)
-            print('---------------')
+            sams = set(meta[meta[self.sam_pool] == bam_infos[4]].index)
+            if not params and bam_infos[1] not in sams:
+                continue
             get_metadmg(self, bam, bam_infos)
 
 

@@ -4411,7 +4411,8 @@ def check_metadmg(self, params):
         'forward_only': [False, True],
         'bayesian': [False, True],
         'long_name': [False, True],
-        'overwrite': [False, True]
+        'overwrite': [False, True],
+        'all_reads': [False, True]
     }
     ints = ['min_edit_dist', 'max_edit_dist', 'min_mapping_quality',
             'max_position', 'min_reads', 'weight_type', 'parallel_samples',
