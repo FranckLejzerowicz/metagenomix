@@ -940,7 +940,7 @@ def metadmg_cmd(
     cmd += ' --names %s' % params['taxnames']
     cmd += ' --nodes %s' % params['taxnodes']
     cmd += ' --acc2tax %s' % params['acc2tax']
-    cmd += ' --metaDMG-cpp "%s"' % params['path']
+    cmd += ' --metaDMG-cpp "%s"' % params['binary']
     cmd += ' --damage-mode %s' % params['damage_mode']
     cmd += ' --parallel-samples %s' % params['cpus']
     cmd += ' --sample-prefix %s' % group
