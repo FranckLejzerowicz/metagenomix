@@ -4394,10 +4394,10 @@ def check_hamronization(self, params):
 
 def check_metadmg(self, params):
     defaults = {
-        'min_similarity_score': 0.0,
-        'max_similarity_score': 1.0,
-        'min_edit_dist': 0,
-        'max_edit_dist': 1,
+        'min_similarity_score': [None],
+        'max_similarity_score': [None],
+        'min_edit_dist': [None],
+        'max_edit_dist': [None],
         'min_mapping_quality': 0,
         'custom_database': [False, True],
         'lca_rank': [None, 'family', 'genus', 'species'],
@@ -4424,6 +4424,7 @@ def check_metadmg(self, params):
     defaults['taxnames'] = '<Path to the (NCBI) names-mdmg.dmp>'
     defaults['taxnodes'] = '<Path to the (NCBI) nodes-mdmg.dmp>'
     defaults['acc2tax'] = '<Path to the (NCBI) acc2tax.gz>'
+    defaults['metaDMG_cpp'] = '<Path (+ option) needed to metaDMG-cpp binary>'
     return defaults
 
 

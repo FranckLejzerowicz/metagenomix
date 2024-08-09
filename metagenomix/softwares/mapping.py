@@ -940,18 +940,28 @@ def metadmg_cmd(
     cmd += ' --names %s' % params['taxnames']
     cmd += ' --nodes %s' % params['taxnodes']
     cmd += ' --acc2tax %s' % params['acc2tax']
+    cmd += ' --metaDMG-cpp %s' % params['metaDMG_cpp']
     cmd += ' --damage-mode %s' % params['damage_mode']
     cmd += ' --parallel-samples %s' % params['cpus']
     cmd += ' --sample-prefix %s' % group
     cmd += ' --output-dir %s' % out_dir
     for param in [
-        'min_similarity_score', 'max_similarity_score', 'min_edit_dist',
-        'max_edit_dist', 'min_mapping_quality', 'max_position', 'min_reads',
+        'min_mapping_quality', 'max_position', 'min_reads',
         'weight_type', 'parallel_samples', 'cores_per_sample', 'lca_rank'
     ]:
         if param == 'lca_rank' and params[param] is None:
             continue
         cmd += ' --%s %s' % (param.replace('_', '-'), params[param])
+
+    sim_used = False
+    for param in ['min_similarity_score', 'max_similarity_score',
+                  'min_edit_dist', 'max_edit_dist']:
+        if params[param] is not None:
+            if 'score' in param:
+                sim_used = True
+            if 'edit' in param and sim_used:
+                continue
+            cmd += ' --%s %s' % (param.replace('_', '-'), params[param])
 
     for boolean in [
         'custom_database', 'forward_only', 'bayesian', 'long_name', 'overwrite'
