@@ -4421,10 +4421,11 @@ def check_metadmg(self, params):
     floats = ['min_similarity_score', 'max_similarity_score']
     check_nums(self, params, defaults, floats, float, 0, 1)
     check_default(self, params, defaults, (ints + floats))
+    check_binary(self, params, defaults, 'path')
     defaults['taxnames'] = '<Path to the (NCBI) names-mdmg.dmp>'
     defaults['taxnodes'] = '<Path to the (NCBI) nodes-mdmg.dmp>'
     defaults['acc2tax'] = '<Path to the (NCBI) acc2tax.gz>'
-    defaults['metaDMG_cpp'] = '<Path (+ option) needed to metaDMG-cpp binary>'
+    defaults['path'] = '<Path (+ option) needed to metaDMG-cpp binary>'
     return defaults
 
 
