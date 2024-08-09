@@ -233,15 +233,15 @@ def check_binary(self, params, defaults, opt, n=None):
     if opt == 'path':
         message = 'Param "path" for path to binaries folder missing'
         defaults['path'] = '<Path to folder containing the %s binary>' % n
-        isfile_or_isdir = isdir
+        file_or_dir = isdir
     if opt in ['binary', 'trimmomatic', 'bowtie2', 'anicalculator']:
         message = 'Param "%s" for path to binary/executable' % opt
         defaults[opt] = '<Path to the %s binary>' % self.name
-        isfile_or_isdir = isfile
+        file_or_dir = isfile
     if opt not in params:
         sys.exit('[%s] %s' % (n, message))
     if not self.config.dev:
-        if params[opt] != 'module' and not isfile_or_isdir(params[opt]):
+        if params[opt] != 'module' and not file_or_dir(params[opt].split()[0]):
             sys.exit('[%s] Please provide valid path to param "%s"' % (opt, n))
 
 
@@ -4421,11 +4421,11 @@ def check_metadmg(self, params):
     floats = ['min_similarity_score', 'max_similarity_score']
     check_nums(self, params, defaults, floats, float, 0, 1)
     check_default(self, params, defaults, (ints + floats))
-    check_binary(self, params, defaults, 'path')
+    check_binary(self, params, defaults, 'binary')
     defaults['taxnames'] = '<Path to the (NCBI) names-mdmg.dmp>'
     defaults['taxnodes'] = '<Path to the (NCBI) nodes-mdmg.dmp>'
     defaults['acc2tax'] = '<Path to the (NCBI) acc2tax.gz>'
-    defaults['path'] = '<Path (+ option) needed to metaDMG-cpp binary>'
+    defaults['binary'] = '<Path (+ option) needed to metaDMG-cpp binary>'
     return defaults
 
 
