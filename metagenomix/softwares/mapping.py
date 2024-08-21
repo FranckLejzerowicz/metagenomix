@@ -944,6 +944,7 @@ def metadmg_cmd(
     cmd += ' --damage-mode %s' % params['damage_mode']
     cmd += ' --parallel-samples %s' % params['cpus']
     cmd += ' --sample-prefix %s' % group
+    cmd += ' --config-file %s/config.yaml' % out_dir
     cmd += ' --output-dir %s' % out_dir
     for param in [
         'min_mapping_quality', 'max_position', 'min_reads',
