@@ -993,7 +993,8 @@ def get_metadmg(
     self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
     self.outputs['dirs'].append(out_dir)
 
-    to_dos = status_update(self, tech, [bam], self.sam_pool, group=group)
+    bai = '%s.bai' % bam
+    to_dos = status_update(self, tech, [bam, bai], self.sam_pool, group=group)
     key = genome_key(tech, group, aligner)
     out = '%s/out.pdf' % out_dir
 
@@ -1003,7 +1004,7 @@ def get_metadmg(
         else:
             cmd = metadmg_cmd(self, tech, bam, out_dir, group)
             self.outputs['cmds'].setdefault(key, []).append(cmd)
-        io_update(self, i_f=bam, o_d=out_dir, key=key)
+        io_update(self, i_f=[bam, bai], o_d=out_dir, key=key)
         self.soft.add_status(tech, self.sam_pool, 1, group=group)
     else:
         self.soft.add_status(tech, self.sam_pool, 0, group=group)

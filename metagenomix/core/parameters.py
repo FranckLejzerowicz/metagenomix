@@ -4401,7 +4401,6 @@ def check_metadmg(self, params):
         'min_mapping_quality': 0,
         'custom_database': [False, True],
         'lca_rank': [None, 'family', 'genus', 'species'],
-        # 'metaDMG_cpp',
         'max_position': 15,
         'min_reads': 0,
         'weight_type': 1,
