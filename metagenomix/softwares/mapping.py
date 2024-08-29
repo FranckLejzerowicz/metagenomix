@@ -936,7 +936,10 @@ def metadmg_cmd(
         metaDMG commands
     """
     params = tech_params(self, tech)
-    cmd = '\nmetaDMG config %s' % bam
+    bam_sort = '%s.nsort.bam' % splitext(bam)[0]
+    cmd = '\nsamtools sort -n -o %s %s' % (bam_sort, bam)
+    cmd += '\nsamtools index %s' % bam_sort
+    cmd += '\nmetaDMG config %s' % bam_sort
     cmd += ' --names %s' % params['taxnames']
     cmd += ' --nodes %s' % params['taxnodes']
     cmd += ' --acc2tax %s' % params['acc2tax']
@@ -993,8 +996,7 @@ def get_metadmg(
     self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
     self.outputs['dirs'].append(out_dir)
 
-    bai = '%s.bai' % bam
-    to_dos = status_update(self, tech, [bam, bai], self.sam_pool, group=group)
+    to_dos = status_update(self, tech, [bam], self.sam_pool, group=group)
     key = genome_key(tech, group, aligner)
     out = '%s/out.pdf' % out_dir
 
@@ -1004,7 +1006,7 @@ def get_metadmg(
         else:
             cmd = metadmg_cmd(self, tech, bam, out_dir, group)
             self.outputs['cmds'].setdefault(key, []).append(cmd)
-        io_update(self, i_f=[bam, bai], o_d=out_dir, key=key)
+        io_update(self, i_f=bam, o_d=out_dir, key=key)
         self.soft.add_status(tech, self.sam_pool, 1, group=group)
     else:
         self.soft.add_status(tech, self.sam_pool, 0, group=group)
