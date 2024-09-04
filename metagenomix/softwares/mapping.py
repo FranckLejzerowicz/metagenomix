@@ -936,10 +936,9 @@ def metadmg_cmd(
         metaDMG commands
     """
     params = tech_params(self, tech)
-    bam_sort = '%s.nsort.bam' % splitext(bam)[0]
-    cmd = '\nsamtools sort -n -o %s %s' % (bam_sort, bam)
-    cmd += '\nsamtools index %s' % bam_sort
-    cmd += '\nmetaDMG config %s' % bam_sort
+    sort_bam = '%s.namesorted.bam' % splitext(bam)[0]
+    cmd = '\nsamtools sort -@ %s -n -o %s %s' % (params['cpus'], sort_bam, bam)
+    cmd += '\nmetaDMG config %s' % sort_bam
     cmd += ' --names %s' % params['taxnames']
     cmd += ' --nodes %s' % params['taxnodes']
     cmd += ' --acc2tax %s' % params['acc2tax']
@@ -973,6 +972,7 @@ def metadmg_cmd(
         if params[boolean]:
             cmd += ' --%s' % boolean.replace('_', '-')
     cmd += '\nmetaDMG compute %s/config.yaml\n' % out_dir
+    cmd += '\nrm %s' % sort_bam
     return cmd
 
 
