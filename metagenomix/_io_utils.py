@@ -17,7 +17,7 @@ import itertools
 import numpy as np
 import pandas as pd
 from tabulate import tabulate
-from os.path import basename, dirname, isdir, isfile, islink
+from os.path import basename, dirname, isdir, isfile, islink, splitext
 
 
 def read_yaml(

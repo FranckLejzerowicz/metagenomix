@@ -858,7 +858,7 @@ def mapdamage2_cmd(
     if params['downsample']:
         cmd += ' --downsample %s' % params['downsample']
     cmd += '\n%s\n' % cmd_rm
-    return cmd
+    return cmd, n_arrays
 
 
 def get_mapdamage2(
@@ -886,13 +886,13 @@ def get_mapdamage2(
     to_dos = status_update(
         self, tech, [bam, bai, contigs_gz], self.sam_pool, group=group)
 
-    key = genome_key(tech, group, aligner)
     pdf = '%s/Fragmisincorporation_plot.pdf' % out_dir
     if self.config.force or to_do(pdf):
+        cmd, js = mapdamage2_cmd(self, tech, bam, contigs_gz, out_dir)
+        key = genome_key(tech, group, aligner, js)
         if to_dos:
             self.outputs['cmds'].setdefault(key, []).append(False)
         else:
-            cmd = mapdamage2_cmd(self, tech, bam, contigs_gz, out_dir)
             self.outputs['cmds'].setdefault(key, []).append(cmd)
         io_update(self, i_f=[bam, bai, contigs_gz], o_d=out_dir, key=key)
         self.soft.add_status(tech, self.sam_pool, 1, group=group)
