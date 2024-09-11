@@ -10,7 +10,8 @@ import pkg_resources
 from os.path import basename, splitext
 from metagenomix._io_utils import io_update, status_update
 from metagenomix.core.parameters import tech_params
-from metagenomix._io_utils import to_do
+from metagenomix._io_utils import (
+    to_do, get_contigs_nums, get_n_arrays, split_to_array)
 from metagenomix._inputs import (
     group_inputs, genome_key, genome_out_dir, get_reads, get_group_reads,
     find_software_path
@@ -812,10 +813,30 @@ def mapdamage2_cmd(
         cmd_rm += 'rm %s\n' % contigs.rstrip('.gz')
         contigs = contigs.rstrip('.gz')
 
+    if self.config.dev:
+        nums = 1
+    else:
+        nums = get_contigs_nums('%s.gz' % contigs)
+    n_arrays = get_n_arrays(self, nums, params)
+    if n_arrays:
+        cmd += split_to_array(nums, n_arrays, contigs)
+        cmd += 'python %s/fasta_to_bed.py' % RESOURCES
+        cmd += ' -i %s.$SLURM_ARRAY_TASK_ID --no\n' % contigs
+        cmd += 'samtools view -b -M -L'
+        cmd += ' %s.$SLURM_ARRAY_TASK_ID %s > %s.$SLURM_ARRAY_TASK_ID\n' % (
+            splitext(contigs)[0], bam, bam)
+        cmd += 'samtools index %s.$SLURM_ARRAY_TASK_ID\n' % bam
+
     cmd += '\nmapDamage'
     cmd += ' --input=%s' % bam
+    if n_arrays:
+        cmd += '.$SLURM_ARRAY_TASK_ID'
     cmd += ' --reference=%s' % contigs
+    if n_arrays:
+        cmd += '.$SLURM_ARRAY_TASK_ID'
     cmd += ' --folder=%s' % out_dir
+    if n_arrays:
+        cmd += '.$SLURM_ARRAY_TASK_ID'
     for param in [
         'downsample_seed', 'length', 'around', 'min_basequal', 'ymax',
         'readplot', 'refplot', 'rand', 'burn', 'adjust', 'iter', 'seq_length',
@@ -859,9 +880,10 @@ def get_mapdamage2(
     self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
     self.outputs['dirs'].append(out_dir)
 
+    bai = '%s.bai' % bam
     contigs_gz = contigs + '.gz'
     to_dos = status_update(
-        self, tech, [bam, contigs_gz], self.sam_pool, group=group)
+        self, tech, [bam, bai, contigs_gz], self.sam_pool, group=group)
 
     key = genome_key(tech, group, aligner)
     pdf = '%s/Fragmisincorporation_plot.pdf' % out_dir
@@ -871,7 +893,7 @@ def get_mapdamage2(
         else:
             cmd = mapdamage2_cmd(self, tech, bam, contigs_gz, out_dir)
             self.outputs['cmds'].setdefault(key, []).append(cmd)
-        io_update(self, i_f=[bam, contigs_gz], o_d=out_dir, key=key)
+        io_update(self, i_f=[bam, bai, contigs_gz], o_d=out_dir, key=key)
         self.soft.add_status(tech, self.sam_pool, 1, group=group)
     else:
         self.soft.add_status(tech, self.sam_pool, 0, group=group)
