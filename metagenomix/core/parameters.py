@@ -2883,6 +2883,7 @@ def check_mapdamage2(self, params):
         'check_R_packages': [False, True],
         'rescale': [False, True],
         'rescale_only': [False, True],
+        'all_reads': [False, True],
         'rescale_length_5p': 12,
         'rescale_length_3p': 12
     }
@@ -4573,16 +4574,32 @@ def check_coverm(self, params):
     return defaults
 
 
-# def check_skani(self, params):
-#     defaults = {
-#     }
-#     ints = []
-#     check_nums(self, params, defaults, ints, int)
-#     floats = []
-#     check_nums(self, params, defaults, floats, float)
-#     check_default(self, params, defaults, (ints + floats))
-#     defaults[''] = '<>'
-#     return defaults
+def check_carveme(self, params):
+    defaults = {
+        'dna': [False, True],
+        'egg': [False, True],
+        'refseq': [False, True],
+        'diamond_args': [None],
+        'recursive': [False, True],
+        'universe': ['bacteria'],
+        'universe_file': [None],
+        'cobra': [False, True],
+        'fbc2': [False, True],
+        'ensemble': [False, True],
+        'gapfill': [None],
+        'init': [None],
+        'mediadb': [None],
+        'verbose': [False, True],
+        'debug': [False, True],
+        'soft': [False, True],
+        'hard': [False, True],
+        'reference': [None],
+        'solver': ['cplex', 'gurobi']
+    }
+    check_default(self, params, defaults)
+    check_binary(self, params, defaults, 'path')
+    defaults['path'] = '<Path to folder with `carve` and `merge_community`>'
+    return defaults
 
 
 # def check_skani(self, params):

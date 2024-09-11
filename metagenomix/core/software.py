@@ -124,7 +124,8 @@ class Soft(object):
             'arraysplit',
             'skip_samples',
             'path',
-            'binary'
+            'binary',
+            'all_reads'
         }
         # do not account for 'databases' for specific softwares
         if self.name not in ['filtering', 'databases']:

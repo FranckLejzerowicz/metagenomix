@@ -824,8 +824,9 @@ def mapdamage2_cmd(
         cmd += ' -i %s.$SLURM_ARRAY_TASK_ID --no\n' % contigs
         cmd += 'samtools view -b -M -L'
         cmd += ' %s.$SLURM_ARRAY_TASK_ID %s > %s.$SLURM_ARRAY_TASK_ID\n' % (
-            splitext(contigs)[0], bam, bam)
+            contigs, bam, bam)
         cmd += 'samtools index %s.$SLURM_ARRAY_TASK_ID\n' % bam
+        cmd_rm += 'rm %s.$SLURM_ARRAY_TASK_ID\n' % contigs
 
     cmd += '\nmapDamage'
     cmd += ' --input=%s' % bam
@@ -925,8 +926,12 @@ def mapdamage2(self) -> None:
     """
     if not self.soft.prev.startswith('mapping'):
         sys.exit("[%s] Only run after a mapping_* command" % self.soft.name)
+    all_reads = self.soft.params['all_reads']
+    groups = self.config.meta[self.sam_pool].to_dict()
     if self.sam_pool in self.pools:
         for bam, bam_infos in self.inputs[self.sam_pool].items():
+            if not all_reads and groups[bam_infos[1]] != bam_infos[4]:
+                continue
             get_mapdamage2(self, bam, bam_infos)
 
 
