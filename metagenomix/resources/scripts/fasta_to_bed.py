@@ -48,7 +48,7 @@ def one_bed(fasta, keep_array):
 
 def multi_beds(fasta, chunks):
     seqs = {e.metadata['id']: len(e) for e in read(fasta, format="fasta")}
-    seqs_chunks = array_split(seqs, chunks)
+    seqs_chunks = array_split(seqs, chunks[0])
     for sdx, seqs_chunk in enumerate(seqs_chunks):
         bed_fpo = "%s_chunk%s.bed" % (splitext(fasta)[0], sdx)
         with open(bed_fpo, 'w') as o:
@@ -59,7 +59,7 @@ def multi_beds(fasta, chunks):
 if __name__ == '__main__':
     args = get_args()
     fasta = args['i'][0]
-    chunks = args['c'][0]
+    chunks = args['c']
     bed_only = args['no']
     keep_array = args['array']
     make_bed(fasta, chunks, bed_only, keep_array)
