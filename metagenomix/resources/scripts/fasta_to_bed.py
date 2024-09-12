@@ -19,7 +19,7 @@ def get_args():
     parser.add_argument(
         '-i', nargs=1, required=True, help='fasta file')
     parser.add_argument(
-        '-c', nargs=1, type=int, required=True, help='number of chunks')
+        '-c', nargs=1, type=int, required=False, help='number of chunks')
     parser.add_argument(
         '--no', action='store_true', default=False, help='no chunk, just bed')
     parser.add_argument(
