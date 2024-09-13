@@ -38,7 +38,7 @@ def make_bed(fasta, chunks, bed_only, keep_array):
 
 def one_bed(fasta, keep_array):
     if keep_array:
-        bed_fpo = "%s.bed.%s" % tuple(splitext(fasta))
+        bed_fpo = "%s.bed%s" % tuple(splitext(fasta))
     else:
         bed_fpo = "%s.bed" % splitext(fasta)[0]
     with open(bed_fpo, 'w') as o:

@@ -821,7 +821,7 @@ def mapdamage2_cmd(
     if n_arrays:
         cmd += split_to_array(nums, n_arrays, contigs)
         cmd += 'python %s/fasta_to_bed.py' % RESOURCES
-        cmd += ' -i %s.$SLURM_ARRAY_TASK_ID --no\n' % contigs
+        cmd += ' -i %s.$SLURM_ARRAY_TASK_ID --no --array\n' % contigs
         cmd += 'samtools view -b -M -L'
         cmd += ' %s.$SLURM_ARRAY_TASK_ID %s > %s.$SLURM_ARRAY_TASK_ID\n' % (
             contigs, bam, bam)
