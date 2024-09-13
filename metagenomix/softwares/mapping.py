@@ -823,10 +823,11 @@ def mapdamage2_cmd(
         cmd += 'python %s/fasta_to_bed.py' % RESOURCES
         cmd += ' -i %s.$SLURM_ARRAY_TASK_ID --no --array\n' % contigs
         cmd += 'samtools view -b -M -L'
-        cmd += ' %s.$SLURM_ARRAY_TASK_ID %s > %s.$SLURM_ARRAY_TASK_ID\n' % (
+        cmd += ' %s.bed.$SLURM_ARRAY_TASK_ID %s > %s.$SLURM_ARRAY_TASK_ID\n' % (
             contigs, bam, bam)
         cmd += 'samtools index %s.$SLURM_ARRAY_TASK_ID\n' % bam
         cmd_rm += 'rm %s.$SLURM_ARRAY_TASK_ID\n' % contigs
+        cmd_rm += 'rm %s.bed.$SLURM_ARRAY_TASK_ID\n' % contigs
 
     cmd += '\nmapDamage'
     cmd += ' --input=%s' % bam
