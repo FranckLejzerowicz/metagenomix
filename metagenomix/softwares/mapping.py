@@ -783,7 +783,7 @@ def mapdamage2_cmd(
         bam: str,
         contigs: str,
         out_dir: str
-) -> str:
+) -> tuple:
     """Collect the command line for mapDamage2.
 
     Parameters
@@ -826,6 +826,12 @@ def mapdamage2_cmd(
         cmd += ' %s.bed.$SLURM_ARRAY_TASK_ID %s > %s.$SLURM_ARRAY_TASK_ID\n' % (
             contigs, bam, bam)
         cmd += 'samtools index %s.$SLURM_ARRAY_TASK_ID\n' % bam
+        cmd += 'samtools view %s.$SLURM_ARRAY_TASK_ID | ' % bam
+        cmd += 'cut -f3 | sort | uniq > %s.list.$SLURM_ARRAY_TASK_ID\n' % bam
+        cmd += 'seqkit grep -r -f %s.list.$SLURM_ARRAY_TASK_ID ' % bam
+        cmd += '%s.$SLURM_ARRAY_TASK_ID -o %s.set.$SLURM_ARRAY_TASK_ID\n' % (
+            contigs, contigs)
+        contigs = '%s.set.$SLURM_ARRAY_TASK_ID' % contigs
         cmd_rm += 'rm %s.$SLURM_ARRAY_TASK_ID\n' % contigs
         cmd_rm += 'rm %s.bed.$SLURM_ARRAY_TASK_ID\n' % contigs
 
