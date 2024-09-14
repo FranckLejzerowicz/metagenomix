@@ -831,9 +831,11 @@ def mapdamage2_cmd(
         cmd += 'seqkit grep -r -f %s.list.$SLURM_ARRAY_TASK_ID ' % bam
         cmd += '%s.$SLURM_ARRAY_TASK_ID -o %s_set.fa.$SLURM_ARRAY_TASK_ID\n' % (
             contigs, contigs)
+        cmd_rm += 'rm %s.$SLURM_ARRAY_TASK_ID\n' % bam
+        cmd_rm += 'rm %s.list.$SLURM_ARRAY_TASK_ID\n' % bam
+        cmd_rm += 'rm %s.bed.$SLURM_ARRAY_TASK_ID\n' % contigs
         contigs = '%s_set.fa' % contigs
         cmd_rm += 'rm %s.$SLURM_ARRAY_TASK_ID\n' % contigs
-        cmd_rm += 'rm %s.bed.$SLURM_ARRAY_TASK_ID\n' % contigs
 
     cmd += '\nmapDamage'
     cmd += ' --input=%s' % bam
