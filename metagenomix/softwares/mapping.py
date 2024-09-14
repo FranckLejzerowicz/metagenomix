@@ -829,9 +829,9 @@ def mapdamage2_cmd(
         cmd += 'samtools view %s.$SLURM_ARRAY_TASK_ID | ' % bam
         cmd += 'cut -f3 | sort | uniq > %s.list.$SLURM_ARRAY_TASK_ID\n' % bam
         cmd += 'seqkit grep -r -f %s.list.$SLURM_ARRAY_TASK_ID ' % bam
-        cmd += '%s.$SLURM_ARRAY_TASK_ID -o %s.set.$SLURM_ARRAY_TASK_ID\n' % (
+        cmd += '%s.$SLURM_ARRAY_TASK_ID -o %s_set.fa.$SLURM_ARRAY_TASK_ID\n' % (
             contigs, contigs)
-        contigs = '%s.set.$SLURM_ARRAY_TASK_ID' % contigs
+        contigs = '%s_set.fa' % contigs
         cmd_rm += 'rm %s.$SLURM_ARRAY_TASK_ID\n' % contigs
         cmd_rm += 'rm %s.bed.$SLURM_ARRAY_TASK_ID\n' % contigs
 
