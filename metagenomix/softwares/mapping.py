@@ -819,24 +819,44 @@ def mapdamage2_cmd(
         nums = get_contigs_nums('%s.gz' % contigs)
     n_arrays = get_n_arrays(self, nums, params)
     if n_arrays:
+        # rad = splitext(bam)[0]
+        # sam = '%s.sam' % rad
         cmd += split_to_array(nums, n_arrays, contigs)
         cmd += 'python %s/fasta_to_bed.py' % RESOURCES
         cmd += ' -i %s.$SLURM_ARRAY_TASK_ID --no --array\n' % contigs
-        cmd += 'samtools view -b -M -L'
+        cmd += 'samtools view -h -b -M -L'
         cmd += ' %s.bed.$SLURM_ARRAY_TASK_ID %s > %s.$SLURM_ARRAY_TASK_ID\n' % (
             contigs, bam, bam)
-        cmd += 'samtools index %s.$SLURM_ARRAY_TASK_ID' % bam
-        cmd += ' > %s.$SLURM_ARRAY_TASK_ID.bai\n' % bam
-        cmd += 'samtools view %s.$SLURM_ARRAY_TASK_ID |' % bam
-        cmd += ' cut -f3 | sort | uniq > %s.list.$SLURM_ARRAY_TASK_ID\n' % bam
-        cmd += 'seqkit grep -r -f %s.list.$SLURM_ARRAY_TASK_ID ' % bam
-        cmd += '%s.$SLURM_ARRAY_TASK_ID -o %s_set.fa.$SLURM_ARRAY_TASK_ID\n '% (
-            contigs, splitext(contigs)[0])
+        cmd += 'samtools index %s.$SLURM_ARRAY_TASK_ID\n' % bam
+        cmd += ' -o %s.$SLURM_ARRAY_TASK_ID.bai\n' % bam
         cmd_rm += 'rm %s.$SLURM_ARRAY_TASK_ID\n' % bam
-        cmd_rm += 'rm %s.list.$SLURM_ARRAY_TASK_ID\n' % bam
-        cmd_rm += 'rm %s.bed.$SLURM_ARRAY_TASK_ID\n' % contigs
-        contigs = '%s_set.fa' % splitext(contigs)[0]
         cmd_rm += 'rm %s.$SLURM_ARRAY_TASK_ID\n' % contigs
+
+        # cmd += 'samtools view -S -M -L'
+        # cmd += ' %s.bed.$SLURM_ARRAY_TASK_ID %s > %s.$SLURM_ARRAY_TASK_ID\n' % (
+        #     contigs, bam, sam)
+        # cmd += 'samtools view -H %s > %s.head.$SLURM_ARRAY_TASK_ID' % (bam, rad)
+        # cmd += 'cut -f1 %s.bed.$SLURM_ARRAY_TASK_ID | sort | uniq' % contigs
+        # cmd += ' > %s.refs.$SLURM_ARRAY_TASK_ID\n' % rad
+        #
+        # cmd += 'while read -r ref; do grep "@SQ.*SN:${ref}"'
+        # cmd += ' %s.head.$SLURM_ARRAY_TASK_ID' % rad
+        # cmd += ' >> %s.headfilt.$SLURM_ARRAY_TASK_ID;' % rad
+        # cmd += ' done < %s.refs.$SLURM_ARRAY_TASK_ID\n' % rad
+        #
+        # cmd += 'samtools index %s.$SLURM_ARRAY_TASK_ID\n' % bam
+        # cmd += ' -o %s.$SLURM_ARRAY_TASK_ID.bai\n' % bam
+        # cmd += 'samtools view %s.$SLURM_ARRAY_TASK_ID |' % bam
+        # cmd += ' cut -f3 | sort | uniq > %s.list.$SLURM_ARRAY_TASK_ID\n' % bam
+        # cmd += '%s.list.$SLURM_ARRAY_TASK_ID\n' % bam
+        # cmd += 'seqkit grep -r -f %s.list.$SLURM_ARRAY_TASK_ID ' % bam
+        # cmd += '%s.$SLURM_ARRAY_TASK_ID -o %s_set.fa.$SLURM_ARRAY_TASK_ID\n '% (
+        #     contigs, splitext(contigs)[0])
+        # cmd_rm += 'rm %s.$SLURM_ARRAY_TASK_ID\n' % bam
+        # cmd_rm += 'rm %s.list.$SLURM_ARRAY_TASK_ID\n' % bam
+        # cmd_rm += 'rm %s.bed.$SLURM_ARRAY_TASK_ID\n' % contigs
+        # contigs = '%s_set.fa' % splitext(contigs)[0]
+        # cmd_rm += 'rm %s.$SLURM_ARRAY_TASK_ID\n' % contigs
 
     cmd += '\nmapDamage'
     cmd += ' --input=%s' % bam
