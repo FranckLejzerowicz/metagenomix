@@ -825,16 +825,17 @@ def mapdamage2_cmd(
         cmd += 'samtools view -b -M -L'
         cmd += ' %s.bed.$SLURM_ARRAY_TASK_ID %s > %s.$SLURM_ARRAY_TASK_ID\n' % (
             contigs, bam, bam)
-        cmd += 'samtools index %s.$SLURM_ARRAY_TASK_ID\n' % bam
-        cmd += 'samtools view %s.$SLURM_ARRAY_TASK_ID | ' % bam
-        cmd += 'cut -f3 | sort | uniq > %s.list.$SLURM_ARRAY_TASK_ID\n' % bam
+        cmd += 'samtools index %s.$SLURM_ARRAY_TASK_ID' % bam
+        cmd += ' > %s.$SLURM_ARRAY_TASK_ID.bai\n' % bam
+        cmd += 'samtools view %s.$SLURM_ARRAY_TASK_ID |' % bam
+        cmd += ' cut -f3 | sort | uniq > %s.list.$SLURM_ARRAY_TASK_ID\n' % bam
         cmd += 'seqkit grep -r -f %s.list.$SLURM_ARRAY_TASK_ID ' % bam
-        cmd += '%s.$SLURM_ARRAY_TASK_ID -o %s_set.fa.$SLURM_ARRAY_TASK_ID\n' % (
-            contigs, contigs)
+        cmd += '%s.$SLURM_ARRAY_TASK_ID -o %s_set.fa.$SLURM_ARRAY_TASK_ID\n '% (
+            contigs, splitext(contigs)[0])
         cmd_rm += 'rm %s.$SLURM_ARRAY_TASK_ID\n' % bam
         cmd_rm += 'rm %s.list.$SLURM_ARRAY_TASK_ID\n' % bam
         cmd_rm += 'rm %s.bed.$SLURM_ARRAY_TASK_ID\n' % contigs
-        contigs = '%s_set.fa' % contigs
+        contigs = '%s_set.fa' % splitext(contigs)[0]
         cmd_rm += 'rm %s.$SLURM_ARRAY_TASK_ID\n' % contigs
 
     cmd += '\nmapDamage'
