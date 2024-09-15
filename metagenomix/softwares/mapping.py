@@ -863,11 +863,11 @@ def mapdamage2_cmd(
     if n_arrays:
         cmd += '.$SLURM_ARRAY_TASK_ID'
     cmd += ' --reference=%s' % contigs
-    if n_arrays:
-        cmd += '.$SLURM_ARRAY_TASK_ID'
+    # if n_arrays:
+    #     cmd += '.$SLURM_ARRAY_TASK_ID'
     cmd += ' --folder=%s' % out_dir
-    if n_arrays:
-        cmd += '.$SLURM_ARRAY_TASK_ID'
+    # if n_arrays:
+    #     cmd += '.$SLURM_ARRAY_TASK_ID'
     for param in [
         'downsample_seed', 'length', 'around', 'min_basequal', 'ymax',
         'readplot', 'refplot', 'rand', 'burn', 'adjust', 'iter', 'seq_length',
