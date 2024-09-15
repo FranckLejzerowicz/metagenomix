@@ -827,7 +827,7 @@ def mapdamage2_cmd(
         cmd += 'samtools view -h -b -M -L'
         cmd += ' %s.bed.$SLURM_ARRAY_TASK_ID %s > %s.$SLURM_ARRAY_TASK_ID\n' % (
             contigs, bam, bam)
-        cmd += 'samtools index %s.$SLURM_ARRAY_TASK_ID\n' % bam
+        cmd += 'samtools index %s.$SLURM_ARRAY_TASK_ID' % bam
         cmd += ' -o %s.$SLURM_ARRAY_TASK_ID.bai\n' % bam
         cmd_rm += 'rm %s.$SLURM_ARRAY_TASK_ID\n' % bam
         cmd_rm += 'rm %s.$SLURM_ARRAY_TASK_ID\n' % contigs
