@@ -2838,7 +2838,6 @@ def check_metaphlan(self, params):
     if 'tax_lev' not in params:
         params['tax_lev'] = ['a']
     if 'ignore_markers' in params and not isfile(params['ignore_markers']):
-        sys.exit('[metaphlan] Param "ignore_markers" must be a file path')
     ints = ['min_mapq_val', 'min_cu_len', 'min_alignment_len', 'read_min_len']
     check_nums(self, params, defaults, ints, int)
     floats = ['stat_q', 'perc_nonzero', 'pres_th', 'min_ab']
@@ -2887,13 +2886,26 @@ def check_mapdamage2(self, params):
         'rescale_length_5p': 12,
         'rescale_length_3p': 12
     }
+    if 'downsample' not in params:
+        params['downsample'] = None
+    else:
+        try:
+            downsample = float(params['downsample'])
+            if downsample > 1:
+                params['downsample'] = np.ceil(downsample)
+            elif downsample > 0:
+                params['downsample'] = downsample
+            else:
+                sys.exit('[mapdamage2] Param "downsample" must be >0')
+        except:
+            sys.exit('[mapdamage2] Param "downsample" must be numeric')
     ints = ['downsample_seed', 'length', 'around', 'min_basequal', 'readplot',
             'refplot', 'rand', 'burn', 'adjust', 'iter', 'seq_length',
             'rescale_length_5p', 'rescale_length_3p']
     check_nums(self, params, defaults, ints, int)
     floats = ['ymax']
     check_nums(self, params, defaults, floats, float)
-    check_default(self, params, defaults, (ints + floats))
+    check_default(self, params, defaults, (ints + floats + ['downsample']))
     return defaults
 
 
