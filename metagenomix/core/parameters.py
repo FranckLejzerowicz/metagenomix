@@ -2838,6 +2838,7 @@ def check_metaphlan(self, params):
     if 'tax_lev' not in params:
         params['tax_lev'] = ['a']
     if 'ignore_markers' in params and not isfile(params['ignore_markers']):
+        sys.exit('[metaphlan] Param "ignore_markers" must be a file path')
     ints = ['min_mapq_val', 'min_cu_len', 'min_alignment_len', 'read_min_len']
     check_nums(self, params, defaults, ints, int)
     floats = ['stat_q', 'perc_nonzero', 'pres_th', 'min_ab']
