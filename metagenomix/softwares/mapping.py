@@ -805,8 +805,61 @@ def mapdamage2_cmd(
     cmd : str
         mapDamage2 commands
     """
-    params = tech_params(self, tech)
+    # params = tech_params(self, tech)
+    #
+    # cmd, cmd_rm = '', ''
+    # if contigs.endswith('.fa.gz') or contigs.endswith('.fasta.gz'):
+    #     cmd += 'gunzip -c %s > %s\n' % (contigs, contigs.rstrip('.gz'))
+    #     cmd_rm += 'rm %s\n' % contigs.rstrip('.gz')
+    #     contigs = contigs.rstrip('.gz')
+    #
+    # if self.config.dev:
+    #     nums = 1
+    # else:
+    #     nums = get_contigs_nums('%s.gz' % contigs)
+    # n_arrays = get_n_arrays(self, nums, params)
+    # if n_arrays:
+    #     # rad = splitext(bam)[0]
+    #     # sam = '%s.sam' % rad
+    #     cmd += split_to_array(nums, n_arrays, contigs)
+    #     cmd += 'python %s/fasta_to_bed.py' % RESOURCES
+    #     cmd += ' -i %s.$SLURM_ARRAY_TASK_ID --no --array\n' % contigs
+    #     cmd += 'samtools view -h -b -M -L'
+    #     cmd += ' %s.bed.$SLURM_ARRAY_TASK_ID %s > %s.$SLURM_ARRAY_TASK_ID\n' % (
+    #         contigs, bam, bam)
+    #     cmd += 'samtools index %s.$SLURM_ARRAY_TASK_ID' % bam
+    #     cmd += ' -o %s.$SLURM_ARRAY_TASK_ID.bai\n' % bam
+    #     cmd_rm += 'rm %s.$SLURM_ARRAY_TASK_ID\n' % bam
+    #     cmd_rm += 'rm %s.$SLURM_ARRAY_TASK_ID\n' % contigs
+    #
+    # cmd += '\nmapDamage'
+    # cmd += ' --input=%s' % bam
+    # if n_arrays:
+    #     cmd += '.$SLURM_ARRAY_TASK_ID'
+    # cmd += ' --reference=%s' % contigs
+    # cmd += ' --folder=%s' % out_dir
+    # for param in [
+    #     'downsample_seed', 'length', 'around', 'min_basequal', 'ymax',
+    #     'readplot', 'refplot', 'rand', 'burn', 'adjust', 'iter', 'seq_length',
+    #     'rescale_length_5p', 'rescale_length_3p'
+    # ]:
+    #     cmd += ' --%s=%s' % (param.replace('_', '-'), params[param])
+    #
+    # for boolean in [
+    #     'merge_reference_sequences', 'fasta', 'plot_only', 'quiet', 'verbose',
+    #     'mapdamage_modules', 'forward', 'reverse', 'var_disp', 'jukes_cantor',
+    #     'diff_hangs', 'fix_nicks', 'use_raw_nick_freq', 'single_stranded',
+    #     'theme_bw', 'stats_only', 'no_stats', 'check_R_packages', 'rescale',
+    #     'rescale_only'
+    # ]:
+    #     if params[boolean]:
+    #         cmd += ' --%s' % boolean.replace('_', '-')
+    #
+    # if params['downsample']:
+    #     cmd += ' --downsample %s' % params['downsample']
+    # cmd += '\n%s\n' % cmd_rm
 
+    params = tech_params(self, tech)
     cmd, cmd_rm = '', ''
     if contigs.endswith('.fa.gz') or contigs.endswith('.fasta.gz'):
         cmd += 'gunzip -c %s > %s\n' % (contigs, contigs.rstrip('.gz'))
@@ -819,55 +872,47 @@ def mapdamage2_cmd(
         nums = get_contigs_nums('%s.gz' % contigs)
     n_arrays = get_n_arrays(self, nums, params)
     if n_arrays:
-        # rad = splitext(bam)[0]
-        # sam = '%s.sam' % rad
+        rad = splitext(bam)[0]
+        sam = '%s.sam' % rad
         cmd += split_to_array(nums, n_arrays, contigs)
         cmd += 'python %s/fasta_to_bed.py' % RESOURCES
         cmd += ' -i %s.$SLURM_ARRAY_TASK_ID --no --array\n' % contigs
-        cmd += 'samtools view -h -b -M -L'
+        cmd += 'samtools view -S -M -L'
         cmd += ' %s.bed.$SLURM_ARRAY_TASK_ID %s > %s.$SLURM_ARRAY_TASK_ID\n' % (
-            contigs, bam, bam)
-        cmd += 'samtools index %s.$SLURM_ARRAY_TASK_ID' % bam
-        cmd += ' -o %s.$SLURM_ARRAY_TASK_ID.bai\n' % bam
-        cmd_rm += 'rm %s.$SLURM_ARRAY_TASK_ID\n' % bam
-        cmd_rm += 'rm %s.$SLURM_ARRAY_TASK_ID\n' % contigs
+            contigs, bam, sam)
+        cmd += 'samtools view -H %s > %s.head.$SLURM_ARRAY_TASK_ID' % (bam, rad)
+        cmd += 'cut -f1 %s.bed.$SLURM_ARRAY_TASK_ID | sort | uniq' % contigs
+        cmd += ' > %s.refs.$SLURM_ARRAY_TASK_ID\n' % rad
 
-        # cmd += 'samtools view -S -M -L'
-        # cmd += ' %s.bed.$SLURM_ARRAY_TASK_ID %s > %s.$SLURM_ARRAY_TASK_ID\n' % (
-        #     contigs, bam, sam)
-        # cmd += 'samtools view -H %s > %s.head.$SLURM_ARRAY_TASK_ID' % (bam, rad)
-        # cmd += 'cut -f1 %s.bed.$SLURM_ARRAY_TASK_ID | sort | uniq' % contigs
-        # cmd += ' > %s.refs.$SLURM_ARRAY_TASK_ID\n' % rad
-        #
-        # cmd += 'while read -r ref; do grep "@SQ.*SN:${ref}"'
-        # cmd += ' %s.head.$SLURM_ARRAY_TASK_ID' % rad
-        # cmd += ' >> %s.headfilt.$SLURM_ARRAY_TASK_ID;' % rad
-        # cmd += ' done < %s.refs.$SLURM_ARRAY_TASK_ID\n' % rad
-        #
-        # cmd += 'samtools index %s.$SLURM_ARRAY_TASK_ID\n' % bam
-        # cmd += ' -o %s.$SLURM_ARRAY_TASK_ID.bai\n' % bam
-        # cmd += 'samtools view %s.$SLURM_ARRAY_TASK_ID |' % bam
-        # cmd += ' cut -f3 | sort | uniq > %s.list.$SLURM_ARRAY_TASK_ID\n' % bam
-        # cmd += '%s.list.$SLURM_ARRAY_TASK_ID\n' % bam
-        # cmd += 'seqkit grep -r -f %s.list.$SLURM_ARRAY_TASK_ID ' % bam
-        # cmd += '%s.$SLURM_ARRAY_TASK_ID -o %s_set.fa.$SLURM_ARRAY_TASK_ID\n '% (
-        #     contigs, splitext(contigs)[0])
-        # cmd_rm += 'rm %s.$SLURM_ARRAY_TASK_ID\n' % bam
-        # cmd_rm += 'rm %s.list.$SLURM_ARRAY_TASK_ID\n' % bam
-        # cmd_rm += 'rm %s.bed.$SLURM_ARRAY_TASK_ID\n' % contigs
-        # contigs = '%s_set.fa' % splitext(contigs)[0]
-        # cmd_rm += 'rm %s.$SLURM_ARRAY_TASK_ID\n' % contigs
+        cmd += 'while read -r ref; do grep "@SQ.*SN:${ref}"'
+        cmd += ' %s.head.$SLURM_ARRAY_TASK_ID' % rad
+        cmd += ' >> %s.headfilt.$SLURM_ARRAY_TASK_ID;' % rad
+        cmd += ' done < %s.refs.$SLURM_ARRAY_TASK_ID\n' % rad
+
+        cmd += 'samtools index %s.$SLURM_ARRAY_TASK_ID\n' % bam
+        cmd += ' -o %s.$SLURM_ARRAY_TASK_ID.bai\n' % bam
+        cmd += 'samtools view %s.$SLURM_ARRAY_TASK_ID |' % bam
+        cmd += ' cut -f3 | sort | uniq > %s.list.$SLURM_ARRAY_TASK_ID\n' % bam
+        cmd += '%s.list.$SLURM_ARRAY_TASK_ID\n' % bam
+        cmd += 'seqkit grep -r -f %s.list.$SLURM_ARRAY_TASK_ID ' % bam
+        cmd += '%s.$SLURM_ARRAY_TASK_ID -o %s_set.fa.$SLURM_ARRAY_TASK_ID\n '% (
+            contigs, splitext(contigs)[0])
+        cmd_rm += 'rm %s.$SLURM_ARRAY_TASK_ID\n' % bam
+        cmd_rm += 'rm %s.list.$SLURM_ARRAY_TASK_ID\n' % bam
+        cmd_rm += 'rm %s.bed.$SLURM_ARRAY_TASK_ID\n' % contigs
+        contigs = '%s_set.fa' % splitext(contigs)[0]
+        cmd_rm += 'rm %s.$SLURM_ARRAY_TASK_ID\n' % contigs
 
     cmd += '\nmapDamage'
     cmd += ' --input=%s' % bam
     if n_arrays:
         cmd += '.$SLURM_ARRAY_TASK_ID'
     cmd += ' --reference=%s' % contigs
-    # if n_arrays:
-    #     cmd += '.$SLURM_ARRAY_TASK_ID'
+    if n_arrays:
+        cmd += '.$SLURM_ARRAY_TASK_ID'
     cmd += ' --folder=%s' % out_dir
-    # if n_arrays:
-    #     cmd += '.$SLURM_ARRAY_TASK_ID'
+    if n_arrays:
+        cmd += '.$SLURM_ARRAY_TASK_ID'
     for param in [
         'downsample_seed', 'length', 'around', 'min_basequal', 'ymax',
         'readplot', 'refplot', 'rand', 'burn', 'adjust', 'iter', 'seq_length',
