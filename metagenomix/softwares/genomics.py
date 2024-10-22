@@ -1845,6 +1845,170 @@ def checkm2(self) -> None:
             get_checkm2(self, tech, folders, group)
 
 
+def carveme_cmd(
+        self,
+        folder: str,
+        out_dir: str,
+        params: dict
+) -> str:
+    """Collect the command line for CarveMe predict.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .soft.params : dict
+            Parameters
+    tech : str
+        Name of the technology
+    folder : str
+        Path to the input folder
+    out_dir : str
+        Path to the output file
+    params : dict
+        Parameters for the current config
+
+    Returns
+    -------
+    cmd : str
+        CarveMe predict command
+    """
+    cmd = ''
+    if self.soft.params['path']:
+        cmd += '\n%s/carve' % self.soft.params['path']
+    else:
+        cmd += '\ncarve'
+    cmd += ' --output %s/out.txt' % out_dir
+    cmd += ' --universe %s' % params['universe']
+    cmd += ' --solver %s' % params['solver']
+    for param in ['universe_file', 'gapfill', 'init',
+                  'mediadb', 'reference', 'diamond_args']:
+        if params[param]:
+            cmd += ' --%s %s' % (param.replace('_', '-'), params[param])
+    for boolean in ['dna', 'egg', 'refseq', 'recursive', 'cobra', 'fbc2',
+                    'ensemble', 'verbose', 'debug', 'soft', 'hard']:
+        if params[boolean]:
+            cmd += ' --%s' % boolean
+    cmd += ' %s' % folder
+    return cmd
+
+
+def get_carveme(
+        self,
+        tech: str,
+        folders: dict,
+        group: str,
+        params: dict,
+        eggnog_dirs: dict
+):
+    """Collect the CarveMe predict commands.
+
+    Parameters
+    ----------
+    self
+    tech : str
+    folders : dict
+    group : str
+    params : dict
+    eggnog_dirs : dict
+
+    Returns
+    -------
+
+    """
+    print()
+    print("tech:", tech)
+    print("group:", group)
+    for genome, dirs in folders.items():
+        print()
+        print("genome:", genome)
+        print("dirs:", dirs)
+        print("eggnog_dirs:")
+        print(eggnog_dirs)
+
+        folder = dirs[0]
+        out_dir = genome_out_dir(self, tech, group, genome)
+        self.outputs['dirs'].append(out_dir)
+        self.outputs['outs'].setdefault((tech, group), []).append(out_dir)
+
+        to_dos = status_update(self, tech, [folder], group=group,
+                               genome=genome, folder=True)
+        out = '%s/___.tsv' % out_dir
+        if self.config.force or to_do(out):
+            cmd = carveme_cmd(self, folder, out_dir, params)
+            key = genome_key(tech, group, genome)
+            if to_dos:
+                self.outputs['cmds'].setdefault(key, []).append(False)
+            else:
+                self.outputs['cmds'].setdefault(key, []).append(cmd)
+            io_update(self, i_d=folder, o_d=out_dir, key=key)
+            self.soft.add_status(
+                tech, self.sam_pool, 1, group=group, genome=genome)
+        else:
+            self.soft.add_status(
+                tech, self.sam_pool, 0, group=group, genome=genome)
+
+
+def get_eggnog_soft(self):
+    a, s = get_assembly_path(self)
+    for p, h in self.hashes.items():
+        if p[-1] == 'eggnogmapper' and '-'.join(p).startswith(a):
+            eggnog_soft = self.softs['eggnogmapper'][h].outputs[self.sam_pool]
+            return eggnog_soft
+    sys.exit('[carveme] Run "eggnogmapper" to use param `egg` (for "%s")' % s)
+
+
+def get_assembly_path(self):
+    for sdx, s in enumerate(self.soft.path[1:]):
+        if self.config.tools[s] == 'assembling':
+            a = '-'.join(self.soft.path[:sdx+2])
+            return a, s
+    sys.exit('[carveme] No assembly in path: "%s"' % self.soft.path)
+
+
+def carveme(self):
+    """CarveMe is a python-based automated tool used for top-down
+    genome-scale metabolic model reconstruction. It can predict an organism's
+    uptake and secretion capabilities without requiring gap-filling, although
+    gap-filling is also supported. Additionally, CarveMe allows the generation
+    of microbial community models by merging single species models. The tool
+    offers advanced features such as manual adjustment of blasting options,
+    an orthology-based search using eggNOG-mapper (kegg-bigg branch),
+    the ability to provide a custom media library for gap-filling, and the
+    generation of models compatible with various SBML formats. Furthermore,
+    CarveMe supports ensemble modeling, which helps explore how different
+    alternative solutions can lead to diverse network structures and predict
+    various phenotypes. During the model carving process, users can select
+    from provided templates or create their own customized universe model to
+    suit their specific needs.
+
+    References
+    ----------
+    Machado, D., Andrejev, S., Tramontano, M. and Patil, K.R., 2018. Fast
+    automated reconstruction of genome-scale metabolic models for microbial
+    species and communities. Nucleic acids research, 46(15), pp.7542-7553.
+
+    Notes
+    -----
+    GitHub  : https://github.com/cdanielmachado/carveme
+    Docs    : http://carveme.readthedocs.io/
+    Paper   : https://doi.org/10.1093/nar/gky537
+
+    Parameters
+    ----------
+    self
+    """
+
+    if self.sam_pool in self.pools:
+        for (tech, group), inputs in self.inputs[self.sam_pool].items():
+            folders = group_inputs(self, inputs, True)
+            params = tech_params(self, tech)
+            if params['egg']:
+                eggnog_dirs = get_eggnog_soft(self)
+            else:
+                eggnog_dirs = {}
+            get_carveme(self, tech, folders, group, params, eggnog_dirs)
+
+
 def skani(self):
     """skani is a program for calculating average nucleotide identity (ANI)
     from microbial DNA sequences (contigs/MAGs/genomes) for ANI > ~80%.

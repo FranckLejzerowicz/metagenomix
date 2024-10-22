@@ -880,13 +880,13 @@ def mapdamage2_cmd(
         cmd += 'samtools view -S -M -L'
         cmd += ' %s.bed.$SLURM_ARRAY_TASK_ID %s > %s.$SLURM_ARRAY_TASK_ID\n' % (
             contigs, bam, sam)
-        cmd += 'samtools view -H %s > %s.head.$SLURM_ARRAY_TASK_ID' % (bam, rad)
+        cmd += 'samtools view -H %s > %s.h.$SLURM_ARRAY_TASK_ID\n' % (bam, rad)
         cmd += 'cut -f1 %s.bed.$SLURM_ARRAY_TASK_ID | sort | uniq' % contigs
         cmd += ' > %s.refs.$SLURM_ARRAY_TASK_ID\n' % rad
 
         cmd += 'while read -r ref; do grep "@SQ.*SN:${ref}"'
-        cmd += ' %s.head.$SLURM_ARRAY_TASK_ID' % rad
-        cmd += ' >> %s.headfilt.$SLURM_ARRAY_TASK_ID;' % rad
+        cmd += ' %s.h.$SLURM_ARRAY_TASK_ID' % rad
+        cmd += ' >> %s.hf.$SLURM_ARRAY_TASK_ID;' % rad
         cmd += ' done < %s.refs.$SLURM_ARRAY_TASK_ID\n' % rad
 
         cmd += 'samtools index %s.$SLURM_ARRAY_TASK_ID\n' % bam
@@ -941,7 +941,7 @@ def get_mapdamage2(
         bam: str,
         bam_infos: list
 ) -> None:
-    """Get the info and collect the commasnd for mapDamage2.
+    """Get the info and collect the commands for mapDamage2.
 
     Parameters
     ----------
