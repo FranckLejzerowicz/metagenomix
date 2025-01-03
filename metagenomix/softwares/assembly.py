@@ -293,6 +293,8 @@ def spades_cmd(
         cmd += ' --plasmid'
     elif mode == 'metaviral':
         cmd += ' --metaviral'
+    elif mode == 'rna':
+        cmd += ' --rna'
 
     inputs = []
     to_dos = []
