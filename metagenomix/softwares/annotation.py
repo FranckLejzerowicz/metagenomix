@@ -1327,6 +1327,7 @@ def barrnap_cmd(
         cmd += ' --incseq'
     cmd += ' --outseq %s' % out
     cmd += ' %s\n' % fasta
+    cmd += 'gzip -q %s\n' % out
     cmd += cmd_rm
     return cmd
 
@@ -1483,8 +1484,6 @@ def get_barrnap(
         Sample name or name of a co-assembly pool's group
     """
     for genome, fasta in fastas.items():
-
-
         out_dir = genome_out_dir(self, tech, sam_group, genome)
         self.outputs['dirs'].append(out_dir)
 
@@ -1495,7 +1494,7 @@ def get_barrnap(
         to_dos = status_update(
             self, tech, [contigs], group=sam_group, genome=genome)
 
-        if self.config.force or to_do(out):
+        if self.config.force or to_do('%s.gz' % out):
             cmd = barrnap_cmd(self, tech, contigs, out)
             key = genome_key(tech, sam_group, genome)
             if to_dos:
