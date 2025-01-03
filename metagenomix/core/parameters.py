@@ -1083,8 +1083,8 @@ def check_metaxa2(self, params) -> dict:
     check_nums(self, params, defaults, ints, int)
     ints2 = ['R', 'H', 'quality_percent', 'ref_identity', 'r', 'd']
     check_nums(self, params, defaults, ints2, int, 0, 100)
-    check_default(self, params, defaults, (
-        ['databases', 'T', 'allow_single_domain'] + floats + ints + ints2))
+    check_default(self, params, defaults, (floats + ints + ints2 + [
+        'databases', 'T', 'allow_single_domain', 'blast_bin']))
     check_binary(self, params, defaults, 'path')
     defaults['databases'].append('<list of databases>')
     return defaults
