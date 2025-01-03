@@ -2756,7 +2756,7 @@ def metaxa2(self) -> None:
         if tech_specificity(self, inputs, tech, sam):
             continue
         for db in self.soft.params['databases']:
-            outdir = self.dir + '/' + db
+            outdir = '/'.join([self.dir, tech, self.sam_pool, db])
             self.outputs['dirs'].append(outdir)
             rad = outdir + '/' + sam
             out = '%s.redist.taxonomy.summary.txt' % rad
