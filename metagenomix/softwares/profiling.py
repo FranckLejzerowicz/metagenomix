@@ -913,10 +913,10 @@ def woltka_tax(
     tax_to_do = []
     taxa = params['taxa']
     for tdx, taxon in enumerate(taxa):
-        out_dir = '%s/%s.tsv' % (tax_out, taxon)
-        if to_do(out_dir):
+        out_fp = '%s/%s.tsv.gz' % (tax_out, taxon)
+        if to_do(out_fp):
             tax_to_do.append(taxon)
-            io_update(self, o_f=out_dir, key=key)
+            io_update(self, o_f=out_fp, key=key)
             self.soft.add_status(tech, 'all samples', 1, group='taxonomy',
                                  genome=taxon)
         else:
@@ -962,7 +962,8 @@ def woltka_tax(
             cur_cmd += ' --to-tsv'
 
         cur_cmd += ' --outmap %s' % tax_outmap
-        cur_cmd += ' -o %s' % tax_out
+        cur_cmd += ' -o %s\n' % tax_out
+        cur_cmd += 'for i in %s/*; do gzip -q $i; done\n' % tax_out
         self.outputs['cmds'].setdefault(key, []).append(cur_cmd)
         io_update(self, o_d=tax_outmap, key=key)
     else:
@@ -1024,7 +1025,7 @@ def woltka_go(
     go_dir = '%s/go' % out_dir
     io_update(self, o_d=go_dir, key=key)
     for go in gos:
-        cur_out = '%s/%s.tsv' % (go_dir, go)
+        cur_out = '%s/%s.tsv.gz' % (go_dir, go)
         cur_map = '%s/%s.map.xz' % (go_rt, go)
         cmd = '\n# go: %s [no stratification]\n' % go
         cmd += 'woltka classify'
@@ -1036,7 +1037,8 @@ def woltka_go(
         cmd += ' --map %s' % uniref_map
         cmd += ' --to-tsv'
         cmd += ' --map %s' % cur_map
-        cmd += ' -o %s' % cur_out
+        cmd += ' -o %s\n' % cur_out[:-3]
+        cmd += 'gzip %s\n' % cur_out[:-3]
         if to_do(cur_out):
             go_to_do.append(cur_out)
             self.outputs['cmds'].setdefault(key, []).append(cmd)
@@ -1050,7 +1052,7 @@ def woltka_go(
 
     for stratif in taxa:
         for go in gos:
-            go_out = '%s/%s_%s.tsv' % (go_dir, go, stratif)
+            go_out = '%s/%s_%s.tsv.gz' % (go_dir, go, stratif)
             cur_map = '%s/%s.map.xz' % (go_rt, go)
             cmd = '\n# go: %s [%s]\n' % (go, stratif)
             cmd += 'woltka classify'
@@ -1063,7 +1065,8 @@ def woltka_go(
             cmd += ' --map %s' % uniref_map
             cmd += ' --map %s' % cur_map
             cmd += ' --to-tsv'
-            cmd += ' -o %s' % go_out
+            cmd += ' -o %s\n' % go_out[:-3]
+            cmd += 'gzip %s\n' % go_out[:-3]
             if to_do(go_out):
                 go_to_do.append(go_out)
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
@@ -1124,7 +1127,7 @@ def woltka_genes(
     out_dir = '/'.join([self.dir, tech, aligner, pairing])
     genes_out = '%s/genes' % out_dir
     io_update(self, o_d=genes_out, key=key)
-    genes = '%s/genes.biom' % genes_out
+    genes = '%s/genes.biom.gz' % genes_out
     genes_tax = {'': genes}
     genes_to_do = []
     if to_do(genes):
@@ -1133,7 +1136,8 @@ def woltka_genes(
         cmd += 'woltka classify'
         cmd += ' -i %s' % woltka_map
         cmd += ' --coords %s' % coords
-        cmd += ' -o %s' % genes
+        cmd += ' -o %s\n' % genes[:-3]
+        cmd += 'gzip %s\n' % genes[:-3]
         self.outputs['cmds'].setdefault(key, []).append(cmd)
         io_update(self, o_f=genes, key=key)
         self.soft.add_status(tech, 'all samples', 1, group='genes')
@@ -1144,7 +1148,7 @@ def woltka_genes(
 
     taxa = params['taxa']
     for stratif in taxa:
-        genes = '%s/genes_%s.biom' % (genes_out, stratif)
+        genes = '%s/genes_%s.biom.gz' % (genes_out, stratif)
         genes_tax[stratif] = genes
         if to_do(genes):
             genes_to_do.append(genes)
@@ -1153,7 +1157,8 @@ def woltka_genes(
             cmd += ' -i %s' % woltka_map
             cmd += ' --coords %s' % coords
             cmd += ' --stratify %s/%s' % (taxmap, stratif)
-            cmd += ' -o %s' % genes
+            cmd += ' -o %s\n' % genes[:-3]
+            cmd += 'gzip %s\n' % genes[:-3]
             self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, o_f=genes, key=key)
             self.soft.add_status(
@@ -1211,16 +1216,18 @@ def woltka_uniref(
     out_dir = '/'.join([self.dir, tech, aligner, pairing])
     uniref_out = '%s/uniref' % out_dir
     io_update(self, o_d=uniref_out, key=key)
-    uniref = '%s/uniref.biom' % uniref_out
+    uniref = '%s/uniref.biom.gz' % uniref_out
     uniref_tax = {'': uniref}
     if to_do(uniref):
         cmd = '\n# uniref\n'
         cmd += 'echo "%s -> %s"\n' % (basename(genes_tax['']), basename(uniref))
+        cmd += 'gunzip -k %s\n' % genes_tax['']
         cmd += 'woltka tools collapse'
-        cmd += ' --input %s' % genes_tax['']
+        cmd += ' --input %s' % genes_tax[''][:-3]
         cmd += ' --map %s' % uniref_map
         cmd += ' --names %s' % uniref_names
-        cmd += ' --output %s' % uniref
+        cmd += ' --output %s\n' % uniref[:-3]
+        cmd += 'gzip %s\n' % uniref[:-3]
         self.outputs['cmds'].setdefault(key, []).append(cmd)
         io_update(self, o_f=uniref, key=key)
         self.soft.add_status(tech, 'all samples', 1, group='uniref')
@@ -1231,18 +1238,20 @@ def woltka_uniref(
 
     taxa = params['taxa']
     for stratif in taxa:
-        uniref = '%s/uniref_%s.biom' % (uniref_out, stratif)
+        uniref = '%s/uniref_%s.biom.gz' % (uniref_out, stratif)
         uniref_tax[stratif] = uniref
         if to_do(uniref):
             cmd = '\n# uniref [%s]\n' % stratif
             cmd += 'echo "%s -> %s"\n' % (basename(genes_tax[stratif]),
                                           basename(uniref))
+            cmd += 'gunzip -k %s\n' % genes_tax[stratif]
             cmd += 'woltka tools collapse'
-            cmd += ' --input %s' % genes_tax[stratif]
+            cmd += ' --input %s' % genes_tax[stratif][:-3]
             cmd += ' --map %s' % uniref_map
             cmd += ' --names %s' % uniref_names
             cmd += ' --field %s' % params['field']
-            cmd += ' --output %s' % uniref
+            cmd += ' --output %s\n' % uniref[:-3]
+            cmd += 'gzip %s\n' % uniref[:-3]
             self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, o_f=uniref, key=key)
             self.soft.add_status(
@@ -1293,42 +1302,46 @@ def woltka_eggnog(
     out_dir = '/'.join([self.dir, tech, aligner, pairing])
     eggnog_out = '%s/eggnog' % out_dir
     io_update(self, o_d=eggnog_out, key=key)
-    biom = '%s/eggnog.biom' % eggnog_out
+    biom = '%s/eggnog.biom.gz' % eggnog_out
     if to_do(biom):
         cmd = '\n# eggnog [no stratification]\n'
         cmd += 'echo "%s -> %s"\n' % (basename(uniref_tax['']),
                                       basename(biom))
+        cmd += 'gunzip -k %s\n' % uniref_tax['']
         cmd += 'woltka tools collapse'
-        cmd += ' --input %s' % uniref_tax['']
+        cmd += ' --input %s' % uniref_tax[''][:-3]
         cmd += ' --map %s/function/eggnog/eggnog.map.xz' % database
-        cmd += ' --output %s\n\n' % biom
+        cmd += ' --output %s\n' % biom[:-3]
         self.outputs['cmds'].setdefault(key, []).append(cmd)
         io_update(self, o_f=biom, key=key)
         self.soft.add_status(tech, 'all samples', 1, group='eggnog')
     else:
         io_update(self, i_f=biom, key=key)
         self.soft.add_status(tech, 'all samples', 1, group='eggnog')
-    tsv = '%s.tsv' % splitext(biom)[0]
+    tsv = '%s.tsv.gz' % splitext(biom[:-3])[0]
     if to_do(tsv):
-        cmd = 'biom convert -i %s -o %s.tmp --to-tsv\n' % (biom, tsv)
-        cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
-        cmd += 'rm %s.tmp\n' % tsv
+        cmd = 'biom convert -i %s -o %s.tmp --to-tsv\n' % (biom[:-3], tsv[:-3])
+        cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv[:-3], tsv[:-3])
+        cmd += 'rm %s.tmp\n' % tsv[:-3]
+        cmd += 'gzip %s\n' % tsv[:-3]
+        cmd += 'gzip %s\n' % biom[:-3]
         self.outputs['cmds'].setdefault(key, []).append(cmd)
         io_update(self, o_f=tsv, key=key)
     # self.outputs['outs'].setdefault(key, []).extend([tsv, biom])
 
     taxa = params['taxa']
     for stratif in taxa:
-        biom = '%s/eggnog_%s.biom' % (eggnog_out, stratif)
+        biom = '%s/eggnog_%s.biom.gz' % (eggnog_out, stratif)
         if to_do(biom):
             cmd = '\n# eggnog [%s]\n' % stratif
             cmd += 'echo "%s -> %s"\n' % (basename(uniref_tax[stratif]),
                                           basename(biom))
+            cmd += 'gunzip -k %s\n' % uniref_tax[stratif]
             cmd += 'woltka tools collapse'
-            cmd += ' --input %s' % uniref_tax[stratif]
+            cmd += ' --input %s' % uniref_tax[stratif][:-3]
             cmd += ' --map %s/function/eggnog/eggnog.map.xz' % database
             cmd += ' --field %s' % params['field']
-            cmd += ' --output %s\n\n' % biom
+            cmd += ' --output %s\n\n' % biom[:-3]
             self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, o_f=biom, key=key)
             self.soft.add_status(
@@ -1338,11 +1351,14 @@ def woltka_eggnog(
             self.soft.add_status(
                 tech, 'all samples', 1, group='eggnog (%s)' % stratif)
 
-        tsv = '%s.tsv' % splitext(biom)[0]
+        tsv = '%s.tsv.gz' % splitext(biom[:-3])[0]
         if to_do(tsv):
-            cmd = 'biom convert -i %s -o %s.tmp --to-tsv\n' % (biom, tsv)
-            cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
-            cmd += 'rm %s.tmp\n' % tsv
+            cmd = 'biom convert -i %s -o %s.tmp --to-tsv\n' % (biom[:-3],
+                                                               tsv[:-3])
+            cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv[:-3], tsv[:-3])
+            cmd += 'rm %s.tmp\n' % tsv[:-3]
+            cmd += 'gzip %s\n' % tsv[:-3]
+            cmd += 'gzip %s\n' % biom[:-3]
             self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, o_f=tsv, key=key)
         # self.outputs['outs'].setdefault(key, []).extend([tsv, biom])
@@ -1389,25 +1405,28 @@ def woltka_cazy(
     out_dir = '/'.join([self.dir, tech, aligner, pairing])
     cazy_out = '%s/cazy' % out_dir
     io_update(self, o_d=cazy_out, key=key)
-    biom = '%s/cazy.biom' % cazy_out
+    biom = '%s/cazy.biom.gz' % cazy_out
     if to_do(biom):
         cmd = '\n# cazy\n'
         cmd += 'echo "%s -> %s"\n' % (basename(genes), basename(biom))
+        cmd += 'gunzip -k %s\n' % genes
         cmd += 'woltka tools collapse'
-        cmd += ' --input %s' % genes
+        cmd += ' --input %s' % genes[:-3]
         cmd += ' --map %s' % cazy_map
-        cmd += ' --output %s\n\n' % biom
+        cmd += ' --output %s\n\n' % biom[:-3]
         self.outputs['cmds'].setdefault(key, []).append(cmd)
         io_update(self, o_f=biom, key=key)
         self.soft.add_status(tech, 'all samples', 1, group='cazy')
     else:
         io_update(self, i_f=biom, key=key)
         self.soft.add_status(tech, 'all samples', 1, group='cazy')
-    tsv = '%s.tsv' % splitext(biom)[0]
+    tsv = '%s.tsv.gz' % splitext(biom[:-3])[0]
     if to_do(tsv):
-        cmd = 'biom convert -i %s -o %s.tmp --to-tsv\n' % (biom, tsv)
-        cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
-        cmd += 'rm %s.tmp\n' % tsv
+        cmd = 'biom convert -i %s -o %s.tmp --to-tsv\n' % (biom[:-3], tsv[:-3])
+        cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv[:-3], tsv[:-3])
+        cmd += 'rm %s.tmp\n' % tsv[:-3]
+        cmd += 'gzip %s\n' % tsv[:-3]
+        cmd += 'gzip %s\n' % biom[:-3]
         self.outputs['cmds'].setdefault(key, []).append(cmd)
         io_update(self, o_f=tsv, key=key)
     # self.outputs['outs'].setdefault(key, []).extend([biom, tsv])
@@ -1415,16 +1434,17 @@ def woltka_cazy(
     taxa = params['taxa']
     for stratif in taxa:
         cazy_map = '%s/function/cazy/3tools.txt' % database
-        biom = '%s/cazy_%s.biom' % (cazy_out, stratif)
+        biom = '%s/cazy_%s.biom.gz' % (cazy_out, stratif)
         if to_do(biom):
             cmd = '\n# cazy [%s]\n' % stratif
             cmd += 'echo "%s -> %s"\n' % (basename(genes_tax[stratif]),
                                           basename(biom))
+            cmd += 'gunzip -k %s\n' % genes_tax[stratif]
             cmd += 'woltka tools collapse'
-            cmd += ' --input %s' % genes_tax[stratif]
+            cmd += ' --input %s' % genes_tax[stratif][:-3]
             cmd += ' --map %s' % cazy_map
             cmd += ' --field %s' % params['field']
-            cmd += ' --output %s\n\n' % biom
+            cmd += ' --output %s\n\n' % biom[:-3]
             self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, o_f=biom, key=key)
             self.soft.add_status(
@@ -1433,11 +1453,14 @@ def woltka_cazy(
             io_update(self, i_f=biom, key=key)
             self.soft.add_status(
                 tech, 'all samples', 1, group='cazy (%s)' % stratif)
-        tsv = '%s.tsv' % splitext(biom)[0]
+        tsv = '%s.tsv.gz' % splitext(biom[:-3])[0]
         if to_do(tsv):
-            cmd = 'biom convert -i %s -o %s.tmp --to-tsv\n' % (biom, tsv)
-            cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
-            cmd += 'rm %s.tmp\n' % tsv
+            cmd = 'biom convert -i %s -o %s.tmp --to-tsv\n' % (biom[:-3],
+                                                               tsv[:-3])
+            cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv[:-3], tsv[:-3])
+            cmd += 'rm %s.tmp\n' % tsv[:-3]
+            cmd += 'gzip %s\n' % tsv[:-3]
+            cmd += 'gzip %s\n' % biom[:-3]
             self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, o_f=tsv, key=key)
         # self.outputs['outs'].setdefault(key, []).extend([biom, tsv])
@@ -1497,18 +1520,19 @@ def woltka_metacyc(
             input_biom = files[maps.split('-to-')[0]]
         else:
             input_biom = genes_tax['']
-        biom = '%s/%s.biom' % (woltka_fun_out, level)
-        tsv = '%s.tsv' % splitext(biom)[0]
+        biom = '%s/%s.biom.gz' % (woltka_fun_out, level)
+        tsv = '%s.tsv.gz' % splitext(biom[:-3])[0]
         if to_do(biom):
             cmd += '\n# metacyc: %s [no stratification]\n' % level
             cmd += 'echo "%s -> %s"\n' % (basename(input_biom),
                                           basename(biom))
+            cmd += 'gunzip -k %s\n' % input_biom
             cmd += 'woltka tools collapse'
             cmd += ' --input %s' % input_biom
             if names:
                 cmd += ' --names %s/%s' % (metacyc_dir, names)
             cmd += ' --map %s/%s' % (metacyc_dir, maps)
-            cmd += ' --output %s\n' % biom
+            cmd += ' --output %s\n' % biom[:-3]
             io_update(self, o_f=biom, key=key)
             self.soft.add_status(tech, 'all samples', 1,
                                  group='metacyc', genome=level)
@@ -1516,14 +1540,15 @@ def woltka_metacyc(
             io_update(self, i_f=biom, key=key)
             self.soft.add_status(tech, 'all samples', 0,
                                  group='metacyc', genome=level)
-
         if to_do(tsv):
             cmd += 'biom convert'
-            cmd += ' -i %s' % biom
-            cmd += ' -o %s.tmp' % tsv
+            cmd += ' -i %s' % biom[:-3]
+            cmd += ' -o %s.tmp' % tsv[:-3]
             cmd += ' --to-tsv\n'
-            cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
-            cmd += 'rm %s.tmp\n' % tsv
+            cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv[:-3], tsv[:-3])
+            cmd += 'rm %s.tmp\n' % tsv[:-3]
+            cmd += 'gzip %s\n' % biom[:-3]
+            cmd += 'gzip %s\n' % tsv[:-3]
             io_update(self, o_f=tsv, key=key)
         else:
             io_update(self, i_f=tsv, key=key)
@@ -1537,19 +1562,20 @@ def woltka_metacyc(
                 input_biom = files_tax[stratif][maps.split('-to-')[0]]
             else:
                 input_biom = genes_tax[stratif]
-            biom = '%s/%s_%s.biom' % (woltka_fun_out, level, stratif)
-            tsv = '%s.tsv' % splitext(biom)[0]
+            biom = '%s/%s_%s.biom.gz' % (woltka_fun_out, level, stratif)
+            tsv = '%s.tsv.gz' % splitext(biom[:-3])[0]
             if to_do(biom):
                 cmd += '\n# metacyc: %s [%s]\n' % (level, stratif)
                 cmd += 'echo "%s -> %s"\n' % (basename(input_biom),
                                               basename(biom))
+                cmd += 'gunzip -k %s\n' % input_biom
                 cmd += 'woltka tools collapse'
-                cmd += ' --input %s' % input_biom
+                cmd += ' --input %s' % input_biom[:-3]
                 if names:
                     cmd += ' --names %s/%s' % (metacyc_dir, names)
                 cmd += ' --field %s' % params['field']
                 cmd += ' --map %s/%s' % (metacyc_dir, maps)
-                cmd += ' --output %s\n' % biom
+                cmd += ' --output %s\n' % biom[:-3]
                 io_update(self, o_f=biom, key=key)
                 self.soft.add_status(tech, 'all samples', 1,
                                      group='metacyc (%s)' % stratif,
@@ -1561,11 +1587,13 @@ def woltka_metacyc(
                                      genome=level)
             if to_do(tsv):
                 cmd += 'biom convert'
-                cmd += ' -i %s' % biom
-                cmd += ' -o %s.tmp' % tsv
+                cmd += ' -i %s' % biom[:-3]
+                cmd += ' -o %s.tmp' % tsv[:-3]
                 cmd += ' --to-tsv\n'
-                cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
-                cmd += 'rm %s.tmp\n' % tsv
+                cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv[:-3], tsv[:-3])
+                cmd += 'rm %s.tmp\n' % tsv[:-3]
+                cmd += 'gzip %s\n' % tsv[:-3]
+                cmd += 'gzip %s\n' % biom[:-3]
                 io_update(self, o_f=tsv, key=key)
             else:
                 io_update(self, i_f=tsv, key=key)
@@ -1658,20 +1686,20 @@ def woltka_kegg(
     queried = len(glob.glob('%s/*' % kegg_maps_local))
     for (level, name, maps, prev) in ko_names_maps:
         if maps:
-            biom = '%s/%s.biom' % (kegg_out, level)
-            tsv = '%s.tsv' % splitext(biom)[0]
+            biom = '%s/%s.biom.gz' % (kegg_out, level)
+            tsv = '%s.tsv.gz' % splitext(biom[:-3])[0]
             tsv_ = str(tsv)
             if not prev:
-
                 if to_do(biom):
                     cmd = '\n# kegg: %s [no stratification]\n' % name
                     cmd += 'echo "%s -> %s"\n' % (basename(uniref_tax['']),
                                                   basename(biom))
+                    cmd += 'gunzip -k %s\n' % uniref_tax['']
                     cmd += 'woltka tools collapse'
-                    cmd += ' --input %s' % uniref_tax['']
+                    cmd += ' --input %s' % uniref_tax[''][:-3]
                     cmd += ' --names %s/function/kegg/%s' % (database, name)
                     cmd += ' --map %s/function/kegg/%s' % (database, maps)
-                    cmd += ' --output %s\n' % biom
+                    cmd += ' --output %s\n' % biom[:-3]
                     self.outputs['cmds'].setdefault(key, []).append(cmd)
                     io_update(self, o_f=biom, key=key)
                     self.soft.add_status(tech, 'all samples', 1,
@@ -1681,10 +1709,12 @@ def woltka_kegg(
                     self.soft.add_status(tech, 'all samples', 0,
                                          group='kegg', genome=level)
                 if to_do(tsv):
-                    cmd = 'biom convert -i %s' % biom
-                    cmd += ' -o %s.tmp --to-tsv\n' % tsv
-                    cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
-                    cmd += 'rm %s.tmp\n' % tsv
+                    cmd = 'biom convert -i %s' % biom[:-3]
+                    cmd += ' -o %s.tmp --to-tsv\n' % tsv[:-3]
+                    cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv[:-3], tsv[:-3])
+                    cmd += 'rm %s.tmp\n' % tsv[:-3]
+                    cmd += 'gzip %s\n' % biom[:-3]
+                    cmd += 'gzip %s\n' % tsv[:-3]
                     self.outputs['cmds'].setdefault(key, []).append(cmd)
                     io_update(self, o_f=tsv, key=key)
                 else:
@@ -1692,13 +1722,14 @@ def woltka_kegg(
 
             elif queried > 1:
                 io_update(self, i_d=kegg_maps, key=key)
-                input_biom = '%s/%s.biom' % (kegg_out, prev)
+                input_biom = '%s/%s.biom.gz' % (kegg_out, prev)
                 if to_do(biom):
                     cmd = '\n# kegg: %s [no stratification]\n' % name
                     cmd += 'echo "%s -> %s"\n' % (basename(input_biom),
                                                   basename(biom))
+                    cmd += 'gunzip -k %s\n' % input_biom
                     cmd += 'woltka tools collapse'
-                    cmd += ' --input %s' % input_biom
+                    cmd += ' --input %s' % input_biom[:-3]
                     if name:
                         cmd += ' --names %s/%s' % (kegg_maps, name)
                     cmd += ' --map %s/%s' % (kegg_maps, maps)
@@ -1716,6 +1747,8 @@ def woltka_kegg(
                     cmd += ' -o %s.tmp --to-tsv\n' % tsv
                     cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
                     cmd += 'rm %s.tmp\n\n' % tsv
+                    cmd += 'gzip %s\n' % biom[:-3]
+                    cmd += 'gzip %s\n' % tsv[:-3]
                     self.outputs['cmds'].setdefault(key, []).append(cmd)
                     io_update(self, o_f=tsv, key=key)
                 else:
@@ -1723,19 +1756,20 @@ def woltka_kegg(
 
             taxa = params['taxa']
             for stratif in taxa:
-                biom = '%s/%s_%s.biom' % (kegg_out, level, stratif)
-                tsv = '%s.tsv' % splitext(biom)[0]
+                biom = '%s/%s_%s.biom.gz' % (kegg_out, level, stratif)
+                tsv = '%s.tsv.gz' % splitext(biom[:-3])[0]
                 if not prev:
                     if to_do(biom):
                         cmd = '\n# kegg: %s [%s]\n' % (name, stratif)
                         cmd += 'echo "%s -> %s"\n' % (
                             basename(uniref_tax[stratif]), basename(biom))
+                        cmd += 'gunzip -k %s\n' % uniref_tax[stratif]
                         cmd += 'woltka tools collapse'
-                        cmd += ' --input %s' % uniref_tax[stratif]
+                        cmd += ' --input %s' % uniref_tax[stratif][:-3]
                         cmd += ' --names %s/function/kegg/%s' % (database, name)
                         cmd += ' --map %s/function/kegg/%s' % (database, maps)
                         cmd += ' --field %s' % params['field']
-                        cmd += ' --output %s\n' % biom
+                        cmd += ' --output %s\n' % biom[:-3]
                         self.outputs['cmds'].setdefault(key, []).append(cmd)
                         io_update(self, o_f=biom, key=key)
                         self.soft.add_status(tech, 'all samples', 1,
@@ -1747,10 +1781,12 @@ def woltka_kegg(
                                              group='kegg (%s)' % stratif,
                                              genome=level)
                     if to_do(tsv):
-                        cmd = 'biom convert -i %s' % biom
-                        cmd += ' -o %s.tmp --to-tsv\n' % tsv
-                        cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
-                        cmd += ' rm %s.tmp\n' % tsv
+                        cmd = 'biom convert -i %s' % biom[:-3]
+                        cmd += ' -o %s.tmp --to-tsv\n' % tsv[:-3]
+                        cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv[:-3], tsv[:-3])
+                        cmd += ' rm %s.tmp\n' % tsv[:-3]
+                        cmd += 'gzip %s\n' % biom[:-3]
+                        cmd += 'gzip %s\n' % tsv[:-3]
                         self.outputs['cmds'].setdefault(key, []).append(cmd)
                         io_update(self, o_f=tsv, key=key)
                     else:
@@ -1758,18 +1794,19 @@ def woltka_kegg(
 
                 elif queried > 1:
                     io_update(self, i_d=kegg_maps, key=key)
-                    input_biom = '%s/%s_%s.biom' % (kegg_out, prev, stratif)
+                    input_biom = '%s/%s_%s.biom.gz' % (kegg_out, prev, stratif)
                     if to_do(biom):
                         cmd = '\n# kegg: %s [%s]\n' % (name, stratif)
                         cmd += 'echo "%s -> %s"\n' % (basename(input_biom),
                                                       basename(biom))
+                        cmd += 'gunzip -k %s\n' % input_biom
                         cmd += 'woltka tools collapse'
-                        cmd += ' --input %s' % input_biom
+                        cmd += ' --input %s' % input_biom[:-3]
                         if name:
                             cmd += ' --names %s/%s' % (kegg_maps, name)
                         cmd += ' --map %s/%s' % (kegg_maps, maps)
                         cmd += ' --field %s' % params['field']
-                        cmd += ' --output %s\n' % biom
+                        cmd += ' --output %s\n' % biom[:-3]
                         self.outputs['cmds'].setdefault(key, []).append(cmd)
                         io_update(self, o_f=biom, key=key)
                         self.soft.add_status(tech, 'all samples', 1,
@@ -1781,10 +1818,12 @@ def woltka_kegg(
                                              group='kegg (%s)' % stratif,
                                              genome=level)
                     if to_do(tsv):
-                        cmd = 'biom convert -i %s' % biom
-                        cmd += ' -o %s.tmp --to-tsv\n' % tsv
-                        cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
-                        cmd += 'rm %s.tmp\n\n' % tsv
+                        cmd = 'biom convert -i %s' % biom[:-3]
+                        cmd += ' -o %s.tmp --to-tsv\n' % tsv[:-3]
+                        cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv[:-3], tsv[:-3])
+                        cmd += 'rm %s.tmp\n\n' % tsv[:-3]
+                        cmd += 'gzip %s\n' % biom[:-3]
+                        cmd += 'gzip %s\n' % tsv[:-3]
                         self.outputs['cmds'].setdefault(key, []).append(cmd)
                         io_update(self, o_f=tsv, key=key)
                     else:
@@ -2543,7 +2582,6 @@ def bracken(self) -> None:
         for (db, k2) in inputs:
             report = '%s/report.tsv.gz' % k2
             to_dos = status_update(self, tech, [report])
-
             db_path = get_bracken_db(self, db)
             out = '/'.join([self.dir, tech, self.sam_pool, db])
             self.outputs['dirs'].append(out)
@@ -2560,53 +2598,125 @@ def bracken(self) -> None:
                 self.soft.add_status(tech, sam, 0, group=(db + ' / ' + k2))
 
 
-def get_metaxa2_db(
+def metaxa2_cmd(
         self,
-        db: str
-) -> None:
-    """Get the path the Metaxa2 database passed by the user.
-
-    Notes
-    -----
-    If the database is not valid, the pipeline will stop with a useful hint.
+        tech: str,
+        rad: str,
+        db: str,
+        inputs: list,
+        db_dir: str
+) -> str:
+    """Collect command for Bracken.
 
     Parameters
     ----------
     self : Commands class instance
-        .dir : str
-            Path to pipeline output folder for Metaxa2
-        .sam : str
-            Sample name
-        .inputs : dict
-            Input files
-        .outputs : dict
-            All outputs
         .soft.params
             Parameters
-        .databases
-            All databases class instance
-        .config
-            Configurations
+    tech: str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    rad : str
+        Base for the file names of the output files
     db : str
-        Name of the Metaxa2 database
+        Name of the metaxa2 database
+    inputs : list
+        Paths to the fastq input file
+    db_dir : str
+        Path to the output folder
 
     Returns
     -------
-    str
-        Path to the Metaxa2 database
+    cmd : str
+        Bracken command
     """
-    if db == 'default':
-        return self.databases.paths.get('metaxa2', {})
-    elif db in self.databases.paths:
-        for path in ['', '/databases']:
-            db_path = '%s%s/metaxa2' % (self.databases.paths[db], path)
-            if self.config.dev:
-                return db_path
-            if not isfile('%s/hash.k2d' % db_path):
-                nested = glob.glob('%s/*/hash.k2d' % db_path)
-                if nested:
-                    return dirname(nested[0])
-    sys.exit('[metaxa2] Database not found: %s' % db)
+    params = tech_params(self, tech)
+    cmd = 'PATH=$PATH:%s\n' % params['path']
+    cmd += 'export PATH\n'
+
+    cmd += 'metaxa2'
+    for idx, fastq in enumerate(inputs):
+        cmd += ' -%s %s' % ((idx + 1), fastq)
+    cmd += ' -o %s' % rad
+    cmd += ' -p %s/%s/HMMs' % (self.databases.paths['metaxa2'], db)
+    cmd += ' -d %s/%s' % (self.databases.paths['metaxa2'], db)
+    cmd += ' --cpu %s' % params['cpus']
+    if params['cpus'] > 1 and params['multi_thread']:
+        cmd += ' --multi_thread T'
+
+    is_fastq = False
+    if fastq.endswith('fastq') or fastq.endswith('fastq.gz'):
+        is_fastq = True
+        if idx:
+            cmd += ' -f paired-end'
+        else:
+            cmd += ' -f fastq'
+    else:
+        if idx:
+            cmd += ' -f paired-fasta'
+        else:
+            cmd += ' -f fasta'
+
+    booleans = [
+        'date', 'plus', 'fasta', 'table', 'reltax', 'silent', 'summary',
+        'save_raw', 'truncate', 'taxonomy', 'not_found',  'graphical', 'ublast',
+        'megablast', 'heuristics', 'complement', 'split_pairs', 'guess_species',
+        'allow_reorder', 's', 'remove_na', 'lists', 'separate', 'unknown']
+    for boolean in booleans:
+        if params[boolean]:
+            cmd += ' --%s T' % boolean
+        else:
+            cmd += ' --%s F' % boolean
+
+    if params['search_eval'] is not None:
+        cmd += ' --search_eval %s' % params['search_eval']
+    else:
+        cmd += ' --search_score %s' % params['search_score']
+
+    if params['blast_score'] is not None:
+        cmd += ' --blast_score %s' % params['blast_score']
+    else:
+        cmd += ' --blast_eval %s' % params['blast_eval']
+
+    ps = ['g', 'mode', 't', 'E', 'S', 'N', 'M', 'R', 'T', 'H',
+          'selection_priority', 'scoring_model', 'blast_wordsize',
+          'allow_single_domain', 'allow_reorder', 'complement', 'multi_thread',
+          'heuristics', 'megablast', 'taxlevel', 'align', 'graph_scale']
+    for p in ps:
+        cmd += ' --%s %s' % (p, params[p])
+
+    if params['usearch']:
+        cmd += ' --usearch %s' % params['usearch']
+        if params['usearch_bin'] is not None:
+            cmd += ' --usearch_bin %s' % params['usearch_bin']
+
+    if is_fastq:
+        for boolean in ['quality_filter', 'quality_trim', 'ignore_paired_read']:
+            if params[boolean]:
+                cmd += ' --%s T' % boolean
+            else:
+                cmd += ' --%s F' % boolean
+        for p in ['q', 'quality_percent', 'distance']:
+            cmd += ' --%s %s' % (p, params[p])
+
+    if params['reference']:
+        cmd += ' --reference %s' % params['reference']
+        cmd += ' --ref_identity %s' % params['ref_identity']
+    cmd += '\n'
+
+    cmd += '\nmetaxa2_ttt'
+    cmd += ' -i %s.taxonomy.txt' % rad
+    cmd += ' -o %s.taxonomy.redist.txt' % rad
+    for p in ['t', 'r', 'l', 'd', 'm', 'n']:
+        cmd += ' --%s %s' % (p, params[p])
+    for boolean in ['s', 'remove_na', 'lists', 'separate', 'unknown']:
+        if params[boolean]:
+            cmd += ' --%s T' % boolean
+        else:
+            cmd += ' --%s F' % boolean
+    cmd += '\n'
+
+    cmd += 'for i in %s*; do gzip $i; done\n' % rad
+    return cmd
 
 
 def metaxa2(self) -> None:
@@ -2645,74 +2755,25 @@ def metaxa2(self) -> None:
     for (tech, sam), inputs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, inputs, tech, sam):
             continue
-        if self.soft.prev == 'kneaddata':
-            split_term = '_1.fastq'
-        else:
-            split_term = '_R1.fastq'
+        for db in self.soft.params['databases']:
+            outdir = self.dir + '/' + db
+            self.outputs['dirs'].append(outdir)
+            rad = outdir + '/' + sam
+            out = '%s.redist.taxonomy.summary.txt' % rad
+            to_dos = status_update(self, tech, inputs)
+            self.outputs['outs'].setdefault((tech, sam), []).append(outdir)
 
-        params = tech_params(self, tech)
-        for db in params['databases']:
-            db_path = get_metaxa2_db(self, db)
-
-    for db, db_path in self.databases.paths['metaxa2'].items():
-        dir_db = self.dir + '/' + db
-        self.outputs['dirs'].append(dir_db)
-        rad = dir_db + '/' + fas
-        summary = '%s.summary.txt' % rad
-        taxonomy = '%s.taxonomy.txt' % rad
-        reltax = '%s.reltax.txt' % rad
-        cmd = ''
-        key = genome_key(tech, sam, db)
-        if self.config.force or to_do(summary):
-            cmd += 'metaxa2'
-            for idx, fastq in enumerate(self.inputs[self.sam_pool]):
-                cmd += ' -%s %s' % ((idx + 1), fastq)
-            cmd += ' -o %s' % rad
-            if db_path:
-                cmd += ' -p %s/HMMs' % db_path
-                cmd += ' -d %s/blast' % db_path
-            if idx:
-                if fastq.endswith('fasta'):
-                    cmd += ' -f paired-fasta'
+            key = genome_key(tech, sam, db)
+            if self.config.force or to_do(out):
+                cmd = metaxa2_cmd(self, tech, rad, db, inputs, outdir)
+                if to_dos:
+                    self.outputs['cmds'].setdefault(key, []).append(False)
                 else:
-                    cmd += ' -f paired-end'
+                    self.outputs['cmds'].setdefault(key, []).append(cmd)
+                io_update(self, i_f=inputs, o_d=outdir, key=key)
+                self.soft.add_status(tech, sam, 1, group=db)
             else:
-                if fastq.endswith('fasta'):
-                    cmd += ' -f fasta'
-                else:
-                    cmd += ' -f fastq'
-            if fastq.endswith('gz'):
-                cmd += ' -z gzip'
-            cmd += ' --megablast %s' % self.soft.params['megablast']
-            cmd += ' --align %s' % self.soft.params['align']
-            cmd += ' --mode %s' % self.soft.params['mode']
-            cmd += ' --plus %s' % self.soft.params['plus']
-            cmd += ' --cpu %s' % self.soft.params['cpus']
-            if self.soft.params['graphical']:
-                cmd += ' --graphical'
-            if self.soft.params['reltax']:
-                cmd += ' --reltax'
-            if db == 'wol_ssu_g':
-                cmd += ' --taxlevel 8'
-            else:
-                cmd += ' --taxlevel 7'
-            cmd += '\n'
-            io_update(self, o_d=dir_db, key=key)
-        else:
-            io_update(self, i_f=taxonomy, key=key)
-        redist_rad = '%s.redist' % rad
-        redist_tax = '%s.taxonomy.summary.txt' % redist_rad
-        if self.config.force or to_do(redist_tax):
-            cmd += '\nmetaxa2_ttt'
-            cmd += ' -i %s' % taxonomy
-            cmd += ' -o %s' % redist_rad
-            cmd += ' -r 0.8'
-            cmd += ' -d 0.7'
-            io_update(self, o_f=redist_tax, key=key)
-        if cmd:
-            self.outputs['cmds'].setdfault(key, []).append(cmd)
-        self.outputs['outs'].setdefault((tech, self.sam_pool), []).extend(
-            [summary, taxonomy, reltax, redist_tax])
+                self.soft.add_status(tech, sam, 0, group=db)
 
 
 def phyloflash(self):
