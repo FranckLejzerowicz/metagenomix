@@ -2642,7 +2642,8 @@ def metaxa2_cmd(
     cmd += ' --cpu %s' % params['cpus']
     if params['cpus'] > 1 and params['multi_thread']:
         cmd += ' --multi_thread T'
-
+    if params['blast_bin'] is not None:
+        cmd += ' --blast_bin %s' % params['blast_bin']
     is_fastq = False
     if fastq.endswith('fastq') or fastq.endswith('fastq.gz'):
         is_fastq = True

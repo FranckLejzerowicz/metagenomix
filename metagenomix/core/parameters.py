@@ -1018,6 +1018,7 @@ def check_metaxa2(self, params) -> dict:
         'blast_eval': 1e-5,
         'blast_score': [None],
         'blast_wordsize': 14,
+        'blast_bin': [None],
         'allow_single_domain': '1e-10,0',
         'allow_reorder': [True, False],
         'complement': [True, False],
