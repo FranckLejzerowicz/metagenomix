@@ -1374,8 +1374,10 @@ def get_mobmess_inputs(
             key = (tech, pool)
             if key not in inputs:
                 inputs[key] = {}
-            if previous in ['annotation (plasmid)', 'assembling']:
+            if previous in ['assembling']:
                 inputs[key].setdefault('', {}).update({(tech, group): paths[0]})
+            elif previous in ['annotation (plasmid)']:
+                inputs[key].setdefault('', {}).update({(tech, group): paths})
             else:
                 for ge, path in paths.items():
                     inputs[key].setdefault(ge, {}).update({(tech, group): path})
