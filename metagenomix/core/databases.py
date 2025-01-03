@@ -239,9 +239,7 @@ class ReferenceDatabases(object):
         self.show_exit(missing)
 
     def set_metaxa2(self):
-        dbs = ['SSU', 'LSU', 'SSU_SILVA128', 'SSU_SILVA123.1',
-               'SSU_Typestrains', 'ATP9-NAD9', 'COI', 'cpn60', 'EF1_alpha',
-               'ITS2', 'matK', 'rbcL', 'rpb1', 'rpb2', 'trnH', 'trnL']
+        dbs = self.config.params_dbs['metaxa2']
         for db in dbs:
             if isdir('%s/%s' % (self.fdir, db)):
                 exp_files = ['%s/blast.cutoffs.txt' % db, '%s/blast.nhr' % db,
