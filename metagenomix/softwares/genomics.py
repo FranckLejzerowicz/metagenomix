@@ -635,6 +635,7 @@ def analyze_cmd(
     stor_dir = '%s/storage' % analyze_dir
     cmd += 'tar cpfz %s/aai_qa.tar.gz -C %s aai_qa\n' % (stor_dir, stor_dir)
     cmd += 'rm -rf %s/aai_qa\n' % stor_dir
+    cmd += 'for i in %s/bins/*/*; do gzip -q $i; done\n' % analyze_dir
     return cmd
 
 
@@ -1726,6 +1727,8 @@ def checkm2_cmd(
                     'genes', 'force', 'dbg_cos', 'dbg_vectors']:
         if self.soft.params[boolean]:
             cmd += ' --%s' % boolean
+    cmd += 'gzip %s/quality_report.tsv\n' % out_dir
+    cmd += 'rm -rf %s/protein_files\n' % out_dir
     return cmd
 
 
@@ -1772,7 +1775,7 @@ def get_checkm2(
                                genome=genome, folder=True)
 
         out = '%s/quality_report.tsv' % out_dir
-        if self.config.force or to_do(out):
+        if self.config.force or to_do('%s.gz' % out):
             cmd = checkm2_cmd(self, folder, out_dir)
             key = genome_key(tech, group, genome)
             if to_dos:
