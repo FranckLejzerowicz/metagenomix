@@ -2632,7 +2632,7 @@ def metaxa2_cmd(
     params = tech_params(self, tech)
     cmd = 'PATH=$PATH:%s\n' % params['path']
     if params['blast_bin'] is not None:
-        cmd += 'PATH=$PATH:%s\n' % params['pablast_binth']
+        cmd += 'PATH=$PATH:%s\n' % params['blast_bin']
     cmd += 'export PATH\n'
 
     cmd += 'metaxa2'
