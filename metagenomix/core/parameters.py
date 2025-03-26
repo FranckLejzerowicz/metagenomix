@@ -839,7 +839,7 @@ def check_filtering(self, params):
 
     aligner = params['aligner']
     for db in params["databases"]:
-        if self.config.dev:
+        if self.config.dev or self.config.workshop:
             continue
         if aligner == 'bowtie2':
             if db not in self.databases.paths:
