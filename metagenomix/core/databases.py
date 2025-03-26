@@ -239,7 +239,7 @@ class ReferenceDatabases(object):
         self.show_exit(missing)
 
     def set_metaxa2(self):
-        dbs = self.config.params_dbs['metaxa2']
+        dbs = self.config.params_dbs.get('metaxa2', [])
         for db in dbs:
             if isdir('%s/%s' % (self.fdir, db)):
                 exp_files = ['%s/blast.cutoffs.txt' % db, '%s/blast.nhr' % db,
