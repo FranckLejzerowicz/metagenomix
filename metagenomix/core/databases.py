@@ -119,8 +119,8 @@ class ReferenceDatabases(object):
                     len(missing_dbs), self.config.databases_yml))
             for ddx, db in enumerate(sorted(missing_dbs)):
                 log.info('[databases]  - %s\t: %s' % (ddx, db))
-        if self.config.workshop:
-            log.info('[databases] - BUT THIS IS LIKELY OK (--workshop mode) - ')
+            if self.config.workshop:
+                log.info('[databases] BUT THIS IS LIKELY OK (--workshop mode)')
 
     def get_length(self):
         for db, path in sorted(self.config.databases.items()):
@@ -146,7 +146,7 @@ class ReferenceDatabases(object):
             self.set_database()
         else:
             # if the path of a database is not found, it will be ignored
-            if exists(self.path):
+            if exists(self.path) or self.config.workshop:
                 self.set_database()
             else:
                 print('  - %s: "%s" not found (ignored)' % (self.db, self.path))
