@@ -1,0 +1,22 @@
+# -------------------- Follow the format examples below -------------------- #
+#software_name: module_name                                                  #
+#  "module_name" should be as appears in the list returned by `module avail` #
+# -------------------------------------------------------------------------- #
+fastqc:
+- FastQC/0.11.9-Java-11
+fastp:
+- fastp/0.23.2-GCC-11.2.0
+cutadapt:
+- cutadapt/3.5-GCCcore-11.2.0
+flash:
+- FLASH/1.2.11-foss-2019b
+megahit:
+- MEGAHIT/1.2.9-GCCcore-11.3.0
+prodigal:
+- prodigal/2.6.3-GCCcore-11.2.0
+eggnogmapper:
+- SeqKit/2.3.1
+filtering:
+- SAMtools/1.10-GCC-9.3.0
+- BEDTools/2.29.2-GCC-9.3.0
+- Bowtie2/2.4.1-GCC-9.3.0

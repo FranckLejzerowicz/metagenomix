@@ -1,0 +1,41 @@
+# quality checking? yeah!
+fastqc
+
+## filter the raw data
+# for quality
+fastp
+# count reads per sample
+fastp count
+
+# to remove sequences matching a database
+# (see params.yml to tell which database)
+# (see databases.yml to tell where they are)
+fastp filtering
+
+
+# rapid beta diversity distances on samples kmers
+fastp simka
+
+
+# paired-reads merging 
+fastp flash
+
+# rapid taxonomy profiling using kmers
+fastp kraken2
+kraken2 bracken
+
+## FROM HERE: RUN WILL BE PER CO-ASSEMBLY
+# ------------ start pooling ------------
+# mandatory "step" to start assembly workflow
+# it pools samples reads accorind to optional "co-assembly" config
+flash pooling
+
+# ------------ start assembly workflow ------------
+# assemble the merged fasta files that were pooled
+pooling megahit
+
+# ------------ start annotations ------------
+# predict proteins for all contigs
+megahit prodigal
+prodigal eggnogmapper
+
