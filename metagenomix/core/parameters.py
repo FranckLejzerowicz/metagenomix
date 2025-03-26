@@ -240,7 +240,7 @@ def check_binary(self, params, defaults, opt, n=None):
         file_or_dir = isfile
     if opt not in params:
         sys.exit('[%s] %s' % (n, message))
-    if not self.config.dev or self.config.workshop:
+    if not (self.config.dev or self.config.workshop):
         if params[opt] != 'module' and not file_or_dir(params[opt].split()[0]):
             sys.exit('[%s] Please provide valid path to param "%s"' % (opt, n))
 
