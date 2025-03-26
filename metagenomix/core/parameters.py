@@ -240,7 +240,7 @@ def check_binary(self, params, defaults, opt, n=None):
         file_or_dir = isfile
     if opt not in params:
         sys.exit('[%s] %s' % (n, message))
-    if not self.config.dev:
+    if not self.config.dev or self.config.workshop:
         if params[opt] != 'module' and not file_or_dir(params[opt].split()[0]):
             sys.exit('[%s] Please provide valid path to param "%s"' % (opt, n))
 
@@ -359,7 +359,7 @@ def get_diamond_hmmer_databases(self, tool, params):
     for db in dbs_existing:
         if self.databases.builds[db].get(tool):
             files = '%s/*%s' % (self.databases.builds[db][tool], ext)
-            if self.config.dev:
+            if self.config.dev or self.config.workshop:
                 valid_dbs[db] = [files]
             else:
                 file_paths = glob.glob(files)
@@ -461,7 +461,7 @@ def check_integronfinder(self, params):
         'path_func_annot'
     ]
     nf = ['parallel_integron_finder.nf', 'nextflow.config']
-    if 'path' in params and not self.config.dev:
+    if 'path' in params and not (self.config.dev or self.config.workshop):
         if sum([isfile('%s/%s' % (params['path'], x)) for x in nf]) != 2:
             print('[integronfinder] Will run without using nextflow (slower)')
 
@@ -660,8 +660,9 @@ def check_quast(self, params):
         params['circos_path'] = None
     else:
         db_dir = params['circos_path']
-        if not self.config.dev and db_dir and not isdir(db_dir):
-            sys.exit('[quast] Params "circos_path": path do not exist')
+        if not (self.config.dev or self.config.workshop):
+            if db_dir and not isdir(db_dir):
+                sys.exit('[quast] Params "circos_path": path do not exist')
 
     defaults['path'] = '<path to the quast installation folder>'
     defaults['circos_path'] = '<path to the circos installation folder>'
@@ -790,7 +791,7 @@ def check_bowtie2(self, params, no_database=False):
         for db in dbs_existing:
             if 'bowtie2' in self.databases.builds[db]:
                 bt2_path = '%s*.*.bt2*' % self.databases.builds[db]['bowtie2']
-                if self.config.dev:
+                if self.config.dev or self.config.workshop:
                     valid_dbs[db] = bt2_path.rsplit('.', 2)[0]
                 else:
                     bt2_paths = glob.glob(bt2_path)
@@ -1117,13 +1118,13 @@ def check_shogun(self, params):
                 if isfile(yaml):
                     break
             else:
-                if not self.config.dev:
+                if not self.config.dev or self.config.workshop:
                     raise IOError(
                         '[shogun] file must exist: %s' % ' or '.join(yamls))
             metadata = read_yaml(yaml)
             for aligner in list(params['aligners']):
                 if aligner in metadata:
-                    if not self.config.dev:
+                    if not self.config.dev or self.config.workshop:
                         ali = metadata[aligner]
                         if ali[0] == '/':
                             formatted = ali
@@ -1248,7 +1249,7 @@ def check_minimap2(self, params, no_database=False):
         for db in dbs_existing:
             if 'minimap2' in self.databases.builds[db]:
                 db_path = '%s/*.mmi' % self.databases.builds[db]['minimap2']
-                if not self.config.dev:
+                if not self.config.dev or self.config.workshop:
                     bt2_paths = glob.glob(db_path)
                     if bt2_paths:
                         valid_dbs[db] = bt2_paths[0]
@@ -1269,7 +1270,7 @@ def check_bbmap(self, params, no_database=False):
         for db in dbs_existing:
             if 'bbmap' in self.databases.builds[db]:
                 db_path = '%s/*' % self.databases.builds[db]['bbmap']
-                if not self.config.dev:
+                if not self.config.dev or self.config.workshop:
                     bt2_paths = glob.glob(db_path)
                     if bt2_paths:
                         valid_dbs[db] = bt2_paths[0]
@@ -1290,7 +1291,7 @@ def check_bwa(self, params, no_database=False):
         for db in dbs_existing:
             if 'bwa' in self.databases.builds[db]:
                 db_path = '%s/*' % self.databases.builds[db]['bwa']
-                if not self.config.dev:
+                if not self.config.dev or self.config.workshop:
                     bt2_paths = glob.glob(db_path)
                     if bt2_paths:
                         valid_dbs[db] = bt2_paths[0]
@@ -1510,8 +1511,9 @@ def check_checkm2(self, params):
         'dbg_vectors': [False, True]
     }
     if 'database_path' in params:
-        if not self.config.dev and not isdir(params['database_path']):
-            sys.exit('[checkm2] Param "database_path" do not exist')
+        if not (self.config.dev or self.config.workshop):
+            if not isdir(params['database_path']):
+                sys.exit('[checkm2] Param "database_path" do not exist')
     else:
         params['database_path'] = None
     check_default(self, params, defaults, ['database_path'])
@@ -1644,7 +1646,7 @@ def check_humann(self, params):
         if not 0 <= float(params[param]) <= 100:
             sys.exit('[humann] Param "%s" not in [0-100]' % param)
 
-    if not self.config.dev:
+    if not self.config.dev or self.config.workshop:
         if 'nucleotide_db' not in params or not isdir(params['nucleotide_db']):
             sys.exit('[humann] Param "nucleotide_db" must be an existing path')
         if 'protein_db' not in params or not isdir(params['protein_db']):
@@ -1653,7 +1655,7 @@ def check_humann(self, params):
         if not isinstance(params['profiles'], dict):
             sys.exit('[humann] Param "profiles" must be a dict structure')
         for key, value in params['profiles'].items():
-            if self.config.dev:
+            if self.config.dev or self.config.workshop:
                 continue
             if not isinstance(value, str):
                 sys.exit('[humann] Param "profiles::%s" must be a string' % key)
@@ -1699,7 +1701,7 @@ def check_midas(self, params):
         for k, v in params['focus'].items():
             if not isinstance(v, str):
                 sys.exit('[midas] Param "focus::%s" must be a char. string' % k)
-            if not self.config.dev and not isfile(v):
+            if not (self.config.dev or self.config.workshop) and not isfile(v):
                 sys.exit('[midas] Param "focus::%s::%s" not a file' % (k, v))
     ints = ['species_topn', 'readq', 'trim', 'n', 'word_size']
     check_nums(self, params, defaults, ints, int)
@@ -1875,15 +1877,17 @@ def check_plasmidfinder(self, params):
     if 'methodPath' not in params:
         sys.exit('[plasmidfinder] Param "methodPath" missing (kma or blastn '
                  'binary)')
-    elif not self.config.dev and not isfile(params['methodPath']):
-        sys.exit('[plasmidfinder] "methodPath" binary not found'
-                 ': "%s"' % params['methodPath'])
+    elif not (self.config.dev or self.config.workshop):
+        if not isfile(params['methodPath']):
+            sys.exit('[plasmidfinder] "methodPath" binary not found'
+                     ': "%s"' % params['methodPath'])
 
     db_path = 'databasePath'
     if db_path not in params:
         sys.exit('[plasmidfinder] Param "databasePath" missing (databases dir)')
-    elif not self.config.dev and not isdir(params[db_path]):
-        sys.exit('[plasmidfinder] no "databasePath" %s' % params[db_path])
+    elif not (self.config.dev or self.config.workshop):
+        if not isdir(params[db_path]):
+            sys.exit('[plasmidfinder] no "databasePath" %s' % params[db_path])
 
     if 'databases' in params:
         if not isinstance(params['databases'], str):
@@ -2526,7 +2530,7 @@ def check_deeparg(self, params):
     check_default(self, params, defaults, let_go)
     defaults['model'] = '<Model to use (SS: for reads, LS: for genes)>'
     db = 'db_dir'
-    if db not in params or (not self.config.dev and not isdir(params[db])):
+    if db not in params or (not (self.config.dev or self.config.workshop) and not isdir(params[db])):
         sys.exit('[%s] Params "%s" must be an existing path' % (self.name, db))
     defaults[db] = '<Path to the installed deepARG database folder>'
 
@@ -3219,21 +3223,23 @@ def check_mobsuite(self, params):
         params['db_dir'] = None
     else:
         db_dir = params['db_dir']
-        if not self.config.dev and db_dir and isdir(db_dir):
-            sys.exit('[mobsuite] Params "db_dir": path do not exist')
+        if not (self.config.dev or self.config.workshop):
+            if db_dir and isdir(db_dir):
+                sys.exit('[mobsuite] Params "db_dir": path do not exist')
 
     if 'min_length' not in params:
         params['min_length'] = None
     else:
         min_length = params['min_length']
-        if not self.config.dev and min_length and not str(min_length).isdigit():
-            sys.exit("[mobsuite] 'min_length' not of <class 'int'>")
+        if not (self.config.dev or self.config.workshop):
+            if min_length and not str(min_length).isdigit():
+                sys.exit("[mobsuite] 'min_length' not of <class 'int'>")
 
     if 'min_con_cov' not in params:
         params['min_con_cov'] = None
     else:
         m_con_cov = params['min_con_cov']
-        if not self.config.dev and m_con_cov:
+        if not (self.config.dev or self.config.workshop) and m_con_cov:
             if not str(m_con_cov).isdigit() or not 0 <= int(m_con_cov) <= 100:
                 sys.exit("[mobsuite] 'min_con_cov' not of <class 'int'>")
 
@@ -3881,8 +3887,9 @@ def check_eggnogmapper(self, params):
     }
     if 'data_dir' not in params:
         sys.exit('[eggnogmapper] Params "data_dir" must exist')
-    elif not isdir(params['data_dir']) and not self.config.dev:
-        sys.exit('[eggnogmapper] Params "data_dir" must be the database folder')
+    elif not isdir(params['data_dir']):
+        if not (self.config.dev or self.config.workshop):
+            sys.exit('[eggnogmapper] Params "data_dir" must be database folder')
 
     ints = ['start_sens', 'sens_steps', 'final_sens', 'port', 'end_port',
             'num_servers', 'num_workers', 'hmm_maxhits', 'hmm_maxseqlen', 'Z']
