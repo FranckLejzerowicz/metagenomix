@@ -134,8 +134,6 @@ def count(self):
         else:
             fastxs = {'': inputs}
         get_count(self, tech, group, fastxs)
-    print(self.outputs['outs'])
-    print(self.outputs['cmds'])
 
 
 def fastqc(self) -> None:
