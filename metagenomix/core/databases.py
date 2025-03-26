@@ -92,6 +92,8 @@ class ReferenceDatabases(object):
                         'minimap2', 'qiime2', 'utree', 'fasta']
 
     def check_path(self):
+        if self.config.workshop:
+            return None
         for db, path in sorted(self.config.databases.items()):
             if not path:
                 sys.exit('[databases] No value for "%s"' % db)
@@ -117,6 +119,8 @@ class ReferenceDatabases(object):
                     len(missing_dbs), self.config.databases_yml))
             for ddx, db in enumerate(sorted(missing_dbs)):
                 log.info('[databases]  - %s\t: %s' % (ddx, db))
+        if self.config.workshop:
+            log.info('[databases] - BUT THIS IS LIKELY OK (--workshop mode) - ')
 
     def get_length(self):
         for db, path in sorted(self.config.databases.items()):

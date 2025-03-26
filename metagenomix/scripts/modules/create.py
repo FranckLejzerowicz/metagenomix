@@ -102,6 +102,9 @@ from metagenomix import __version__
     "--config-scratch/--no-config-scratch", default=False,
     show_default=True, help="Show current scratch folders and/or edit them")
 @click.option(
+    "--workshop/--no-workshop", default=False, show_default=True,
+    help="For workshop...")
+@click.option(
     "--dev/--no-dev", default=False, show_default=True,
     help="For development...")
 @click.version_option(__version__, prog_name="metagenomix")
@@ -137,6 +140,7 @@ def create(
         cleanup,
         config_email,
         config_scratch,
+        workshop,
         dev
 ):
     """Write jobs for your pipeline configuration."""
@@ -171,5 +175,6 @@ def create(
         cleanup=cleanup,
         config_email=config_email,
         config_scratch=config_scratch,
+        workshop=workshop,
         dev=dev
     )
