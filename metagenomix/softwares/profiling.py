@@ -2287,6 +2287,8 @@ def get_kraken2_db(
     str
         Path to the Kraken2 database
     """
+    if (self.config.dev or self.config.workshop):
+        return db
     if db in self.databases.paths:
         for subdir in ['', '/kraken2', '/databases', '/databases/kraken2']:
             db_path = '%s%s' % (self.databases.paths[db], subdir)
@@ -2460,8 +2462,8 @@ def get_bracken_db(
     path : str
         Path tho the Bracken database
     """
-    if self.config.dev:
-        return 'dummy/bracken/path'
+    if (self.config.dev or self.config.workshop):
+        return db
     if db == 'default':
         return self.databases.paths['kraken2']
     elif 'bracken' in self.databases.builds[db]:
