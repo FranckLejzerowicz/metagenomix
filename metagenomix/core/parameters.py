@@ -15,7 +15,6 @@ from metagenomix._io_utils import read_yaml
 
 
 def tech_params(self, tech: str, soft: str = None):
-
     params = self.soft.params
     if soft in params and isinstance(params[soft], dict):
         tool_params = params.pop(soft)
@@ -52,15 +51,16 @@ def check_mems(param, value, name):
 
 def check_env(config, value, name):
     """Verifies that the conda environment or module to load do exist."""
-    if not config.dev and value is not None:
+    if not (config.dev or config.workshop) and value is not None:
         if name not in config.modules and value not in config.conda_envs:
             sys.exit('"%s" not a module or conda env' % value)
 
 
 def check_path(config, value, name):
     """Verifies that a path exists (usually for databases)."""
-    if not config.dev and not isfile(value) and not isdir(value):
-        sys.exit('path "%s" for "%s" do not exist' % (value, name))
+    if not (config.dev or config.workshop):
+        if not isfile(value) and not isdir(value):
+            sys.exit('path "%s" for "%s" do not exist' % (value, name))
 
 
 def check_scratch(value, name):
