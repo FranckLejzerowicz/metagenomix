@@ -69,7 +69,7 @@ class Workflow(object):
         self.make_graph()
         self.get_paths()
         # self.sort_paths()
-        self.show_graph()
+        # self.show_graph()
 
     def collect_step_names(self, step: list) -> None:
         """Collect the sequential list of softwares.
