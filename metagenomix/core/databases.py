@@ -454,24 +454,24 @@ class ReferenceDatabases(object):
         pfam_terms_dir = '%s/pfam_terms' % RESOURCES
         self.pfams['res'] = pfam_terms_dir
         mkdr(pfam_terms_dir)
-        if self.config.show_pfams or self.config.purge_pfams:
-            term_dirs = sorted(glob.glob('%s/*' % pfam_terms_dir))
-            if self.config.show_pfams:
-                if term_dirs:
-                    print(' > already extracted Pfam models', end='')
-                    if self.config.purge_pfams:
-                        print(' and removed:')
-                    else:
-                        print(':')
-                    for term_dir in term_dirs:
-                        hmm_fps = glob.glob('%s/*.hmm' % term_dir)
-                        print('   - %s (%s HMMs)' % (term_dir, len(hmm_fps)))
-                        if self.config.purge_pfams:
-                            for hmm_fp in hmm_fps:
-                                os.remove(hmm_fp)
-                            os.rmdir(term_dir)
-                else:
-                    print(' > No Pfam models previously extracted')
+        # if self.config.show_pfams or self.config.purge_pfams:
+        #     term_dirs = sorted(glob.glob('%s/*' % pfam_terms_dir))
+        #     if self.config.show_pfams:
+        #         if term_dirs:
+        #             print(' > already extracted Pfam models', end='')
+        #             if self.config.purge_pfams:
+        #                 print(' and removed:')
+        #             else:
+        #                 print(':')
+        #             for term_dir in term_dirs:
+        #                 hmm_fps = glob.glob('%s/*.hmm' % term_dir)
+        #                 print('   - %s (%s HMMs)' % (term_dir, len(hmm_fps)))
+        #                 if self.config.purge_pfams:
+        #                     for hmm_fp in hmm_fps:
+        #                         os.remove(hmm_fp)
+        #                     os.rmdir(term_dir)
+        #         else:
+        #             print(' > No Pfam models previously extracted')
 
     def set_pfam(self) -> None:
         cmd = wget_pfam(self.path)

@@ -81,17 +81,14 @@ from metagenomix import __version__
     "--move-back/--no-move-back", default=True, show_default=True,
     help="Do not move back from scratch (makes sense only for --userscratch)")
 @click.option(
-    "--show-status/--no-show-status", default=False, show_default=False,
-    help="Show status (needed inputs, done/to do outputs) for each software")
-@click.option(
     "--show-paths/--no-show-paths", default=False, show_default=False,
     help="Show the full pipeline paths along with each software script")
-@click.option(
-    "--show-pfams/--no-show-pfams", default=False, show_default=False,
-    help="Show terms for which Pfam HMM models were already extracted before")
-@click.option(
-    "--purge-pfams/--no-purge-pfams", default=False, show_default=False,
-    help="Remove terms for Pfam HMM models that were already extracted before")
+# @click.option(
+#     "--show-pfams/--no-show-pfams", default=False, show_default=False,
+#     help="Show terms for which Pfam HMM models were already extracted before")
+# @click.option(
+#     "--purge-pfams/--no-purge-pfams", default=False, show_default=False,
+#     help="Remove terms for Pfam HMM models that were already extracted before")
 @click.option(
     "--verbose/--no-verbose", default=False, show_default=True,
     help="Whether to show input/outputs and other details")
@@ -133,10 +130,9 @@ def create(
         scratch,
         userscratch,
         move_back,
-        show_status,
         show_paths,
-        show_pfams,
-        purge_pfams,
+        # show_pfams,
+        # purge_pfams,
         verbose,
         cleanup,
         config_email,
@@ -168,10 +164,9 @@ def create(
         scratch=scratch,
         userscratch=userscratch,
         move_back=move_back,
-        show_status=show_status,
         show_paths=show_paths,
-        show_pfams=show_pfams,
-        purge_pfams=purge_pfams,
+        # show_pfams=show_pfams,
+        # purge_pfams=purge_pfams,
         verbose=verbose,
         cleanup=cleanup,
         config_email=config_email,
