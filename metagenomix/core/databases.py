@@ -224,7 +224,7 @@ class ReferenceDatabases(object):
         return missing
 
     def show_exit(self, missing):
-        if missing:
+        if missing and not self.config.dev:
             prints = sorted([' - %s (%s)' % x for x in missing.items()])
             sys.exit('\n"%s": missing content in "%s"\n%s' % (
                 self.db, self.config.databases[self.db], '\n'.join(prints)))
