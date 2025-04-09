@@ -18,7 +18,7 @@ from tabulate import tabulate
 from os.path import dirname, exists, isdir, islink, splitext
 
 from metagenomix._io_utils import (
-    mkdr, get_roundtrip, compute_hash, get_md5, get_dates)
+    mkdr, get_roundtrip, print_status_table, compute_hash, get_md5, get_dates)
 from metagenomix.core.slurm import (
     set_directives, set_preamble, set_scratching, set_tmpdir)
 
@@ -252,6 +252,7 @@ class Created(object):
     def print_status(self, m, n, name, h, soft):
         gap = (m - len(name) - len(str(n))) + 1
         print('\t%s [%s: %s] %s%s' % (n, name, h, ('.'*gap), ('.'*8)), end=' ')
+        print_status_table(soft, self.config.show_status)
         return 1
 
     def write_logs(self):

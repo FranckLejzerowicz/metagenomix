@@ -844,14 +844,11 @@ def print_status_table(
         soft,
         show_status: bool = False
 ) -> None:
-    print("soft.status;", soft.status)
     if soft.status:
         status = pd.DataFrame(soft.status, columns=[
             'tech', 'sample_or_pool', 'status', 'group', 'message', 'genome'])
         status.drop_duplicates(inplace=True)
-        print("status;", status)
         not_done = status.loc[status['status'] != 'Done'].copy()
-        print("not_done;", not_done)
         if len(not_done):
             soft.tables.append(show_not_done(not_done))
             if show_status:
