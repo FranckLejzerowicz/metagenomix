@@ -849,6 +849,7 @@ def print_status_table(
         status = pd.DataFrame(soft.status, columns=[
             'tech', 'sample_or_pool', 'status', 'group', 'message', 'genome'])
         status.drop_duplicates(inplace=True)
+        print("status;", status)
         not_done = status.loc[status['status'] != 'Done'].copy()
         print("not_done;", not_done)
         if len(not_done):
