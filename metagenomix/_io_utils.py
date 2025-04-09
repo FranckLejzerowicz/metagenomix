@@ -842,8 +842,8 @@ def print_needed(path, not_done) -> str:
 
 def print_status_table(
         soft,
+        show_status: bool = False
 ) -> None:
-    print("soft.status:", soft.status)
     if soft.status:
         status = pd.DataFrame(soft.status, columns=[
             'tech', 'sample_or_pool', 'status', 'group', 'message', 'genome'])
