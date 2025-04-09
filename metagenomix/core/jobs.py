@@ -173,7 +173,6 @@ class Created(object):
         self.modules.update(set(self.config.modules.get(name, set())))
 
     def scratch(self, soft, key, cmds):
-        print(soft.params['scratch'])
         if soft.params['scratch'] and self.config.jobs and key in soft.io:
             roundtrip = get_roundtrip(soft.io[key])
             extended_cmds = ['\n# Move to SCRATCH_FOLDER']
