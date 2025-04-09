@@ -252,7 +252,7 @@ class Created(object):
     def print_status(self, m, n, name, h, soft):
         gap = (m - len(name) - len(str(n))) + 1
         print('\t%s [%s: %s] %s%s' % (n, name, h, ('.'*gap), ('.'*8)), end=' ')
-        print_status_table(soft, self.config.show_status)
+        print_status_table(soft)
         return 1
 
     def write_logs(self):

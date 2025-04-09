@@ -92,7 +92,7 @@ class Monitored(object):
             print('\t%s %s%s' % (cur_soft, ('.' * n), ('.' * 8)), end=' ')
             soft.tables.append(cur_soft)
             print('--------------1')
-            print_status_table(soft, True)
+            print_status_table(soft)
             print('--------------2')
             print(gfdsa)
 
