@@ -1221,7 +1221,7 @@ def woltka_uniref(
     if to_do(uniref):
         cmd = '\n# uniref\n'
         cmd += 'echo "%s -> %s"\n' % (basename(genes_tax['']), basename(uniref))
-        cmd += 'gunzip -k %s\n' % genes_tax['']
+        cmd += 'gunzip -f -k %s\n' % genes_tax['']
         cmd += 'woltka tools collapse'
         cmd += ' --input %s' % genes_tax[''][:-3]
         cmd += ' --map %s' % uniref_map
@@ -1244,7 +1244,7 @@ def woltka_uniref(
             cmd = '\n# uniref [%s]\n' % stratif
             cmd += 'echo "%s -> %s"\n' % (basename(genes_tax[stratif]),
                                           basename(uniref))
-            cmd += 'gunzip -k %s\n' % genes_tax[stratif]
+            cmd += 'gunzip -f -k %s\n' % genes_tax[stratif]
             cmd += 'woltka tools collapse'
             cmd += ' --input %s' % genes_tax[stratif][:-3]
             cmd += ' --map %s' % uniref_map
@@ -1307,7 +1307,7 @@ def woltka_eggnog(
         cmd = '\n# eggnog [no stratification]\n'
         cmd += 'echo "%s -> %s"\n' % (basename(uniref_tax['']),
                                       basename(biom))
-        cmd += 'gunzip -k %s\n' % uniref_tax['']
+        cmd += 'gunzip -f -k %s\n' % uniref_tax['']
         cmd += 'woltka tools collapse'
         cmd += ' --input %s' % uniref_tax[''][:-3]
         cmd += ' --map %s/function/eggnog/eggnog.map.xz' % database
@@ -1336,7 +1336,7 @@ def woltka_eggnog(
             cmd = '\n# eggnog [%s]\n' % stratif
             cmd += 'echo "%s -> %s"\n' % (basename(uniref_tax[stratif]),
                                           basename(biom))
-            cmd += 'gunzip -k %s\n' % uniref_tax[stratif]
+            cmd += 'gunzip -f -k %s\n' % uniref_tax[stratif]
             cmd += 'woltka tools collapse'
             cmd += ' --input %s' % uniref_tax[stratif][:-3]
             cmd += ' --map %s/function/eggnog/eggnog.map.xz' % database
@@ -1409,7 +1409,7 @@ def woltka_cazy(
     if to_do(biom):
         cmd = '\n# cazy\n'
         cmd += 'echo "%s -> %s"\n' % (basename(genes), basename(biom))
-        cmd += 'gunzip -k %s\n' % genes
+        cmd += 'gunzip -f -k %s\n' % genes
         cmd += 'woltka tools collapse'
         cmd += ' --input %s' % genes[:-3]
         cmd += ' --map %s' % cazy_map
@@ -1439,7 +1439,7 @@ def woltka_cazy(
             cmd = '\n# cazy [%s]\n' % stratif
             cmd += 'echo "%s -> %s"\n' % (basename(genes_tax[stratif]),
                                           basename(biom))
-            cmd += 'gunzip -k %s\n' % genes_tax[stratif]
+            cmd += 'gunzip -f -k %s\n' % genes_tax[stratif]
             cmd += 'woltka tools collapse'
             cmd += ' --input %s' % genes_tax[stratif][:-3]
             cmd += ' --map %s' % cazy_map
@@ -1526,9 +1526,9 @@ def woltka_metacyc(
             cmd += '\n# metacyc: %s [no stratification]\n' % level
             cmd += 'echo "%s -> %s"\n' % (basename(input_biom),
                                           basename(biom))
-            cmd += 'gunzip -k %s\n' % input_biom
+            cmd += 'gunzip -f -k %s\n' % input_biom
             cmd += 'woltka tools collapse'
-            cmd += ' --input %s' % input_biom
+            cmd += ' --input %s' % input_biom[:-3]
             if names:
                 cmd += ' --names %s/%s' % (metacyc_dir, names)
             cmd += ' --map %s/%s' % (metacyc_dir, maps)
@@ -1568,7 +1568,7 @@ def woltka_metacyc(
                 cmd += '\n# metacyc: %s [%s]\n' % (level, stratif)
                 cmd += 'echo "%s -> %s"\n' % (basename(input_biom),
                                               basename(biom))
-                cmd += 'gunzip -k %s\n' % input_biom
+                cmd += 'gunzip -f -k %s\n' % input_biom
                 cmd += 'woltka tools collapse'
                 cmd += ' --input %s' % input_biom[:-3]
                 if names:
@@ -1694,7 +1694,7 @@ def woltka_kegg(
                     cmd = '\n# kegg: %s [no stratification]\n' % name
                     cmd += 'echo "%s -> %s"\n' % (basename(uniref_tax['']),
                                                   basename(biom))
-                    cmd += 'gunzip -k %s\n' % uniref_tax['']
+                    cmd += 'gunzip -f -k %s\n' % uniref_tax['']
                     cmd += 'woltka tools collapse'
                     cmd += ' --input %s' % uniref_tax[''][:-3]
                     cmd += ' --names %s/function/kegg/%s' % (database, name)
@@ -1727,7 +1727,7 @@ def woltka_kegg(
                     cmd = '\n# kegg: %s [no stratification]\n' % name
                     cmd += 'echo "%s -> %s"\n' % (basename(input_biom),
                                                   basename(biom))
-                    cmd += 'gunzip -k %s\n' % input_biom
+                    cmd += 'gunzip -f -k %s\n' % input_biom
                     cmd += 'woltka tools collapse'
                     cmd += ' --input %s' % input_biom[:-3]
                     if name:
@@ -1763,7 +1763,7 @@ def woltka_kegg(
                         cmd = '\n# kegg: %s [%s]\n' % (name, stratif)
                         cmd += 'echo "%s -> %s"\n' % (
                             basename(uniref_tax[stratif]), basename(biom))
-                        cmd += 'gunzip -k %s\n' % uniref_tax[stratif]
+                        cmd += 'gunzip -f -k %s\n' % uniref_tax[stratif]
                         cmd += 'woltka tools collapse'
                         cmd += ' --input %s' % uniref_tax[stratif][:-3]
                         cmd += ' --names %s/function/kegg/%s' % (database, name)
@@ -1799,7 +1799,7 @@ def woltka_kegg(
                         cmd = '\n# kegg: %s [%s]\n' % (name, stratif)
                         cmd += 'echo "%s -> %s"\n' % (basename(input_biom),
                                                       basename(biom))
-                        cmd += 'gunzip -k %s\n' % input_biom
+                        cmd += 'gunzip -f -k %s\n' % input_biom
                         cmd += 'woltka tools collapse'
                         cmd += ' --input %s' % input_biom[:-3]
                         if name:
