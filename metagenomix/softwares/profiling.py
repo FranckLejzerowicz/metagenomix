@@ -1733,7 +1733,7 @@ def woltka_kegg(
                     if name:
                         cmd += ' --names %s/%s' % (kegg_maps, name)
                     cmd += ' --map %s/%s' % (kegg_maps, maps)
-                    cmd += ' --output %s\n' % biom
+                    cmd += ' --output %s\n' % biom[:-3]
                     self.outputs['cmds'].setdefault(key, []).append(cmd)
                     io_update(self, o_f=biom, key=key)
                     self.soft.add_status(tech, 'all samples', 1,
@@ -1743,10 +1743,10 @@ def woltka_kegg(
                     self.soft.add_status(tech, 'all samples', 0,
                                          group='kegg', genome=level)
                 if to_do(tsv):
-                    cmd = 'biom convert -i %s' % biom
-                    cmd += ' -o %s.tmp --to-tsv\n' % tsv
-                    cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv, tsv)
-                    cmd += 'rm %s.tmp\n\n' % tsv
+                    cmd = 'biom convert -i %s' % biom[:-3]
+                    cmd += ' -o %s.tmp --to-tsv\n' % tsv[:-3]
+                    cmd += 'tail -n +2 %s.tmp > %s\n' % (tsv[:-3], tsv[:-3])
+                    cmd += 'rm %s.tmp\n\n' % tsv[:-3]
                     cmd += 'gzip %s\n' % biom[:-3]
                     cmd += 'gzip %s\n' % tsv[:-3]
                     self.outputs['cmds'].setdefault(key, []).append(cmd)
