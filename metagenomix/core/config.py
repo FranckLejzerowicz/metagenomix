@@ -216,7 +216,10 @@ class AnalysesConfig(object):
                     else:
                         fastq[sam] = [abspath(fq)]
                     break
-        return fastq
+                elif re.match('%s.fastq(.gz)?' % sam, basename(fq)):
+                    if sam in fastq:
+                        fastq[sam] = [abspath(fq)]
+            return fastq
 
     def get_fastq_samples(self, tech):
         # keep only the `.fastq.gz` files (if `.fastq` files are also present)
