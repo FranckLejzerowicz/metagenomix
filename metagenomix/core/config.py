@@ -208,6 +208,7 @@ class AnalysesConfig(object):
         """
         fastq = {}
         sams = set(self.meta.sample_name)
+        print(sams)
         for fq in sorted(fastqs):
             for sam in sams:
                 if re.match('%s_R?[1-2].fastq(.gz)?' % sam, basename(fq)):
@@ -222,6 +223,8 @@ class AnalysesConfig(object):
 
     def get_fastq_samples(self, tech):
         # keep only the `.fastq.gz` files (if `.fastq` files are also present)
+        print(self.techs_fastqs[tech])
+        print(techs_fastqsfdsa)
         for sam, fastqs in self.fill_fastq(self.techs_fastqs[tech]).items():
             # print(sam, fastqs)
             self.init_fastq(sam)
@@ -236,7 +239,6 @@ class AnalysesConfig(object):
             fastq_paths = get_fastq_paths(self.__dict__[tech_dir])
             if fastq_paths:
                 self.techs_fastqs[tech] = fastq_paths
-        print(self.techs_fastqs)
 
     def set_fastqs(self):
         """
