@@ -181,7 +181,6 @@ class AnalysesConfig(object):
         def fill_fq_dict(techs):
             return dict(((tech, sam), []) for tech in techs)
         if sam not in self.fastq:
-            print(sam)
             self.fastq[sam] = fill_fq_dict(self.techs_fastqs)
             self.fastq_mv[sam] = fill_fq_dict(self.techs_fastqs)
 
@@ -224,6 +223,7 @@ class AnalysesConfig(object):
     def get_fastq_samples(self, tech):
         # keep only the `.fastq.gz` files (if `.fastq` files are also present)
         for sam, fastqs in self.fill_fastq(self.techs_fastqs[tech]).items():
+            print(sam, fastqs)
             self.init_fastq(sam)
             fqs = get_fastq_files(fastqs)
             key = (tech, sam)
