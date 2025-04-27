@@ -236,6 +236,7 @@ class AnalysesConfig(object):
             fastq_paths = get_fastq_paths(self.__dict__[tech_dir])
             if fastq_paths:
                 self.techs_fastqs[tech] = fastq_paths
+        print(self.techs_fastqs)
 
     def set_fastqs(self):
         """

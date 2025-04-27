@@ -63,7 +63,6 @@ def get_fastq_paths(
     fastqs = []
     for fastq_dir in fastq_dirs:
         fastqs.extend(glob.glob(fastq_dir + '/*.fastq*'))
-    print(fastqs)
     return fastqs
 
 
