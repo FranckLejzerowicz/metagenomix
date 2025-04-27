@@ -217,8 +217,7 @@ class AnalysesConfig(object):
                         fastq[sam] = [abspath(fq)]
                     break
                 elif re.match('%s.fastq(.gz)?' % sam, basename(fq)):
-                    if sam in fastq:
-                        fastq[sam] = [abspath(fq)]
+                    fastq[sam] = [abspath(fq)]
             return fastq
 
     def get_fastq_samples(self, tech):
