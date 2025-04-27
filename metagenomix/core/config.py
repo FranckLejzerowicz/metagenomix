@@ -209,7 +209,6 @@ class AnalysesConfig(object):
         fastq = {}
         sams = set(self.meta.sample_name)
         for fq in sorted(fastqs):
-            print(fq)
             for sam in sams:
                 if re.match('%s_R?[1-2].fastq(.gz)?' % sam, basename(fq)):
                     if sam in fastq:
