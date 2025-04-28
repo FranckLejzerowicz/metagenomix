@@ -508,7 +508,12 @@ class Created(object):
                 sh.write('%s\n' % cleanup)
             for chunk_key in chunk_keys:
                 self.update_n_arrays(chunk_key)
+                print('=' * 30)
+                print(self.cmds)
                 for cmd in self.cmds[chunk_key][0]:
+                    print('-'*30)
+                    print(cmd)
+                    print('-'*30)
                     if soft.params['scratch'] and self.config.jobs:
                         sh.write('%s\n' % cmd)
                     else:
