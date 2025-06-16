@@ -1416,7 +1416,8 @@ def check_metawrap(self, params):
         'max_contamination_reassembly': 5,
         'binners': ['maxbin2', 'metabat2', 'concoct'],
         'reassembly': ['permissive', 'strict'],
-        'blobology': ['coassembly', 'sample']
+        'blobology': ['coassembly', 'sample'],
+        'edit_paired': [False, True]
     }
     if 'binners' not in params:
         params['binners'] = defaults['binners']

@@ -78,7 +78,8 @@ def get_sams_fastqs(
 
 
 def get_fqs(
-        fastq_fps: list
+        fastq_fps: list,
+        edit_paired: bool = False
 ) -> tuple:
     """Get the fastq files for the current sample to reassemble
 
@@ -86,6 +87,8 @@ def get_fqs(
     ----------
     fastq_fps : list
         Paths to fastq files for the current sample to reassemble
+    edit_paired : bool
+        Whether to edit the r1/r2 labels remaining in the SRA files
 
     Returns
     -------
@@ -102,7 +105,13 @@ def get_fqs(
     for f in fastq_fps:
         if f.endswith('.gz'):
             f_q = f.replace('.gz', '')
-            cmd += 'gunzip -c %s > %s\n' % (f, f_q)
+            cmd += 'gunzip -c %s' % f
+            if edit_paired:
+                if f.endswith('_1.fastq.gz'):
+                    cmd += ' | sed "s/\\.1 / /"'
+                elif f.endswith('_2.fastq.gz'):
+                    cmd += ' | sed "s/\\.2 / /"'
+            cmd += ' > %s\n' % f_q
             gz = True
         else:
             f_q = f
@@ -158,7 +167,7 @@ def quantify_cmd(
     cmd : str
         metaWRAP quantify command
     """
-    gz, fqs, fqs_cmd = get_fqs(fastq)
+    gz, fqs, fqs_cmd = get_fqs(fastq, self.soft.params['edit_paired'])
     cmd, cmd_rm = '', ''
     if contigs.endswith('.gz'):
         cmd += 'gunzip -c %s > %s\n' % (contigs, contigs.rstrip('.gz'))
@@ -566,7 +575,7 @@ def blobology_cmd(
     cmd : str
         metaWRAP blobology command
     """
-    gz, fqs, fqs_cmd = get_fqs(fastq_fps)
+    gz, fqs, fqs_cmd = get_fqs(fastq_fps, self.soft.params['edit_paired'])
     cmd, cmd_rm = '', ''
 
     if contigs.endswith('.gz'):
@@ -686,7 +695,7 @@ def reassembly_bins_cmd(
     cmd : str
         metaWRAP bin reassembly command
     """
-    gz, fqs, fqs_cmd = get_fqs(fastq)
+    gz, fqs, fqs_cmd = get_fqs(fastq, self.soft.params['edit_paired'])
     cmd = ''
     if self.soft.params['path']:
         cmd += 'export PATH=$PATH:%s/bin\n' % self.soft.params['path']
@@ -982,14 +991,15 @@ def binning_cmd(
     cmd, cmd_rm, cmd_tar = '', '', ''
     if binners:
         if contigs.endswith('.gz'):
-            cmd += 'gunzip -c %s > %s\n' % (contigs, contigs.rstrip('.gz'))
+            cmd += 'gunzip -c %s ' % contigs
+            cmd += '> %s\n' % contigs.rstrip('.gz')
             contigs = contigs.rstrip('.gz')
             cmd_rm += 'rm %s\n' % contigs
 
         if self.soft.params['path']:
             cmd += 'export PATH=$PATH:%s/bin\n' % self.soft.params['path']
 
-        gz, fqs, fqs_cmd = get_fqs(fastq)
+        gz, fqs, fqs_cmd = get_fqs(fastq, self.soft.params['edit_paired'])
         cmd += 'metawrap binning'
         cmd += ' -o %s' % out
         cmd += ' -a %s' % contigs
