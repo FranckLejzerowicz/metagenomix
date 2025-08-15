@@ -916,6 +916,7 @@ def refine(self):
         out_dir = '/'.join([self.dir, tech, self.sam_pool, group])
         to_dos = status_update(self, tech, bin_dirs, group=group, folder=True)
         cmd, bins, names = refine_cmd(self, out_dir, bin_dirs)
+        print(bins)
         if process_outputs(self, tech, group, [bins]):
             continue
         self.outputs['dirs'].append(out_dir)
