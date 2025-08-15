@@ -42,6 +42,7 @@ def process_outputs(
     process : bool
         Whether to process the sample command or not
     """
+    print(self.soft.params['skip_samples'])
     if group in self.soft.params['skip_samples']:
         self.outputs['outs'][(tech, group)] = []
         process = True
