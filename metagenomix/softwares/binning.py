@@ -920,6 +920,7 @@ def refine(self):
         print(group)
         print(bins)
         if process_outputs(self, tech, group, [bins]):
+            print('refine == True!')
             continue
         self.outputs['dirs'].append(out_dir)
         if self.config.force or to_do(bins):
@@ -1076,6 +1077,7 @@ def binning(self):
         bin_dirs = sorted(binned.values())  # + ['%s/work_files' % out]
 
         if process_outputs(self, tech, group, bin_dirs):
+            print('binning == True!')
             continue
         cmd = binning_cmd(self, fastqs, out, contigs, binned)
         if cmd:
