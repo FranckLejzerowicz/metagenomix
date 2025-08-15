@@ -159,6 +159,7 @@ class Commands(object):
             self.soft.outputs = self.outputs['outs']
         else:
             outputs = dict(x for x in self.outputs['outs'].items() if x[1])
+            print("--", self.soft.name, ":", outputs.keys())
             self.soft.outputs[self.sam_pool] = outputs
 
     def extract_data(self):
