@@ -145,8 +145,6 @@ class AnalysesConfig(object):
         else:
             self.pooling_groups = ['assembly_per_sample']
             self.meta['assembly_per_sample'] = self.meta.sample_name
-            print("self.meta.sample_name")
-            print(self.meta.sample_name)
 
     def get_pooling_groups(
             self,
@@ -212,7 +210,6 @@ class AnalysesConfig(object):
         sams = set(self.meta.sample_name)
         for fq in sorted(fastqs):
             for sam in sams:
-                print("sam:", sam)
                 if re.match('%s_R?[1-2].fastq(.gz)?' % sam, basename(fq)):
                     if sam in fastq:
                         fastq[sam].append(abspath(fq))
@@ -227,6 +224,7 @@ class AnalysesConfig(object):
     def get_fastq_samples(self, tech):
         # keep only the `.fastq.gz` files (if `.fastq` files are also present)
         for sam, fastqs in self.fill_fastq(self.techs_fastqs[tech]).items():
+            # print(sam, fastqs)
             self.init_fastq(sam)
             fqs = get_fastq_files(fastqs)
             key = (tech, sam)
