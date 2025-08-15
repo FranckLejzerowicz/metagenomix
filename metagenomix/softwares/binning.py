@@ -42,7 +42,6 @@ def process_outputs(
     process : bool
         Whether to process the sample command or not
     """
-    print(self.soft.params['skip_samples'])
     if group in self.soft.params['skip_samples']:
         self.outputs['outs'][(tech, group)] = []
         process = True
@@ -917,10 +916,7 @@ def refine(self):
         out_dir = '/'.join([self.dir, tech, self.sam_pool, group])
         to_dos = status_update(self, tech, bin_dirs, group=group, folder=True)
         cmd, bins, names = refine_cmd(self, out_dir, bin_dirs)
-        print(group)
-        print(bins)
         if process_outputs(self, tech, group, [bins]):
-            print('refine == True!')
             continue
         self.outputs['dirs'].append(out_dir)
         if self.config.force or to_do(bins):
@@ -1077,7 +1073,7 @@ def binning(self):
         bin_dirs = sorted(binned.values())  # + ['%s/work_files' % out]
 
         if process_outputs(self, tech, group, bin_dirs):
-            print('binning == True!')
+            ('binning == True!')
             continue
         cmd = binning_cmd(self, fastqs, out, contigs, binned)
         if cmd:
