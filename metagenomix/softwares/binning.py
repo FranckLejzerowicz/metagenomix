@@ -1073,7 +1073,6 @@ def binning(self):
         bin_dirs = sorted(binned.values())  # + ['%s/work_files' % out]
 
         if process_outputs(self, tech, group, bin_dirs):
-            ('binning == True!')
             continue
         cmd = binning_cmd(self, fastqs, out, contigs, binned)
         if cmd:
