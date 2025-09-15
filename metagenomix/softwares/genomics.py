@@ -77,6 +77,7 @@ def get_drep_bins(self) -> dict:
 
 def get_bin_paths(
         self,
+        drep_dir: str,
         paths: list
 ) -> tuple:
     """Write the file containing the inputs bins to drep
@@ -87,6 +88,8 @@ def get_bin_paths(
     self : Commands class instance
         .config
             Configurations
+    drep_dir : str
+        Path to the drep output folder
     paths : list
         Paths to the folders with the genome files to dereplicate
 
@@ -106,31 +109,33 @@ def get_bin_paths(
         if self.config.dev:
             bin_paths_ = ['%s/a.fa' % path.replace('${SCRATCH_FOLDER}', ''),
                           '%s/b.fa' % path.replace('${SCRATCH_FOLDER}', '')]
-    cmd_paths = ''
-    cmd_rms = ''
+    o_paths = '%s/mv_paths.sh' % drep_dir
+    o_rms = '%s/mv_rms.sh' % drep_dir
     bin_paths = []
-    for bin_path in bin_paths_:
-        fold = '${SCRATCH_FOLDER}%s' % dirname(bin_path)
-        names = '_'.join(bin_path.split('/')[-5:-1])
-        new_path = '%s/%s-%s' % (fold, names, basename(bin_path))
-        bin_paths.append(new_path)
-        cmd_paths += 'mv ${SCRATCH_FOLDER}%s %s\n' % (bin_path, new_path)
-        cmd_rms += 'mv %s ${SCRATCH_FOLDER}%s\n' % (new_path, bin_path)
+    with open(o_paths, 'w') as o1, open(o_rms, 'w') as o2:
+        for bin_path in bin_paths_:
+            fold = '${SCRATCH_FOLDER}%s' % dirname(bin_path)
+            names = '_'.join(bin_path.split('/')[-5:-1])
+            new_path = '%s/%s-%s' % (fold, names, basename(bin_path))
+            bin_paths.append(new_path)
+            o1.write('mv ${SCRATCH_FOLDER}%s %s\n' % (bin_path, new_path))
+            o2.write('mv %s ${SCRATCH_FOLDER}%s\n' % (new_path, bin_path))
+    cmd_paths, cmd_rms = 'sh %s\n' % o_paths, 'sh %s\n' % o_rms
     return cmd_paths, cmd_rms, bin_paths
 
 
 def get_drep_inputs(
         drep_dir: str,
-        bin_paths: list
+        b_paths: list
 ) -> tuple:
     """Write the file containing the inputs bins to drep
     and the list of paths to these bins.
 
     Parameters
     ----------
-    drep_dir :
+    drep_dir : str
         Path to the drep output folder
-    bin_paths : int
+    b_paths : int
         Genome files to use for dereplication
 
     Returns
@@ -142,8 +147,8 @@ def get_drep_inputs(
     """
     drep_in = '%s/input_genomes.txt' % drep_dir
     with open(drep_in, 'w') as o:
-        for bin_path in bin_paths:
-            o.write('%s\n' % bin_path)
+        for b_path in b_paths:
+            o.write('%s\n' % b_path)
     cmd = 'envsubst < %s > %s.tmp\n' % (drep_in, drep_in)
     cmd += 'mv %s.tmp %s\n' % (drep_in, drep_in)
     return cmd, drep_in
@@ -254,23 +259,23 @@ def drep(self):
                 self.outputs['outs'][pool][(tech, bin_algo)] = [dereps]
                 to_dos = status_update(
                     self, tech, paths, group=bin_algo, folder=True)
-                cmd_paths, cmd_rms, bin_paths = get_bin_paths(self, paths)
-                cmd_input, drep_in = get_drep_inputs(drep_out, bin_paths)
-                if not bin_paths:
+                cmd_path, cmd_rm, b_paths = get_bin_paths(self, drep_out, paths)
+                cmd_input, drep_in = get_drep_inputs(drep_out, b_paths)
+                if not b_paths:
                     self.soft.add_status(tech, pool, paths, group=bin_algo,
                                          message='run previous')
                     if self.config.dev:
-                        bin_paths = ['x'] * 5001
+                        b_paths = ['x'] * 5001
                 out_dereps = '%s/*.fa' % dereps.replace('${SCRATCH_FOLDER}', '')
                 if not self.config.force and glob.glob(out_dereps):
                     self.soft.add_status(tech, pool, 0, group=bin_algo)
                     continue
                 key = genome_key(tech, bin_algo)
-                cmd = drep_cmd(self, algo, drep_in, drep_out, bin_paths)
+                cmd = drep_cmd(self, algo, drep_in, drep_out, b_paths)
                 if not to_dos:
                     # self.outputs['cmds'].setdefault(key, []).append(False)
                 # else:
-                    cmd = '\n'.join([cmd_paths, cmd_input, cmd, cmd_rms])
+                    cmd = '\n'.join([cmd_path, cmd_input, cmd, cmd_rm])
                     self.outputs['cmds'].setdefault(key, []).append(cmd)
                     io_update(self, i_d=paths, o_d=drep_out, key=key)
                 self.soft.add_status(tech, pool, 1, group=bin_algo)
