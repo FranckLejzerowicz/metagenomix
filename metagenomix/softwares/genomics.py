@@ -7,10 +7,11 @@
 # ----------------------------------------------------------------------------
 
 import glob
+import os.path
 import sys
 from os.path import basename, dirname
 from metagenomix.core.parameters import tech_params
-from metagenomix._io_utils import caller, io_update, to_do, status_update
+from metagenomix._io_utils import caller, io_update, to_do, status_update, rep
 from metagenomix._inputs import (group_inputs, genome_key, genome_out_dir,
                                  get_extension, get_assembler, add_folder)
 
@@ -109,6 +110,8 @@ def get_bin_paths(
         if self.config.dev:
             bin_paths_ = ['%s/a.fa' % path.replace('${SCRATCH_FOLDER}', ''),
                           '%s/b.fa' % path.replace('${SCRATCH_FOLDER}', '')]
+    if not os.path.isdir(rep(drep_dir)):
+        os.makedirs(rep(drep_dir))
     o_paths = '%s/mv_paths.sh' % drep_dir
     o_rms = '%s/mv_rms.sh' % drep_dir
     bin_paths = []
