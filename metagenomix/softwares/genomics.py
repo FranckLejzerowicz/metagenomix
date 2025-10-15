@@ -125,19 +125,20 @@ def fix_bin_paths(
     -------
     cmd_paths : str
         Command to create the input
-    cmd_rms : str
-        Command to remove renamed inputs
     bin_paths : list
         Genome files to use for dereplication
+    bins_dir : str
+        Folder where renamed bin have been copied for drep
     """
     bin_paths = []
-    if not os.path.isdir(rep(drep_dir)):
-        os.makedirs(rep(drep_dir))
-    o_rms = '%s/mv_rms.sh' % drep_dir
+    bins_dir = '%s/bins' % drep_dir
+    if not os.path.isdir(rep(bins_dir)):
+        os.makedirs(rep(bins_dir))
     o_paths = '%s/mv_paths.sh' % drep_dir
-    with open(o_paths, 'w') as o1, open(o_rms, 'w') as o2:
+    with open(o_paths, 'w') as o:
         for bin_path in get_bin_paths(self, paths):
-            fold = '${SCRATCH_FOLDER}%s' % dirname(bin_path)
+            fold = '${SCRATCH_FOLDER}%s' % bins_dir
+            # fold = '${SCRATCH_FOLDER}%s' % dirname(bin_path)
             names = '_'.join(bin_path.split('/')[-5:-1])
             new_path = '%s/%s-%s' % (fold, names, basename(bin_path))
             bin_paths.append(new_path)
@@ -147,10 +148,9 @@ def fix_bin_paths(
             print("names:", names)
             print("new_path:", new_path)
             print(fdsfg)
-            o1.write('mv ${SCRATCH_FOLDER}%s %s\n' % (bin_path, new_path))
-            o2.write('mv %s ${SCRATCH_FOLDER}%s\n' % (new_path, bin_path))
-    cmd_paths, cmd_rms = 'sh %s\n' % o_paths, 'sh %s\n' % o_rms
-    return cmd_paths, cmd_rms, bin_paths
+            o.write('cp ${SCRATCH_FOLDER}%s %s\n' % (bin_path, new_path))
+    cmd_paths = 'sh %s\n' % o_paths
+    return cmd_paths, bin_paths, bins_dir
 
 
 def get_drep_inputs(
