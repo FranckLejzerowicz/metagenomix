@@ -78,6 +78,33 @@ def get_drep_bins(self) -> dict:
 
 def get_bin_paths(
         self,
+        paths: list
+) -> tuple:
+    """Collect the genomes fasta files after removing the scratch folder path.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .config
+            Configurations
+    paths : list
+        Paths to the folders with the genome fasta files
+
+    Returns
+    -------
+    bin_paths : list
+        Genome files to use for dereplication
+    """
+    bin_paths = []
+    for path in paths:
+        bin_paths.extend(glob.glob('%s/*fa' % rep(path)))
+        if self.config.dev:
+            bin_paths = ['%s/a.fa' % rep(path), '%s/b.fa' % rep(path)]
+    return bin_paths
+
+
+def fix_bin_paths(
+        self,
         drep_dir: str,
         paths: list
 ) -> tuple:
@@ -103,24 +130,23 @@ def get_bin_paths(
     bin_paths : list
         Genome files to use for dereplication
     """
-    bin_paths_ = []
-    for path in paths:
-        bin_paths_.extend(
-            glob.glob('%s/*fa' % path.replace('${SCRATCH_FOLDER}', '')))
-        if self.config.dev:
-            bin_paths_ = ['%s/a.fa' % path.replace('${SCRATCH_FOLDER}', ''),
-                          '%s/b.fa' % path.replace('${SCRATCH_FOLDER}', '')]
+    bin_paths = []
     if not os.path.isdir(rep(drep_dir)):
         os.makedirs(rep(drep_dir))
-    o_paths = '%s/mv_paths.sh' % drep_dir
     o_rms = '%s/mv_rms.sh' % drep_dir
-    bin_paths = []
+    o_paths = '%s/mv_paths.sh' % drep_dir
     with open(o_paths, 'w') as o1, open(o_rms, 'w') as o2:
-        for bin_path in bin_paths_:
+        for bin_path in get_bin_paths(self, paths):
             fold = '${SCRATCH_FOLDER}%s' % dirname(bin_path)
             names = '_'.join(bin_path.split('/')[-5:-1])
             new_path = '%s/%s-%s' % (fold, names, basename(bin_path))
             bin_paths.append(new_path)
+            print()
+            print("bin_path:", bin_path)
+            print("fold:", fold)
+            print("names:", names)
+            print("new_path:", new_path)
+            print(fdsfg)
             o1.write('mv ${SCRATCH_FOLDER}%s %s\n' % (bin_path, new_path))
             o2.write('mv %s ${SCRATCH_FOLDER}%s\n' % (new_path, bin_path))
     cmd_paths, cmd_rms = 'sh %s\n' % o_paths, 'sh %s\n' % o_rms
@@ -262,7 +288,7 @@ def drep(self):
                 self.outputs['outs'][pool][(tech, bin_algo)] = [dereps]
                 to_dos = status_update(
                     self, tech, paths, group=bin_algo, folder=True)
-                cmd_path, cmd_rm, b_paths = get_bin_paths(self, drep_out, paths)
+                cmd_path, cmd_rm, b_paths = fix_bin_paths(self, drep_out, paths)
                 cmd_input, drep_in = get_drep_inputs(drep_out, b_paths)
                 if not b_paths:
                     self.soft.add_status(tech, pool, paths, group=bin_algo,
