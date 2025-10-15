@@ -864,10 +864,11 @@ def refine_cmd(
     out = '%s/metawrap_%s_%s' % (out_dir, self.soft.params['min_completion'],
                                  self.soft.params['max_contamination'])
 
-    cmd, cmd_rm = '', ''
+    cmd = ''
+    # cmd, cmd_rm = '', ''
     for tar in bin_folders:
         cmd += 'tar xpfz %s -C %s\n' % (tar, dirname(tar))
-        cmd_rm += 'rm -rf %s*\n' % tar
+        # cmd_rm += 'rm -rf %s*\n' % tar
 
     bins = '%s_bins' % out
     names = '%s.names' % bins
@@ -890,7 +891,7 @@ def refine_cmd(
         cmd += ' -x %s\n' % self.soft.params['max_contamination']
         cmd += 'rm -rf %s/work_files\n' % out_dir
         cmd += 'for i in %s/{ma,metab,c}*_bins; do rm -rf $i; done\n' % out_dir
-        cmd += cmd_rm
+        # cmd += cmd_rm
 
     return cmd, bins, names
 
