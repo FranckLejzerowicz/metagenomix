@@ -125,10 +125,10 @@ def fix_bin_paths(
     -------
     cmd_paths : str
         Command to create the input
+    cmd_rm : str
+        Command to remove the copied input
     bin_paths : list
         Genome files to use for dereplication
-    bins_dir : str
-        Folder where renamed bin have been copied for drep
     """
     bin_paths = []
     bins_dir = '%s/bins' % drep_dir
@@ -138,19 +138,13 @@ def fix_bin_paths(
     with open(o_paths, 'w') as o:
         for bin_path in get_bin_paths(self, paths):
             fold = '${SCRATCH_FOLDER}%s' % bins_dir
-            # fold = '${SCRATCH_FOLDER}%s' % dirname(bin_path)
             names = '_'.join(bin_path.split('/')[-5:-1])
             new_path = '%s/%s-%s' % (fold, names, basename(bin_path))
             bin_paths.append(new_path)
-            print()
-            print("bin_path:", bin_path)
-            print("fold:", fold)
-            print("names:", names)
-            print("new_path:", new_path)
-            print(fdsfg)
             o.write('cp ${SCRATCH_FOLDER}%s %s\n' % (bin_path, new_path))
     cmd_paths = 'sh %s\n' % o_paths
-    return cmd_paths, bin_paths, bins_dir
+    cmd_rm = 'rm -rf %s\n' % bins_dir
+    return cmd_paths, cmd_rm, bin_paths
 
 
 def get_drep_inputs(
@@ -302,8 +296,6 @@ def drep(self):
                 key = genome_key(tech, bin_algo)
                 cmd = drep_cmd(self, algo, drep_in, drep_out, b_paths)
                 if not to_dos:
-                    # self.outputs['cmds'].setdefault(key, []).append(False)
-                # else:
                     cmd = '\n'.join([cmd_path, cmd_input, cmd, cmd_rm])
                     self.outputs['cmds'].setdefault(key, []).append(cmd)
                     io_update(self, i_d=paths, o_d=drep_out, key=key)
