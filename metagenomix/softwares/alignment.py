@@ -94,14 +94,12 @@ def flash(self) -> None:
     for (tech, sam), fastqs in self.inputs[self.sam_pool].items():
         print()
         print("===================")
-        print("===================")
         print("tech")
         print(tech)
         print("sam")
         print(sam)
         print("fastqs")
         print(fastqs)
-        print("===================")
         print("===================")
         if tech_specificity(self, fastqs, tech, sam, ['illumina']):
             continue
