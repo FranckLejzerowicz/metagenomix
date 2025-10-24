@@ -159,6 +159,8 @@ def collect_paths_to_merge(
     paths_to_merge = {}
     for sam in sams:
         print('[collect_paths_to_merge] sam:', sam)
+        print('[collect_paths_to_merge] self.inputs[sam]:', self.inputs[
+            sam].keys())
         if (tech, sam) in self.inputs[sam] and self.inputs[sam][(tech, sam)]:
             fastqs = self.inputs[sam][(tech, sam)]
             print('[collect_paths_to_merge]  -', fastqs)
