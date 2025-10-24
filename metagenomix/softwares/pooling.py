@@ -158,8 +158,10 @@ def collect_paths_to_merge(
     """
     paths_to_merge = {}
     for sam in sams:
+        print('sam:', sam)
         if (tech, sam) in self.inputs[sam] and self.inputs[sam][(tech, sam)]:
             fastqs = self.inputs[sam][(tech, sam)]
+            print(' -', fastqs)
             extension_paths(paths_to_merge, fastqs)
     return paths_to_merge
 
