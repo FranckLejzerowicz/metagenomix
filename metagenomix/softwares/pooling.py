@@ -375,7 +375,7 @@ def get_pools(
     # not possible to iterate over samples since pooling considers ALL samples
     for tech in self.config.techs:
         # initialize the data structure directly for the Commands instance
-        out = '/'.join ([self.dir, tech, pool, group])
+        out = '/'.join([self.dir, tech, pool, group])
         self.soft.dirs.add(out.replace('${SCRATCH_FOLDER}', ''))
         # get the fasta files of the pools (per orientation)
         fasta_fps = get_fasta_pools(self, tech, out, sams, pool, group)
@@ -383,6 +383,7 @@ def get_pools(
         add_to_pool_io(self, ('O', 'f'), tech, pool, group, fasta_fps)
         add_to_pool_io(self, ('O', 'd'), tech, pool, group, [out])
         self.soft.outputs[pool][group][tech] = fasta_fps
+        print("fasta_fps", fasta_fps)
 
 
 def add_to_pool_io(
