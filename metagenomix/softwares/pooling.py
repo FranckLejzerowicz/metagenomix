@@ -225,7 +225,7 @@ def get_fasta_pools(
     fasta_fps = []
     for ext, paths in sorted(paths_to_merge.items()):
         to_dos = status_update(self, tech, paths, group=group)
-        print("ext:", ext)
+        print("paths:", paths)
         print("to_dos:", to_dos)
         fasta = pool_fasta(self, tech, out, ext, paths, pool, group, to_dos)
         fasta_fps.append(fasta)
@@ -381,7 +381,6 @@ def get_pools(
         out = '/'.join([self.dir, tech, pool, group])
         self.soft.dirs.add(out.replace('${SCRATCH_FOLDER}', ''))
         # get the fasta files of the pools (per orientation)
-        print("out:", out)
         fasta_fps = get_fasta_pools(self, tech, out, sams, pool, group)
         # fill the data structures
         add_to_pool_io(self, ('O', 'f'), tech, pool, group, fasta_fps)
