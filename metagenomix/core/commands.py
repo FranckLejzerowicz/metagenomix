@@ -179,6 +179,9 @@ class Commands(object):
             self.pools[pool] = {}
             self.soft.outputs[pool] = {}
             pooling(self, pool)
+            print("pool =", pool)
+            print("dict(self.cmds)")
+            print(dict(self.cmds))
 
     def call_method(self):
         """Call the command-preparing method from this class (for the

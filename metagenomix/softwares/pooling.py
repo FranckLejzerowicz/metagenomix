@@ -84,6 +84,7 @@ def pool_cmd(
                 cmd += 'cat %s >> %s\n' % (path, fasta)
             else:
                 cmd += 'cat %s > %s\n' % (path, fasta)
+        print("cmd:", cmd)
         if cmd:
             fill_pool_cmds(self, tech, pool, group, to_dos, cmd)
 
@@ -224,6 +225,8 @@ def get_fasta_pools(
     fasta_fps = []
     for ext, paths in sorted(paths_to_merge.items()):
         to_dos = status_update(self, tech, paths, group=group)
+        print("ext:", ext)
+        print("to_dos:", to_dos)
         fasta = pool_fasta(self, tech, out, ext, paths, pool, group, to_dos)
         fasta_fps.append(fasta)
     return fasta_fps
@@ -378,13 +381,14 @@ def get_pools(
         out = '/'.join([self.dir, tech, pool, group])
         self.soft.dirs.add(out.replace('${SCRATCH_FOLDER}', ''))
         # get the fasta files of the pools (per orientation)
+        print("out:", out)
         fasta_fps = get_fasta_pools(self, tech, out, sams, pool, group)
         # fill the data structures
         add_to_pool_io(self, ('O', 'f'), tech, pool, group, fasta_fps)
         add_to_pool_io(self, ('O', 'd'), tech, pool, group, [out])
         self.soft.outputs[pool][group][tech] = fasta_fps
-        print("out:", out)
         print("fasta_fps:", fasta_fps)
+
 
 def add_to_pool_io(
         self,
