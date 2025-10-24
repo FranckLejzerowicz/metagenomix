@@ -92,6 +92,17 @@ def flash(self) -> None:
             Configurations
     """
     for (tech, sam), fastqs in self.inputs[self.sam_pool].items():
+        print()
+        print("===================")
+        print("===================")
+        print("tech")
+        print(tech)
+        print("sam")
+        print(sam)
+        print("fastqs")
+        print(fastqs)
+        print("===================")
+        print("===================")
         if tech_specificity(self, fastqs, tech, sam, ['illumina']):
             continue
         paired, unpaired = not_paired(self, tech, sam, fastqs)
@@ -107,10 +118,6 @@ def flash(self) -> None:
         nc2 = '%s.notCombined_2.fastq.gz' % rad
         ext = '%s.extendedFrags.fastq.gz' % rad
         outs = [nc1, nc2, ext]
-        print()
-        print('------ flash --------')
-        print('paired:', paired)
-        print('unpaired:', unpaired)
         key = genome_key(tech, sam)
         if self.config.force or sum([to_do(x) for x in outs]):
             cmd = flash_cmd(self, tech, paired, out)
@@ -125,9 +132,13 @@ def flash(self) -> None:
 
         if unpaired:
             outs.extend(unpaired)
-        self.outputs['outs'].setdefault((tech, self.sam_pool), []).extend(outs)
-        print('outs:', outs)
+        print()
         print('------ flash --------')
+        print('outs:', outs)
+        print('self.sam_pool:', self.sam_pool)
+        print('sam:', sam)
+        print('------ flash --------')
+        self.outputs['outs'].setdefault((tech, self.sam_pool), []).extend(outs)
 
 
 def ngmerge_cmd(
