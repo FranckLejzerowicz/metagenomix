@@ -97,13 +97,13 @@ def get_count(
     for genome, fastx in fastxs.items():
 
         to_dos = status_update(self, tech, fastx)
-        if self.soft.prev in self.config.tools['preprocessing']:
-            out_dir = '%s/%s/%s' % (self.dir, tech, sam_group)
-            self.outputs['dirs'].append(out_dir)
-            out = '%s/read_count.tsv' % out_dir
-        else:
-            out_dir = None
-            out = '%s.num' % fastx[0].replace('.gz', '')
+        # if self.soft.prev in self.config.tools['preprocessing']:
+        out_dir = '%s/%s/%s' % (self.dir, tech, sam_group)
+        self.outputs['dirs'].append(out_dir)
+        out = '%s/read_count.tsv' % out_dir
+        # else:
+        #     out_dir = None
+        #     out = '%s.num' % fastx[0].replace('.gz', '')
         outs[(tech, self.sam_pool)] = out
 
         key = genome_key(tech, sam_group)
