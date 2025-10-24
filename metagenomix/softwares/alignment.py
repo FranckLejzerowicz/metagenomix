@@ -92,6 +92,7 @@ def flash(self) -> None:
             Configurations
     """
     for (tech, sam), fastqs in self.inputs[self.sam_pool].items():
+        print()
         print("===================")
         print("tech")
         print(tech)
