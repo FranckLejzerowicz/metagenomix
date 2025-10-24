@@ -383,7 +383,6 @@ def get_pools(
         add_to_pool_io(self, ('O', 'f'), tech, pool, group, fasta_fps)
         add_to_pool_io(self, ('O', 'd'), tech, pool, group, [out])
         self.soft.outputs[pool][group][tech] = fasta_fps
-        print("fasta_fps", fasta_fps)
 
 
 def add_to_pool_io(
@@ -445,6 +444,9 @@ def pooling(
     for group, group_pd in self.config.meta.groupby(pool):
         # get the full list of samples and the samples per pooling group
         sams = group_pd.index.tolist()
+        print()
+        print(group)
+        print(sams)
         self.pools[pool][group] = sams
         self.soft.outputs[pool][group] = {}
         # get the outputs for the current group and collect pooling commands
