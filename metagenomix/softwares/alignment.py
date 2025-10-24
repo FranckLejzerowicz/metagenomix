@@ -95,6 +95,11 @@ def flash(self) -> None:
         if tech_specificity(self, fastqs, tech, sam, ['illumina']):
             continue
         paired, unpaired = not_paired(self, tech, sam, fastqs)
+        print()
+        print('------ flash --------')
+        print('paired:', paired)
+        print('unpaired:', unpaired)
+        print('------ flash --------')
         if not paired:
             continue
         to_dos = status_update(self, tech, paired)
