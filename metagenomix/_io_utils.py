@@ -592,12 +592,12 @@ def tech_specificity(
     self : Commands class instance
         .outputs : dict
             All outputs
+    data : str
+        Path to the input files or other input data structure
     tech : str
         Technology: 'illumina', 'pacbio', or 'nanopore'
     sam : str
         Sample name
-    data : str
-        Path to the input files or other input data structure
     specificity : list
         Technology that can be processed by the current software
 
@@ -607,6 +607,9 @@ def tech_specificity(
         Whether the technology is possibly processed using this tool
     """
     if not data or (specificity and tech not in specificity):
+        print('++++++++++++++++++')
+        print('specificity and tech', specificity, tech)
+        print('++++++++++++++++++')
         self.outputs['outs'].setdefault((tech, sam), []).extend(data)
         self.soft.add_status(tech, sam, 0, message='technology incompatible')
         return True
