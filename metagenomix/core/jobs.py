@@ -496,8 +496,8 @@ class Created(object):
             self.n_arrays = n_arrays
 
     def write_chunks(self, chunk_keys: list, soft):
-        print()
-        print(self.sh)
+        # print()
+        # print(self.sh)
         with open(self.sh, 'w') as sh:
             if self.modules:
                 sh.write('module purge\n')
@@ -511,11 +511,11 @@ class Created(object):
             for chunk_key in chunk_keys:
                 self.update_n_arrays(chunk_key)
                 for cmd in self.cmds[chunk_key][0]:
-                    print()
-                    print(soft.path)
-                    print(soft.name)
-                    print(chunk_key)
-                    print(cmd)
+                    # print()
+                    # print(soft.path)
+                    # print(soft.name)
+                    # print(chunk_key)
+                    # print(cmd)
                     if soft.params['scratch'] and self.config.jobs:
                         sh.write('%s\n' % cmd)
                     else:
