@@ -94,6 +94,14 @@ class Commands(object):
             # if the previous software is not None (i.e., not on the raw data)
             prev_hash = self.hashes[tuple(self.path[:-1])]
             self.inputs = self.softs[self.soft.prev][prev_hash].outputs
+            print('------------------------------------')
+            print('------------------------------------')
+            print('self.soft.prev:', self.soft.prev)
+            print('self.soft.name:', self.soft.name)
+            print("self.inputs")
+            print(self.inputs)
+            print('------------------------------------')
+            print('------------------------------------')
         show_inputs(self, log)
 
     def get_dir(self):
