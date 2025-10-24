@@ -383,7 +383,8 @@ def get_pools(
         add_to_pool_io(self, ('O', 'f'), tech, pool, group, fasta_fps)
         add_to_pool_io(self, ('O', 'd'), tech, pool, group, [out])
         self.soft.outputs[pool][group][tech] = fasta_fps
-
+        print("out:", out)
+        print("fasta_fps:", fasta_fps)
 
 def add_to_pool_io(
         self,
