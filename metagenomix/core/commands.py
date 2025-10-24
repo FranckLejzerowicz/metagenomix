@@ -167,6 +167,13 @@ class Commands(object):
             self.soft.outputs = self.outputs['outs']
         else:
             outputs = dict(x for x in self.outputs['outs'].items() if x[1])
+            print()
+            print('- --------- unpack_outputs -------- -')
+            print('self.soft.name')
+            print(self.soft.name)
+            print('outputs')
+            print(outputs)
+            print('- --------- unpack_outputs -------- -')
             self.soft.outputs[self.sam_pool] = outputs
 
     def extract_data(self):
