@@ -84,7 +84,7 @@ def pool_cmd(
                 cmd += 'cat %s >> %s\n' % (path, fasta)
             else:
                 cmd += 'cat %s > %s\n' % (path, fasta)
-        print("cmd:", cmd)
+        print("[pool_cmd] cmd:", cmd)
         if cmd:
             fill_pool_cmds(self, tech, pool, group, to_dos, cmd)
 
@@ -158,10 +158,10 @@ def collect_paths_to_merge(
     """
     paths_to_merge = {}
     for sam in sams:
-        print('sam:', sam)
+        print('[collect_paths_to_merge] sam:', sam)
         if (tech, sam) in self.inputs[sam] and self.inputs[sam][(tech, sam)]:
             fastqs = self.inputs[sam][(tech, sam)]
-            print(' -', fastqs)
+            print('[collect_paths_to_merge]  -', fastqs)
             extension_paths(paths_to_merge, fastqs)
     return paths_to_merge
 
@@ -227,8 +227,8 @@ def get_fasta_pools(
     fasta_fps = []
     for ext, paths in sorted(paths_to_merge.items()):
         to_dos = status_update(self, tech, paths, group=group)
-        print("paths:", paths)
-        print("to_dos:", to_dos)
+        print("[get_fasta_pools] paths:", paths)
+        print("[get_fasta_pools] to_dos:", to_dos)
         fasta = pool_fasta(self, tech, out, ext, paths, pool, group, to_dos)
         fasta_fps.append(fasta)
     return fasta_fps
@@ -388,7 +388,7 @@ def get_pools(
         add_to_pool_io(self, ('O', 'f'), tech, pool, group, fasta_fps)
         add_to_pool_io(self, ('O', 'd'), tech, pool, group, [out])
         self.soft.outputs[pool][group][tech] = fasta_fps
-        print("fasta_fps:", fasta_fps)
+        print("[get_pools] fasta_fps:", fasta_fps)
 
 
 def add_to_pool_io(
@@ -451,8 +451,8 @@ def pooling(
         # get the full list of samples and the samples per pooling group
         sams = group_pd.index.tolist()
         print()
-        print(group)
-        print(sams)
+        print('[pooling]', group)
+        print('[pooling]', sams)
         self.pools[pool][group] = sams
         self.soft.outputs[pool][group] = {}
         # get the outputs for the current group and collect pooling commands
