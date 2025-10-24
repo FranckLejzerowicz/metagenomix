@@ -231,6 +231,7 @@ def get_fasta_pools(
         print("[get_fasta_pools] to_dos:", to_dos)
         fasta = pool_fasta(self, tech, out, ext, paths, pool, group, to_dos)
         fasta_fps.append(fasta)
+    print("[get_fasta_pools] fasta_fps:", fasta_fps)
     return fasta_fps
 
 
@@ -388,7 +389,6 @@ def get_pools(
         add_to_pool_io(self, ('O', 'f'), tech, pool, group, fasta_fps)
         add_to_pool_io(self, ('O', 'd'), tech, pool, group, [out])
         self.soft.outputs[pool][group][tech] = fasta_fps
-        print("[get_pools] fasta_fps:", fasta_fps)
 
 
 def add_to_pool_io(
