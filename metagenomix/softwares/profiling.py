@@ -1958,6 +1958,123 @@ def woltka(self) -> None:
                                 params, key)
 
 
+def get_zebra_cmd(
+        self,
+        tech: str,
+        inputs: list,
+        out_dir: str) -> str:
+    """Build the command line for MIDAS analysis.
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .sam : str
+            Sample name
+        .inputs : dict
+            Input files
+        .soft.params
+            Parameters
+    inputs : list
+        Paths to the input files
+    tech : str
+        Technology: 'illumina', 'pacbio', or 'nanopore'
+    focus_dir : str
+        Path to the output folder.
+    analysis : str
+        MIDAS analysis (any of "species", "genes" or "snps").
+    select : set
+        Species names for which there is a reference in the database.
+
+    Returns
+    -------
+    cmd : str
+        Midas command line for the species level.
+    """
+    params = tech_params(self, tech)
+    cmd = 'export PATH=$PATH:%s/scripts\n' % params['path']
+    cmd += 'export PYTHONPATH=$PYTHONPATH:%s\n' % params['path']
+    cmd += '\nrun_midas.py %s' % analysis
+    cmd += ' %s' % focus_dir
+    cmd += ' -1 %s' % inputs[0]
+    if len(inputs) > 1:
+        cmd += ' -2 %s' % inputs[1]
+    cmd += ' -d %s' % self.databases.paths['midas']
+    cmd += ' -t %s' % params['cpus']
+    return cmd
+
+
+def zebra(self) -> None:
+    """Filtering out false taxonomic hits from shotgun sequencing based on
+    aggregated genome coverage of all samples in dataset.
+
+    References
+    ----------
+    Hakim, D., Wandro, S., Zengler, K., Zaramela, L.S., Nowinski, B., Swafford,
+    A., Zhu, Q., Song, S.J., Gonzalez, A., McDonald, D. and Knight, R.,
+    2022. Zebra: static and dynamic genome cover thresholds with overlapping
+    references. Msystems, 7(5), pp.e00758-22.
+
+    Notes
+    -----
+    GitHub  : https://github.com/biocore/zebra_filter
+    Paper   : https://doi.org/10.1128/msystems.00758-22
+
+    Parameters
+    ----------
+    self : Commands class instance
+        .dir : str
+            Path to pipeline output folder
+        .inputs : dict
+            Input files
+        .prev : str
+            Previous software
+        .soft.params
+            Parameters
+        .outputs : dict
+            All outputs
+        .databases
+            All databases class instance
+    """
+    for (tech, sam), inputs in self.inputs[self.sam_pool].items():
+        # CHECK
+        # for sample, sam_inputs in self.inputs.items():
+        #     if sam_inputs.get((tech, sample)):
+        #         for (db, aligner), bam in sam_inputs[(tech, sample)].items():
+        #             if bam and db == 'wol':
+        #                 if aligner not in alignments:
+        #                     alignments[aligner] = {}
+        #                 alignments[aligner][sample] = bam
+        print()
+        print()
+        print('----------------------------')
+        print()
+        print(tech, sam, inputs)
+        print(techfds)
+        print()
+        print('----------------------------')
+        print()
+        to_dos = status_update(self, tech, inputs)
+        params = tech_params(self, tech)
+        for aligner, alis in alignments.items():
+            to_dos = status_update(
+                self, tech, list(alis.values()), group=aligner)
+            key = genome_key(tech, sam, aligner)
+
+            out = '/'.join([self.dir, tech, aligner])
+            self.outputs['dirs'].append(out)
+            self.outputs['outs'].setdefault((tech, sam), []).append(out)
+            if self.config.force or to_do('%s/result.tsv.gz' % out):
+                cmd = get_zebra_cmd(self, tech, inputs, out)
+                if to_dos:
+                    self.outputs['cmds'].setdefault(key, []).append(False)
+                else:
+                    self.outputs['cmds'].setdefault(key, []).append(cmd)
+                io_update(self, i_f=inputs, o_d=out, key=key)
+                self.soft.add_status(tech, sam, 1, group=aligner)
+            else:
+                self.soft.add_status(tech, sam, 0, group=aligner)
+
+
 def get_midas_cmd(
         self,
         tech: str,
