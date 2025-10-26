@@ -1540,7 +1540,7 @@ def check_zebra(self, params):
         'c': 0.1,
     }
     check_nums(self, params, defaults, ['c'], float, 0, 1)
-    check_default(self, params, defaults)
+    check_default(self, params, defaults, ['c'])
     return defaults
 
 
