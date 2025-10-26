@@ -2044,6 +2044,7 @@ def zebra(self) -> None:
         for (db, aligner), bam in inputs.items():
             print(bam)
             to_dos = status_update(self, tech, bam, group=aligner)
+            print(to_dos)
             key = genome_key(tech, sam, aligner)
             out = '/'.join([self.dir, tech, sam, db])
             bam_out = '%s/alignment.bowtie2.bam\n' % out
