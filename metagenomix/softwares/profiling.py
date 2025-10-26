@@ -1990,8 +1990,8 @@ def get_zebra_cmd(
     ali_dir = dirname(bam)
 
     sam_in = '%s/alignment.bowtie2.sam' % ali_dir
-    sam_out = '%s/alignment.bowtie2.sam\n' % out
-    bam_out = '%s/alignment.bowtie2.bam\n' % out
+    sam_out = '%s/alignment.bowtie2.sam' % out
+    bam_out = '%s/alignment.bowtie2.bam' % out
     cmd = '\npython %s/calculate_coverages.py' % RESOURCES
     cmd += ' -i %s' % ali_dir
     cmd += ' -o %s/coverages.tsv' % out
