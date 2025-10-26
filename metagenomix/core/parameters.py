@@ -1535,6 +1535,15 @@ def check_prodigal(self, params):
     return defaults
 
 
+def check_zebra(self, params):
+    defaults = {
+        'c': 0.1,
+    }
+    check_nums(self, params, defaults, ['c'], float, 0, 1)
+    check_default(self, params, defaults)
+    return defaults
+
+
 def check_fastp(self, params):
     defaults = {
         'split': 0,
