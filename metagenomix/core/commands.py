@@ -94,14 +94,14 @@ class Commands(object):
             # if the previous software is not None (i.e., not on the raw data)
             prev_hash = self.hashes[tuple(self.path[:-1])]
             self.inputs = self.softs[self.soft.prev][prev_hash].outputs
-            print('------------------------------------')
-            print('------------------------------------')
-            print('self.soft.prev:', self.soft.prev)
-            print('self.soft.name:', self.soft.name)
-            print("self.inputs")
-            print(self.inputs)
-            print('------------------------------------')
-            print('------------------------------------')
+            # print('------------------------------------')
+            # print('------------------------------------')
+            # print('self.soft.prev:', self.soft.prev)
+            # print('self.soft.name:', self.soft.name)
+            # print("self.inputs")
+            # print(self.inputs)
+            # print('------------------------------------')
+            # print('------------------------------------')
         show_inputs(self, log)
 
     def get_dir(self):
@@ -167,13 +167,13 @@ class Commands(object):
             self.soft.outputs = self.outputs['outs']
         else:
             outputs = dict(x for x in self.outputs['outs'].items() if x[1])
-            print()
-            print('- --------- unpack_outputs -------- -')
-            print('self.soft.name')
-            print(self.soft.name)
-            print('outputs')
-            print(outputs)
-            print('- --------- unpack_outputs -------- -')
+            # print()
+            # print('- --------- unpack_outputs -------- -')
+            # print('self.soft.name')
+            # print(self.soft.name)
+            # print('outputs')
+            # print(outputs)
+            # print('- --------- unpack_outputs -------- -')
             self.soft.outputs[self.sam_pool] = outputs
 
     def extract_data(self):
@@ -194,9 +194,9 @@ class Commands(object):
             self.pools[pool] = {}
             self.soft.outputs[pool] = {}
             pooling(self, pool)
-            print("pool =", pool)
-            print("dict(self.cmds)")
-            print(dict(self.cmds))
+            # print("pool =", pool)
+            # print("dict(self.cmds)")
+            # print(dict(self.cmds))
 
     def call_method(self):
         """Call the command-preparing method from this class (for the
