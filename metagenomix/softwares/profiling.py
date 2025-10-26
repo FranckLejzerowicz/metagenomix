@@ -1994,7 +1994,7 @@ def get_zebra_cmd(
     bam_out = '%s/alignment.bowtie2.bam' % out
     cov = '%s/coverages.tsv' % out
     cmd = ''
-    if not to_do(cov):
+    if to_do(cov):
         cmd += 'python %s/calculate_coverages.py' % RESOURCES
         cmd += ' -i %s' % ali_dir
         cmd += ' -o %s' % cov
