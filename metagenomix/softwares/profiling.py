@@ -2042,6 +2042,7 @@ def zebra(self) -> None:
     for (tech, sam), inputs in self.inputs[self.sam_pool].items():
         self.outputs['outs'][(tech, sam)] = dict()
         for (db, aligner), bam in inputs.items():
+            print(bam)
             to_dos = status_update(self, tech, bam, group=aligner)
             key = genome_key(tech, sam, aligner)
             out = '/'.join([self.dir, tech, sam, db])
