@@ -1990,8 +1990,8 @@ def get_zebra_cmd(
     ali_dir = dirname(bam)
 
     sam_in = '%s/alignment.bowtie2.sam' % ali_dir
-    sam_out = '%s/alignment.bowtie2.sam' % out
-    bam_out = '%s/alignment.bowtie2.bam' % out
+    sam_out = '%s/alignment.bowtie2_filtered.sam' % out
+    bam_out = '%s/alignment.bowtie2_filtered.bam' % out
     cov = '%s/coverages.tsv' % out
     cmd = ''
     if to_do(cov):
@@ -2000,11 +2000,12 @@ def get_zebra_cmd(
         cmd += ' -o %s' % cov
         cmd += ' -d %s/genomes/metadata.tsv\n' % self.databases.paths['wol']
 
-    cmd += 'python %s/filter_sam.py' % RESOURCES
-    cmd += ' -i %s' % cov
-    cmd += ' -c %s' % params['c']
-    cmd += ' -s %s' % sam_in
-    cmd += ' -o %s\n' % out
+    if to_do(sam_out):
+        cmd += 'python %s/filter_sam.py' % RESOURCES
+        cmd += ' -i %s' % cov
+        cmd += ' -c %s' % params['c']
+        cmd += ' -s %s' % sam_in
+        cmd += ' -o %s\n' % out
 
     cmd += 'samtools view -b %s | samtools sort -o %s\n' % (sam_out, bam_out)
     return cmd
