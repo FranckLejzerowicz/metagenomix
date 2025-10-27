@@ -2049,7 +2049,7 @@ def zebra(self) -> None:
             to_dos = status_update(self, tech, [bam], group=aligner)
             key = genome_key(tech, sam, aligner)
             out = '/'.join([self.dir, tech, sam, db])
-            bam_out = '%s/alignment.bowtie2_filtered.sam\n' % out
+            bam_out = '%s/alignment.bowtie2_filtered.bam\n' % out
             self.outputs['dirs'].append(out)
             self.outputs['outs'][(tech, sam)][(db, aligner)] = bam_out
             if self.config.force or to_do(bam_out):
