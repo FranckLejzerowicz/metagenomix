@@ -1989,11 +1989,12 @@ def get_zebra_cmd(
     params = tech_params(self, tech)
     ali_dir = dirname(bam)
 
+    cov = '%s/coverages.tsv' % out
     sam_in = '%s/alignment.bowtie2.sam' % ali_dir
     sam_out = '%s/alignment.bowtie2_filtered.sam' % out
     bam_out = '%s/alignment.bowtie2_filtered.bam' % out
-    cov = '%s/coverages.tsv' % out
     cmd = ''
+
     if to_do(cov):
         cmd += 'python %s/calculate_coverages.py' % RESOURCES
         cmd += ' -i %s' % ali_dir
