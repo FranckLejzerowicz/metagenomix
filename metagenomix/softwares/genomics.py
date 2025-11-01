@@ -9,7 +9,7 @@
 import glob
 import os.path
 import sys
-from os.path import basename, dirname
+from os.path import basename
 from metagenomix.core.parameters import tech_params
 from metagenomix._io_utils import caller, io_update, to_do, status_update, rep
 from metagenomix._inputs import (group_inputs, genome_key, genome_out_dir,
@@ -135,7 +135,7 @@ def fix_bin_paths(
     if not os.path.isdir(rep(bins_dir)):
         os.makedirs(rep(bins_dir))
     o_paths = '%s/mv_paths.sh' % drep_dir
-    with open(o_paths, 'w') as o:
+    with open(rep(o_paths), 'w') as o:
         for bin_path in get_bin_paths(self, paths):
             fold = '${SCRATCH_FOLDER}%s' % bins_dir
             names = '_'.join(bin_path.split('/')[-5:-1])
