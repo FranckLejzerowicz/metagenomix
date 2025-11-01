@@ -964,6 +964,7 @@ def woltka_tax(
         cur_cmd += ' --outmap %s' % tax_outmap
         cur_cmd += ' -o %s\n' % tax_out
         cur_cmd += 'for i in %s/*; do gzip -q $i; done\n' % tax_out
+        cur_cmd = 'mkdir -p %s\n%s' % (tax_out, cur_cmd)
         self.outputs['cmds'].setdefault(key, []).append(cur_cmd)
         io_update(self, o_d=tax_outmap, key=key)
     else:
@@ -1024,10 +1025,11 @@ def woltka_go(
     out_dir = '/'.join([self.dir, tech, aligner, pairing])
     go_dir = '%s/go' % out_dir
     io_update(self, o_d=go_dir, key=key)
+    cmd = ''
     for go in gos:
         cur_out = '%s/%s.tsv.gz' % (go_dir, go)
         cur_map = '%s/%s.map.xz' % (go_rt, go)
-        cmd = '\n# go: %s [no stratification]\n' % go
+        cmd += '\n# go: %s [no stratification]\n' % go
         cmd += 'woltka classify'
         cmd += ' -i %s' % map_fp
         cmd += ' --coords %s' % coords
@@ -1041,6 +1043,7 @@ def woltka_go(
         cmd += 'gzip %s\n' % cur_out[:-3]
         if to_do(cur_out):
             go_to_do.append(cur_out)
+            cmd = 'mkdir -p %s\n%s' % (go_dir, cmd)
             self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, o_f=cur_out, key=key)
             self.soft.add_status(tech, 'all samples', 1, group='go',
@@ -1069,13 +1072,13 @@ def woltka_go(
             cmd += 'gzip %s\n' % go_out[:-3]
             if to_do(go_out):
                 go_to_do.append(go_out)
+                cmd = 'mkdir -p %s\n%s' % (go_dir, cmd)
                 self.outputs['cmds'].setdefault(key, []).append(cmd)
                 self.soft.add_status(tech, 'all samples', 1,
                                      group='go (%s)' % stratif, genome=go)
             else:
                 self.soft.add_status(tech, 'all samples', 0,
                                      group='go (%s)' % stratif, genome=go)
-            # self.outputs['outs'].setdefault(key, []).append(go_out)
     return go_to_do
 
 
@@ -1138,6 +1141,7 @@ def woltka_genes(
         cmd += ' --coords %s' % coords
         cmd += ' -o %s\n' % genes[:-3]
         cmd += 'gzip %s\n' % genes[:-3]
+        cmd = 'mkdir -p %s\n%s' % (genes_out, cmd)
         self.outputs['cmds'].setdefault(key, []).append(cmd)
         io_update(self, o_f=genes, key=key)
         self.soft.add_status(tech, 'all samples', 1, group='genes')
@@ -1159,6 +1163,7 @@ def woltka_genes(
             cmd += ' --stratify %s/%s' % (taxmap, stratif)
             cmd += ' -o %s\n' % genes[:-3]
             cmd += 'gzip %s\n' % genes[:-3]
+            cmd = 'mkdir -p %s\n%s' % (genes_out, cmd)
             self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, o_f=genes, key=key)
             self.soft.add_status(
@@ -1228,6 +1233,7 @@ def woltka_uniref(
         cmd += ' --names %s' % uniref_names
         cmd += ' --output %s\n' % uniref[:-3]
         cmd += 'gzip %s\n' % uniref[:-3]
+        cmd = 'mkdir -p %s\n%s' % (uniref_out, cmd)
         self.outputs['cmds'].setdefault(key, []).append(cmd)
         io_update(self, o_f=uniref, key=key)
         self.soft.add_status(tech, 'all samples', 1, group='uniref')
@@ -1252,6 +1258,7 @@ def woltka_uniref(
             cmd += ' --field %s' % params['field']
             cmd += ' --output %s\n' % uniref[:-3]
             cmd += 'gzip %s\n' % uniref[:-3]
+            cmd = 'mkdir -p %s\n%s' % (uniref_out, cmd)
             self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, o_f=uniref, key=key)
             self.soft.add_status(
@@ -1312,6 +1319,7 @@ def woltka_eggnog(
         cmd += ' --input %s' % uniref_tax[''][:-3]
         cmd += ' --map %s/function/eggnog/eggnog.map.xz' % database
         cmd += ' --output %s\n' % biom[:-3]
+        cmd = 'mkdir -p %s\n%s' % (eggnog_out, cmd)
         self.outputs['cmds'].setdefault(key, []).append(cmd)
         io_update(self, o_f=biom, key=key)
         self.soft.add_status(tech, 'all samples', 1, group='eggnog')
@@ -1342,6 +1350,7 @@ def woltka_eggnog(
             cmd += ' --map %s/function/eggnog/eggnog.map.xz' % database
             cmd += ' --field %s' % params['field']
             cmd += ' --output %s\n\n' % biom[:-3]
+            cmd = 'mkdir -p %s\n%s' % (eggnog_out, cmd)
             self.outputs['cmds'].setdefault(key, []).append(cmd)
             io_update(self, o_f=biom, key=key)
             self.soft.add_status(
@@ -1600,6 +1609,7 @@ def woltka_metacyc(
             files_tax[stratif][level] = biom
 
     if cmd:
+        cmd = 'mkdir -p %s\n%s' % (woltka_fun_out, cmd)
         self.outputs['cmds'].setdefault(key, []).append(cmd)
     # self.outputs['outs'].setdefault(key, []).extend(files)
 
@@ -1700,6 +1710,7 @@ def woltka_kegg(
                     cmd += ' --names %s/function/kegg/%s' % (database, name)
                     cmd += ' --map %s/function/kegg/%s' % (database, maps)
                     cmd += ' --output %s\n' % biom[:-3]
+                    cmd = 'mkdir -p %s\n%s' % (kegg_out, cmd)
                     self.outputs['cmds'].setdefault(key, []).append(cmd)
                     io_update(self, o_f=biom, key=key)
                     self.soft.add_status(tech, 'all samples', 1,
@@ -1734,6 +1745,7 @@ def woltka_kegg(
                         cmd += ' --names %s/%s' % (kegg_maps, name)
                     cmd += ' --map %s/%s' % (kegg_maps, maps)
                     cmd += ' --output %s\n' % biom[:-3]
+                    cmd = 'mkdir -p %s\n%s' % (kegg_out, cmd)
                     self.outputs['cmds'].setdefault(key, []).append(cmd)
                     io_update(self, o_f=biom, key=key)
                     self.soft.add_status(tech, 'all samples', 1,
@@ -1770,6 +1782,7 @@ def woltka_kegg(
                         cmd += ' --map %s/function/kegg/%s' % (database, maps)
                         cmd += ' --field %s' % params['field']
                         cmd += ' --output %s\n' % biom[:-3]
+                        cmd = 'mkdir -p %s\n%s' % (kegg_out, cmd)
                         self.outputs['cmds'].setdefault(key, []).append(cmd)
                         io_update(self, o_f=biom, key=key)
                         self.soft.add_status(tech, 'all samples', 1,
@@ -1807,6 +1820,7 @@ def woltka_kegg(
                         cmd += ' --map %s/%s' % (kegg_maps, maps)
                         cmd += ' --field %s' % params['field']
                         cmd += ' --output %s\n' % biom[:-3]
+                        cmd = 'mkdir -p %s\n%s' % (kegg_out, cmd)
                         self.outputs['cmds'].setdefault(key, []).append(cmd)
                         io_update(self, o_f=biom, key=key)
                         self.soft.add_status(tech, 'all samples', 1,
