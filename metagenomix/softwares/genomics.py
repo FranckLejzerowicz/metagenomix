@@ -169,7 +169,7 @@ def get_drep_inputs(
         File containing the paths corresponding to each bin
     """
     drep_in = '%s/input_genomes.txt' % drep_dir
-    with open(drep_in, 'w') as o:
+    with open(rep(drep_in), 'w') as o:
         for b_path in b_paths:
             o.write('%s\n' % b_path)
     cmd = 'envsubst < %s > %s.tmp\n' % (drep_in, drep_in)
