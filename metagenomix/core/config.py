@@ -260,7 +260,6 @@ class AnalysesConfig(object):
                     if self.fastq[sam].get((tech, sam)):
                         n = len(self.fastq[sam][(tech, sam)])
                     log.info('%s %s%s' % (li, n, ' '*(len(tech)-len(str(n)))))
-                log.info()
 
     def get_r(self):
         self.r = {}
