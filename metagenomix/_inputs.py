@@ -147,7 +147,6 @@ def show_inputs(self, log):
                         show_sam = False
                     else:
                         log.info('%s %s %s' % ((' ' * len(s)), sep.strip(), f))
-            log.info()
 
 
 def get_post_prot_dir(
