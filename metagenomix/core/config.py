@@ -254,12 +254,12 @@ class AnalysesConfig(object):
             log.info('sample%s %s' % (' '*(max_sam_len - 6),
                                       ' '.join(self.techs)))
             for sam in self.fastq:
-                log.info('%s%s' % (sam, ' '*(max_sam_len - len(sam))), end='')
+                li = '%s%s' % (sam, ' '*(max_sam_len - len(sam)))
                 for tech in self.techs:
                     n = 0
                     if self.fastq[sam].get((tech, sam)):
                         n = len(self.fastq[sam][(tech, sam)])
-                    log.info(' %s%s' % (n, ' '*(len(tech)-len(str(n)))), end='')
+                    log.info('%s %s%s' % (li, n, ' '*(len(tech)-len(str(n)))))
                 log.info()
 
     def get_r(self):
