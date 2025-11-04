@@ -414,6 +414,11 @@ def fastp(self) -> None:
     for (tech, sam), fastqs in self.inputs[self.sam_pool].items():
         if tech_specificity(self, fastqs, tech, sam):
             continue
+        if self.config.verbose:
+            print()
+            print()
+            print((tech, sam))
+            print(fastqs)
         to_dos = status_update(self, tech, fastqs)
 
         out_dir = '%s/%s/%s' % (self.dir, tech, self.sam_pool)
