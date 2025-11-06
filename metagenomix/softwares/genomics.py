@@ -1749,6 +1749,7 @@ def checkm2_cmd(
                     'genes', 'force', 'dbg_cos', 'dbg_vectors']:
         if self.soft.params[boolean]:
             cmd += ' --%s' % boolean
+    cmd += '\n'
     cmd += 'gzip %s/quality_report.tsv\n' % out_dir
     cmd += 'rm -rf %s/protein_files\n' % out_dir
     return cmd

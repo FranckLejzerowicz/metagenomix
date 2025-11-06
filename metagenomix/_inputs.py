@@ -203,7 +203,7 @@ def genome_key(
     Parameters
     ----------
     tech : str
-        Technology: 'illumina', 'pacbio', 'nanopore', or hybrif naming
+        Technology: 'illumina', 'pacbio', 'nanopore', or hybrid naming
     sam_group : str
         Sample name or group for the current co-assembly
     genome : str
@@ -240,7 +240,7 @@ def genome_out_dir(
         .sam_pool : str
             Sample or co-assembly name
     tech : str
-        Technology: 'illumina', 'pacbio', 'nanopore', or hybrif naming
+        Technology: 'illumina', 'pacbio', 'nanopore', or hybrid naming
     sam_group : str
         Sample name or group for the current co-assembly
     genome : str

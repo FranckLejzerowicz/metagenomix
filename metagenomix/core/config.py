@@ -167,8 +167,11 @@ class AnalysesConfig(object):
             if col not in self.meta.columns:
                 sys.exit('Co-assembly variable "%s" not in %s' % t)
             factors_flat = [str(f) for factor in factors for f in factor]
-            if not set(factors_flat).issubset(set(self.meta[col])):
-                sys.exit('Co-assembly factors for variable "%s" not in %s' % t)
+            diffs = set(factors_flat).difference(set(self.meta[col]))
+            if diffs:
+                mess = 'Co-assembly factors of variable "%s" not in %s:\n' % t
+                mess += ' * %s' % '\n * '.join(sorted(diffs))
+                sys.exit(mess)
             d = {str(y): '_'.join(map(str, x)) for x in factors for y in x}
             cols[col] = [d[y] if y in d else self.meta.sample_name[x]
                          for x, y in enumerate(self.meta[col])]
