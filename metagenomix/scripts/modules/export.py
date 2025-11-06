@@ -30,6 +30,8 @@ from metagenomix import __version__
               help="Creates the tar locally, and not in the location of `-l`")
 @click.option("-a", "--account", show_default=False, default='nn9745k',
               help="User account for your HPC (in use for Slurm)")
+@click.option("-n", "--hostname", show_default=False, default='saga.sigma2.no',
+              help="Machine hostname to print for scp (<user>@<hostname>:...)")
 @click.option("--jobs/--no-jobs", default=True, show_default=True,
               help="Whether to make the archive in a job")
 @click.option("--torque/--no-torque", default=False, show_default=True,
@@ -47,6 +49,7 @@ def export(
         location,
         local,
         account,
+        hostname,
         jobs,
         torque,
         verbose
@@ -62,6 +65,7 @@ def export(
         location=location,
         local=local,
         account=account,
+        hostname=hostname,
         jobs=jobs,
         torque=torque,
         verbose=verbose

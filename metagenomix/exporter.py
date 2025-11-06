@@ -197,7 +197,9 @@ class Exported(object):
         user = expanduser('~').split('/')[-1]
         hostname = socket.gethostname()
         ip_address = socket.gethostbyname(hostname)
-        if hostname.startswith('login') and hostname.endswith('saga'):
+        if self.hostname:
+            hostname = self.hostname
+        elif hostname.startswith('login') and hostname.endswith('saga'):
             hostname = 'saga.sigma2.no'
         print('* Then, copy(-edit)-paste on your computer to download from '
               'server:')
