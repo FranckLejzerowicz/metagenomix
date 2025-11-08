@@ -883,9 +883,11 @@ def refine_cmd(
         cmd += ' -o %s' % out_dir
         for fdx, tar in enumerate(bin_folders):
             cmd += ' -%s %s' % (['A', 'B', 'C'][fdx], tar.replace('.tar.gz', ''))
-        if len(bin_folders) == 1:
-            cmd += ' --skip-refinement'
-            cmd += ' --keep-ambiguous'
+        for boolean in ['skip_refinement', 'skip_checkm',
+                        'skip_consolidation', 'keep_ambiguous',
+                        'remove_ambiguous', 'quick']:
+            if self.soft.params[boolean]:
+                cmd += ' --%s' % self.soft.params[boolean].replace('-', '_')
         cmd += ' -t %s' % self.soft.params['cpus']
         cmd += ' -c %s' % self.soft.params['min_completion']
         cmd += ' -x %s\n' % self.soft.params['max_contamination']

@@ -1417,7 +1417,13 @@ def check_metawrap(self, params):
         'binners': ['maxbin2', 'metabat2', 'concoct'],
         'reassembly': ['permissive', 'strict'],
         'blobology': ['coassembly', 'sample'],
-        'edit_paired': [False, True]
+        'edit_paired': [False, True],
+        'skip_refinement': [False, True],
+        'skip_checkm': [False, True],
+        'skip_consolidation': [False, True],
+        'keep_ambiguous': [False, True],
+        'remove_ambiguous': [False, True],
+        'quick': [False, True]
     }
     if 'binners' not in params:
         params['binners'] = defaults['binners']
