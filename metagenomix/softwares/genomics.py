@@ -657,7 +657,7 @@ def analyze_cmd(
     stor_dir = '%s/storage' % analyze_dir
     cmd += 'tar cpfz %s/aai_qa.tar.gz -C %s aai_qa\n' % (stor_dir, stor_dir)
     cmd += 'rm -rf %s/aai_qa\n' % stor_dir
-    cmd += 'for i in %s/bins/*/*; do gzip -q $i; done\n' % analyze_dir
+    # cmd += 'for i in %s/bins/*/*; do gzip -q $i; done\n' % analyze_dir
     return cmd
 
 
