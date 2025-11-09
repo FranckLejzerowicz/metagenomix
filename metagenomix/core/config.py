@@ -8,10 +8,11 @@
 
 import re
 import sys
+import glob
 import subprocess
 import pkg_resources
-from os.path import abspath, basename, isfile, splitext
-from metagenomix._io_utils import read_yaml, get_fastq_files, get_fastq_paths
+from os.path import abspath, basename, dirname, isfile, splitext
+from metagenomix._io_utils import read_yaml
 from metagenomix._metadata import read_metadata
 from metagenomix._hpc import *
 import pandas as pd
@@ -32,10 +33,13 @@ class AnalysesConfig(object):
         self.soft_paths = []
         self.techs = ['illumina', 'pacbio', 'nanopore']
         self.techs_fastqs = {}
+        self.sams_fastqs = {}
+        self.fastq_pairing = {}
         self.fastq_mv = {}
         self.fastq = {}
         self.params = {}
         self.params_dbs = {}
+        self.re = {}
         self.read = []
         self.dir = ''
         self.email = ''
@@ -54,8 +58,9 @@ class AnalysesConfig(object):
         self.get_directives()
         self.get_conda_envs()
         self.set_metadata()
+        self.get_res()
         self.get_tools()
-        self.get_techs()
+        self.get_techs_inputs()
         self.set_fastqs()
         self.show_fastqs(logging)
         self.get_r()
@@ -128,6 +133,14 @@ class AnalysesConfig(object):
             raise IOError('No file "%s"' % self.meta_fp)
         self.meta = read_metadata(self.meta_fp)
 
+    def get_res(self):
+        for sam in self.meta.sample_name:
+            self.re[sam] = {
+                0: re.compile(r'%s\.fastq(?:\.gz)?\Z' % sam),
+                1: re.compile(r'%s_R?1\.fastq(?:\.gz)?\Z' % sam),
+                2: re.compile(r'%s_R?2\.fastq(?:\.gz)?\Z' % sam)
+            }
+
     def get_tools(self):
         self.tools['fastq'] = 'raw data'
         with open('%s/softwares.txt' % RESOURCES) as f:
@@ -180,14 +193,18 @@ class AnalysesConfig(object):
         self.meta[name] = col.replace('', np.nan)
         self.pooling_groups.append(name)
 
-    def init_fastq(self, sam):
-        def fill_fq_dict(techs):
-            return dict(((tech, sam), []) for tech in techs)
-        if sam not in self.fastq:
-            self.fastq[sam] = fill_fq_dict(self.techs_fastqs)
-            self.fastq_mv[sam] = fill_fq_dict(self.techs_fastqs)
+    def get_fastq_paths(self, tech_dir):
+        fastqs = []
+        for fastq_dir in self.__dict__[tech_dir]:
+            fastqs.extend(glob.glob(fastq_dir + '/*.fastq*'))
+        return fastqs
 
-    def fill_fastq(self, fastqs: list):
+    def get_techs_inputs(self):
+        for tech_dir in [x for x in self.__dict__.keys() if x.endswith('dirs')]:
+            tech = tech_dir.split('_')[0]
+            self.techs_fastqs[tech] = self.get_fastq_paths(tech_dir)
+
+    def get_sams_fastqs(self, fastqs: list):
         """Populate a `fastq` dict with for each sample (keys) the list of
         fastq file paths (values), which would be either of length 1 if there
         is only one fastq file for the sample, or of length 2 if there are
@@ -210,42 +227,95 @@ class AnalysesConfig(object):
             Fastq file path(s) per sample
         """
         fastq = {}
-        sams = set(self.meta.sample_name)
         for fq in sorted(fastqs):
-            for sam in sams:
-                if re.match('%s_R?[1-2].fastq(.gz)?' % sam, basename(fq)):
-                    if sam in fastq:
-                        fastq[sam].append(abspath(fq))
-                    else:
-                        fastq[sam] = [abspath(fq)]
+            base = basename(fq)
+            for sam in set(self.meta.sample_name):
+                if self.re[sam][1].match(base) or self.re[sam][2].match(base):
                     break
-                elif re.match('%s.fastq(.gz)?' % sam, basename(fq)):
-                    fastq[sam] = [abspath(fq)]
+                if self.re[sam][0].match(base):
                     break
+            else:
+                continue
+            fastq.setdefault(sam, []).append(abspath(fq))
         return fastq
+
+    def init_fastq(self, sam):
+        def fill_fq_dict(techs):
+            return dict(((tech, sam), []) for tech in techs)
+        if sam not in self.fastq:
+            self.fastq[sam] = fill_fq_dict(self.techs_fastqs)
+            self.fastq_mv[sam] = fill_fq_dict(self.techs_fastqs)
+
+    def get_fqs(self, sam, fastqs):
+        single, paired = {}, {}
+        for fastq in fastqs:
+            base = basename(fastq).rstrip('.gz')
+            fold = dirname(fastq)
+            if self.re[sam][0].match(base):
+                single.setdefault(0, {}).update({fold: fastq})
+            elif self.re[sam][1].match(base):
+                paired.setdefault(1, {}).update({fold: fastq})
+            elif self.re[sam][2].match(base):
+                paired.setdefault(2, {}).update({fold: fastq})
+        print(single)
+        print(paired)
+        print(pairedfdew)
+
+        for i in p:
+            print('          [p]', i)
+        for i in s:
+            print('          [s]', i)
+        print(dfgjb)
+        return fastqs
 
     def get_fastq_samples(self, tech):
         # keep only the `.fastq.gz` files (if `.fastq` files are also present)
-        for sam, fastqs in self.fill_fastq(self.techs_fastqs[tech]).items():
-            # print(sam, fastqs)
+        print()
+        print()
+        for sam, fastqs in self.sams_fastqs.items():
+            print(' * Sample:', sam)
+            for fq in fastqs:
+                print('          o', fq)
             self.init_fastq(sam)
-            fqs = get_fastq_files(fastqs)
+            fqs = self.get_fqs(sam, fastqs)
+            for fq in fqs:
+                print('          +', fq)
             key = (tech, sam)
             self.fastq[sam][key] = fqs
             self.fastq_mv[sam][key] = ['${SCRATCH_FOLDER}%s' % x for x in fqs]
+        print(dfgkhb)
 
-    def get_techs(self):
-        for tech_dir in [x for x in self.__dict__.keys() if x.endswith('dirs')]:
-            tech = tech_dir.split('_')[0]
-            fastq_paths = get_fastq_paths(self.__dict__[tech_dir])
-            if fastq_paths:
-                self.techs_fastqs[tech] = fastq_paths
+    def get_pairs(self):
+        for sam in set(self.meta.sample_name):
+            sam_fs = {}
+            for fq in sorted(fastqs):
+                dir, base = fq.rsplit('/', 1)
+                if re.match('%s_R?[1-2].fastq(.gz)?' % sam, base):
+                    pair = base.split('%s_' % sam)[-1][-1]
+                    sam_fs.setdefault('paired', {}).update()
+                elif re.match('%s.fastq(.gz)?' % sam, b):
+                    pair = ''
+                    pairs.setdefault('single', []).append(a)
+            if sam_fs:
+                self.fastq_pairing[sam] = sam_fs
+        print(self.fastq_pairing)
+        print(selffastq_pairingfds)
 
     def set_fastqs(self):
         """
         Check that fastq folder exists and that it contains fastq files.
         """
-        for tech in self.techs_fastqs:
+        if self.dev:
+            print('[self.sams_fastqs]')
+        for tech, techs_fastqs in self.techs_fastqs.items():
+            self.sams_fastqs = self.get_sams_fastqs(techs_fastqs)
+            if self.dev:
+                print('-' * 50)
+                for sam, paths in self.sams_fastqs.items():
+                    print(' --', sam)
+                    for path in paths:
+                        print('  ', path)
+                print('-' * 50)
             self.get_fastq_samples(tech)
         if not sum([len(y) for _, x in self.fastq.items() for y in x.values()]):
             sys.exit('Input fastq folder(s) do not exist')

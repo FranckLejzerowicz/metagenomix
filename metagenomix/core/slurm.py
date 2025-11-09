@@ -19,7 +19,7 @@ def set_tmpdir(self) -> list:
     """
     # define the temporary folder
     d = self.config.directives
-    tmpdir = '${TMPDIR}/%s_${%s}' % (self.job_name, d['job_id'])
+    tmpdir = '${TMPDIR}/%s_${%s}' % (self.job_name_short, d['job_id'])
     # set command to create the temporary folder
     tmp = [
         '# create and export the temporary directory',
