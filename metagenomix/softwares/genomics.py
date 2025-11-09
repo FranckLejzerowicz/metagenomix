@@ -141,13 +141,15 @@ def bin_paths(
     ds = set()
     with open(rep(mv_paths), 'w') as o:
         for b in get_bin_paths(self, paths):
-            d = '${SCRATCH_FOLDER}%s/%s' % (bdir, '_'.join(b.split('/')[-5:-1]))
+            d = '%s/%s' % (bdir, '_'.join(b.split('/')[-5:-1]))
+            # d = '${SCRATCH_FOLDER}%s/%s' % (bdir, '_'.join(b.split('/')[-5:-1]))
             if d not in ds:
                 o.write('mkdir -p %s\n' % d)
                 ds.add(d)
             new_path = '%s-%s' % (d, basename(bdir))
             bin_paths.append(new_path)
-            o.write('cp ${SCRATCH_FOLDER}%s %s\n' % (bdir, new_path))
+            o.write('cp %s %s\n' % (bdir, new_path))
+            # o.write('cp ${SCRATCH_FOLDER}%s %s\n' % (bdir, new_path))
     cmd_mv = 'sh %s\n' % mv_paths
     cmd_rm = 'rm -rf %s\n' % bdir
     return cmd_mv, cmd_rm, bin_paths, mv_paths
