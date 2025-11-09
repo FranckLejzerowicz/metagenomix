@@ -103,7 +103,7 @@ def get_bin_paths(
     return bins_paths
 
 
-def bin_paths(
+def cmd_paths(
         self,
         drep_dir: str,
         paths: list
@@ -141,20 +141,13 @@ def bin_paths(
     ds = set()
     with open(rep(mv_paths), 'w') as o:
         for bin_path in get_bin_paths(self, paths):
-            # fold = '${SCRATCH_FOLDER}%s' % bins_dir
-            # names = '_'.join(bin_path.split('/')[-5:-1])
-            # new_path = '%s/%s-%s' % (fold, names, basename(bin_path))
-            # bin_paths.append(new_path)
-            # o.write('cp ${SCRATCH_FOLDER}%s %s\n' % (bin_path, new_path))
             d = '%s/%s' % (bins_dir, '_'.join(bin_path.split('/')[-5:-1]))
-            # d = '${SCRATCH_FOLDER}%s/%s' % (bins_dir, '_'.join(b.split('/')[-5:-1]))
             if d not in ds:
                 o.write('mkdir -p %s\n' % d)
                 ds.add(d)
             new_path = '%s-%s' % (d, basename(bins_dir))
-            bin_paths.append(new_path)
             o.write('cp %s %s\n' % (bin_path, new_path))
-            # o.write('cp ${SCRATCH_FOLDER}%s %s\n' % (bins_dir, new_path))
+            bin_paths.append(new_path)
     cmd_mv = 'sh %s\n' % mv_paths
     cmd_rm = 'rm -rf %s\n' % bins_dir
     return cmd_mv, cmd_rm, bin_paths, mv_paths
@@ -295,13 +288,13 @@ def drep(self):
                 self.outputs['outs'][pool][(tech, bin_algo)] = [dereps]
                 to_dos = status_update(
                     self, tech, paths, group=bin_algo, folder=True)
-                cmd_mv, cmd_rm, b_paths, mv_paths = bin_paths(self, odir, paths)
+                cmd_mv, cmd_rm, b_paths, mvs = cmd_paths(self, odir, paths)
                 cmd_input, drep_in = get_drep_inputs(odir, b_paths)
                 if not b_paths:
                     self.soft.add_status(tech, pool, paths, group=bin_algo,
                                          message='run previous')
                     if self.config.dev:
-                        b_paths = ['x']*5001
+                        b_paths = ['x'] * 5001
                 out_dereps = '%s/*.fa' % dereps.replace('${SCRATCH_FOLDER}', '')
                 if not self.config.force and glob.glob(out_dereps):
                     self.soft.add_status(tech, pool, 0, group=bin_algo)
@@ -311,7 +304,8 @@ def drep(self):
                 if not to_dos:
                     cmd = '\n'.join([cmd_mv, cmd_input, cmd, cmd_rm])
                     self.outputs['cmds'].setdefault(key, []).append(cmd)
-                    io_update(self, i_f=mv_paths, i_d=paths, o_d=odir, key=key)
+                    io_update(
+                        self, i_f=[mvs, drep_in], i_d=paths, o_d=odir, key=key)
                 self.soft.add_status(tech, pool, 1, group=bin_algo)
 
 
