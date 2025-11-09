@@ -529,7 +529,6 @@ class Created(object):
             self.job_name += '.' + ''.join([
                 x for x in soft.dir.split('after_')[-1] if x not in 'aeiuoy'])
         self.job_name += '.' + chunk.replace('/', '_')
-        self.job_name_short += '.' + chunk.replace('/', '_')
 
     def write_dummy_oe(self):
         outro = open('%s/outro.o' % TESTS).readlines()
