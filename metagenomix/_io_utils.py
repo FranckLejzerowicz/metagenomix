@@ -47,6 +47,16 @@ def read_yaml(
     return yaml_dict
 
 
+def get_fastq_files(
+        fastqs: list
+) -> list:
+    fastq_gz = [fastq for fastq in fastqs if '.gz' in fastq]
+    if len(fastq_gz):
+        return fastq_gz
+    else:
+        return fastqs
+
+
 def mkdr(
         path: str,
         is_file: bool = False
