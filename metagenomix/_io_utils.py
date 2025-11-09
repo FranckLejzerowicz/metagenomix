@@ -47,16 +47,6 @@ def read_yaml(
     return yaml_dict
 
 
-def get_fastq_files(
-        fastqs: list
-) -> list:
-    fastq_gz = [fastq for fastq in fastqs if '.gz' in fastq]
-    if len(fastq_gz):
-        return fastq_gz
-    else:
-        return fastqs
-
-
 def mkdr(
         path: str,
         is_file: bool = False
@@ -162,7 +152,7 @@ def get_hmms_dias_cmd(
     cmd : str
         Command to hmmfetch these term's hmms.
     """
-    comp = re.compile("[\\ \-\",()%':&/.\[\]]")
+    comp = re.compile(r"[\-\",()%':&/.\[\] ]")
     cmd = ''
     hmms_dias = {}
     pfam_out = '%s/%s' % (odir, comp.sub('_', term))
