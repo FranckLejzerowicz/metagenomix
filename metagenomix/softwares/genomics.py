@@ -133,25 +133,30 @@ def bin_paths(
         Path to the script moving the potentially many files
     """
     bin_paths = []
-    bdir = '%s/bins' % drep_dir
-    if not os.path.isdir(rep(bdir)):
-        os.makedirs(rep(bdir))
+    bins_dir = '%s/bins' % drep_dir
+    if not os.path.isdir(rep(bins_dir)):
+        os.makedirs(rep(bins_dir))
     mv_paths = '%s/mv_paths.sh' % drep_dir
 
     ds = set()
     with open(rep(mv_paths), 'w') as o:
-        for b in get_bin_paths(self, paths):
-            d = '%s/%s' % (bdir, '_'.join(b.split('/')[-5:-1]))
-            # d = '${SCRATCH_FOLDER}%s/%s' % (bdir, '_'.join(b.split('/')[-5:-1]))
+        for bin_path in get_bin_paths(self, paths):
+            # fold = '${SCRATCH_FOLDER}%s' % bins_dir
+            # names = '_'.join(bin_path.split('/')[-5:-1])
+            # new_path = '%s/%s-%s' % (fold, names, basename(bin_path))
+            # bin_paths.append(new_path)
+            # o.write('cp ${SCRATCH_FOLDER}%s %s\n' % (bin_path, new_path))
+            d = '%s/%s' % (bins_dir, '_'.join(bin_path.split('/')[-5:-1]))
+            # d = '${SCRATCH_FOLDER}%s/%s' % (bins_dir, '_'.join(b.split('/')[-5:-1]))
             if d not in ds:
                 o.write('mkdir -p %s\n' % d)
                 ds.add(d)
-            new_path = '%s-%s' % (d, basename(bdir))
+            new_path = '%s-%s' % (d, basename(bins_dir))
             bin_paths.append(new_path)
-            o.write('cp %s %s\n' % (bdir, new_path))
-            # o.write('cp ${SCRATCH_FOLDER}%s %s\n' % (bdir, new_path))
+            o.write('cp %s %s\n' % (bin_path, new_path))
+            # o.write('cp ${SCRATCH_FOLDER}%s %s\n' % (bins_dir, new_path))
     cmd_mv = 'sh %s\n' % mv_paths
-    cmd_rm = 'rm -rf %s\n' % bdir
+    cmd_rm = 'rm -rf %s\n' % bins_dir
     return cmd_mv, cmd_rm, bin_paths, mv_paths
 
 
