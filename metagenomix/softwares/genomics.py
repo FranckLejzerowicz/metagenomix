@@ -145,7 +145,7 @@ def cmd_paths(
             if d not in ds:
                 o.write('mkdir -p %s\n' % d)
                 ds.add(d)
-            new_path = '%s-%s' % (d, basename(bins_dir))
+            new_path = '%s-%s' % (d, basename(bin_path))
             o.write('cp %s %s\n' % (bin_path, new_path))
             bin_paths.append(new_path)
     cmd_mv = 'sh %s\n' % mv_paths
