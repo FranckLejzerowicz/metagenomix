@@ -12,7 +12,7 @@ import glob
 import subprocess
 import pkg_resources
 from os.path import abspath, basename, dirname, isfile, splitext
-from metagenomix._io_utils import read_yaml
+from metagenomix._io_utils import read_yaml, get_fastq_files
 from metagenomix._metadata import read_metadata
 from metagenomix._hpc import *
 import pandas as pd
@@ -257,15 +257,15 @@ class AnalysesConfig(object):
                 paired.setdefault(1, {}).update({fold: fastq})
             elif self.re[sam][2].match(base):
                 paired.setdefault(2, {}).update({fold: fastq})
-        print(single)
-        print(paired)
-        print(pairedfdew)
-
-        for i in p:
-            print('          [p]', i)
-        for i in s:
-            print('          [s]', i)
-        print(dfgjb)
+        # print(single)
+        # print(paired)
+        # print(pairedfdew)
+        #
+        # for i in p:
+        #     print('          [p]', i)
+        # for i in s:
+        #     print('          [s]', i)
+        # print(dfgjb)
         return fastqs
 
     def get_fastq_samples(self, tech):
@@ -277,13 +277,14 @@ class AnalysesConfig(object):
             for fq in fastqs:
                 print('          o', fq)
             self.init_fastq(sam)
-            fqs = self.get_fqs(sam, fastqs)
+            # fqs = self.get_fqs(sam, fastqs)
+            fqs = get_fastq_files(fastqs)
             for fq in fqs:
                 print('          +', fq)
             key = (tech, sam)
             self.fastq[sam][key] = fqs
             self.fastq_mv[sam][key] = ['${SCRATCH_FOLDER}%s' % x for x in fqs]
-        print(dfgkhb)
+        # print(dfgkhb)
 
     def get_pairs(self):
         for sam in set(self.meta.sample_name):

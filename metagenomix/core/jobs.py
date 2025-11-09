@@ -50,6 +50,7 @@ class Created(object):
         self.run = {'database': {}, 'software': {}}
         self.job_fps = []
         self.job_name = ''
+        self.job_name_short = ''
         self.modules = {}
         self.pjct = self.get_prjct()
         self.scheduler = self.get_scheduler()
@@ -523,10 +524,12 @@ class Created(object):
 
     def get_job_name(self, name: str, chunk: str, soft=None):
         self.job_name = name + '.' + self.pjct
+        self.job_name_short = name + '.' + self.pjct
         if soft:
             self.job_name += '.' + ''.join([
                 x for x in soft.dir.split('after_')[-1] if x not in 'aeiuoy'])
         self.job_name += '.' + chunk.replace('/', '_')
+        self.job_name_short += '.' + chunk.replace('/', '_')
 
     def write_dummy_oe(self):
         outro = open('%s/outro.o' % TESTS).readlines()

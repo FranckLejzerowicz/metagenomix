@@ -17,7 +17,7 @@ import itertools
 import numpy as np
 import pandas as pd
 from tabulate import tabulate
-from os.path import basename, dirname, isdir, isfile, islink, splitext
+from os.path import basename, dirname, isdir, isfile, islink
 
 
 def read_yaml(
@@ -55,15 +55,6 @@ def get_fastq_files(
         return fastq_gz
     else:
         return fastqs
-
-
-def get_fastq_paths(
-        fastq_dirs: list
-) -> list:
-    fastqs = []
-    for fastq_dir in fastq_dirs:
-        fastqs.extend(glob.glob(fastq_dir + '/*.fastq*'))
-    return fastqs
 
 
 def mkdr(
