@@ -79,7 +79,7 @@ def get_drep_bins(self) -> dict:
 def get_bin_paths(
         self,
         paths: list
-) -> tuple:
+) -> list:
     """Collect the genomes fasta files after removing the scratch folder path.
 
     Parameters
@@ -92,18 +92,18 @@ def get_bin_paths(
 
     Returns
     -------
-    bin_paths : list
+    bins_paths : list
         Genome files to use for dereplication
     """
-    bin_paths = []
+    bins_paths = []
     for path in paths:
-        bin_paths.extend(glob.glob('%s/*fa' % rep(path)))
+        bins_paths.extend(glob.glob('%s/*fa' % rep(path)))
         if self.config.dev:
-            bin_paths = ['%s/a.fa' % rep(path), '%s/b.fa' % rep(path)]
-    return bin_paths
+            bins_paths = ['%s/a.fa' % rep(path), '%s/b.fa' % rep(path)]
+    return bins_paths
 
 
-def fix_bin_paths(
+def bin_paths(
         self,
         drep_dir: str,
         paths: list
@@ -129,22 +129,24 @@ def fix_bin_paths(
         Command to remove the copied input
     bin_paths : list
         Genome files to use for dereplication
+    mv_paths : str
+        Path to the script moving the potentially many files
     """
     bin_paths = []
     bins_dir = '%s/bins' % drep_dir
     if not os.path.isdir(rep(bins_dir)):
         os.makedirs(rep(bins_dir))
-    o_paths = '%s/mv_paths.sh' % drep_dir
-    with open(rep(o_paths), 'w') as o:
+    mv_paths = '%s/mv_paths.sh' % drep_dir
+    with open(rep(mv_paths), 'w') as o:
         for bin_path in get_bin_paths(self, paths):
             fold = '${SCRATCH_FOLDER}%s' % bins_dir
             names = '_'.join(bin_path.split('/')[-5:-1])
             new_path = '%s/%s-%s' % (fold, names, basename(bin_path))
             bin_paths.append(new_path)
             o.write('cp ${SCRATCH_FOLDER}%s %s\n' % (bin_path, new_path))
-    cmd_paths = 'sh %s\n' % o_paths
+    cmd_mv = 'sh %s\n' % mv_paths
     cmd_rm = 'rm -rf %s\n' % bins_dir
-    return cmd_paths, cmd_rm, bin_paths
+    return cmd_mv, cmd_rm, bin_paths, mv_paths
 
 
 def get_drep_inputs(
@@ -276,14 +278,14 @@ def drep(self):
         for binning, paths in pool_paths.items():
             for algo in self.soft.params['S_algorithm']:
                 bin_algo = '_'.join([binning, algo])
-                drep_out = '/'.join([self.dir, tech, pool, bin_algo])
-                self.outputs['dirs'].append(drep_out)
-                dereps = '%s/dereplicated_genomes' % drep_out
+                odir = '/'.join([self.dir, tech, pool, bin_algo])
+                self.outputs['dirs'].append(odir)
+                dereps = '%s/dereplicated_genomes' % odir
                 self.outputs['outs'][pool][(tech, bin_algo)] = [dereps]
                 to_dos = status_update(
                     self, tech, paths, group=bin_algo, folder=True)
-                cmd_path, cmd_rm, b_paths = fix_bin_paths(self, drep_out, paths)
-                cmd_input, drep_in = get_drep_inputs(drep_out, b_paths)
+                cmd_mv, cmd_rm, b_paths, mv_paths = bin_paths(self, odir, paths)
+                cmd_input, drep_in = get_drep_inputs(odir, b_paths)
                 if not b_paths:
                     self.soft.add_status(tech, pool, paths, group=bin_algo,
                                          message='run previous')
@@ -294,11 +296,11 @@ def drep(self):
                     self.soft.add_status(tech, pool, 0, group=bin_algo)
                     continue
                 key = genome_key(tech, bin_algo)
-                cmd = drep_cmd(self, algo, drep_in, drep_out, b_paths)
+                cmd = drep_cmd(self, algo, drep_in, odir, b_paths)
                 if not to_dos:
-                    cmd = '\n'.join([cmd_path, cmd_input, cmd, cmd_rm])
+                    cmd = '\n'.join([cmd_mv, cmd_input, cmd, cmd_rm])
                     self.outputs['cmds'].setdefault(key, []).append(cmd)
-                    io_update(self, i_d=paths, o_d=drep_out, key=key)
+                    io_update(self, i_f=mv_paths, i_d=paths, o_d=odir, key=key)
                 self.soft.add_status(tech, pool, 1, group=bin_algo)
 
 
