@@ -202,7 +202,9 @@ class AnalysesConfig(object):
     def get_techs_inputs(self):
         for tech_dir in [x for x in self.__dict__.keys() if x.endswith('dirs')]:
             tech = tech_dir.split('_')[0]
-            self.techs_fastqs[tech] = self.get_fastq_paths(tech_dir)
+            techs_inputs = self.get_fastq_paths(tech_dir)
+            if techs_inputs:
+                self.techs_fastqs[tech] = techs_inputs
 
     def get_sams_fastqs(self, fastqs: list):
         """Populate a `fastq` dict with for each sample (keys) the list of
