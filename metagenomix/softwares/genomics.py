@@ -290,7 +290,7 @@ def drep(self):
                     self.soft.add_status(tech, pool, paths, group=bin_algo,
                                          message='run previous')
                     if self.config.dev:
-                        b_paths = ['x'] * 5001
+                        b_paths = ['x']*5001
                 out_dereps = '%s/*.fa' % dereps.replace('${SCRATCH_FOLDER}', '')
                 if not self.config.force and glob.glob(out_dereps):
                     self.soft.add_status(tech, pool, 0, group=bin_algo)
