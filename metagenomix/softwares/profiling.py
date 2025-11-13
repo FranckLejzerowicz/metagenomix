@@ -1976,7 +1976,7 @@ def get_zebra_cmd(
         self,
         tech: str,
         bam: str,
-        sam: str,
+        sam_in: str,
         out: str) -> str:
     """Build the command line for MIDAS analysis.
 
@@ -1993,6 +1993,8 @@ def get_zebra_cmd(
         Technology: 'illumina', 'pacbio', or 'nanopore'
     bam : str
         Path to the input unfiltered BAM alignment
+    sam_in : str
+        Path to the input unfiltered SAM alignment
     out : str
         Path to the output folder to write coverages and filtered SAM alignments
 
