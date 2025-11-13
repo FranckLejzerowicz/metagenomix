@@ -1976,6 +1976,7 @@ def get_zebra_cmd(
         self,
         tech: str,
         bam: str,
+        sam: str,
         out: str) -> str:
     """Build the command line for MIDAS analysis.
 
@@ -2004,7 +2005,6 @@ def get_zebra_cmd(
     ali_dir = dirname(bam)
 
     cov = '%s/coverages.tsv' % out
-    sam_in = '%s/alignment.bowtie2.sam' % ali_dir
     sam_out = '%s/alignment.bowtie2_filtered.sam' % out
     bam_out = '%s/alignment.bowtie2_filtered.bam' % out
     cmd = ''
@@ -2064,16 +2064,17 @@ def zebra(self) -> None:
             to_dos = status_update(self, tech, [bam], group=aligner)
             key = genome_key(tech, sam, aligner)
             out = '/'.join([self.dir, tech, sam, db])
+            sam_in = '%s/alignment.bowtie2.sam' % dirname(bam)
             bam_out = '%s/alignment.bowtie2_filtered.bam' % out
             self.outputs['dirs'].append(out)
             self.outputs['outs'][(tech, sam)][(db, aligner)] = bam_out
             if self.config.force or to_do(bam_out):
-                cmd = get_zebra_cmd(self, tech, bam, out)
+                cmd = get_zebra_cmd(self, tech, bam, sam_in, out)
                 if to_dos:
                     self.outputs['cmds'].setdefault(key, []).append(False)
                 else:
                     self.outputs['cmds'].setdefault(key, []).append(cmd)
-                io_update(self, i_f=bam, o_d=out, key=key)
+                io_update(self, i_f=[sam_in, bam], o_d=out, key=key)
                 self.soft.add_status(tech, sam, 1, group=aligner)
             else:
                 self.soft.add_status(tech, sam, 0, group=aligner)
