@@ -190,8 +190,8 @@ class Exported(object):
                     o.write('squeue %s\n' % hpc_out)
                 else:
                     o.write('sbatch %s\n' % hpc_out)
-        print('[jobs: NIRD files unreachable] sh %s' % run)
-        print('[no job: NIRD files reachable] sh %s\n' % sh)
+        print('[jobs: NIRD files reachable] sh %s' % run)
+        print('[no job: NIRD files unreachable] sh %s\n' % sh)
 
     def showdown(self):
         user = expanduser('~').split('/')[-1]
