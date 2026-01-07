@@ -485,9 +485,9 @@ class Created(object):
                 for line in f:
                     o.write(line)
             o.write('\n# ------ commands END ------\n\n')
-            if 'TMPDIR' in os.environ:
-                o.write('\n\nrm -rf ${TMPDIR}\n')
-                o.write('# ------ clear END ------\n\n')
+            # if 'TMPDIR' in os.environ:
+            #     o.write('\n\nrm -rf ${TMPDIR}\n')
+            #     o.write('# ------ clear END ------\n\n')
             o.write('\necho "Done!"\n')
         os.remove(self.sh)
 
