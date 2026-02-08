@@ -412,7 +412,7 @@ def fastp(self) -> None:
             Configurations
     """
     for (tech, sam), fastqs in self.inputs[self.sam_pool].items():
-        if tech_specificity(self, fastqs, tech, sam):
+        if tech_specificity(self, fastqs, tech, sam, ['illumina']):
             continue
         if self.config.verbose:
             print()
