@@ -37,6 +37,7 @@ pysam_spades_plasmid	alignment
 pysam_spades_metaviral	alignment
 pysam_spades_bio	alignment
 pysam_prodigal	alignment
+zebra alignment
 mmseqs2	annotation (protein prediction)
 prodigal	annotation (protein prediction)
 macsyfinder	annotation (macromolecular systems, pathways)
@@ -115,6 +116,7 @@ checkm_tetra	MAG (quality check)
 checkm	MAG (quality check)
 checkm2	MAG (quality check)
 busco	MAG (quality check)
+carveme	MAG (metabolics)
 metamarker	profiling
 midas	profiling
 midas2_snps	profiling
