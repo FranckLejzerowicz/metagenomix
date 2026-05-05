@@ -37,7 +37,7 @@ pysam_spades_plasmid	alignment
 pysam_spades_metaviral	alignment
 pysam_spades_bio	alignment
 pysam_prodigal	alignment
-zebra alignment
+zebra	alignment
 mmseqs2	annotation (protein prediction)
 prodigal	annotation (protein prediction)
 macsyfinder	annotation (macromolecular systems, pathways)
