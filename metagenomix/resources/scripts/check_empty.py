@@ -7,7 +7,7 @@ import pandas as pd
 @click.option('-c', '--cutoff', default=0.1, help='Minimum % genome coverage.', show_default=True)
 
 def check_empty(input_file, empty, cutoff):
-    cov = pd.read_table(input_file, usecols=['#genome', 'coverage_ratio'])
+    cov = pd.read_table(input_file, usecols=['gotu', 'coverage_ratio'])
     if (cov['coverage_ratio'] > cutoff).sum():
         with open(empty, 'w') as o:
             pass
