@@ -800,7 +800,9 @@ def woltka_aligments(
                 if bam and db == 'wol':
                     if aligner not in alignments:
                         alignments[aligner] = {}
-                    alignments[aligner][sample] = bam
+                    emp = '%s/empty' % dirname(bam)
+                    if to_do(emp):
+                        alignments[aligner][sample] = bam
     return alignments
 
 
@@ -2007,6 +2009,7 @@ def get_zebra_cmd(
     ali_dir = dirname(bam)
 
     cov = '%s/coverages.tsv' % out
+    emp = '%s/empty' % out
     sam_out = '%s/alignment.bowtie2_filtered.sam' % out
     bam_out = '%s/alignment.bowtie2_filtered.bam' % out
     cmd = ''
@@ -2016,6 +2019,11 @@ def get_zebra_cmd(
         cmd += ' -i %s' % ali_dir
         cmd += ' -o %s' % cov
         cmd += ' -d %s/genomes/metadata.tsv\n' % self.databases.paths['wol']
+
+    cmd += 'python %s/check_empty.py' % RESOURCES
+    cmd += ' -i %s' % cov
+    cmd += ' -c %s' % params['c']
+    cmd += ' -o %s\n' % emp
 
     if to_do(sam_out):
         cmd += 'python %s/filter_sam.py' % RESOURCES
