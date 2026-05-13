@@ -5,9 +5,8 @@ import pandas as pd
 @click.option('-i',"--input", required=True, help='File for list of coverages.')
 @click.option('-e',"--empty", required=True, help="File to be written is no genome > min coverage")
 @click.option('-c', '--cutoff', default=0.1, help='Minimum % genome coverage.', show_default=True)
-
-def check_empty(input_file, empty, cutoff):
-    cov = pd.read_table(input_file, usecols=['gotu', 'coverage_ratio'])
+def check_empty(input, empty, cutoff):
+    cov = pd.read_table(input, usecols=['gotu', 'coverage_ratio'])
     if (cov['coverage_ratio'] > cutoff).sum():
         with open(empty, 'w') as o:
             pass
