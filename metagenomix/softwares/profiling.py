@@ -1654,7 +1654,7 @@ def woltka_kegg(
         ('ko', 'ko.name', 'ko.map.xz', ''),
         ('query', '', '', ''),
         ('ko-cog', '', 'ko-to-cog.txt', 'ko'),
-        ('ko-disease', 'disease_name.txt', 'ko-to-disease.txt', 'ko'),
+        # ('ko-disease', 'disease_name.txt', 'ko-to-disease.txt', 'ko'),
         ('ko-ec', '', 'ko-to-ec.txt', 'ko'),
         ('ko-go', '', 'ko-to-go.txt', 'ko'),
         ('ko-module', 'module_name.txt', 'ko-to-module.txt', 'ko'),
