@@ -51,7 +51,7 @@ def get_email() -> str:
     return email
 
 
-def create_config(log, email_fp: str) -> str:
+def create_config(logging, email_fp: str) -> str:
     """Collect the email address interactively from the user
     and write it somewhere it can be reused.
 
@@ -66,11 +66,11 @@ def create_config(log, email_fp: str) -> str:
         email address of the user.
     """
     email = get_email()
-    write_email(log, email_fp, email)
+    write_email(logging, email_fp, email)
     return email
 
 
-def write_email(log, email_fp: str, email: str):
+def write_email(logging, email_fp: str, email: str):
     """Write the email address somewhere it can be reused.
 
     Parameters
@@ -82,10 +82,10 @@ def write_email(log, email_fp: str, email: str):
     """
     with open(email_fp, 'w') as o:
         o.write('%s\n' % email)
-    log.info('Written: %s' % email_fp)
+    logging.info('Written: %s' % email_fp)
 
 
-def edit_config(self, log, email_fp: str):
+def edit_config(self, logging, email_fp: str):
     """
     Checks that the content of the existing config file
     is a valid email address.
@@ -94,7 +94,7 @@ def edit_config(self, log, email_fp: str):
     ----------
     self
         All config attributes
-    log
+    logging
         Logger
     email_fp : str
         Path to the file that may (or not) contains an email address
@@ -107,8 +107,8 @@ def edit_config(self, log, email_fp: str):
     # parse the first line of the config file
     email = get_first_line(email_fp)
     if self.config_email:
-        log.info("Registered email:", email)
-        email = create_config(log, email_fp)
+        logging.info("Registered email:", email)
+        email = create_config(logging, email_fp)
     return email
 
 
