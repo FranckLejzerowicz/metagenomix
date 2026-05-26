@@ -2023,7 +2023,7 @@ def get_zebra_cmd(
     cmd += 'python %s/check_empty.py' % RESOURCES
     cmd += ' -i %s' % cov
     cmd += ' -c %s' % params['c']
-    cmd += ' -o %s\n' % emp
+    cmd += ' -e %s\n' % emp
 
     if to_do(sam_out):
         cmd += 'python %s/filter_sam.py' % RESOURCES
